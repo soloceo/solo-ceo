@@ -223,10 +223,13 @@ export function TransactionsView({ showToast }: { showToast: (m: string) => void
     } catch { showToast(t("money.saveFail" as any)); }
   };
 
-  const handleExportReport = () => {
-    const w = window.open("/api/finance/report", "_blank");
-    if (!w) { showToast(t("money.popupBlocked" as any)); return; }
-    showToast(t("money.reportOpened" as any));
+  const [reportHtml, setReportHtml] = useState<string | null>(null);
+  const handleExportReport = async () => {
+    try {
+      const res = await fetch("/api/finance/report");
+      const html = await res.text();
+      setReportHtml(html);
+    } catch { showToast(t("money.popupBlocked" as any)); }
   };
 
   /* ── Derived data ─── */
@@ -594,6 +597,23 @@ export function TransactionsView({ showToast }: { showToast: (m: string) => void
           </>
         )}
       </AnimatePresence>
+
+      {/* ── Report modal (in-app, no external browser) ── */}
+      {reportHtml && createPortal(
+        <div className="fixed inset-0 z-[9999] flex flex-col" style={{ background: "var(--bg)" }}>
+          <div className="flex items-center justify-between px-4 py-3 border-b shrink-0" style={{ borderColor: "var(--border)" }}>
+            <span className="font-semibold text-[15px]" style={{ color: "var(--text)" }}>{t("money.export" as any)}</span>
+            <button onClick={() => setReportHtml(null)} className="p-1.5 rounded-lg hover:bg-black/5"><X size={18} /></button>
+          </div>
+          <iframe
+            srcDoc={reportHtml}
+            className="flex-1 w-full border-0"
+            sandbox="allow-same-origin"
+            title="Finance Report"
+          />
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
