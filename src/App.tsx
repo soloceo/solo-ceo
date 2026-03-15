@@ -14,6 +14,9 @@ import {
   Sun,
   PanelLeftClose,
   PanelLeft,
+  Cloud,
+  CloudOff,
+  RefreshCw,
 } from "lucide-react";
 import { LanguageProvider, useT } from "./i18n/context";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
@@ -98,6 +101,29 @@ function App() {
   const [operatorAvatar, setOperatorAvatar] = useState(() => localStorage.getItem("OPERATOR_AVATAR") || "");
   const operatorDisplayName = operatorName.trim() || "Andy";
   const operatorInitial = operatorDisplayName.charAt(0).toUpperCase();
+
+  // Connection & sync status
+  const [isOnline, setIsOnline] = useState(() => navigator.onLine);
+  const [syncStatus, setSyncStatus] = useState<"idle" | "syncing">("idle");
+  const [pendingOps, setPendingOps] = useState(0);
+
+  useEffect(() => {
+    const goOnline = () => setIsOnline(true);
+    const goOffline = () => setIsOnline(false);
+    const onSync = (e: Event) => {
+      const { status, pending } = (e as CustomEvent).detail || {};
+      if (status) setSyncStatus(status);
+      if (typeof pending === "number") setPendingOps(pending);
+    };
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    window.addEventListener("sync-status", onSync);
+    return () => {
+      window.removeEventListener("online", goOnline);
+      window.removeEventListener("offline", goOffline);
+      window.removeEventListener("sync-status", onSync);
+    };
+  }, []);
 
   // Dark mode
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("DARK_MODE") === "true");
@@ -196,8 +222,21 @@ function App() {
           ))}
         </nav>
 
-        {/* Bottom area: settings avatar */}
+        {/* Bottom area: sync status + settings avatar */}
         <div className="mt-auto flex flex-col gap-1 px-2 pb-3">
+          {/* Sync status */}
+          <div className={`flex items-center ${sidebarExpanded ? "px-2 py-1.5" : "justify-center py-1.5"}`}>
+            <SyncIndicator isOnline={isOnline} syncStatus={syncStatus} pendingOps={pendingOps} compact={!sidebarExpanded} />
+            {sidebarExpanded && (
+              <span className="ml-1.5 text-[11px] truncate" style={{ color: "var(--text-tertiary)" }}>
+                {syncStatus === "syncing"
+                  ? (pendingOps > 0 ? `${t("settings.sync.syncing" as any)}` : t("settings.sync.syncing" as any))
+                  : !isOnline
+                    ? t("settings.cloudSync.offline" as any)
+                    : t("settings.cloudSync.connected" as any)}
+              </span>
+            )}
+          </div>
           <button
             onClick={() => handleTabChange("settings")}
             className="flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors"
@@ -244,6 +283,7 @@ function App() {
             {pageTitle}
           </span>
           <div className="flex items-center gap-1.5">
+            <SyncIndicator isOnline={isOnline} syncStatus={syncStatus} pendingOps={pendingOps} compact />
             <button
               onClick={toggleDarkMode}
               className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors"
@@ -426,6 +466,47 @@ const MobileNavItem = React.memo(function MobileNavItem({
       <span className="relative z-10">{icon}</span>
       <span className="relative z-10 text-[10px] font-medium">{label}</span>
     </button>
+  );
+});
+
+/* ── Sync status indicator ─────────────────────────────────────── */
+const SyncIndicator = React.memo(function SyncIndicator({
+  isOnline, syncStatus, pendingOps, compact = false,
+}: {
+  isOnline: boolean; syncStatus: "idle" | "syncing"; pendingOps: number; compact?: boolean;
+}) {
+  const { t } = useT();
+
+  if (syncStatus === "syncing") {
+    return (
+      <div className="flex items-center gap-1.5" title={t("settings.cloudSync.status" as any)}>
+        <RefreshCw size={compact ? 13 : 14} className="animate-spin" style={{ color: "var(--accent)" }} />
+        {!compact && (
+          <span className="text-[11px] font-medium" style={{ color: "var(--accent)" }}>
+            {pendingOps > 0 ? `${pendingOps}` : ""}
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  if (!isOnline) {
+    return (
+      <div className="flex items-center gap-1.5" title={t("settings.cloudSync.offline" as any)}>
+        <CloudOff size={compact ? 13 : 14} style={{ color: "var(--warning, #f59e0b)" }} />
+        {!compact && pendingOps > 0 && (
+          <span className="text-[11px] font-medium" style={{ color: "var(--warning, #f59e0b)" }}>
+            {pendingOps}
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center" title={t("settings.cloudSync.connected" as any)}>
+      <Cloud size={compact ? 13 : 14} style={{ color: "var(--success, #22c55e)" }} />
+    </div>
   );
 });
 
