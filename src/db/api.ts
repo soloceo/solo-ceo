@@ -644,16 +644,22 @@ export async function handleApiRequest(
     const actualDate = paid_date || new Date().toISOString().split('T')[0];
     const milestone = get(db, 'SELECT * FROM payment_milestones WHERE id=?', [id]) as any;
     if (!milestone) return err(404, 'Milestone not found');
-    const client = get(db, 'SELECT name FROM clients WHERE id=?', [milestone.client_id]) as any;
+    const client = get(db, 'SELECT name, tax_mode, tax_rate FROM clients WHERE id=?', [milestone.client_id]) as any;
     const clientName = client?.name || '';
+    const txTaxMode = client?.tax_mode || 'none';
+    const txTaxRate = Number(client?.tax_rate || 0);
+    const txAmount = Number(milestone.amount||0);
+    const txTaxAmount = txTaxMode === 'exclusive' ? Math.round((txAmount * txTaxRate) / 100 * 100) / 100
+                      : txTaxMode === 'inclusive' ? Math.round((txAmount * txTaxRate) / (100 + txTaxRate) * 100) / 100
+                      : 0;
 
     // Create finance transaction
     const txRes = run(db,
-      `INSERT INTO finance_transactions (type, amount, category, description, date, status, client_id, client_name)
-       VALUES (?,?,?,?,?,?,?,?)`,
-      ['income', Number(milestone.amount||0), '项目收入',
+      `INSERT INTO finance_transactions (type, amount, category, description, date, status, client_id, client_name, tax_mode, tax_rate, tax_amount)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+      ['income', txAmount, '项目收入',
        `${clientName} · ${milestone.label||'项目付款'}`, actualDate, '已完成',
-       milestone.client_id, clientName]);
+       milestone.client_id, clientName, txTaxMode, txTaxRate, txTaxAmount]);
 
     // Update milestone
     run(db,

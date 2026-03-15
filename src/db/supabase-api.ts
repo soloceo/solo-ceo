@@ -287,6 +287,7 @@ export async function handleSupabaseRequest(
           contact_email: contact_email || '', contact_phone: contact_phone || '',
           billing_type: billing_type || 'subscription', project_fee: project_fee || 0,
           project_end_date: project_end_date || '',
+          tax_mode: tax_mode || 'none', tax_rate: tax_rate || 0,
         })
         .eq('id', id);
       if (e) return err(500, e.message);
@@ -386,8 +387,14 @@ export async function handleSupabaseRequest(
     // Get milestone + client info
     const { data: milestone } = await supabase.from('payment_milestones').select('*').eq('id', id).single();
     if (!milestone) return err(404, 'Milestone not found');
-    const { data: client } = await supabase.from('clients').select('name').eq('id', milestone.client_id).single();
+    const { data: client } = await supabase.from('clients').select('name, tax_mode, tax_rate').eq('id', milestone.client_id).single();
     const clientName = client?.name || '';
+    const txTaxMode = client?.tax_mode || 'none';
+    const txTaxRate = Number(client?.tax_rate || 0);
+    const txAmount = Number(milestone.amount || 0);
+    const txTaxAmount = txTaxMode === 'exclusive' ? Math.round((txAmount * txTaxRate) / 100 * 100) / 100
+                      : txTaxMode === 'inclusive' ? Math.round((txAmount * txTaxRate) / (100 + txTaxRate) * 100) / 100
+                      : 0;
 
     // Create finance transaction
     const { data: tx, error: txErr } = await supabase
@@ -395,13 +402,16 @@ export async function handleSupabaseRequest(
       .insert({
         user_id: userId,
         type: 'income',
-        amount: Number(milestone.amount || 0),
+        amount: txAmount,
         category: '项目收入',
         description: `${clientName} · ${milestone.label || '项目付款'}`,
         date: actualDate,
         status: '已完成',
         client_id: milestone.client_id,
         client_name: clientName,
+        tax_mode: txTaxMode,
+        tax_rate: txTaxRate,
+        tax_amount: txTaxAmount,
       })
       .select('id')
       .single();
