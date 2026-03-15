@@ -1,5 +1,5 @@
 {
-  "name": "yiren-ceo",
+  "name": "solo-ceo",
   "productName": "一人CEO",
   "private": true,
   "version": "1.0.0",
@@ -17,7 +17,7 @@
     "electron:test": "npm run electron:build-all && npx electron ."
   },
   "build": {
-    "appId": "com.yirenceo.app",
+    "appId": "com.soloceo.app",
     "productName": "一人CEO",
     "copyright": "Copyright © 2025",
     "publish": {

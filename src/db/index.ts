@@ -6,7 +6,7 @@ let _initPromise: Promise<Database> | null = null;
 // ── IndexedDB persistence ──────────────────────────────────────────────────
 function openIdb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open('yirenceo-db', 1);
+    const req = indexedDB.open('soloceo-db', 1);
     req.onupgradeneeded = () => req.result.createObjectStore('data');
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);

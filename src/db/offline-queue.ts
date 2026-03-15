@@ -12,7 +12,7 @@ interface QueuedOp {
   timestamp: number;
 }
 
-const DB_NAME = 'yirenceo-offline-queue';
+const DB_NAME = 'soloceo-offline-queue';
 const STORE_NAME = 'ops';
 let replaying = false;
 

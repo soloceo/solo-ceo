@@ -1,4 +1,4 @@
-package com.yirenceo.app;
+package com.soloceo.app;
 
 import com.getcapacitor.BridgeActivity;
 
