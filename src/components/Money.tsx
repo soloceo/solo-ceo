@@ -212,10 +212,18 @@ export function TransactionsView({ showToast }: { showToast: (m: string) => void
       client_id: formData.client_id || null, client_name: formData.client_name || null,
     };
     try {
-      if (editingTx) {
+      const isVirtual = editingTx?.source;
+      if (editingTx && !isVirtual) {
+        // Real record — update
         await fetch(`/api/finance/${editingTx.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(txData) });
         showToast(t("money.toast.updated" as any));
+      } else if (isVirtual === "client_project" && editingTx?.id && String(editingTx.id).startsWith("ms-pending-")) {
+        // Project milestone → mark as paid (this auto-creates finance record)
+        const msId = String(editingTx.id).replace("ms-pending-", "");
+        await fetch(`/api/milestones/${msId}/mark-paid`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paid_date: formData.date }) });
+        showToast(t("money.toast.added" as any));
       } else {
+        // New or subscription virtual → create real record
         await fetch("/api/finance", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(txData) });
         showToast(t("money.toast.added" as any));
       }
@@ -259,6 +267,10 @@ export function TransactionsView({ showToast }: { showToast: (m: string) => void
   const ytdProfit = ytdIncome - ytdExpense;
   const incomeCount = transactions.filter(tx => (tx.type === "income" || tx.category === "收入") && (tx.status || "已完成") === "已完成").length;
   const expenseCount = transactions.filter(tx => (tx.type === "expense" || ["软件支出", "外包支出", "其他支出"].includes(tx.category)) && (tx.status || "已完成") === "已完成").length;
+  // Tax totals — exclusive tax adds to amount, inclusive is included
+  const totalExclTax = transactions.filter(tx => (tx.status || "已完成") === "已完成" && tx.tax_mode === "exclusive" && Number(tx.tax_amount || 0) > 0).reduce((s, tx) => s + Number(tx.tax_amount || 0), 0);
+  const totalInclTax = transactions.filter(tx => (tx.status || "已完成") === "已完成" && tx.tax_mode === "inclusive" && Number(tx.tax_amount || 0) > 0).reduce((s, tx) => s + Number(tx.tax_amount || 0), 0);
+  const totalTax = totalExclTax + totalInclTax;
 
   return (
     <div className="flex flex-col gap-4 flex-1 min-h-0">
@@ -272,9 +284,9 @@ export function TransactionsView({ showToast }: { showToast: (m: string) => void
 
       {/* KPI grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <StatCard title={t("money.stat.completedRevenue" as any)} value={isLoading ? "—" : `$${completedIncome.toLocaleString()}`} sub={t("money.stat.count" as any).replace("{count}", String(incomeCount))} icon={<Wallet size={15} />} color="var(--success)" />
+        <StatCard title={t("money.stat.completedRevenue" as any)} value={isLoading ? "—" : `$${completedIncome.toLocaleString()}`} sub={totalExclTax > 0 ? `${t("money.stat.count" as any).replace("{count}", String(incomeCount))} · +税$${totalExclTax.toLocaleString()}` : t("money.stat.count" as any).replace("{count}", String(incomeCount))} icon={<Wallet size={15} />} color="var(--success)" />
         <StatCard title={t("money.stat.completedExpense" as any)} value={isLoading ? "—" : `$${completedExpense.toLocaleString()}`} sub={t("money.stat.count" as any).replace("{count}", String(expenseCount))} icon={<ArrowDownRight size={15} />} color="var(--danger)" />
-        <StatCard title={t("money.stat.netProfit" as any)} value={isLoading ? "—" : `$${netProfit.toLocaleString()}`} sub={netProfit >= 0 ? t("money.stat.realtime" as any) : t("money.lossWarning" as any)} icon={<Landmark size={15} />} color={netProfit >= 0 ? "var(--success)" : "var(--danger)"} />
+        <StatCard title={t("money.stat.netProfit" as any)} value={isLoading ? "—" : `$${netProfit.toLocaleString()}`} sub={totalTax > 0 ? `${netProfit >= 0 ? t("money.stat.realtime" as any) : t("money.lossWarning" as any)} · 税合计$${totalTax.toLocaleString()}` : (netProfit >= 0 ? t("money.stat.realtime" as any) : t("money.lossWarning" as any))} icon={<Landmark size={15} />} color={netProfit >= 0 ? "var(--success)" : "var(--danger)"} />
         <StatCard title={t("money.stat.yearRevenue" as any)} value={isLoading ? "—" : `$${ytdIncome.toLocaleString()}`} sub={`${cy} ${t("money.stat.ytd" as any)}`} icon={<ArrowUpRight size={15} />} color="var(--success)" />
         <StatCard title={t("money.stat.yearProfit" as any)} value={isLoading ? "—" : `$${ytdProfit.toLocaleString()}`} sub={`${cy} ${t("money.stat.ytd" as any)}`} icon={<ArrowUpRight size={15} />} color={ytdProfit >= 0 ? "var(--success)" : "var(--danger)"} />
         {/* Receivables / payables */}
@@ -344,8 +356,8 @@ export function TransactionsView({ showToast }: { showToast: (m: string) => void
             {transactions.slice(0, 10).map((tx) => (
               <div
                 key={tx.id}
-                onClick={() => !tx.source && openPanel(tx)}
-                className={`list-item px-4 py-3 ${tx.source ? "opacity-60" : "cursor-pointer"}`}
+                onClick={() => openPanel(tx)}
+                className="list-item px-4 py-3 cursor-pointer"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -359,13 +371,28 @@ export function TransactionsView({ showToast }: { showToast: (m: string) => void
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="text-[13px] font-semibold" style={{ color: tx.type === "income" ? "var(--success)" : "var(--text)" }}>
-                      {tx.type === "income" ? "+" : "-"}${Math.abs(tx.amount).toLocaleString()}
-                    </div>
-                    {Number(tx.tax_amount || 0) > 0 && (
-                      <span className="text-[10px] font-medium" style={{ color: "var(--accent)" }}>
-                        {tx.tax_mode === "inclusive" ? t("money.table.inclusiveTax" as any) : t("money.table.plusTax" as any)}¥{Number(tx.tax_amount).toLocaleString()}
-                      </span>
+                    {Number(tx.tax_amount || 0) > 0 && tx.tax_mode === "exclusive" ? (
+                      <>
+                        <div className="text-[13px] font-semibold" style={{ color: tx.type === "income" ? "var(--success)" : "var(--text)" }}>
+                          {tx.type === "income" ? "+" : "-"}${(Math.abs(tx.amount) + Number(tx.tax_amount)).toLocaleString()}
+                        </div>
+                        <span className="text-[10px] font-medium" style={{ color: "var(--accent)" }}>
+                          税前${Math.abs(tx.amount).toLocaleString()} + 税{tx.tax_rate}% ${Number(tx.tax_amount).toLocaleString()}
+                        </span>
+                      </>
+                    ) : Number(tx.tax_amount || 0) > 0 && tx.tax_mode === "inclusive" ? (
+                      <>
+                        <div className="text-[13px] font-semibold" style={{ color: tx.type === "income" ? "var(--success)" : "var(--text)" }}>
+                          {tx.type === "income" ? "+" : "-"}${Math.abs(tx.amount).toLocaleString()}
+                        </div>
+                        <span className="text-[10px] font-medium" style={{ color: "var(--accent)" }}>
+                          含税{tx.tax_rate}% · 税${Number(tx.tax_amount).toLocaleString()} · 税前${(Math.abs(tx.amount) - Number(tx.tax_amount)).toLocaleString()}
+                        </span>
+                      </>
+                    ) : (
+                      <div className="text-[13px] font-semibold" style={{ color: tx.type === "income" ? "var(--success)" : "var(--text)" }}>
+                        {tx.type === "income" ? "+" : "-"}${Math.abs(tx.amount).toLocaleString()}
+                      </div>
                     )}
                     <div className="text-[10px] font-medium" style={{ color: (tx.status || "已完成") === "已完成" ? "var(--success)" : (tx.status || "").includes("应收") ? "var(--warning)" : "var(--danger)" }}>
                       {tx.status || t("money.form.status.completed" as any)}
@@ -397,7 +424,7 @@ export function TransactionsView({ showToast }: { showToast: (m: string) => void
             {/* Mobile */}
             <div className="md:hidden divide-y" style={{ borderColor: "var(--border)" }}>
               {transactions.map((tx) => (
-                <div key={tx.id} onClick={() => !tx.source && (setShowAll(false), openPanel(tx))} className={`p-4 flex items-center gap-3 ${tx.source ? "opacity-60" : "cursor-pointer"}`}>
+                <div key={tx.id} onClick={() => { setShowAll(false); openPanel(tx); }} className="p-4 flex items-center gap-3 cursor-pointer">
                   <div className="shrink-0 flex h-7 w-7 items-center justify-center rounded-lg text-[11px] font-bold" style={{ background: tx.type === "income" ? "var(--success-light)" : "var(--danger-light)", color: tx.type === "income" ? "var(--success)" : "var(--danger)" }}>
                     {tx.type === "income" ? "+" : "-"}
                   </div>
@@ -440,9 +467,20 @@ export function TransactionsView({ showToast }: { showToast: (m: string) => void
                         </div>
                       </td>
                       <td className="px-4 py-3"><span className="badge">{tx.category}</span></td>
-                      <td className="px-4 py-3 font-semibold whitespace-nowrap" style={{ color: tx.type === "income" ? "var(--success)" : "var(--text)" }}>
-                        {tx.type === "income" ? "+" : "-"}${Math.abs(tx.amount).toLocaleString()}
-                        {Number(tx.tax_amount || 0) > 0 && <span className="ml-1 text-[10px] font-medium" style={{ color: "var(--accent)" }}>{tx.tax_mode === "inclusive" ? t("money.table.inclusiveTax" as any) : t("money.table.plusTax" as any)}¥{Number(tx.tax_amount).toLocaleString()}</span>}
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {Number(tx.tax_amount || 0) > 0 && tx.tax_mode === "exclusive" ? (
+                          <div>
+                            <span className="font-semibold" style={{ color: tx.type === "income" ? "var(--success)" : "var(--text)" }}>{tx.type === "income" ? "+" : "-"}${(Math.abs(tx.amount) + Number(tx.tax_amount)).toLocaleString()}</span>
+                            <div className="text-[10px] font-medium" style={{ color: "var(--accent)" }}>税前${Math.abs(tx.amount).toLocaleString()} + 税{tx.tax_rate}% ${Number(tx.tax_amount).toLocaleString()}</div>
+                          </div>
+                        ) : Number(tx.tax_amount || 0) > 0 && tx.tax_mode === "inclusive" ? (
+                          <div>
+                            <span className="font-semibold" style={{ color: tx.type === "income" ? "var(--success)" : "var(--text)" }}>{tx.type === "income" ? "+" : "-"}${Math.abs(tx.amount).toLocaleString()}</span>
+                            <div className="text-[10px] font-medium" style={{ color: "var(--accent)" }}>含税{tx.tax_rate}% · 税${Number(tx.tax_amount).toLocaleString()} · 税前${(Math.abs(tx.amount) - Number(tx.tax_amount)).toLocaleString()}</div>
+                          </div>
+                        ) : (
+                          <span className="font-semibold" style={{ color: tx.type === "income" ? "var(--success)" : "var(--text)" }}>{tx.type === "income" ? "+" : "-"}${Math.abs(tx.amount).toLocaleString()}</span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <span className="badge" style={{
@@ -453,7 +491,7 @@ export function TransactionsView({ showToast }: { showToast: (m: string) => void
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <button onClick={() => openPanel(tx)} disabled={!!tx.source} className="p-1.5 rounded-lg transition-colors" style={{ color: tx.source ? "var(--text-tertiary)" : "var(--text-secondary)" }}>
+                        <button onClick={() => openPanel(tx)} className="p-1.5 rounded-lg transition-colors" style={{ color: "var(--text-secondary)" }}>
                           <Edit2 size={13} />
                         </button>
                       </td>
@@ -585,7 +623,7 @@ export function TransactionsView({ showToast }: { showToast: (m: string) => void
 
               {/* Footer */}
               <div className="flex items-center justify-between px-5 py-3 border-t pb-safe shrink-0" style={{ borderColor: "var(--border)" }}>
-                {editingTx ? (
+                {editingTx && !editingTx.source ? (
                   <button type="button" onClick={async () => { try { await fetch(`/api/finance/${editingTx.id}`, { method: "DELETE" }); setShowPanel(false); showToast(t("money.toast.deleted" as any)); fetchFinance(); } catch { showToast(t("money.deleteFail" as any)); } }}
                     className="flex items-center gap-1.5 text-[13px] font-medium" style={{ color: "var(--danger)" }}>
                     <Trash2 size={13} /> {t("money.deleteBtn" as any)}

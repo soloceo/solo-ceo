@@ -573,18 +573,126 @@ export async function handleSupabaseRequest(
       .select('id, client_id, client_name, plan_tier, amount, ledger_month')
       .order('ledger_month', { ascending: false });
 
-    const subscriptionRows = (ledgerRows || []).map((row) => ({
-      id: `client-sub-${row.id}`,
-      type: 'income',
-      amount: Number(row.amount || 0),
-      category: '订阅收入',
-      description: `${row.client_name || '未命名客户'} · ${row.plan_tier || '订阅'} · ${row.ledger_month}`,
-      date: `${row.ledger_month}-01`,
-      status: '已完成',
-      source: 'client_subscription',
-    }));
+    // Dedup: find which client+month combos already have real finance records
+    const realTx = transactions || [];
+    const realSubKeys = new Set(
+      realTx.filter((t: any) => t.client_id && t.date)
+        .map((t: any) => `${t.client_id}-${String(t.date).substring(0, 7)}`)
+    );
 
-    const merged = [...subscriptionRows, ...(transactions || [])].sort(
+    // Get tax settings for subscription clients
+    const subClientIds = [...new Set((ledgerRows || []).map(r => r.client_id))];
+    let subClientTax: Record<number, { tax_mode: string; tax_rate: number }> = {};
+    if (subClientIds.length > 0) {
+      const { data: subCls } = await supabase.from('clients').select('id, tax_mode, tax_rate').in('id', subClientIds);
+      (subCls || []).forEach(c => { subClientTax[c.id] = { tax_mode: c.tax_mode || 'none', tax_rate: Number(c.tax_rate || 0) }; });
+    }
+
+    const subscriptionRows = (ledgerRows || [])
+      .filter((row) => !realSubKeys.has(`${row.client_id}-${row.ledger_month}`))
+      .map((row) => {
+        const amt = Number(row.amount || 0);
+        const ct = subClientTax[row.client_id] || { tax_mode: 'none', tax_rate: 0 };
+        const ta = ct.tax_mode === 'exclusive' ? Math.round(amt * ct.tax_rate / 100 * 100) / 100
+                 : ct.tax_mode === 'inclusive' ? Math.round(amt * ct.tax_rate / (100 + ct.tax_rate) * 100) / 100 : 0;
+        return {
+          id: `client-sub-${row.id}`,
+          type: 'income',
+          amount: amt,
+          category: '订阅收入',
+          description: `${row.client_name || '未命名客户'} · ${row.plan_tier || '订阅'} · ${row.ledger_month}`,
+          date: `${row.ledger_month}-01`,
+          status: '已完成',
+          source: 'client_subscription',
+          client_id: row.client_id,
+          client_name: row.client_name || '',
+          tax_mode: ct.tax_mode,
+          tax_rate: ct.tax_rate,
+          tax_amount: ta,
+        };
+      });
+
+    // Project: pending milestones + project clients without milestones
+    const { data: pendingMs } = await supabase
+      .from('payment_milestones')
+      .select('id, client_id, label, amount, due_date, status, finance_tx_id')
+      .eq('soft_deleted', false)
+      .eq('status', 'pending');
+    const { data: projectClients } = await supabase
+      .from('clients')
+      .select('id, name, company_name, project_fee, project_end_date, tax_mode, tax_rate, status')
+      .eq('billing_type', 'project')
+      .eq('soft_deleted', false)
+      .eq('status', 'Active');
+    const { data: allMilestones } = await supabase
+      .from('payment_milestones')
+      .select('client_id')
+      .eq('soft_deleted', false);
+    const clientsWithMs = new Set((allMilestones || []).map(m => m.client_id));
+
+    // Build client name map
+    let clientMap: Record<number, { name: string; tax_mode: string; tax_rate: number }> = {};
+    (projectClients || []).forEach(c => {
+      clientMap[c.id] = { name: c.company_name || c.name, tax_mode: c.tax_mode || 'none', tax_rate: Number(c.tax_rate || 0) };
+    });
+    const msClientIds = [...new Set((pendingMs || []).map(m => m.client_id))];
+    if (msClientIds.length > 0) {
+      const { data: cls } = await supabase.from('clients').select('id, name, company_name, tax_mode, tax_rate').in('id', msClientIds);
+      (cls || []).forEach(c => {
+        if (!clientMap[c.id]) clientMap[c.id] = { name: c.company_name || c.name, tax_mode: c.tax_mode || 'none', tax_rate: Number(c.tax_rate || 0) };
+      });
+    }
+
+    // Milestone virtual rows
+    const projectRows = (pendingMs || []).map((ms) => {
+      const ci = clientMap[ms.client_id];
+      return {
+        id: `ms-pending-${ms.id}`,
+        type: 'income',
+        amount: Number(ms.amount || 0),
+        category: '项目收入',
+        description: `${ci?.name || '未命名客户'} · ${ms.label || '项目付款'}`,
+        date: ms.due_date || '',
+        status: '待收款 (应收)',
+        source: 'client_project',
+        client_id: ms.client_id,
+        client_name: ci?.name || '',
+        tax_mode: ci?.tax_mode || 'none',
+        tax_rate: ci?.tax_rate || 0,
+        tax_amount: ci?.tax_mode === 'exclusive' ? Math.round(Number(ms.amount || 0) * (ci?.tax_rate || 0) / 100 * 100) / 100
+                  : ci?.tax_mode === 'inclusive' ? Math.round(Number(ms.amount || 0) * (ci?.tax_rate || 0) / (100 + (ci?.tax_rate || 0)) * 100) / 100
+                  : 0,
+      };
+    });
+
+    // Project clients WITHOUT milestones → show project_fee as whole receivable
+    const projectFeeRows = (projectClients || [])
+      .filter(c => !clientsWithMs.has(c.id) && Number(c.project_fee || 0) > 0)
+      .filter(c => !realSubKeys.has(`${c.id}-${String(c.project_end_date || '').substring(0, 7)}`))
+      .map(c => {
+        const fee = Number(c.project_fee || 0);
+        const tm = c.tax_mode || 'none';
+        const tr = Number(c.tax_rate || 0);
+        const ta = tm === 'exclusive' ? Math.round(fee * tr / 100 * 100) / 100
+                 : tm === 'inclusive' ? Math.round(fee * tr / (100 + tr) * 100) / 100 : 0;
+        return {
+          id: `proj-fee-${c.id}`,
+          type: 'income',
+          amount: fee,
+          category: '项目收入',
+          description: `${c.company_name || c.name} · 项目总费`,
+          date: c.project_end_date || '',
+          status: '待收款 (应收)',
+          source: 'client_project',
+          client_id: c.id,
+          client_name: c.company_name || c.name,
+          tax_mode: tm,
+          tax_rate: tr,
+          tax_amount: ta,
+        };
+      });
+
+    const merged = [...subscriptionRows, ...projectRows, ...projectFeeRows, ...(transactions || [])].sort(
       (a: any, b: any) => String(b.date || '').localeCompare(String(a.date || '')),
     );
     return ok(merged);
@@ -599,8 +707,8 @@ export async function handleSupabaseRequest(
     const receivables = transactions.filter((t: any) => String(t.status || '').includes('应收')).reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     const payables = transactions.filter((t: any) => String(t.status || '').includes('应付')).reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     const totalTax = transactions.filter((t: any) => (t.status || '已完成') === '已完成' && Number(t.tax_amount || 0) > 0).reduce((s: number, t: any) => s + Number(t.tax_amount || 0), 0);
-    const rows = transactions.slice(0, 50).map((t: any) => { const taxInfo = Number(t.tax_amount || 0) > 0 ? ` (税¥${Number(t.tax_amount).toLocaleString()})` : ''; return `<tr><td>${t.date || ''}</td><td>${t.description || ''}</td><td>${t.category || ''}</td><td>${t.type === 'income' ? '+' : '-'}$${Number(t.amount || 0).toLocaleString()}${taxInfo}</td><td>${t.status || '已完成'}</td></tr>`; }).join('');
-    const html = `<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"/><title>一人CEO - 财务月度报表</title><style>body{font-family:-apple-system,sans-serif;padding:32px;color:#18181b}h1{font-size:28px;margin:0 0 8px}p{color:#71717a;margin:0 0 24px}.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}.card{border:1px solid #e4e4e7;border-radius:16px;padding:16px}.label{font-size:12px;color:#71717a;margin-bottom:8px}.value{font-size:24px;font-weight:700}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 12px;border-bottom:1px solid #e4e4e7;font-size:12px}th{background:#f4f4f5;color:#52525b}</style></head><body><h1>财务月度报表</h1><p>一人CEO · 导出时间 ${new Date().toLocaleString('zh-CN')}</p><div class="grid"><div class="card"><div class="label">已完成收入</div><div class="value">$${completedIncome.toLocaleString()}</div></div><div class="card"><div class="label">已完成支出</div><div class="value">$${completedExpense.toLocaleString()}</div></div><div class="card"><div class="label">净利润</div><div class="value">$${(completedIncome - completedExpense).toLocaleString()}</div></div><div class="card"><div class="label">应收 / 应付</div><div class="value">$${receivables.toLocaleString()} / $${payables.toLocaleString()}</div></div><div class="card"><div class="label">税费合计</div><div class="value">¥${totalTax.toLocaleString()}</div></div></div><table><thead><tr><th>日期</th><th>描述</th><th>分类</th><th>金额</th><th>状态</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
+    const rows = transactions.slice(0, 50).map((t: any) => { const taxInfo = Number(t.tax_amount || 0) > 0 ? ` (税$${Number(t.tax_amount).toLocaleString()})` : ''; return `<tr><td>${t.date || ''}</td><td>${t.description || ''}</td><td>${t.category || ''}</td><td>${t.type === 'income' ? '+' : '-'}$${Number(t.amount || 0).toLocaleString()}${taxInfo}</td><td>${t.status || '已完成'}</td></tr>`; }).join('');
+    const html = `<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"/><title>一人CEO - 财务月度报表</title><style>body{font-family:-apple-system,sans-serif;padding:32px;color:#18181b}h1{font-size:28px;margin:0 0 8px}p{color:#71717a;margin:0 0 24px}.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}.card{border:1px solid #e4e4e7;border-radius:16px;padding:16px}.label{font-size:12px;color:#71717a;margin-bottom:8px}.value{font-size:24px;font-weight:700}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 12px;border-bottom:1px solid #e4e4e7;font-size:12px}th{background:#f4f4f5;color:#52525b}</style></head><body><h1>财务月度报表</h1><p>一人CEO · 导出时间 ${new Date().toLocaleString('zh-CN')}</p><div class="grid"><div class="card"><div class="label">已完成收入</div><div class="value">$${completedIncome.toLocaleString()}</div></div><div class="card"><div class="label">已完成支出</div><div class="value">$${completedExpense.toLocaleString()}</div></div><div class="card"><div class="label">净利润</div><div class="value">$${(completedIncome - completedExpense).toLocaleString()}</div></div><div class="card"><div class="label">应收 / 应付</div><div class="value">$${receivables.toLocaleString()} / $${payables.toLocaleString()}</div></div><div class="card"><div class="label">税费合计</div><div class="value">$${totalTax.toLocaleString()}</div></div></div><table><thead><tr><th>日期</th><th>描述</th><th>分类</th><th>金额</th><th>状态</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
     return { status: 200, data: html };
   }
 
@@ -623,11 +731,15 @@ export async function handleSupabaseRequest(
     return ok({ id: data!.id });
   }
 
-  const financeMatch = path.match(/^\/api\/finance\/(\d+|client-sub-[\w-]+)$/);
+  const financeMatch = path.match(/^\/api\/finance\/(\d+|client-sub-[\w-]+|ms-pending-\d+|proj-fee-\d+)$/);
   if (financeMatch) {
     const id = financeMatch[1];
     if (String(id).startsWith('client-sub-'))
       return err(400, '订阅流水由客户状态自动生成，请在客户管理中编辑');
+    if (String(id).startsWith('ms-pending-'))
+      return err(400, '项目里程碑待收款，请在客户管理中确认收款');
+    if (String(id).startsWith('proj-fee-'))
+      return err(400, '项目总费待收款，请在客户管理中编辑');
     if (method === 'PUT') {
       const { type, amount, category, description, date, status, tax_mode, tax_rate, tax_amount, client_id, client_name } = body;
       const { error: e } = await supabase
