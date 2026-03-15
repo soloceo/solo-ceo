@@ -51,7 +51,7 @@ export async function getDb(): Promise<Database> {
 
   _initPromise = (async () => {
     const SQL = await initSqlJs({
-      locateFile: () => '/sql-js/sql-wasm.wasm',
+      locateFile: () => new URL('./sql-js/sql-wasm.wasm', document.baseURI).href,
     });
 
     const saved = await loadFromIdb();

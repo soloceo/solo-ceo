@@ -1,10 +1,44 @@
 'use strict';
 
-const { app, BrowserWindow, shell, Menu, dialog } = require('electron');
+const { app, BrowserWindow, shell, Menu, dialog, protocol } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const { autoUpdater } = require('electron-updater');
 
+// ── Register custom protocol BEFORE app is ready ─────────────────────────────
+// file:// does NOT support fetch(), so sql.js WASM loading fails → white screen.
+// app:// protocol with supportFetchAPI fixes this by serving dist/ files via fs.
+protocol.registerSchemesAsPrivileged([{
+  scheme: 'app',
+  privileges: {
+    standard: true,
+    secure: true,
+    supportFetchAPI: true,
+    corsEnabled: true,
+  },
+}]);
+
 let mainWindow = null;
+
+// MIME types for serving local files
+const MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.mjs': 'application/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.wasm': 'application/wasm',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.map': 'application/json',
+};
 
 // ── Create the BrowserWindow ──────────────────────────────────────────────────
 function createWindow() {
@@ -24,12 +58,19 @@ function createWindow() {
     },
   });
 
-  // Load the static dist/ folder directly — no Express server needed.
-  // All data goes through Supabase cloud via the built-in interceptor.
-  mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+  // Load via custom app:// protocol so fetch() works for WASM files.
+  mainWindow.loadURL('app://host/index.html');
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
+  });
+
+  // Log any page errors to help debug issues
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    console.error('Page failed to load:', errorCode, errorDescription);
+  });
+  mainWindow.webContents.on('console-message', (event, level, message) => {
+    if (level >= 2) console.error('[Renderer]', message);
   });
 
   // Open all target="_blank" links in the system browser
@@ -121,6 +162,28 @@ function setupAutoUpdater() {
 
 // ── App lifecycle ─────────────────────────────────────────────────────────────
 app.whenReady().then(() => {
+  // ── Handle app:// protocol — serve files from dist/ folder ──────────────
+  protocol.handle('app', (request) => {
+    const url = new URL(request.url);
+    let pathname = decodeURIComponent(url.pathname);
+    // Remove leading slash on Windows
+    if (process.platform === 'win32' && pathname.startsWith('/')) {
+      pathname = pathname.slice(1);
+    }
+    const filePath = path.join(__dirname, '../dist', pathname);
+    try {
+      const data = fs.readFileSync(filePath);
+      const ext = path.extname(filePath).toLowerCase();
+      return new Response(data, {
+        status: 200,
+        headers: { 'Content-Type': MIME[ext] || 'application/octet-stream' },
+      });
+    } catch (err) {
+      console.error('[Protocol] 404:', filePath, err.message);
+      return new Response('Not Found', { status: 404 });
+    }
+  });
+
   buildMenu();
   createWindow();
   // Check for updates after a short delay
