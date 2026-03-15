@@ -8,6 +8,7 @@
 
 [![Release](https://img.shields.io/github/v/release/soloceo/solo-ceo?style=flat-square)](https://github.com/soloceo/solo-ceo/releases)
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20iOS%20%7C%20Android-blue?style=flat-square)]()
+[![License](https://img.shields.io/badge/license-Proprietary-red?style=flat-square)]()
 
 </div>
 
@@ -60,35 +61,12 @@
 - 中文 / English 双语切换
 - API Key 管理（Gemini / OpenAI / Anthropic）
 
-### 快速开始
+### 下载安装
 
-#### 安装
 从 [Releases](https://github.com/soloceo/solo-ceo/releases) 下载最新版本：
 - **macOS (Apple Silicon)**: 下载 `.dmg` 文件，拖入 Applications 即可
 - **Android**: 下载 `.apk` 文件直接安装
-- **iOS**: 需通过 Xcode 构建安装
-
-#### 开发
-```bash
-# 安装依赖
-npm install
-
-# 启动开发服务器
-npm run dev
-
-# 打包 macOS
-npm run electron:pack
-
-# 发布新版本到 GitHub Releases
-npm run release
-```
-
-#### 环境变量
-创建 `.env` 文件：
-```
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
+- **iOS**: 即将上线
 
 ---
 
@@ -139,59 +117,21 @@ As a one-person team, you are sales + delivery + finance + operations + content 
 - Chinese / English language toggle
 - API Key management (Gemini / OpenAI / Anthropic)
 
-### Quick Start
+### Download
 
-#### Install
 Download the latest version from [Releases](https://github.com/soloceo/solo-ceo/releases):
-- **macOS (Apple Silicon)**: Download the `.dmg` file, drag to Applications
-- **Android**: Download the `.apk` file and install directly
-- **iOS**: Build via Xcode
-
-#### Development
-```bash
-# Install dependencies
-npm install
-
-# Start dev server
-npm run dev
-
-# Build macOS app
-npm run electron:pack
-
-# Publish new version to GitHub Releases
-npm run release
-```
-
-#### Environment Variables
-Create a `.env` file:
-```
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
+- **macOS (Apple Silicon)**: Download `.dmg`, drag to Applications
+- **Android**: Download `.apk` and install directly
+- **iOS**: Coming soon
 
 ---
 
-## 技术架构 / Tech Stack
+## 特色 / Highlights
 
-```
-Frontend:  React 19 + TypeScript + Tailwind CSS 4 + Motion
-Data:      Supabase (PostgreSQL + Auth + Realtime + RLS)
-Desktop:   Electron (macOS)
-Mobile:    Capacitor (iOS + Android)
-AI:        Google Gemini API
-```
-
-### 云同步 / Cloud Sync
-```
-Component → fetch("/api/*") → Supabase Interceptor → Supabase Cloud
-                                                   ↓ (offline)
-                                              Local sql.js + Queue Replay
-```
-
-- **实时同步 / Real-time Sync**: 多设备秒级同步 / Multi-device sync in seconds (Supabase Realtime)
-- **离线支持 / Offline Support**: 断网可用，恢复后自动同步 / Works offline, auto-syncs when back online
-- **数据隔离 / Data Isolation**: RLS 行级安全 / Row-Level Security per user
-- **自动更新 / Auto Update**: Mac App 内置更新检测 / Built-in update detection (electron-updater)
+- ☁️ **云同步 / Cloud Sync** — 多设备秒级同步 / Real-time sync across devices
+- 📴 **离线支持 / Offline** — 断网可用，恢复后自动同步 / Works offline, auto-syncs on reconnect
+- 🔒 **数据隔离 / Security** — 用户数据完全隔离 / Complete data isolation per user
+- 🆙 **自动更新 / Auto Update** — macOS 内置更新检测 / Built-in update detection
 
 ## 平台支持 / Platform Support
 
@@ -202,6 +142,18 @@ Component → fetch("/api/*") → Supabase Interceptor → Supabase Cloud
 | Android | ✅ | Capacitor, APK available |
 | Web | ✅ | Vite dev server |
 
-## 许可证 / License
+## ⚖️ 许可证 / License
 
-Private — All Rights Reserved
+**Proprietary — All Rights Reserved / 专有软件 — 保留所有权利**
+
+Copyright (c) 2025 Solo CEO
+
+本软件的源代码仅供查看和参考。未经书面许可，禁止复制、修改、分发或用于任何商业/非商业用途。
+详见 [LICENSE](./LICENSE) 文件。
+
+This source code is publicly visible for reference only. Copying, modifying, distributing, or using
+this software for any commercial or non-commercial purpose is strictly prohibited without written permission.
+See the [LICENSE](./LICENSE) file for details.
+
+> ⚠️ **违反许可证条款可能导致法律诉讼。**
+> ⚠️ **Violation of license terms may result in legal action.**
