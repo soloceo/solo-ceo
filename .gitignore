@@ -1,0 +1,11 @@
+node_modules
+dist
+dist-server
+electron-dist
+release
+.env
+database.sqlite
+*.dmg
+*.zip
+*.blockmap
+.DS_Store

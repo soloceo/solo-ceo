@@ -1,0 +1,798 @@
+/**
+ * Supabase API handler — replaces both server.ts and api.ts
+ * Same signature as api.ts handleApiRequest() so the interceptor
+ * can swap between online (Supabase) and offline (sql.js) seamlessly.
+ */
+import { supabase } from './supabase-client';
+
+// ── helpers ────────────────────────────────────────────────────────
+
+function todayDateKey() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function currentMonth() {
+  const n = new Date();
+  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function monthKey(value: string | null | undefined, fallback?: Date): string {
+  if (value) return String(value).slice(0, 7);
+  const d = fallback ?? new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+async function getUserId(): Promise<string> {
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) throw new Error('Not authenticated');
+  return data.user.id;
+}
+
+function normalizePlanTier(t: string): string {
+  if (!t) return '';
+  if (['Basic', 'basic'].includes(t)) return '基础版';
+  if (['Pro', 'pro', 'Professional', 'professional'].includes(t)) return '专业版';
+  if (['Enterprise', 'enterprise'].includes(t)) return '企业版';
+  return t;
+}
+
+async function logActivity(
+  userId: string,
+  entityType: string,
+  action: string,
+  title: string,
+  detail = '',
+  entityId?: number | string,
+) {
+  await supabase.from('activity_log').insert({
+    user_id: userId,
+    entity_type: entityType,
+    entity_id: entityId ? Number(entityId) : null,
+    action,
+    title,
+    detail,
+  });
+}
+
+// ── Subscription ledger sync ──────────────────────────────────────
+
+async function syncClientSubscriptionLedger(userId: string) {
+  const { data: clients } = await supabase
+    .from('clients')
+    .select('id, name, plan_tier, mrr, status, joined_at, subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from')
+    .eq('soft_deleted', false)
+    .gt('mrr', 0);
+
+  if (!clients?.length) {
+    await supabase.from('client_subscription_ledger').delete().eq('user_id', userId);
+    return;
+  }
+
+  // Clear & rebuild
+  await supabase.from('client_subscription_ledger').delete().eq('user_id', userId);
+
+  const now = new Date();
+  const cm = currentMonth();
+  const rows: any[] = [];
+
+  for (const client of clients) {
+    const joined = client.joined_at ? new Date(String(client.joined_at).replace(' ', 'T')) : now;
+    const safeJoined = Number.isNaN(joined.getTime()) ? now : joined;
+
+    const startM = monthKey(client.subscription_start_date, safeJoined);
+    const effectiveM = monthKey(client.mrr_effective_from || client.subscription_start_date, safeJoined);
+    const pausedM = client.paused_at ? monthKey(client.paused_at) : null;
+    const resumedM = client.resumed_at ? monthKey(client.resumed_at) : null;
+    const cancelledM = client.cancelled_at ? monthKey(client.cancelled_at) : null;
+
+    let [year, month] = startM.split('-').map(Number);
+    while (`${year}-${String(month).padStart(2, '0')}` <= cm) {
+      const ledgerMonth = `${year}-${String(month).padStart(2, '0')}`;
+
+      let shouldBill = ledgerMonth >= effectiveM;
+      if (pausedM && ledgerMonth >= pausedM) shouldBill = false;
+      if (resumedM && ledgerMonth >= resumedM) shouldBill = true;
+      if (cancelledM && ledgerMonth >= cancelledM) shouldBill = false;
+      if (client.status !== 'Active' && !pausedM && !cancelledM) shouldBill = false;
+
+      if (shouldBill) {
+        rows.push({
+          user_id: userId,
+          client_id: client.id,
+          client_name: client.name || '未命名客户',
+          plan_tier: client.plan_tier || '',
+          amount: Number(client.mrr || 0),
+          ledger_month: ledgerMonth,
+        });
+      }
+
+      month += 1;
+      if (month > 12) { month = 1; year += 1; }
+    }
+  }
+
+  // Batch insert in chunks of 500
+  for (let i = 0; i < rows.length; i += 500) {
+    await supabase.from('client_subscription_ledger').insert(rows.slice(i, i + 500));
+  }
+}
+
+// ── Main route handler ────────────────────────────────────────────
+
+export async function handleSupabaseRequest(
+  method: string,
+  path: string,
+  body: any,
+): Promise<{ status: number; data: any }> {
+  const ok = (data: any) => ({ status: 200, data });
+  const err = (status: number, msg: string) => ({ status, data: { error: msg } });
+
+  let userId: string;
+  try {
+    userId = await getUserId();
+  } catch {
+    return err(401, 'Not authenticated');
+  }
+
+  // ── LEADS ──────────────────────────────────────────────────────
+  if (path === '/api/leads' && method === 'GET') {
+    const { data, error: e } = await supabase
+      .from('leads')
+      .select('*')
+      .eq('soft_deleted', false)
+      .order('created_at', { ascending: false });
+    if (e) return err(500, e.message);
+    return ok(data);
+  }
+
+  if (path === '/api/leads' && method === 'POST') {
+    const { name, industry, needs, website, column, aiDraft, source } = body;
+    const { data, error: e } = await supabase
+      .from('leads')
+      .insert({
+        user_id: userId,
+        name: name || '', industry: industry || '', needs: needs || '',
+        website: website || '', column: column || 'new',
+        aiDraft: aiDraft || '', source: source || '',
+      })
+      .select('id')
+      .single();
+    if (e) return err(500, e.message);
+    await logActivity(userId, 'lead', 'created', `新增线索：${name || '未命名线索'}`, source ? `来源：${source}` : '', data.id);
+    return ok({ id: data.id });
+  }
+
+  const leadMatch = path.match(/^\/api\/leads\/(\d+)$/);
+  if (leadMatch) {
+    const id = Number(leadMatch[1]);
+    if (method === 'PUT') {
+      const { name, industry, needs, website, column, aiDraft, source } = body;
+      const { error: e } = await supabase
+        .from('leads')
+        .update({
+          name: name || '', industry: industry || '', needs: needs || '',
+          website: website || '', column: column || 'new',
+          aiDraft: aiDraft || '', source: source || '',
+        })
+        .eq('id', id);
+      if (e) return err(500, e.message);
+      await logActivity(userId, 'lead', 'updated', `更新线索：${name || '未命名线索'}`, '', id);
+      return ok({ success: true });
+    }
+    if (method === 'DELETE') {
+      const { data: prev } = await supabase.from('leads').select('name').eq('id', id).single();
+      await supabase.from('leads').update({ soft_deleted: true }).eq('id', id);
+      await logActivity(userId, 'lead', 'deleted', `删除线索：${prev?.name || '未命名线索'}`, '', id);
+      return ok({ success: true });
+    }
+  }
+
+  const convertMatch = path.match(/^\/api\/leads\/(\d+)\/convert$/);
+  if (convertMatch && method === 'POST') {
+    const id = Number(convertMatch[1]);
+    const { data: lead } = await supabase.from('leads').select('*').eq('id', id).single();
+    if (!lead) return err(404, 'Lead not found');
+    const { plan_tier, status, mrr, subscription_start_date, mrr_effective_from } = body || {};
+    const np = normalizePlanTier(plan_tier || '');
+    const today = todayDateKey();
+    const { data: newClient, error: e } = await supabase
+      .from('clients')
+      .insert({
+        user_id: userId,
+        name: lead.name || '', industry: lead.industry || '',
+        plan_tier: np, status: status || 'Active', brand_context: lead.needs || '',
+        mrr: Number(mrr || 0),
+        subscription_start_date: subscription_start_date || today,
+        paused_at: '', resumed_at: '', cancelled_at: '',
+        mrr_effective_from: mrr_effective_from || subscription_start_date || today,
+      })
+      .select('id')
+      .single();
+    if (e) return err(500, e.message);
+    await supabase.from('leads').update({ column: 'won' }).eq('id', id);
+    await syncClientSubscriptionLedger(userId);
+    await logActivity(userId, 'lead', 'converted', `线索转客户：${lead.name || '未命名线索'}`, np ? `方案：${np}` : '', id);
+    await logActivity(userId, 'client', 'created', `新增客户：${lead.name || '未命名客户'}`, np ? `来自线索转化 · 方案：${np}` : '来自线索转化', newClient!.id);
+    return ok({ success: true, clientId: newClient!.id });
+  }
+
+  // ── CLIENTS ────────────────────────────────────────────────────
+  if (path === '/api/clients' && method === 'GET') {
+    await syncClientSubscriptionLedger(userId);
+    const currentYear = new Date().getFullYear();
+    const { data: clients } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('soft_deleted', false)
+      .order('joined_at', { ascending: false });
+    const { data: ledger } = await supabase
+      .from('client_subscription_ledger')
+      .select('client_id, amount, ledger_month');
+    const rows = (clients || []).map((client) => {
+      const cl = (ledger || []).filter((r) => Number(r.client_id) === Number(client.id));
+      const lifetimeRevenue = cl.reduce((s, r) => s + Number(r.amount || 0), 0);
+      const ytdRevenue = cl
+        .filter((r) => String(r.ledger_month || '').startsWith(`${currentYear}-`))
+        .reduce((s, r) => s + Number(r.amount || 0), 0);
+      return { ...client, lifetimeRevenue, ytdRevenue };
+    });
+    return ok(rows);
+  }
+
+  if (path === '/api/clients' && method === 'POST') {
+    const { name, industry, plan_tier, status, brand_context, mrr,
+            subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from,
+            company_name, contact_name, contact_email, contact_phone, billing_type, project_fee, project_end_date } = body;
+    const np = normalizePlanTier(plan_tier || '');
+    const { data, error: e } = await supabase
+      .from('clients')
+      .insert({
+        user_id: userId,
+        name: name || '', industry: industry || '', plan_tier: np, status: status || 'Active',
+        brand_context: brand_context || '', mrr: mrr || 0,
+        subscription_start_date: subscription_start_date || '', paused_at: paused_at || '',
+        resumed_at: resumed_at || '', cancelled_at: cancelled_at || '',
+        mrr_effective_from: mrr_effective_from || subscription_start_date || '',
+        company_name: company_name || '', contact_name: contact_name || '',
+        contact_email: contact_email || '', contact_phone: contact_phone || '',
+        billing_type: billing_type || 'subscription', project_fee: project_fee || 0,
+        project_end_date: project_end_date || '',
+      })
+      .select('id')
+      .single();
+    if (e) return err(500, e.message);
+    await syncClientSubscriptionLedger(userId);
+    await logActivity(userId, 'client', 'created', `新增客户：${name || '未命名客户'}`, np ? `方案：${np}` : '', data!.id);
+    return ok({ id: data!.id });
+  }
+
+  const clientMatch = path.match(/^\/api\/clients\/(\d+)$/);
+  if (clientMatch) {
+    const id = Number(clientMatch[1]);
+    if (method === 'PUT') {
+      const { name, industry, plan_tier, status, brand_context, mrr,
+              subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from,
+              company_name, contact_name, contact_email, contact_phone, billing_type, project_fee, project_end_date } = body;
+      const np = normalizePlanTier(plan_tier || '');
+      const { error: e } = await supabase
+        .from('clients')
+        .update({
+          name: name || '', industry: industry || '', plan_tier: np, status: status || 'Active',
+          brand_context: brand_context || '', mrr: mrr || 0,
+          subscription_start_date: subscription_start_date || '', paused_at: paused_at || '',
+          resumed_at: resumed_at || '', cancelled_at: cancelled_at || '',
+          mrr_effective_from: mrr_effective_from || subscription_start_date || '',
+          company_name: company_name || '', contact_name: contact_name || '',
+          contact_email: contact_email || '', contact_phone: contact_phone || '',
+          billing_type: billing_type || 'subscription', project_fee: project_fee || 0,
+          project_end_date: project_end_date || '',
+        })
+        .eq('id', id);
+      if (e) return err(500, e.message);
+      await syncClientSubscriptionLedger(userId);
+      await logActivity(userId, 'client', 'updated', `更新客户：${name || '未命名客户'}`, '客户信息已更新', id);
+      return ok({ success: true });
+    }
+    if (method === 'DELETE') {
+      const { data: prev } = await supabase.from('clients').select('name').eq('id', id).single();
+      await supabase.from('clients').update({ soft_deleted: true }).eq('id', id);
+      await syncClientSubscriptionLedger(userId);
+      await logActivity(userId, 'client', 'deleted', `删除客户：${prev?.name || '未命名客户'}`, '', id);
+      return ok({ success: true });
+    }
+  }
+
+  // ── TASKS ──────────────────────────────────────────────────────
+  if (path === '/api/tasks' && method === 'GET') {
+    const { data } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('soft_deleted', false)
+      .order('created_at', { ascending: false });
+    return ok(data || []);
+  }
+
+  if (path === '/api/tasks' && method === 'POST') {
+    const { title, client, priority, due, column, originalRequest, aiBreakdown, aiMjPrompts, aiStory } = body;
+    const { data, error: e } = await supabase
+      .from('tasks')
+      .insert({
+        user_id: userId,
+        title: title || '', client: client || '', priority: priority || 'Medium',
+        due: due || '', column: column || 'todo',
+        originalRequest: originalRequest || '', aiBreakdown: aiBreakdown || '',
+        aiMjPrompts: aiMjPrompts || '', aiStory: aiStory || '',
+      })
+      .select('id')
+      .single();
+    if (e) return err(500, e.message);
+    await logActivity(userId, 'task', 'created', `新增任务：${title || '未命名任务'}`, client ? `客户：${client}` : '', data!.id);
+    return ok({ id: data!.id });
+  }
+
+  const taskMatch = path.match(/^\/api\/tasks\/(\d+)$/);
+  if (taskMatch) {
+    const id = Number(taskMatch[1]);
+    if (method === 'PUT') {
+      const { title, client, priority, due, column, originalRequest, aiBreakdown, aiMjPrompts, aiStory } = body;
+      const { error: e } = await supabase
+        .from('tasks')
+        .update({
+          title: title || '', client: client || '', priority: priority || 'Medium',
+          due: due || '', column: column || 'todo',
+          originalRequest: originalRequest || '', aiBreakdown: aiBreakdown || '',
+          aiMjPrompts: aiMjPrompts || '', aiStory: aiStory || '',
+        })
+        .eq('id', id);
+      if (e) return err(500, e.message);
+      await logActivity(userId, 'task', 'updated', `更新任务：${title || '未命名任务'}`, '', id);
+      return ok({ success: true });
+    }
+    if (method === 'DELETE') {
+      const { data: prev } = await supabase.from('tasks').select('title').eq('id', id).single();
+      await supabase.from('tasks').update({ soft_deleted: true }).eq('id', id);
+      await logActivity(userId, 'task', 'deleted', `删除任务：${prev?.title || '未命名任务'}`, '', id);
+      return ok({ success: true });
+    }
+  }
+
+  // ── PLANS ──────────────────────────────────────────────────────
+  if (path === '/api/plans' && method === 'GET') {
+    const { data: planClientCounts } = await supabase
+      .from('clients')
+      .select('plan_tier')
+      .eq('status', 'Active')
+      .eq('soft_deleted', false);
+    const countMap = new Map<string, number>();
+    for (const r of (planClientCounts || [])) {
+      countMap.set(r.plan_tier || '', (countMap.get(r.plan_tier || '') || 0) + 1);
+    }
+
+    const aliases: Record<string, string[]> = {
+      '基础版': ['基础版', 'Basic', 'basic'],
+      '专业版': ['专业版', 'Pro', 'pro', 'Professional', 'professional'],
+      '企业版': ['企业版', 'Enterprise', 'enterprise'],
+    };
+
+    const { data: plans } = await supabase
+      .from('plans')
+      .select('*')
+      .eq('soft_deleted', false);
+    const rows = (plans || []).map((p) => {
+      const al = aliases[p.name as string] || [p.name];
+      const clients = al.reduce((s, a) => s + (countMap.get(a) || 0), 0);
+      let features: any;
+      try { features = JSON.parse(p.features as string); } catch { features = []; }
+      return { ...p, features, clients };
+    });
+    return ok(rows);
+  }
+
+  if (path === '/api/plans' && method === 'POST') {
+    const { name, price, deliverySpeed, features, clients } = body;
+    const { data, error: e } = await supabase
+      .from('plans')
+      .insert({
+        user_id: userId,
+        name: name || '', price: price || 0, deliverySpeed: deliverySpeed || '',
+        features: JSON.stringify(features || []), clients: clients || 0,
+      })
+      .select('id')
+      .single();
+    if (e) return err(500, e.message);
+    await logActivity(userId, 'plan', 'created', `新增方案：${name || '未命名方案'}`, price ? `价格：$${price}/月` : '', data!.id);
+    return ok({ id: data!.id });
+  }
+
+  const planMatch = path.match(/^\/api\/plans\/(\d+)$/);
+  if (planMatch) {
+    const id = Number(planMatch[1]);
+    if (method === 'PUT') {
+      const { name, price, deliverySpeed, features, clients } = body;
+      const { error: e } = await supabase
+        .from('plans')
+        .update({
+          name: name || '', price: price || 0, deliverySpeed: deliverySpeed || '',
+          features: JSON.stringify(features || []), clients: clients || 0,
+        })
+        .eq('id', id);
+      if (e) return err(500, e.message);
+      await logActivity(userId, 'plan', 'updated', `更新方案：${name || '未命名方案'}`, '', id);
+      return ok({ success: true });
+    }
+    if (method === 'DELETE') {
+      const { data: prev } = await supabase.from('plans').select('name').eq('id', id).single();
+      await supabase.from('plans').update({ soft_deleted: true }).eq('id', id);
+      await logActivity(userId, 'plan', 'deleted', `删除方案：${prev?.name || '未命名方案'}`, '', id);
+      return ok({ success: true });
+    }
+  }
+
+  // ── FINANCE ────────────────────────────────────────────────────
+  if (path === '/api/finance' && method === 'GET') {
+    await syncClientSubscriptionLedger(userId);
+    const { data: transactions } = await supabase
+      .from('finance_transactions')
+      .select('*')
+      .eq('soft_deleted', false);
+    const { data: ledgerRows } = await supabase
+      .from('client_subscription_ledger')
+      .select('id, client_id, client_name, plan_tier, amount, ledger_month')
+      .order('ledger_month', { ascending: false });
+
+    const subscriptionRows = (ledgerRows || []).map((row) => ({
+      id: `client-sub-${row.id}`,
+      type: 'income',
+      amount: Number(row.amount || 0),
+      category: '订阅收入',
+      description: `${row.client_name || '未命名客户'} · ${row.plan_tier || '订阅'} · ${row.ledger_month}`,
+      date: `${row.ledger_month}-01`,
+      status: '已完成',
+      source: 'client_subscription',
+    }));
+
+    const merged = [...subscriptionRows, ...(transactions || [])].sort(
+      (a: any, b: any) => String(b.date || '').localeCompare(String(a.date || '')),
+    );
+    return ok(merged);
+  }
+
+  if (path === '/api/finance/report' && method === 'GET') {
+    // Trigger a GET /api/finance internally
+    const { data: allRows } = await handleSupabaseRequest('GET', '/api/finance', null);
+    const transactions = allRows || [];
+    const completedIncome = transactions.filter((t: any) => t.type === 'income' && (t.status || '已完成') === '已完成').reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    const completedExpense = transactions.filter((t: any) => t.type === 'expense' && (t.status || '已完成') === '已完成').reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    const receivables = transactions.filter((t: any) => String(t.status || '').includes('应收')).reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    const payables = transactions.filter((t: any) => String(t.status || '').includes('应付')).reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    const totalTax = transactions.filter((t: any) => (t.status || '已完成') === '已完成' && Number(t.tax_amount || 0) > 0).reduce((s: number, t: any) => s + Number(t.tax_amount || 0), 0);
+    const rows = transactions.slice(0, 50).map((t: any) => { const taxInfo = Number(t.tax_amount || 0) > 0 ? ` (税¥${Number(t.tax_amount).toLocaleString()})` : ''; return `<tr><td>${t.date || ''}</td><td>${t.description || ''}</td><td>${t.category || ''}</td><td>${t.type === 'income' ? '+' : '-'}$${Number(t.amount || 0).toLocaleString()}${taxInfo}</td><td>${t.status || '已完成'}</td></tr>`; }).join('');
+    const html = `<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"/><title>一人CEO - 财务月度报表</title><style>body{font-family:-apple-system,sans-serif;padding:32px;color:#18181b}h1{font-size:28px;margin:0 0 8px}p{color:#71717a;margin:0 0 24px}.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}.card{border:1px solid #e4e4e7;border-radius:16px;padding:16px}.label{font-size:12px;color:#71717a;margin-bottom:8px}.value{font-size:24px;font-weight:700}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 12px;border-bottom:1px solid #e4e4e7;font-size:12px}th{background:#f4f4f5;color:#52525b}</style></head><body><h1>财务月度报表</h1><p>一人CEO · 导出时间 ${new Date().toLocaleString('zh-CN')}</p><div class="grid"><div class="card"><div class="label">已完成收入</div><div class="value">$${completedIncome.toLocaleString()}</div></div><div class="card"><div class="label">已完成支出</div><div class="value">$${completedExpense.toLocaleString()}</div></div><div class="card"><div class="label">净利润</div><div class="value">$${(completedIncome - completedExpense).toLocaleString()}</div></div><div class="card"><div class="label">应收 / 应付</div><div class="value">$${receivables.toLocaleString()} / $${payables.toLocaleString()}</div></div><div class="card"><div class="label">税费合计</div><div class="value">¥${totalTax.toLocaleString()}</div></div></div><table><thead><tr><th>日期</th><th>描述</th><th>分类</th><th>金额</th><th>状态</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
+    return { status: 200, data: html };
+  }
+
+  if (path === '/api/finance' && method === 'POST') {
+    const { type, amount, category, description, date, status, tax_mode, tax_rate, tax_amount, client_id, client_name } = body;
+    const { data, error: e } = await supabase
+      .from('finance_transactions')
+      .insert({
+        user_id: userId,
+        type: type || 'income', amount: amount || 0, category: category || '',
+        description: description || '', date: date || '', status: status || '已完成',
+        tax_mode: tax_mode || 'none', tax_rate: tax_rate || 0, tax_amount: tax_amount || 0,
+        client_id: client_id || null, client_name: client_name || '',
+      })
+      .select('id')
+      .single();
+    if (e) return err(500, e.message);
+    await logActivity(userId, 'finance', 'created', `新增交易：${description || '未命名交易'}`,
+      `${type === 'income' ? '+' : '-'}$${Number(amount || 0).toLocaleString()} · ${category || '未分类'}`, data!.id);
+    return ok({ id: data!.id });
+  }
+
+  const financeMatch = path.match(/^\/api\/finance\/(\d+|client-sub-[\w-]+)$/);
+  if (financeMatch) {
+    const id = financeMatch[1];
+    if (String(id).startsWith('client-sub-'))
+      return err(400, '订阅流水由客户状态自动生成，请在客户管理中编辑');
+    if (method === 'PUT') {
+      const { type, amount, category, description, date, status, tax_mode, tax_rate, tax_amount } = body;
+      const { error: e } = await supabase
+        .from('finance_transactions')
+        .update({
+          type: type || 'income', amount: amount || 0, category: category || '',
+          description: description || '', date: date || '', status: status || '已完成',
+          tax_mode: tax_mode || 'none', tax_rate: tax_rate || 0, tax_amount: tax_amount || 0,
+        })
+        .eq('id', Number(id));
+      if (e) return err(500, e.message);
+      await logActivity(userId, 'finance', 'updated', `更新交易：${description || '未命名交易'}`, '', id);
+      return ok({ success: true });
+    }
+    if (method === 'DELETE') {
+      const { data: prev } = await supabase.from('finance_transactions').select('description').eq('id', Number(id)).single();
+      await supabase.from('finance_transactions').update({ soft_deleted: true }).eq('id', Number(id));
+      await logActivity(userId, 'finance', 'deleted', `删除交易：${prev?.description || '未命名交易'}`, '', id);
+      return ok({ success: true });
+    }
+  }
+
+  // ── CONTENT DRAFTS ─────────────────────────────────────────────
+  if (path === '/api/content-drafts' && method === 'GET') {
+    const { data } = await supabase
+      .from('content_drafts')
+      .select('*')
+      .eq('soft_deleted', false)
+      .order('updated_at', { ascending: false })
+      .limit(20);
+    return ok(data || []);
+  }
+
+  if (path === '/api/content-drafts' && method === 'POST') {
+    const { id, topic, platform, language, content } = body;
+    if (id) {
+      await supabase
+        .from('content_drafts')
+        .update({ topic: topic || '', platform: platform || '', language: language || 'zh', content: content || '' })
+        .eq('id', Number(id));
+      await logActivity(userId, 'content', 'updated', `更新草稿：${topic || '未命名草稿'}`, platform ? `平台：${platform}` : '', id);
+      return ok({ id, success: true });
+    }
+    const { data, error: e } = await supabase
+      .from('content_drafts')
+      .insert({
+        user_id: userId,
+        topic: topic || '', platform: platform || '', language: language || 'zh', content: content || '',
+      })
+      .select('id')
+      .single();
+    if (e) return err(500, e.message);
+    await logActivity(userId, 'content', 'created', `保存草稿：${topic || '未命名草稿'}`, platform ? `平台：${platform}` : '', data!.id);
+    return ok({ id: data!.id, success: true });
+  }
+
+  const contentMatch = path.match(/^\/api\/content-drafts\/(\d+)$/);
+  if (contentMatch && method === 'DELETE') {
+    const id = Number(contentMatch[1]);
+    const { data: prev } = await supabase.from('content_drafts').select('topic').eq('id', id).single();
+    await supabase.from('content_drafts').update({ soft_deleted: true }).eq('id', id);
+    await logActivity(userId, 'content', 'deleted', `删除草稿：${prev?.topic || '未命名草稿'}`, '', id);
+    return ok({ success: true });
+  }
+
+  // ── TODAY FOCUS ────────────────────────────────────────────────
+  if (path === '/api/today-focus/state' && method === 'POST') {
+    const { focusKey, status } = body || {};
+    if (!focusKey) return err(400, 'focusKey is required');
+    const norm = status === 'completed' ? 'completed' : 'pending';
+    const focusDate = todayDateKey();
+    await supabase
+      .from('today_focus_state')
+      .upsert(
+        { user_id: userId, focus_date: focusDate, focus_key: String(focusKey), status: norm },
+        { onConflict: 'user_id,focus_date,focus_key' },
+      );
+    return ok({ success: true, focusKey: String(focusKey), status: norm });
+  }
+
+  if (path === '/api/today-focus/manual' && method === 'POST') {
+    const { type, title, note } = body || {};
+    if (!title || !String(title).trim()) return err(400, 'title is required');
+    const focusDate = todayDateKey();
+    const { data, error: e } = await supabase
+      .from('today_focus_manual')
+      .insert({
+        user_id: userId,
+        focus_date: focusDate, type: type || '系统',
+        title: String(title).trim(), note: String(note || '').trim(),
+      })
+      .select('id')
+      .single();
+    if (e) return err(500, e.message);
+    const focusKey = `manual-${data!.id}`;
+    await supabase
+      .from('today_focus_state')
+      .upsert(
+        { user_id: userId, focus_date: focusDate, focus_key: focusKey, status: 'pending' },
+        { onConflict: 'user_id,focus_date,focus_key' },
+      );
+    await logActivity(userId, 'today_focus', 'manual_created', `记录今日事件：${String(title).trim()}`, type ? `类型：${type}` : '', data!.id);
+    return ok({ success: true, id: data!.id, focusKey });
+  }
+
+  const manualMatch = path.match(/^\/api\/today-focus\/manual\/(\d+)$/);
+  if (manualMatch) {
+    const id = Number(manualMatch[1]);
+    if (method === 'PUT') {
+      const { type, title, note } = body || {};
+      if (!title || !String(title).trim()) return err(400, 'title is required');
+      const { error: e } = await supabase
+        .from('today_focus_manual')
+        .update({ type: type || '系统', title: String(title).trim(), note: String(note || '').trim() })
+        .eq('id', id);
+      if (e) return err(500, e.message);
+      await logActivity(userId, 'today_focus', 'manual_updated', `更新今日事件：${String(title).trim()}`, '', id);
+      return ok({ success: true, id });
+    }
+    if (method === 'DELETE') {
+      const { data: prev } = await supabase.from('today_focus_manual').select('title').eq('id', id).single();
+      if (!prev) return err(404, 'manual event not found');
+      await supabase.from('today_focus_manual').update({ soft_deleted: true }).eq('id', id);
+      await supabase
+        .from('today_focus_state')
+        .delete()
+        .eq('user_id', userId)
+        .eq('focus_date', todayDateKey())
+        .eq('focus_key', `manual-${id}`);
+      await logActivity(userId, 'today_focus', 'manual_deleted', `删除今日事件：${prev?.title || '未命名事件'}`, '', id);
+      return ok({ success: true });
+    }
+  }
+
+  // ── DASHBOARD ──────────────────────────────────────────────────
+  if (path === '/api/dashboard' && method === 'GET') {
+    await syncClientSubscriptionLedger(userId);
+
+    const { data: activeClients } = await supabase
+      .from('clients')
+      .select('id', { count: 'exact' })
+      .eq('status', 'Active')
+      .eq('soft_deleted', false);
+    const clientsCount = activeClients?.length || 0;
+
+    const { data: mrrData } = await supabase
+      .from('clients')
+      .select('mrr')
+      .eq('status', 'Active')
+      .eq('soft_deleted', false);
+    const mrr = (mrrData || []).reduce((s, r) => s + Number(r.mrr || 0), 0);
+
+    const { data: taskData } = await supabase
+      .from('tasks')
+      .select('id')
+      .neq('column', 'done')
+      .eq('soft_deleted', false);
+    const activeTasks = taskData?.length || 0;
+
+    const { data: leadData } = await supabase
+      .from('leads')
+      .select('id')
+      .eq('soft_deleted', false);
+    const leadsCount = leadData?.length || 0;
+
+    // MRR series from ledger
+    const { data: ledgerSeries } = await supabase
+      .from('client_subscription_ledger')
+      .select('ledger_month, amount');
+
+    const monthTotals = new Map<string, number>();
+    for (const r of (ledgerSeries || [])) {
+      const m = r.ledger_month;
+      monthTotals.set(m, (monthTotals.get(m) || 0) + Number(r.amount || 0));
+    }
+    const sortedMonths = [...monthTotals.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+    const currentYear = new Date().getFullYear();
+    const mrrSeries = sortedMonths.slice(-12).map(([m, total]) => {
+      const [year, month] = m.split('-');
+      return { name: `${year.slice(2)}-${month}`, mrr: total };
+    });
+    const ytdRevenue = sortedMonths
+      .filter(([m]) => m.startsWith(`${currentYear}-`))
+      .reduce((s, [, total]) => s + total, 0);
+
+    // Recent activity
+    const { data: recentActivityRows } = await supabase
+      .from('activity_log')
+      .select('title, detail, created_at, entity_type, action')
+      .order('created_at', { ascending: false })
+      .limit(8);
+
+    const recentActivity = (recentActivityRows || []).map((r) => ({
+      activity: r.title,
+      detail: r.detail,
+      time: r.created_at,
+      type: r.entity_type,
+      action: r.action,
+    }));
+
+    // Today focus
+    const focusDate = todayDateKey();
+    const { data: focusStates } = await supabase
+      .from('today_focus_state')
+      .select('focus_key, status')
+      .eq('focus_date', focusDate);
+    const focusStateMap: Record<string, string> = {};
+    for (const r of (focusStates || [])) {
+      focusStateMap[String(r.focus_key)] = String(r.status || 'pending');
+    }
+
+    // Best lead & urgent task for auto-focus
+    const { data: allFinance } = await handleSupabaseRequest('GET', '/api/finance', null);
+    const receivables = (allFinance || []).filter((t: any) => String(t.status || '').includes('应收'));
+
+    const { data: bestLeadArr } = await supabase
+      .from('leads')
+      .select('id, name, industry, needs, column')
+      .eq('soft_deleted', false)
+      .in('column', ['proposal', 'contacted', 'new'])
+      .order('column', { ascending: true })
+      .limit(1);
+    const bestLead = bestLeadArr?.[0] || null;
+
+    const { data: urgentTaskArr } = await supabase
+      .from('tasks')
+      .select('id, title, client, priority, due, column')
+      .eq('soft_deleted', false)
+      .neq('column', 'done')
+      .order('priority', { ascending: true })
+      .limit(1);
+    const urgentTask = urgentTaskArr?.[0] || null;
+
+    const systemTask = receivables[0]
+      ? { key: `system-receivable-${receivables[0].id || 'r'}`, type: '系统', title: `处理应收：${receivables[0].description || '未命名账款'}`, reason: '有待收款项时，先收钱比继续堆工作更重要。', actionHint: '去财务管理跟进回款' }
+      : bestLead
+        ? { key: `system-lead-${bestLead.id || 'fallback'}`, type: '系统', title: `补齐线索信息：${bestLead.name || '未命名线索'}`, reason: '把高潜在线索信息补完整，后续跟进效率更高。', actionHint: '完善需求、来源和下一步动作' }
+        : { key: 'system-content-asset', type: '系统', title: '整理一条内容资产', reason: '没有财务阻塞时，优先沉淀长期可复用资产。', actionHint: '去内容工坊保存一条可复用内容' };
+
+    const autoFocus = [
+      bestLead
+        ? { key: `revenue-lead-${bestLead.id || 'fallback'}`, type: '收入', title: `推进线索：${bestLead.name || '未命名线索'}`, reason: bestLead.column === 'proposal' ? '它已经接近成交，今天推进最有机会带来收入。' : '这是当前最值得跟进的销售机会。', actionHint: bestLead.column === 'proposal' ? '发提案跟进 / 促成确认' : '发送开发信或安排跟进' }
+        : { key: 'revenue-fallback', type: '收入', title: '跟进一位潜在客户', reason: '今天至少推进一件直接指向收入的动作。', actionHint: '去销售看板处理最高意向线索' },
+      urgentTask
+        ? { key: `delivery-task-${urgentTask.id || 'fallback'}`, type: '交付', title: `推进任务：${urgentTask.title || '未命名任务'}`, reason: urgentTask.priority === 'High' ? '高优先级任务最容易影响客户满意度和交付节奏。' : '先推进当前最接近交付的任务。', actionHint: urgentTask.client ? `关联客户：${urgentTask.client}` : '打开任务卡继续执行' }
+        : { key: 'delivery-fallback', type: '交付', title: '完成一个关键交付', reason: '每天至少推进一件真实交付，避免系统只转不产出。', actionHint: '去任务看板推进进行中任务' },
+      systemTask,
+    ];
+
+    const { data: manualFocusRows } = await supabase
+      .from('today_focus_manual')
+      .select('id, type, title, note')
+      .eq('focus_date', focusDate)
+      .eq('soft_deleted', false)
+      .order('id', { ascending: false });
+
+    const manualTodayEvents = (manualFocusRows || []).map((row) => ({
+      key: `manual-${row.id}`,
+      type: row.type || '系统',
+      title: row.title || '未命名事件',
+      reason: row.note ? row.note : '手动记录的今日事件。',
+      actionHint: '可作为今天的手动推进事项保存与追踪',
+      isManual: true,
+      status: focusStateMap[`manual-${row.id}`] || 'pending',
+    }));
+
+    const todayFocus = autoFocus.map((item: any) => ({ ...item, status: focusStateMap[item.key] || 'pending' }));
+
+    return ok({ clientsCount, mrr, activeTasks, leadsCount, mrrSeries, recentActivity, ytdRevenue, todayFocus, manualTodayEvents });
+  }
+
+  // ── SETTINGS ───────────────────────────────────────────────────
+  if (path === '/api/settings' && method === 'GET') {
+    const { data } = await supabase
+      .from('app_settings')
+      .select('key, value');
+    const settings: Record<string, string> = {};
+    for (const r of (data || [])) settings[r.key] = r.value;
+    return ok(settings);
+  }
+
+  if (path === '/api/settings' && method === 'POST') {
+    const entries = Object.entries(body || {});
+    for (const [key, value] of entries) {
+      await supabase
+        .from('app_settings')
+        .upsert(
+          { user_id: userId, key, value: String(value ?? '') },
+          { onConflict: 'user_id,key' },
+        );
+    }
+    return ok({ success: true });
+  }
+
+  // ── SERVER INFO (stub) ─────────────────────────────────────────
+  if (path === '/api/server-info' && method === 'GET') {
+    return ok({ name: '一人CEO Cloud', cloud: true });
+  }
+
+  return err(404, `No handler for ${method} ${path}`);
+}
