@@ -242,7 +242,7 @@ export async function handleSupabaseRequest(
   if (path === '/api/clients' && method === 'POST') {
     const { name, industry, plan_tier, status, brand_context, mrr,
             subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from,
-            company_name, contact_name, contact_email, contact_phone, billing_type, project_fee, project_end_date } = body;
+            company_name, contact_name, contact_email, contact_phone, billing_type, project_fee, project_end_date, tax_mode, tax_rate } = body;
     const np = normalizePlanTier(plan_tier || '');
     const { data, error: e } = await supabase
       .from('clients')
@@ -257,6 +257,7 @@ export async function handleSupabaseRequest(
         contact_email: contact_email || '', contact_phone: contact_phone || '',
         billing_type: billing_type || 'subscription', project_fee: project_fee || 0,
         project_end_date: project_end_date || '',
+        tax_mode: tax_mode || 'none', tax_rate: tax_rate || 0,
       })
       .select('id')
       .single();
@@ -272,7 +273,7 @@ export async function handleSupabaseRequest(
     if (method === 'PUT') {
       const { name, industry, plan_tier, status, brand_context, mrr,
               subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from,
-              company_name, contact_name, contact_email, contact_phone, billing_type, project_fee, project_end_date } = body;
+              company_name, contact_name, contact_email, contact_phone, billing_type, project_fee, project_end_date, tax_mode, tax_rate } = body;
       const np = normalizePlanTier(plan_tier || '');
       const { error: e } = await supabase
         .from('clients')

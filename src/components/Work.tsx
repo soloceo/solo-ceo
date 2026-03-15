@@ -58,6 +58,11 @@ export default function Work() {
   const [form, setForm] = useState(emptyTask);
   const [activeTab, setActiveTab] = useState("breakdown");
   const [generating, setGenerating] = useState<string | null>(null);
+  const [clientList, setClientList] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch("/api/clients").then(r => r.json()).then(d => setClientList(d.filter((c: any) => !c.soft_deleted))).catch(() => {});
+  }, []);
 
   const fetchTasks = async () => {
     try {
@@ -297,7 +302,10 @@ export default function Work() {
                     </FL>
                     <div className="grid grid-cols-2 gap-3">
                       <FL label={t("work.form.client" as any)}>
-                        <input value={form.client} onChange={e => setForm(p => ({ ...p, client: e.target.value }))} placeholder={t("work.form.clientPlaceholder" as any)} className="input-base w-full px-3 py-2 text-[13px]" />
+                        <select value={form.client} onChange={e => setForm(p => ({ ...p, client: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]">
+                          <option value="">{t("work.form.clientNone" as any)}</option>
+                          {clientList.map((c: any) => <option key={c.id} value={c.company_name || c.name}>{c.company_name || c.name}</option>)}
+                        </select>
                       </FL>
                       <FL label={t("work.form.due" as any)}>
                         <input type="date" value={form.due} onChange={e => setForm(p => ({ ...p, due: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" />

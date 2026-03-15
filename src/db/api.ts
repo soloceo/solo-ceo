@@ -270,6 +270,8 @@ function initSchema(db: Database) {
     `ALTER TABLE clients ADD COLUMN billing_type TEXT DEFAULT 'subscription'`,
     `ALTER TABLE clients ADD COLUMN project_fee REAL`,
     `ALTER TABLE clients ADD COLUMN project_end_date TEXT`,
+    `ALTER TABLE clients ADD COLUMN tax_mode TEXT DEFAULT 'none'`,
+    `ALTER TABLE clients ADD COLUMN tax_rate REAL DEFAULT 0`,
     `ALTER TABLE finance_transactions ADD COLUMN tax_mode TEXT DEFAULT 'none'`,
     `ALTER TABLE finance_transactions ADD COLUMN tax_rate REAL DEFAULT 0`,
     `ALTER TABLE finance_transactions ADD COLUMN tax_amount REAL DEFAULT 0`,
@@ -526,16 +528,17 @@ export async function handleApiRequest(
   if (path === '/api/clients' && method === 'POST') {
     const { name, industry, plan_tier, status, brand_context, mrr,
             subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from,
-            company_name, contact_name, contact_email, contact_phone, billing_type, project_fee, project_end_date } = body;
+            company_name, contact_name, contact_email, contact_phone, billing_type, project_fee, project_end_date, tax_mode, tax_rate } = body;
     const np = normalizePlanTier(plan_tier||'');
     const res = run(db, `INSERT INTO clients (name, industry, plan_tier, status, brand_context, mrr,
         subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from,
-        company_name, contact_name, contact_email, contact_phone, billing_type, project_fee, project_end_date)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        company_name, contact_name, contact_email, contact_phone, billing_type, project_fee, project_end_date, tax_mode, tax_rate)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [name||'', industry||'', np, status||'Active', brand_context||'', mrr||0,
        subscription_start_date||'', paused_at||'', resumed_at||'', cancelled_at||'',
        mrr_effective_from||subscription_start_date||'',
-       company_name||'', contact_name||'', contact_email||'', contact_phone||'', billing_type||'subscription', project_fee||0, project_end_date||'']);
+       company_name||'', contact_name||'', contact_email||'', contact_phone||'', billing_type||'subscription', project_fee||0, project_end_date||'',
+       tax_mode||'none', tax_rate||0]);
     syncClientSubscriptionLedger(db);
     logActivity(db, 'client', 'created', `新增客户：${name||'未命名客户'}`, np ? `方案：${np}` : '', res.lastInsertRowid);
     await saveDb();
@@ -548,17 +551,18 @@ export async function handleApiRequest(
     if (method === 'PUT') {
       const { name, industry, plan_tier, status, brand_context, mrr,
               subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from,
-              company_name, contact_name, contact_email, contact_phone, billing_type, project_fee, project_end_date } = body;
+              company_name, contact_name, contact_email, contact_phone, billing_type, project_fee, project_end_date, tax_mode, tax_rate } = body;
       const prev = get(db, `SELECT name, status, plan_tier, mrr, subscription_start_date,
         paused_at, resumed_at, cancelled_at, mrr_effective_from FROM clients WHERE id=?`, [id]) as any;
       const np = normalizePlanTier(plan_tier||'');
       run(db, `UPDATE clients SET name=?,industry=?,plan_tier=?,status=?,brand_context=?,mrr=?,
         subscription_start_date=?,paused_at=?,resumed_at=?,cancelled_at=?,mrr_effective_from=?,
-        company_name=?,contact_name=?,contact_email=?,contact_phone=?,billing_type=?,project_fee=?,project_end_date=? WHERE id=?`,
+        company_name=?,contact_name=?,contact_email=?,contact_phone=?,billing_type=?,project_fee=?,project_end_date=?,tax_mode=?,tax_rate=? WHERE id=?`,
         [name||'', industry||'', np, status||'Active', brand_context||'', mrr||0,
          subscription_start_date||'', paused_at||'', resumed_at||'', cancelled_at||'',
          mrr_effective_from||subscription_start_date||'',
-         company_name||'', contact_name||'', contact_email||'', contact_phone||'', billing_type||'subscription', project_fee||0, project_end_date||'', id]);
+         company_name||'', contact_name||'', contact_email||'', contact_phone||'', billing_type||'subscription', project_fee||0, project_end_date||'',
+         tax_mode||'none', tax_rate||0, id]);
       syncClientSubscriptionLedger(db);
       logActivity(db, 'client', 'updated', `更新客户：${name||prev?.name||'未命名客户'}`, '客户信息已更新', id);
       if (Number(prev?.mrr||0) !== Number(mrr||0))

@@ -317,7 +317,7 @@ export function ClientsView() {
   const [filterSt, setFilterSt] = useState("All");
   const [isMobile, setIsMobile] = useState(false);
   const [plans, setPlans] = useState<any[]>([]);
-  const emptyClient = { name: "", company_name: "", contact_name: "", contact_email: "", contact_phone: "", billing_type: "subscription" as "subscription" | "project", plan: "", status: "Active", mrr: "", project_fee: "", subscription_start_date: new Date().toISOString().split("T")[0], project_end_date: "", paused_at: "", resumed_at: "", cancelled_at: "", mrr_effective_from: new Date().toISOString().split("T")[0] };
+  const emptyClient = { name: "", company_name: "", contact_name: "", contact_email: "", contact_phone: "", billing_type: "subscription" as "subscription" | "project", plan: "", status: "Active", mrr: "", project_fee: "", subscription_start_date: new Date().toISOString().split("T")[0], project_end_date: "", paused_at: "", resumed_at: "", cancelled_at: "", mrr_effective_from: new Date().toISOString().split("T")[0], tax_mode: "none" as "none" | "exclusive" | "inclusive", tax_rate: "" };
   const [form, setForm] = useState(emptyClient);
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -400,7 +400,7 @@ export function ClientsView() {
     setMilestones([]); setShowAddMs(false); setEditMsId(null); setMarkPaidId(null); setMsForm(emptyMs);
     if (c) {
       setEditId(c.id);
-      setForm({ name: c.name, company_name: c.company_name || "", contact_name: c.contact_name || "", contact_email: c.contact_email || "", contact_phone: c.contact_phone || "", billing_type: c.billing_type || "subscription", plan: c.plan_tier || c.plan, status: c.status, mrr: String(c.mrr).replace(/[^0-9.-]+/g, ""), project_fee: String(c.project_fee || "").replace(/[^0-9.-]+/g, ""), subscription_start_date: c.subscription_start_date || (c.joined_at ? String(c.joined_at).split(" ")[0] : ""), project_end_date: c.project_end_date || "", paused_at: c.paused_at || "", resumed_at: c.resumed_at || "", cancelled_at: c.cancelled_at || "", mrr_effective_from: c.mrr_effective_from || c.subscription_start_date || "" });
+      setForm({ name: c.name, company_name: c.company_name || "", contact_name: c.contact_name || "", contact_email: c.contact_email || "", contact_phone: c.contact_phone || "", billing_type: c.billing_type || "subscription", plan: c.plan_tier || c.plan, status: c.status, mrr: String(c.mrr).replace(/[^0-9.-]+/g, ""), project_fee: String(c.project_fee || "").replace(/[^0-9.-]+/g, ""), subscription_start_date: c.subscription_start_date || (c.joined_at ? String(c.joined_at).split(" ")[0] : ""), project_end_date: c.project_end_date || "", paused_at: c.paused_at || "", resumed_at: c.resumed_at || "", cancelled_at: c.cancelled_at || "", mrr_effective_from: c.mrr_effective_from || c.subscription_start_date || "", tax_mode: (c.tax_mode || "none") as any, tax_rate: String(c.tax_rate || "") });
       if ((c.billing_type || "subscription") === "project") fetchMilestones(c.id);
     }
     else { setEditId(null); setForm(emptyClient); }
@@ -408,7 +408,7 @@ export function ClientsView() {
   };
 
   const saveClient = async () => {
-    const d = { name: form.name, company_name: form.company_name, contact_name: form.contact_name, contact_email: form.contact_email, contact_phone: form.contact_phone, billing_type: form.billing_type, plan_tier: form.billing_type === "subscription" ? form.plan : "", status: form.status, mrr: form.billing_type === "subscription" ? (Number(form.mrr) || 0) : 0, project_fee: form.billing_type === "project" ? (Number(form.project_fee) || 0) : 0, subscription_start_date: form.subscription_start_date, project_end_date: form.project_end_date, paused_at: form.paused_at, resumed_at: form.resumed_at, cancelled_at: form.cancelled_at, mrr_effective_from: form.mrr_effective_from };
+    const d = { name: form.name, company_name: form.company_name, contact_name: form.contact_name, contact_email: form.contact_email, contact_phone: form.contact_phone, billing_type: form.billing_type, plan_tier: form.billing_type === "subscription" ? form.plan : "", status: form.status, mrr: form.billing_type === "subscription" ? (Number(form.mrr) || 0) : 0, project_fee: form.billing_type === "project" ? (Number(form.project_fee) || 0) : 0, subscription_start_date: form.subscription_start_date, project_end_date: form.project_end_date, paused_at: form.paused_at, resumed_at: form.resumed_at, cancelled_at: form.cancelled_at, mrr_effective_from: form.mrr_effective_from, tax_mode: form.tax_mode, tax_rate: Number(form.tax_rate) || 0 };
     try {
       if (editId) { await fetch(`/api/clients/${editId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(d) }); showToast(t("pipeline.toast.clientUpdated" as any)); }
       else { await fetch("/api/clients", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(d) }); showToast(t("pipeline.toast.clientAdded" as any)); }
@@ -550,6 +550,30 @@ export function ClientsView() {
                       </button>
                     ))}
                   </div>
+                </FL>
+                {/* Tax settings */}
+                <FL label={t("pipeline.clients.taxSetting" as any)}>
+                  <div className="flex gap-2 mb-2">
+                    {([["none", t("money.form.taxNone" as any)], ["exclusive", t("money.form.taxExclBtn" as any)], ["inclusive", t("money.form.taxIncl" as any)]] as [string, string][]).map(([mode, label]) => (
+                      <button key={mode} type="button" onClick={() => setForm(p => ({ ...p, tax_mode: mode as any }))}
+                        className="flex-1 py-1.5 rounded-lg text-[12px] font-medium transition-all"
+                        style={form.tax_mode === mode ? { background: "var(--text)", color: "var(--bg)" } : { background: "var(--surface-alt)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  {form.tax_mode !== "none" && (
+                    <div className="flex gap-2">
+                      {[13, 6, 3].map(r => (
+                        <button key={r} type="button" onClick={() => setForm(p => ({ ...p, tax_rate: String(r) }))}
+                          className="px-3 py-1.5 rounded-md text-[11px] font-medium transition-all"
+                          style={Number(form.tax_rate) === r ? { background: "var(--accent-light)", color: "var(--accent)", border: "1px solid var(--accent)" } : { background: "var(--surface-alt)", color: "var(--text-secondary)" }}>
+                          {r}%
+                        </button>
+                      ))}
+                      <input type="number" min="0" max="100" step="0.01" value={form.tax_rate} onChange={e => setForm(p => ({ ...p, tax_rate: e.target.value }))} placeholder={t("money.form.customTaxPlaceholder" as any)} className="input-base flex-1 px-3 py-1.5 text-[11px] min-w-0" />
+                    </div>
+                  )}
                 </FL>
                 {form.billing_type === "subscription" ? (
                   <>

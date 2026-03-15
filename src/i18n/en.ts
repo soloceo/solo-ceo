@@ -2,14 +2,15 @@ import type zh from "./zh";
 
 const en: typeof zh = {
   /* ── Nav ── */
-  "nav.home": "Home",
-  "nav.work": "Work",
-  "nav.pipeline": "Pipeline",
-  "nav.money": "Finance",
+  "nav.home": "Today",
+  "nav.work": "Tasks",
+  "nav.pipeline": "Clients",
+  "nav.people": "Clients",
+  "nav.money": "Money",
   "nav.leads": "Leads",
-  "nav.clients": "Clients",
-  "nav.transactions": "Finance",
-  "nav.plans": "Plans",
+  "nav.clients": "Signed",
+  "nav.transactions": "Money",
+  "nav.plans": "Pricing",
   "nav.create": "Create",
   "nav.more": "More",
   "nav.settings": "Settings",
@@ -82,7 +83,7 @@ const en: typeof zh = {
   "home.form.saveEdit": "Save Changes",
 
   /* ── Work ── */
-  "work.pageTitle": "Work",
+  "work.pageTitle": "Tasks",
   "work.col.todo": "To Do",
   "work.col.inProgress": "In Progress",
   "work.col.review": "Review",
@@ -105,6 +106,7 @@ const en: typeof zh = {
   "work.form.titlePlaceholder": "e.g. Design new logo",
   "work.form.client": "Client",
   "work.form.clientPlaceholder": "Acme Corp",
+  "work.form.clientNone": "No client",
   "work.form.due": "Due Date",
   "work.form.priority": "Priority",
   "work.form.status": "Status",
@@ -134,9 +136,9 @@ const en: typeof zh = {
   "work.planner.error": "An error occurred while generating the plan.",
 
   /* ── Pipeline ── */
-  "pipeline.pageTitle": "Pipeline",
+  "pipeline.pageTitle": "Clients",
   "pipeline.leads": "Leads",
-  "pipeline.clients": "Clients",
+  "pipeline.clients": "Signed",
   "pipeline.addLead": "Add Lead",
   "pipeline.addClient": "Add Client",
   "pipeline.col.new": "New",
@@ -214,6 +216,7 @@ const en: typeof zh = {
   "pipeline.clients.billingSubscription": "Subscription",
   "pipeline.clients.billingProject": "Project",
   "pipeline.clients.projectFee": "Project Fee ($)",
+  "pipeline.clients.taxSetting": "Tax Setting",
   "pipeline.clients.projectTimeline": "Project Timeline",
   "pipeline.clients.projectStart": "Start Date",
   "pipeline.clients.projectEnd": "End Date",
@@ -258,7 +261,7 @@ const en: typeof zh = {
   "pipeline.milestones.method.other": "Other",
 
   /* ── Money ── */
-  "money.pageTitle": "Finance",
+  "money.pageTitle": "Money",
   "money.transactions": "Transactions",
   "money.plans": "Plans",
   "money.rules": "Rules",
@@ -316,7 +319,7 @@ const en: typeof zh = {
   "money.delete.title": "Confirm Delete",
   "money.delete.message": "This transaction will be permanently deleted. Continue?",
   "money.delete.confirm": "Confirm Delete",
-  "money.plans.title": "Plans",
+  "money.plans.title": "Pricing",
   "money.plans.new": "New Plan",
   "money.plans.aiAnalysis": "AI Analysis",
   "money.plans.perMonth": "/mo",

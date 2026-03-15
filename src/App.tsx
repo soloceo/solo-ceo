@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from "motion/react";
 import {
   Home as HomeIcon,
   ClipboardList,
-  UserSearch,
   Users,
   Receipt,
   Layers,
@@ -26,15 +25,14 @@ import { startRealtime, stopRealtime } from "./db/realtime";
 /* ── Lazy page imports ─────────────────────────────────────────── */
 const HomePage          = lazy(() => import("./components/Home"));
 const WorkPage          = lazy(() => import("./components/Work"));
-const LeadsPage         = lazy(() => import("./components/Leads"));
-const ClientsPage       = lazy(() => import("./components/Clients"));
+const PipelinePage      = lazy(() => import("./components/Pipeline"));
 const TransactionsPage  = lazy(() => import("./components/Transactions"));
 const PlansPage         = lazy(() => import("./components/Plans"));
 const CreatePage        = lazy(() => import("./components/Create"));
 const SettingsPage      = lazy(() => import("./components/Settings"));
 
 /* ── Tab definitions ───────────────────────────────────────────── */
-type TabId = "home" | "work" | "leads" | "clients" | "transactions" | "plans" | "create";
+type TabId = "home" | "work" | "pipeline" | "transactions" | "plans" | "create";
 
 interface TabDef {
   id: TabId;
@@ -46,16 +44,15 @@ interface TabDef {
 const TABS: TabDef[] = [
   { id: "home",         labelKey: "nav.home",         icon: <HomeIcon size={18} />,      component: HomePage },
   { id: "work",         labelKey: "nav.work",         icon: <ClipboardList size={18} />,  component: WorkPage },
-  { id: "leads",        labelKey: "nav.leads",        icon: <UserSearch size={18} />,     component: LeadsPage },
-  { id: "clients",      labelKey: "nav.clients",      icon: <Users size={18} />,          component: ClientsPage },
-  { id: "transactions", labelKey: "nav.transactions", icon: <Receipt size={18} />,        component: TransactionsPage },
+  { id: "pipeline",     labelKey: "nav.people",       icon: <Users size={18} />,          component: PipelinePage },
+  { id: "transactions", labelKey: "nav.money",        icon: <Receipt size={18} />,        component: TransactionsPage },
   { id: "plans",        labelKey: "nav.plans",        icon: <Layers size={18} />,         component: PlansPage },
   { id: "create",       labelKey: "nav.create",       icon: <Sparkles size={18} />,       component: CreatePage },
 ];
 
 /* Primary tabs shown in bottom nav; rest go into "More" menu */
-const PRIMARY_TABS = TABS.slice(0, 4);   // home, work, leads, clients
-const MORE_TABS    = TABS.slice(4);       // transactions, plans, create
+const PRIMARY_TABS = TABS.slice(0, 4);   // home, work, pipeline, transactions
+const MORE_TABS    = TABS.slice(4);       // plans, create
 const MORE_TAB_IDS = new Set(MORE_TABS.map(t => t.id));
 
 const TAB_MAP = Object.fromEntries(TABS.map(t => [t.id, t]));
@@ -200,7 +197,7 @@ function App() {
         {/* Sidebar toggle */}
         <button
           onClick={() => setSidebarExpanded(p => !p)}
-          className="mx-auto mb-3 flex h-7 w-7 items-center justify-center rounded-md opacity-0 hover:opacity-100 transition-opacity"
+          className="mx-auto mb-3 flex h-7 w-7 items-center justify-center rounded-md transition-opacity hover:opacity-80"
           style={{ color: "var(--text-tertiary)" }}
           aria-label={sidebarExpanded ? t("app.collapseSidebar" as any) : t("app.expandSidebar" as any)}
         >
