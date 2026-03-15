@@ -23,6 +23,7 @@
     "publish": {
       "provider": "github"
     },
+    "artifactName": "${name}-${version}-${arch}.${ext}",
     "mac": {
       "icon": "build/icon.icns",
       "target": [
