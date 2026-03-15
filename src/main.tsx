@@ -14,7 +14,7 @@ async function bootstrap() {
     '--mobile-header-pl',
     isNative
       ? 'max(env(safe-area-inset-left), 16px)'   // iOS / Android
-      : 'max(env(safe-area-inset-left), 80px)'    // macOS Electron (narrow window)
+      : 'max(env(safe-area-inset-left), 16px)'    // macOS Electron (native title bar)
   );
 
   // Top padding: on mobile use safe-area-inset-top for notch/status bar;

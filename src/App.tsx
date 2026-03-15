@@ -194,8 +194,8 @@ function App() {
           WebkitAppRegion: "no-drag",
         } as React.CSSProperties}
       >
-        {/* macOS traffic-light spacer */}
-        <div className="h-11 shrink-0" style={{ WebkitAppRegion: "drag" } as React.CSSProperties} />
+        {/* spacer */}
+        <div className="h-3 shrink-0" />
 
         {/* Sidebar toggle */}
         <button
