@@ -90,7 +90,7 @@ export default function Home() {
     } catch {}
   }, []);
 
-  useRealtimeRefresh(['leads', 'clients', 'tasks', 'finance_transactions', 'today_focus_state', 'today_focus_manual'], fetchData);
+  useRealtimeRefresh(['leads', 'clients', 'tasks', 'finance_transactions', 'today_focus_state', 'today_focus_manual', 'payment_milestones'], fetchData);
 
   useEffect(() => {
     try { localStorage.setItem(skipKey, JSON.stringify(skipped)); } catch {}

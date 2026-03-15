@@ -139,6 +139,8 @@ export function TransactionsView({ showToast }: { showToast: (m: string) => void
     return () => window.removeEventListener("resize", check);
   }, []);
 
+  const [pendingMilestones, setPendingMilestones] = useState<{ total: number; overdue: number; overdueAmt: number; pendingAmt: number }>({ total: 0, overdue: 0, overdueAmt: 0, pendingAmt: 0 });
+
   const fetchFinance = useCallback(async () => {
     try {
       const res = await fetch("/api/finance");
@@ -147,8 +149,31 @@ export function TransactionsView({ showToast }: { showToast: (m: string) => void
     finally { setIsLoading(false); }
   }, [showToast, t]);
 
-  useEffect(() => { fetchFinance(); }, [fetchFinance]);
-  useRealtimeRefresh(['finance_transactions', 'clients'], fetchFinance);
+  const fetchMilestoneStats = useCallback(async () => {
+    try {
+      const clientsRes = await fetch("/api/clients");
+      const clients = await clientsRes.json();
+      const projectClients = clients.filter((c: any) => c.billing_type === "project");
+      let total = 0, overdue = 0, overdueAmt = 0, pendingAmt = 0;
+      for (const c of projectClients) {
+        try {
+          const msRes = await fetch(`/api/clients/${c.id}/milestones`);
+          const milestones = await msRes.json();
+          for (const ms of milestones) {
+            if (ms.status !== "paid") {
+              total++;
+              pendingAmt += Number(ms.amount || 0);
+              if (ms.status === "overdue") { overdue++; overdueAmt += Number(ms.amount || 0); }
+            }
+          }
+        } catch {}
+      }
+      setPendingMilestones({ total, overdue, overdueAmt, pendingAmt });
+    } catch {}
+  }, []);
+
+  useEffect(() => { fetchFinance(); fetchMilestoneStats(); }, [fetchFinance, fetchMilestoneStats]);
+  useRealtimeRefresh(['finance_transactions', 'clients', 'payment_milestones'], () => { fetchFinance(); fetchMilestoneStats(); });
 
   useEffect(() => {
     const anyOpen = isMobile && (showPanel || showAll || showRules);
@@ -259,6 +284,21 @@ export function TransactionsView({ showToast }: { showToast: (m: string) => void
             </div>
           </div>
         </div>
+        {/* Project milestones receivables */}
+        {pendingMilestones.total > 0 && (
+          <div className="stat-card">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg shrink-0" style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)" }}><Clock size={15} /></div>
+            <div>
+              <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{t("money.stat.milestones" as any)}</div>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-semibold tabular-nums" style={{ color: "var(--accent)" }}>${pendingMilestones.pendingAmt.toLocaleString()}</span>
+                {pendingMilestones.overdue > 0 && (
+                  <span className="text-[11px] font-medium" style={{ color: "var(--danger)" }}>{pendingMilestones.overdue} {t("pipeline.milestones.status.overdue" as any).toLowerCase()}</span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Cash flow chart + recent transactions */}

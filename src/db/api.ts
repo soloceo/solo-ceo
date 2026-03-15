@@ -275,6 +275,23 @@ function initSchema(db: Database) {
     `ALTER TABLE finance_transactions ADD COLUMN tax_amount REAL DEFAULT 0`,
     `ALTER TABLE finance_transactions ADD COLUMN client_id INTEGER`,
     `ALTER TABLE finance_transactions ADD COLUMN client_name TEXT`,
+    `CREATE TABLE IF NOT EXISTS payment_milestones (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      client_id INTEGER NOT NULL,
+      label TEXT NOT NULL DEFAULT '',
+      amount REAL NOT NULL DEFAULT 0,
+      percentage REAL DEFAULT 0,
+      due_date TEXT DEFAULT '',
+      paid_date TEXT DEFAULT '',
+      payment_method TEXT DEFAULT '',
+      status TEXT DEFAULT 'pending',
+      invoice_number TEXT DEFAULT '',
+      note TEXT DEFAULT '',
+      finance_tx_id INTEGER,
+      sort_order INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
   ];
   for (const m of migrations) {
     try { db.run(m); } catch { /* already exists */ }
@@ -335,6 +352,7 @@ const SYNC_TABLES = [
   'leads', 'clients', 'tasks', 'plans',
   'finance_transactions', 'content_drafts',
   'today_focus_state', 'today_focus_manual',
+  'payment_milestones',
 ] as const;
 
 export async function exportAllData(): Promise<Record<string, any>> {
@@ -563,6 +581,86 @@ export async function handleApiRequest(
       await saveDb();
       return ok({ success: true });
     }
+  }
+
+  // ── PAYMENT MILESTONES ──────────────────────────────────────────────────
+  const milestoneListMatch = path.match(/^\/api\/clients\/(\d+)\/milestones$/);
+  if (milestoneListMatch) {
+    const clientId = milestoneListMatch[1];
+    if (method === 'GET') {
+      const today = new Date().toISOString().split('T')[0];
+      const rows = all(db, 'SELECT * FROM payment_milestones WHERE client_id=? ORDER BY sort_order ASC, created_at ASC', [clientId]);
+      const result = rows.map((m) => ({
+        ...m,
+        status: m.status === 'pending' && m.due_date && String(m.due_date) < today ? 'overdue' : m.status,
+      }));
+      return ok(result);
+    }
+    if (method === 'POST') {
+      const { label, amount, percentage, due_date, payment_method, invoice_number, note, sort_order } = body;
+      const res = run(db,
+        `INSERT INTO payment_milestones (client_id, label, amount, percentage, due_date, payment_method, invoice_number, note, sort_order, status)
+         VALUES (?,?,?,?,?,?,?,?,?,?)`,
+        [clientId, label||'', amount||0, percentage||0, due_date||'', payment_method||'', invoice_number||'', note||'', sort_order??0, 'pending']);
+      const client = get(db, 'SELECT name FROM clients WHERE id=?', [clientId]) as any;
+      logActivity(db, 'milestone', 'created', `新增付款节点：${client?.name||''} · ${label||''}`,
+        amount ? `$${Number(amount).toLocaleString()}` : '', res.lastInsertRowid);
+      await saveDb();
+      return ok({ id: res.lastInsertRowid });
+    }
+  }
+
+  const milestoneMatch = path.match(/^\/api\/milestones\/(\d+)$/);
+  if (milestoneMatch) {
+    const id = milestoneMatch[1];
+    if (method === 'PUT') {
+      const { label, amount, percentage, due_date, payment_method, status, invoice_number, note, sort_order } = body;
+      run(db,
+        `UPDATE payment_milestones SET label=?,amount=?,percentage=?,due_date=?,payment_method=?,status=?,invoice_number=?,note=?,sort_order=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`,
+        [label||'', amount||0, percentage||0, due_date||'', payment_method||'', status||'pending', invoice_number||'', note||'', sort_order??0, id]);
+      await saveDb();
+      return ok({ success: true });
+    }
+    if (method === 'DELETE') {
+      const prev = get(db, 'SELECT label, finance_tx_id FROM payment_milestones WHERE id=?', [id]) as any;
+      run(db, 'DELETE FROM payment_milestones WHERE id=?', [id]);
+      if (prev?.finance_tx_id) {
+        run(db, 'DELETE FROM finance_transactions WHERE id=?', [prev.finance_tx_id]);
+      }
+      logActivity(db, 'milestone', 'deleted', `删除付款节点：${prev?.label||''}`, '', id);
+      await saveDb();
+      return ok({ success: true });
+    }
+  }
+
+  const markPaidMatch = path.match(/^\/api\/milestones\/(\d+)\/mark-paid$/);
+  if (markPaidMatch && method === 'POST') {
+    const id = markPaidMatch[1];
+    const { payment_method, paid_date } = body || {};
+    const actualDate = paid_date || new Date().toISOString().split('T')[0];
+    const milestone = get(db, 'SELECT * FROM payment_milestones WHERE id=?', [id]) as any;
+    if (!milestone) return err(404, 'Milestone not found');
+    const client = get(db, 'SELECT name FROM clients WHERE id=?', [milestone.client_id]) as any;
+    const clientName = client?.name || '';
+
+    // Create finance transaction
+    const txRes = run(db,
+      `INSERT INTO finance_transactions (type, amount, category, description, date, status, client_id, client_name)
+       VALUES (?,?,?,?,?,?,?,?)`,
+      ['income', Number(milestone.amount||0), '项目收入',
+       `${clientName} · ${milestone.label||'项目付款'}`, actualDate, '已完成',
+       milestone.client_id, clientName]);
+
+    // Update milestone
+    run(db,
+      `UPDATE payment_milestones SET status='paid', paid_date=?, payment_method=?, finance_tx_id=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`,
+      [actualDate, payment_method || milestone.payment_method || '', txRes.lastInsertRowid, id]);
+
+    logActivity(db, 'milestone', 'paid',
+      `确认收款：${clientName} · ${milestone.label||'项目付款'}`,
+      `$${Number(milestone.amount||0).toLocaleString()} · ${payment_method||''}`, id);
+    await saveDb();
+    return ok({ success: true, financeId: txRes.lastInsertRowid });
   }
 
   // ── TASKS ──────────────────────────────────────────────────────────────
@@ -822,7 +920,18 @@ export async function handleApiRequest(
        ORDER BY CASE priority WHEN 'High' THEN 1 WHEN 'Medium' THEN 2 ELSE 3 END,
        COALESCE(NULLIF(due,''),'9999-12-31') ASC, id DESC LIMIT 1`) as any;
 
-    const systemTask = receivables[0]
+    // Overdue milestones detection
+    const todayKey = todayDateKey();
+    const overdueMs = get(db,
+      `SELECT pm.id, pm.label, pm.amount, pm.due_date, c.name as client_name
+       FROM payment_milestones pm
+       JOIN clients c ON c.id = pm.client_id
+       WHERE pm.status = 'pending' AND pm.due_date != '' AND pm.due_date < ? AND pm.soft_deleted = 0
+       ORDER BY pm.due_date ASC LIMIT 1`, [todayKey]) as any;
+
+    const systemTask = overdueMs
+      ? { key: `system-overdue-ms-${overdueMs.id}`, type: '系统', title: `催收逾期款：${overdueMs.client_name} — ${overdueMs.label} $${Number(overdueMs.amount||0).toLocaleString()}`, reason: `该笔款项已于 ${overdueMs.due_date} 到期，需要尽快催收。`, actionHint: '去客户面板确认收款并标记已付' }
+      : receivables[0]
       ? { key: `system-receivable-${receivables[0].id||'r'}`, type: '系统', title: `处理应收：${receivables[0].description||'未命名账款'}`, reason: '有待收款项时，先收钱比继续堆工作更重要。', actionHint: '去财务管理跟进回款' }
       : bestLead
         ? { key: `system-lead-${bestLead.id||'fallback'}`, type: '系统', title: `补齐线索信息：${bestLead.name||'未命名线索'}`, reason: '把高潜在线索信息补完整，后续跟进效率更高。', actionHint: '完善需求、来源和下一步动作' }

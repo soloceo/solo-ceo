@@ -6,6 +6,7 @@ import {
   Plus, Mail, Sparkles, Loader2, X, Check, Edit2, Trash2,
   UserPlus, LayoutGrid, AlignJustify, ChevronDown,
   Search, Filter, PlayCircle, PauseCircle, Layers, PanelRightClose, Phone,
+  DollarSign, CircleCheck, Clock, AlertCircle, ChevronUp,
 } from "lucide-react";
 import { GoogleGenAI } from "@google/genai";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
@@ -320,12 +321,70 @@ export function ClientsView() {
   const [form, setForm] = useState(emptyClient);
   const parentRef = useRef<HTMLDivElement>(null);
 
+  /* ── Milestones state ── */
+  const [milestones, setMilestones] = useState<any[]>([]);
+  const [msLoading, setMsLoading] = useState(false);
+  const [showAddMs, setShowAddMs] = useState(false);
+  const [editMsId, setEditMsId] = useState<number | null>(null);
+  const [markPaidId, setMarkPaidId] = useState<number | null>(null);
+  const [markPaidMethod, setMarkPaidMethod] = useState("bank_transfer");
+  const emptyMs = { label: "", amount: "", percentage: "", due_date: "", note: "" };
+  const [msForm, setMsForm] = useState(emptyMs);
+
+  const PAYMENT_METHODS = ["bank_transfer", "wechat", "alipay", "cash", "paypal", "stripe", "other"] as const;
+
   const showToast = (m: string) => { setToast(m); setTimeout(() => setToast(""), 3000); };
   const fetchPlans = async () => { try { setPlans(await (await fetch("/api/plans")).json()); } catch {} };
   const fetchClients = async () => { try { const res = await fetch("/api/clients"); setClients(await res.json()); } catch { showToast(t("pipeline.toast.clientLoadFailed" as any)); } finally { setLoading(false); } };
 
+  const fetchMilestones = async (clientId: number) => {
+    setMsLoading(true);
+    try { const res = await fetch(`/api/clients/${clientId}/milestones`); setMilestones(await res.json()); }
+    catch { setMilestones([]); }
+    finally { setMsLoading(false); }
+  };
+
+  const saveMilestone = async () => {
+    if (!editId) return;
+    const body = { label: msForm.label, amount: Number(msForm.amount) || 0, percentage: Number(msForm.percentage) || 0, due_date: msForm.due_date || null, note: msForm.note };
+    try {
+      if (editMsId) { await fetch(`/api/milestones/${editMsId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); }
+      else { await fetch(`/api/clients/${editId}/milestones`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); }
+      showToast(t("pipeline.milestones.saved" as any));
+      setShowAddMs(false); setEditMsId(null); setMsForm(emptyMs);
+      fetchMilestones(editId);
+    } catch { showToast(t("common.saveFailed" as any)); }
+  };
+
+  const deleteMilestone = async (msId: number) => {
+    try { await fetch(`/api/milestones/${msId}`, { method: "DELETE" }); showToast(t("pipeline.milestones.deleted" as any)); if (editId) fetchMilestones(editId); }
+    catch { showToast(t("common.deleteFailed" as any)); }
+  };
+
+  const confirmMarkPaid = async () => {
+    if (!markPaidId) return;
+    try {
+      await fetch(`/api/milestones/${markPaidId}/mark-paid`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ payment_method: markPaidMethod }) });
+      showToast(t("pipeline.milestones.autoFinance" as any));
+      setMarkPaidId(null); setMarkPaidMethod("bank_transfer");
+      if (editId) fetchMilestones(editId);
+    } catch { showToast(t("common.saveFailed" as any)); }
+  };
+
+  const applyPreset = (preset: "deposit" | "midway" | "final") => {
+    const fee = Number(form.project_fee) || 0;
+    const pctMap = { deposit: 30, midway: 40, final: 30 };
+    const pct = pctMap[preset];
+    setMsForm(p => ({
+      ...p,
+      label: t(`pipeline.milestones.presets.${preset}` as any),
+      percentage: String(pct),
+      amount: String(Math.round(fee * pct / 100)),
+    }));
+  };
+
   useEffect(() => { fetchClients(); fetchPlans(); }, []);
-  useRealtimeRefresh(['clients', 'plans'], fetchClients);
+  useRealtimeRefresh(['clients', 'plans', 'payment_milestones'], () => { fetchClients(); if (editId && form.billing_type === "project") fetchMilestones(editId); });
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check(); window.addEventListener("resize", check);
@@ -338,7 +397,12 @@ export function ClientsView() {
   }, [showPanel, isMobile]);
 
   const openPanel = (c: any = null) => {
-    if (c) { setEditId(c.id); setForm({ name: c.name, company_name: c.company_name || "", contact_name: c.contact_name || "", contact_email: c.contact_email || "", contact_phone: c.contact_phone || "", billing_type: c.billing_type || "subscription", plan: c.plan_tier || c.plan, status: c.status, mrr: String(c.mrr).replace(/[^0-9.-]+/g, ""), project_fee: String(c.project_fee || "").replace(/[^0-9.-]+/g, ""), subscription_start_date: c.subscription_start_date || (c.joined_at ? String(c.joined_at).split(" ")[0] : ""), project_end_date: c.project_end_date || "", paused_at: c.paused_at || "", resumed_at: c.resumed_at || "", cancelled_at: c.cancelled_at || "", mrr_effective_from: c.mrr_effective_from || c.subscription_start_date || "" }); }
+    setMilestones([]); setShowAddMs(false); setEditMsId(null); setMarkPaidId(null); setMsForm(emptyMs);
+    if (c) {
+      setEditId(c.id);
+      setForm({ name: c.name, company_name: c.company_name || "", contact_name: c.contact_name || "", contact_email: c.contact_email || "", contact_phone: c.contact_phone || "", billing_type: c.billing_type || "subscription", plan: c.plan_tier || c.plan, status: c.status, mrr: String(c.mrr).replace(/[^0-9.-]+/g, ""), project_fee: String(c.project_fee || "").replace(/[^0-9.-]+/g, ""), subscription_start_date: c.subscription_start_date || (c.joined_at ? String(c.joined_at).split(" ")[0] : ""), project_end_date: c.project_end_date || "", paused_at: c.paused_at || "", resumed_at: c.resumed_at || "", cancelled_at: c.cancelled_at || "", mrr_effective_from: c.mrr_effective_from || c.subscription_start_date || "" });
+      if ((c.billing_type || "subscription") === "project") fetchMilestones(c.id);
+    }
     else { setEditId(null); setForm(emptyClient); }
     setShowPanel(true);
   };
@@ -515,6 +579,132 @@ export function ClientsView() {
                       <FL label={t("pipeline.clients.projectStart" as any)}><input type="date" value={form.subscription_start_date} onChange={e => setForm(p => ({ ...p, subscription_start_date: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
                       <FL label={t("pipeline.clients.projectEnd" as any)}><input type="date" value={form.project_end_date} onChange={e => setForm(p => ({ ...p, project_end_date: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
                     </div>
+
+                    {/* ═══ Payment Milestones ═══ */}
+                    {editId && (
+                      <>
+                        <div className="border-t" style={{ borderColor: "var(--border)" }} />
+                        <div className="flex items-center justify-between">
+                          <span className="section-label flex items-center gap-1.5"><DollarSign size={13} /> {t("pipeline.milestones.title" as any)}</span>
+                          <button onClick={() => { setShowAddMs(true); setEditMsId(null); setMsForm(emptyMs); }} className="btn-ghost text-[11px] flex items-center gap-1" style={{ color: "var(--accent)" }}><Plus size={12} /> {t("pipeline.milestones.add" as any)}</button>
+                        </div>
+
+                        {/* Progress bar */}
+                        {milestones.length > 0 && (() => {
+                          const totalAmt = milestones.reduce((s: number, m: any) => s + Number(m.amount || 0), 0);
+                          const paidAmt = milestones.filter((m: any) => m.status === "paid").reduce((s: number, m: any) => s + Number(m.amount || 0), 0);
+                          const pct = totalAmt > 0 ? Math.round(paidAmt / totalAmt * 100) : 0;
+                          return (
+                            <div>
+                              <div className="flex items-center justify-between mb-1.5">
+                                <span className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
+                                  {milestones.filter((m: any) => m.status === "paid").length}/{milestones.length} {t("pipeline.milestones.status.paid" as any).toLowerCase()} · ${paidAmt.toLocaleString()} / ${totalAmt.toLocaleString()}
+                                </span>
+                                <span className="text-[11px] font-semibold tabular-nums" style={{ color: pct === 100 ? "var(--success)" : "var(--accent)" }}>{pct}%</span>
+                              </div>
+                              <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--surface-alt)" }}>
+                                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: pct === 100 ? "var(--success)" : "var(--accent)" }} />
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* Milestone list */}
+                        {msLoading ? (
+                          <div className="flex justify-center py-4"><Loader2 size={16} className="animate-spin" style={{ color: "var(--text-tertiary)" }} /></div>
+                        ) : milestones.length === 0 && !showAddMs ? (
+                          <div className="text-center py-4 text-[12px]" style={{ color: "var(--text-tertiary)" }}>{t("pipeline.milestones.noPlan" as any)}</div>
+                        ) : (
+                          <div className="space-y-2">
+                            {milestones.map((ms: any) => (
+                              <div key={ms.id} className="rounded-lg p-3 space-y-2" style={{ background: "var(--surface-alt)", border: "1px solid var(--border)" }}>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    {ms.status === "paid" ? <CircleCheck size={14} style={{ color: "var(--success)" }} /> : ms.status === "overdue" ? <AlertCircle size={14} style={{ color: "var(--danger)" }} /> : <Clock size={14} style={{ color: "var(--text-tertiary)" }} />}
+                                    <span className="text-[13px] font-medium" style={{ color: "var(--text)" }}>{ms.label}</span>
+                                    <span className="badge text-[10px]" style={
+                                      ms.status === "paid" ? { background: "var(--success-light)", color: "var(--success)" }
+                                      : ms.status === "overdue" ? { background: "color-mix(in srgb, var(--danger) 12%, transparent)", color: "var(--danger)" }
+                                      : { background: "color-mix(in srgb, var(--warning) 12%, transparent)", color: "var(--warning)" }
+                                    }>{t(`pipeline.milestones.status.${ms.status}` as any)}</span>
+                                  </div>
+                                  <span className="text-[13px] font-semibold tabular-nums" style={{ color: "var(--text)" }}>${Number(ms.amount || 0).toLocaleString()}</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-[11px]" style={{ color: "var(--text-tertiary)" }}>
+                                  {ms.percentage > 0 && <span>{ms.percentage}%</span>}
+                                  {ms.due_date && <span>{t("pipeline.milestones.dueDate" as any)}: {ms.due_date}</span>}
+                                  {ms.paid_date && <span>{t("pipeline.milestones.paidDate" as any)}: {ms.paid_date}</span>}
+                                  {ms.payment_method && <span>{t(`pipeline.milestones.method.${ms.payment_method}` as any)}</span>}
+                                </div>
+                                {ms.note && <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{ms.note}</div>}
+                                {ms.status !== "paid" && (
+                                  <div className="flex items-center gap-2 pt-1">
+                                    <button onClick={() => { setMarkPaidId(ms.id); setMarkPaidMethod("bank_transfer"); }} className="text-[11px] font-medium px-2.5 py-1 rounded-md flex items-center gap-1" style={{ background: "var(--success-light)", color: "var(--success)" }}>
+                                      <CircleCheck size={11} /> {t("pipeline.milestones.markPaid" as any)}
+                                    </button>
+                                    <button onClick={() => { setEditMsId(ms.id); setMsForm({ label: ms.label, amount: String(ms.amount), percentage: String(ms.percentage || ""), due_date: ms.due_date || "", note: ms.note || "" }); setShowAddMs(true); }} className="btn-ghost text-[11px] p-1"><Edit2 size={11} /></button>
+                                    <button onClick={() => deleteMilestone(ms.id)} className="btn-ghost text-[11px] p-1" style={{ color: "var(--danger)" }}><Trash2 size={11} /></button>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Add / Edit milestone form */}
+                        <AnimatePresence>
+                          {showAddMs && (
+                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                              <div className="rounded-lg p-3 space-y-3" style={{ background: "var(--surface-alt)", border: "1px solid var(--accent)", borderStyle: "dashed" }}>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[12px] font-semibold" style={{ color: "var(--text)" }}>{editMsId ? t("common.edit" as any) : t("pipeline.milestones.add" as any)}</span>
+                                  <button onClick={() => { setShowAddMs(false); setEditMsId(null); setMsForm(emptyMs); }} className="btn-ghost p-0.5"><X size={13} /></button>
+                                </div>
+                                {/* Preset buttons */}
+                                {!editMsId && (
+                                  <div className="flex gap-1.5">
+                                    {(["deposit", "midway", "final"] as const).map(p => (
+                                      <button key={p} onClick={() => applyPreset(p)} className="text-[10px] font-medium px-2 py-1 rounded-md transition-colors" style={{ background: "color-mix(in srgb, var(--accent) 10%, transparent)", color: "var(--accent)" }}>
+                                        {t(`pipeline.milestones.presets.${p}` as any)}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                                <FL label={t("pipeline.milestones.label" as any)}><input value={msForm.label} onChange={e => setMsForm(p => ({ ...p, label: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" placeholder={t("pipeline.milestones.presets.deposit" as any)} /></FL>
+                                <div className="grid grid-cols-2 gap-3">
+                                  <FL label={t("pipeline.milestones.amount" as any)}><input type="number" min="0" value={msForm.amount} onChange={e => { const amt = e.target.value; const fee = Number(form.project_fee) || 1; setMsForm(p => ({ ...p, amount: amt, percentage: fee > 0 ? String(Math.round(Number(amt) / fee * 100)) : p.percentage })); }} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
+                                  <FL label={t("pipeline.milestones.percentage" as any)}><input type="number" min="0" max="100" value={msForm.percentage} onChange={e => { const pct = e.target.value; const fee = Number(form.project_fee) || 0; setMsForm(p => ({ ...p, percentage: pct, amount: fee > 0 ? String(Math.round(fee * Number(pct) / 100)) : p.amount })); }} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
+                                </div>
+                                <FL label={t("pipeline.milestones.dueDate" as any)}><input type="date" value={msForm.due_date} onChange={e => setMsForm(p => ({ ...p, due_date: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
+                                <FL label={t("pipeline.milestones.note" as any)}><input value={msForm.note} onChange={e => setMsForm(p => ({ ...p, note: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
+                                <div className="flex justify-end gap-2">
+                                  <button onClick={() => { setShowAddMs(false); setEditMsId(null); setMsForm(emptyMs); }} className="btn-secondary text-[12px]">{t("common.cancel" as any)}</button>
+                                  <button onClick={saveMilestone} disabled={!msForm.label || !msForm.amount} className="btn-primary text-[12px]">{t("common.save" as any)}</button>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
+                        {/* Mark Paid confirmation modal */}
+                        {markPaidId && (
+                          <div className="rounded-lg p-3 space-y-3" style={{ background: "color-mix(in srgb, var(--success) 6%, var(--surface))", border: "1px solid var(--success)" }}>
+                            <div className="text-[12px] font-medium" style={{ color: "var(--text)" }}>{t("pipeline.milestones.markPaidConfirm" as any)}</div>
+                            <FL label={t("pipeline.milestones.paymentMethod" as any)}>
+                              <select value={markPaidMethod} onChange={e => setMarkPaidMethod(e.target.value)} className="input-base w-full px-3 py-2 text-[13px]">
+                                {PAYMENT_METHODS.map(m => <option key={m} value={m}>{t(`pipeline.milestones.method.${m}` as any)}</option>)}
+                              </select>
+                            </FL>
+                            <div className="flex justify-end gap-2">
+                              <button onClick={() => setMarkPaidId(null)} className="btn-secondary text-[12px]">{t("common.cancel" as any)}</button>
+                              <button onClick={confirmMarkPaid} className="text-[12px] font-semibold px-3 py-1.5 rounded-lg text-white" style={{ background: "var(--success)" }}>
+                                <Check size={12} className="inline mr-1" />{t("pipeline.milestones.markPaid" as any)}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </>
                 )}
               </div>

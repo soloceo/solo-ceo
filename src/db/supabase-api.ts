@@ -302,6 +302,128 @@ export async function handleSupabaseRequest(
     }
   }
 
+  // ── PAYMENT MILESTONES ────────────────────────────────────────
+  const milestoneListMatch = path.match(/^\/api\/clients\/(\d+)\/milestones$/);
+  if (milestoneListMatch) {
+    const clientId = Number(milestoneListMatch[1]);
+    if (method === 'GET') {
+      const today = todayDateKey();
+      const { data, error: e } = await supabase
+        .from('payment_milestones')
+        .select('*')
+        .eq('client_id', clientId)
+        .eq('soft_deleted', false)
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: true });
+      if (e) return err(500, e.message);
+      // Mark overdue milestones
+      const rows = (data || []).map((m: any) => ({
+        ...m,
+        status: m.status === 'pending' && m.due_date && m.due_date < today ? 'overdue' : m.status,
+      }));
+      return ok(rows);
+    }
+    if (method === 'POST') {
+      const { label, amount, percentage, due_date, payment_method, invoice_number, note, sort_order } = body;
+      const { data, error: e } = await supabase
+        .from('payment_milestones')
+        .insert({
+          user_id: userId,
+          client_id: clientId,
+          label: label || '', amount: amount || 0, percentage: percentage || 0,
+          due_date: due_date || '', payment_method: payment_method || '',
+          invoice_number: invoice_number || '', note: note || '',
+          sort_order: sort_order ?? 0, status: 'pending',
+        })
+        .select('id')
+        .single();
+      if (e) return err(500, e.message);
+      // Get client name for activity log
+      const { data: client } = await supabase.from('clients').select('name').eq('id', clientId).single();
+      await logActivity(userId, 'milestone', 'created',
+        `新增付款节点：${client?.name || ''} · ${label || ''}`,
+        amount ? `$${Number(amount).toLocaleString()}` : '', data!.id);
+      return ok({ id: data!.id });
+    }
+  }
+
+  const milestoneMatch = path.match(/^\/api\/milestones\/(\d+)$/);
+  if (milestoneMatch) {
+    const id = Number(milestoneMatch[1]);
+    if (method === 'PUT') {
+      const { label, amount, percentage, due_date, payment_method, status, invoice_number, note, sort_order } = body;
+      const { error: e } = await supabase
+        .from('payment_milestones')
+        .update({
+          label: label || '', amount: amount || 0, percentage: percentage || 0,
+          due_date: due_date || '', payment_method: payment_method || '',
+          status: status || 'pending', invoice_number: invoice_number || '',
+          note: note || '', sort_order: sort_order ?? 0,
+        })
+        .eq('id', id);
+      if (e) return err(500, e.message);
+      return ok({ success: true });
+    }
+    if (method === 'DELETE') {
+      const { data: prev } = await supabase.from('payment_milestones').select('label, client_id, finance_tx_id').eq('id', id).single();
+      await supabase.from('payment_milestones').update({ soft_deleted: true }).eq('id', id);
+      // Also soft-delete linked finance transaction if exists
+      if (prev?.finance_tx_id) {
+        await supabase.from('finance_transactions').update({ soft_deleted: true }).eq('id', Number(prev.finance_tx_id));
+      }
+      await logActivity(userId, 'milestone', 'deleted', `删除付款节点：${prev?.label || ''}`, '', id);
+      return ok({ success: true });
+    }
+  }
+
+  const markPaidMatch = path.match(/^\/api\/milestones\/(\d+)\/mark-paid$/);
+  if (markPaidMatch && method === 'POST') {
+    const id = Number(markPaidMatch[1]);
+    const { payment_method, paid_date } = body || {};
+    const actualDate = paid_date || todayDateKey();
+
+    // Get milestone + client info
+    const { data: milestone } = await supabase.from('payment_milestones').select('*').eq('id', id).single();
+    if (!milestone) return err(404, 'Milestone not found');
+    const { data: client } = await supabase.from('clients').select('name').eq('id', milestone.client_id).single();
+    const clientName = client?.name || '';
+
+    // Create finance transaction
+    const { data: tx, error: txErr } = await supabase
+      .from('finance_transactions')
+      .insert({
+        user_id: userId,
+        type: 'income',
+        amount: Number(milestone.amount || 0),
+        category: '项目收入',
+        description: `${clientName} · ${milestone.label || '项目付款'}`,
+        date: actualDate,
+        status: '已完成',
+        client_id: milestone.client_id,
+        client_name: clientName,
+      })
+      .select('id')
+      .single();
+    if (txErr) return err(500, txErr.message);
+
+    // Update milestone status
+    await supabase
+      .from('payment_milestones')
+      .update({
+        status: 'paid',
+        paid_date: actualDate,
+        payment_method: payment_method || milestone.payment_method || '',
+        finance_tx_id: tx!.id,
+      })
+      .eq('id', id);
+
+    await logActivity(userId, 'milestone', 'paid',
+      `确认收款：${clientName} · ${milestone.label || '项目付款'}`,
+      `$${Number(milestone.amount || 0).toLocaleString()} · ${payment_method || ''}`, id);
+
+    return ok({ success: true, financeId: tx!.id });
+  }
+
   // ── TASKS ──────────────────────────────────────────────────────
   if (path === '/api/tasks' && method === 'GET') {
     const { data } = await supabase
@@ -728,7 +850,21 @@ export async function handleSupabaseRequest(
       .limit(1);
     const urgentTask = urgentTaskArr?.[0] || null;
 
-    const systemTask = receivables[0]
+    // Overdue milestones detection
+    const { data: overdueMsArr } = await supabase
+      .from('payment_milestones')
+      .select('id, label, amount, due_date, client_id, clients(name)')
+      .eq('status', 'pending')
+      .eq('soft_deleted', false)
+      .not('due_date', 'is', null)
+      .lt('due_date', todayDateKey())
+      .order('due_date', { ascending: true })
+      .limit(1);
+    const overdueMs = overdueMsArr?.[0] as any;
+
+    const systemTask = overdueMs
+      ? { key: `system-overdue-ms-${overdueMs.id}`, type: '系统', title: `催收逾期款：${overdueMs.clients?.name || '客户'} — ${overdueMs.label} $${Number(overdueMs.amount||0).toLocaleString()}`, reason: `该笔款项已于 ${overdueMs.due_date} 到期，需要尽快催收。`, actionHint: '去客户面板确认收款并标记已付' }
+      : receivables[0]
       ? { key: `system-receivable-${receivables[0].id || 'r'}`, type: '系统', title: `处理应收：${receivables[0].description || '未命名账款'}`, reason: '有待收款项时，先收钱比继续堆工作更重要。', actionHint: '去财务管理跟进回款' }
       : bestLead
         ? { key: `system-lead-${bestLead.id || 'fallback'}`, type: '系统', title: `补齐线索信息：${bestLead.name || '未命名线索'}`, reason: '把高潜在线索信息补完整，后续跟进效率更高。', actionHint: '完善需求、来源和下一步动作' }
