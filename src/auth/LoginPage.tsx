@@ -57,9 +57,9 @@ export default function LoginPage() {
   return (
     <div
       className="flex min-h-screen items-center justify-center px-4"
-      style={{ background: 'var(--bg)' }}
+      style={{ background: 'var(--bg)', WebkitAppRegion: 'drag' } as React.CSSProperties}
     >
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-sm" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
         {/* Logo / Brand */}
         <div className="mb-8 text-center">
           <div
