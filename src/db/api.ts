@@ -781,9 +781,9 @@ export async function handleApiRequest(
   }
 
   if (path === '/api/finance' && method === 'POST') {
-    const { type, amount, category, description, date, status, tax_mode, tax_rate, tax_amount } = body;
-    const res = run(db, `INSERT INTO finance_transactions (type, amount, category, description, date, status, tax_mode, tax_rate, tax_amount) VALUES (?,?,?,?,?,?,?,?,?)`,
-      [type||'income', amount||0, category||'', description||'', date||'', status||'已完成', tax_mode||'none', tax_rate||0, tax_amount||0]);
+    const { type, amount, category, description, date, status, tax_mode, tax_rate, tax_amount, client_id, client_name } = body;
+    const res = run(db, `INSERT INTO finance_transactions (type, amount, category, description, date, status, tax_mode, tax_rate, tax_amount, client_id, client_name) VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+      [type||'income', amount||0, category||'', description||'', date||'', status||'已完成', tax_mode||'none', tax_rate||0, tax_amount||0, client_id||null, client_name||'']);
     logActivity(db, 'finance', 'created', `新增交易：${description||'未命名交易'}`,
       `${type==='income'?'+':'-'}$${Number(amount||0).toLocaleString()} · ${category||'未分类'}`, res.lastInsertRowid);
     await saveDb();
@@ -797,9 +797,9 @@ export async function handleApiRequest(
       return err(400, '订阅流水由客户状态自动生成，请在客户管理中编辑');
     }
     if (method === 'PUT') {
-      const { type, amount, category, description, date, status, tax_mode, tax_rate, tax_amount } = body;
-      run(db, `UPDATE finance_transactions SET type=?,amount=?,category=?,description=?,date=?,status=?,tax_mode=?,tax_rate=?,tax_amount=? WHERE id=?`,
-        [type||'income', amount||0, category||'', description||'', date||'', status||'已完成', tax_mode||'none', tax_rate||0, tax_amount||0, id]);
+      const { type, amount, category, description, date, status, tax_mode, tax_rate, tax_amount, client_id, client_name } = body;
+      run(db, `UPDATE finance_transactions SET type=?,amount=?,category=?,description=?,date=?,status=?,tax_mode=?,tax_rate=?,tax_amount=?,client_id=?,client_name=? WHERE id=?`,
+        [type||'income', amount||0, category||'', description||'', date||'', status||'已完成', tax_mode||'none', tax_rate||0, tax_amount||0, client_id||null, client_name||'', id]);
       logActivity(db, 'finance', 'updated', `更新交易：${description||'未命名交易'}`,
         `${type==='income'?'+':'-'}$${Number(amount||0).toLocaleString()} · ${category||'未分类'}`, id);
       await saveDb();

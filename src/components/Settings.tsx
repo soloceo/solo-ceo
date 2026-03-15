@@ -429,6 +429,16 @@ export default function Settings() {
           <Save size={14} /> {t("settings.saveBtn" as any)}
         </button>
 
+        {/* ── Version info ── */}
+        <div className="text-center py-4 space-y-1">
+          <div className="text-[12px] font-medium" style={{ color: 'var(--text-tertiary)' }}>
+            一人CEO v{__APP_VERSION__}
+          </div>
+          <div className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+            {t("settings.version.checkUpdate" as any)}
+          </div>
+        </div>
+
         {/* Bottom spacer for mobile */}
         <div className="h-20 lg:h-8" />
       </div>

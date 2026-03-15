@@ -502,6 +502,7 @@ const zh = {
   "settings.imageGen.apiKey": "图片模型专用 API Key（可选）",
   "settings.imageGen.apiKeyPlaceholder": "留空则使用 Gemini Key",
   "settings.saveBtn": "保存设置",
+  "settings.version.checkUpdate": "前往 GitHub 查看最新版本",
   "settings.saved": "设置已保存",
   "settings.sync": "数据同步",
   "settings.sync.macHint": "手机与 Mac 连接同一 WiFi 后，在手机设置页输入下方地址即可双向同步。",

@@ -468,7 +468,7 @@ export function ClientsView() {
                   <span className="badge" style={c.status === "Active" ? { background: "var(--success-light)", color: "var(--success)" } : { background: "var(--warning-light)", color: "var(--warning)" }}>{c.status === "Active" ? t("common.active" as any) : t("common.paused" as any)}</span>
                 </div>
                 {c.contact_name && <div className="text-[11px] mt-0.5 truncate" style={{ color: "var(--text-secondary)" }}>{c.contact_name}{c.contact_phone ? ` · ${c.contact_phone}` : ""}</div>}
-                <div className="text-[11px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>{c.billing_type === "project" ? <>{t("pipeline.clients.billingProject" as any)} · <strong style={{ color: "var(--text)" }}>${Number(c.project_fee || 0).toLocaleString()}</strong></> : <>{plan} · <strong style={{ color: "var(--text)" }}>${Number(c.mrr || 0).toLocaleString()}</strong>{t("pipeline.clients.perMonth" as any)}</>}</div>
+                <div className="text-[11px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>{c.billing_type === "project" ? <>{t("pipeline.clients.billingProject" as any)} · <strong style={{ color: "var(--text)" }}>${Number(c.project_fee || 0).toLocaleString()}</strong></> : <>{plan} · <strong style={{ color: "var(--text)" }}>${Number(c.mrr || 0).toLocaleString()}</strong>{t("pipeline.clients.perMonth" as any)}</>}{c.tax_mode && c.tax_mode !== "none" && <> · <span style={{ color: "var(--accent)" }}>{c.tax_mode === "exclusive" ? t("money.form.taxExclBtn" as any) : t("money.form.taxIncl" as any)} {c.tax_rate}%</span></>}</div>
               </div>
             </button>
           );
@@ -480,11 +480,11 @@ export function ClientsView() {
         <table className="w-full text-left min-w-[1000px]">
           <thead className="sticky top-0 z-10" style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
             <tr className="section-label">
-              <th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.name" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.contact" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.type" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.plan" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.status" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.revenue" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.joined" as any)}</th><th className="px-4 py-3 text-right font-semibold">{t("pipeline.clients.table.actions" as any)}</th>
+              <th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.name" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.contact" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.type" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.plan" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.status" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.revenue" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.taxSetting" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.joined" as any)}</th><th className="px-4 py-3 text-right font-semibold">{t("pipeline.clients.table.actions" as any)}</th>
             </tr>
           </thead>
           <tbody className="text-[13px]">
-            {padTop > 0 && <tr><td style={{ height: padTop, padding: 0 }} colSpan={8} /></tr>}
+            {padTop > 0 && <tr><td style={{ height: padTop, padding: 0 }} colSpan={9} /></tr>}
             {vItems.map(vr => {
               const c = filtered[vr.index];
               const plan = c.plan_tier === "Basic" ? t("pipeline.convert.planBasic" as any) : c.plan_tier === "Pro" ? t("pipeline.convert.planPro" as any) : c.plan_tier === "Enterprise" ? t("pipeline.convert.planEnterprise" as any) : (c.plan_tier || c.plan);
@@ -500,12 +500,13 @@ export function ClientsView() {
                   <td className="px-4 py-3"><span className="badge">{c.billing_type === "project" ? "—" : plan}</span></td>
                   <td className="px-4 py-3"><span className="badge" style={c.status === "Active" ? { background: "var(--success-light)", color: "var(--success)" } : { background: "var(--warning-light)", color: "var(--warning)" }}>{c.status}</span></td>
                   <td className="px-4 py-3 font-medium tabular-nums" style={{ color: "var(--text)" }}>{c.billing_type === "project" ? `$${Number(c.project_fee || 0).toLocaleString()}` : `$${Number(c.mrr || 0).toLocaleString()}${t("pipeline.clients.perMonth" as any)}`}</td>
+                  <td className="px-4 py-3">{c.tax_mode && c.tax_mode !== "none" ? <span className="badge" style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)" }}>{c.tax_mode === "exclusive" ? t("money.form.taxExclBtn" as any) : t("money.form.taxIncl" as any)} {c.tax_rate}%</span> : <span style={{ color: "var(--text-tertiary)" }}>—</span>}</td>
                   <td className="px-4 py-3" style={{ color: "var(--text-secondary)" }}>{c.joined_at ? c.joined_at.split(" ")[0] : ""}</td>
                   <td className="px-4 py-3 text-right"><button onClick={e => { e.stopPropagation(); openPanel(c); }} className="btn-ghost text-[11px] opacity-0 group-hover:opacity-100"><Edit2 size={11} /> {t("common.edit" as any)}</button></td>
                 </tr>
               );
             })}
-            {padBot > 0 && <tr><td style={{ height: padBot, padding: 0 }} colSpan={8} /></tr>}
+            {padBot > 0 && <tr><td style={{ height: padBot, padding: 0 }} colSpan={9} /></tr>}
           </tbody>
         </table>
         {!filtered.length && <div className="p-8 text-center text-[13px]" style={{ color: "var(--text-tertiary)" }}>{t("pipeline.clients.noMatch" as any)}</div>}
@@ -551,30 +552,6 @@ export function ClientsView() {
                     ))}
                   </div>
                 </FL>
-                {/* Tax settings */}
-                <FL label={t("pipeline.clients.taxSetting" as any)}>
-                  <div className="flex gap-2 mb-2">
-                    {([["none", t("money.form.taxNone" as any)], ["exclusive", t("money.form.taxExclBtn" as any)], ["inclusive", t("money.form.taxIncl" as any)]] as [string, string][]).map(([mode, label]) => (
-                      <button key={mode} type="button" onClick={() => setForm(p => ({ ...p, tax_mode: mode as any }))}
-                        className="flex-1 py-1.5 rounded-lg text-[12px] font-medium transition-all"
-                        style={form.tax_mode === mode ? { background: "var(--text)", color: "var(--bg)" } : { background: "var(--surface-alt)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                  {form.tax_mode !== "none" && (
-                    <div className="flex gap-2">
-                      {[13, 6, 3].map(r => (
-                        <button key={r} type="button" onClick={() => setForm(p => ({ ...p, tax_rate: String(r) }))}
-                          className="px-3 py-1.5 rounded-md text-[11px] font-medium transition-all"
-                          style={Number(form.tax_rate) === r ? { background: "var(--accent-light)", color: "var(--accent)", border: "1px solid var(--accent)" } : { background: "var(--surface-alt)", color: "var(--text-secondary)" }}>
-                          {r}%
-                        </button>
-                      ))}
-                      <input type="number" min="0" max="100" step="0.01" value={form.tax_rate} onChange={e => setForm(p => ({ ...p, tax_rate: e.target.value }))} placeholder={t("money.form.customTaxPlaceholder" as any)} className="input-base flex-1 px-3 py-1.5 text-[11px] min-w-0" />
-                    </div>
-                  )}
-                </FL>
                 {form.billing_type === "subscription" ? (
                   <>
                     <div className="grid grid-cols-2 gap-3">
@@ -582,6 +559,30 @@ export function ClientsView() {
                       <FL label={t("common.status" as any)}><select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]"><option value="Active">Active</option><option value="Paused">Paused</option></select></FL>
                     </div>
                     <FL label={t("pipeline.convert.mrr" as any)}><input type="number" required min="0" value={form.mrr} onChange={e => setForm(p => ({ ...p, mrr: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
+                    {/* Tax settings — after amount */}
+                    <FL label={t("pipeline.clients.taxSetting" as any)}>
+                      <div className="flex gap-2 mb-2">
+                        {([["none", t("money.form.taxNone" as any)], ["exclusive", t("money.form.taxExclBtn" as any)], ["inclusive", t("money.form.taxIncl" as any)]] as [string, string][]).map(([mode, label]) => (
+                          <button key={mode} type="button" onClick={() => setForm(p => ({ ...p, tax_mode: mode as any }))}
+                            className="flex-1 py-1.5 rounded-lg text-[12px] font-medium transition-all"
+                            style={form.tax_mode === mode ? { background: "var(--text)", color: "var(--bg)" } : { background: "var(--surface-alt)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                      {form.tax_mode !== "none" && (
+                        <div className="flex gap-2">
+                          {[13, 6, 3].map(r => (
+                            <button key={r} type="button" onClick={() => setForm(p => ({ ...p, tax_rate: String(r) }))}
+                              className="px-3 py-1.5 rounded-md text-[11px] font-medium transition-all"
+                              style={Number(form.tax_rate) === r ? { background: "var(--accent-light)", color: "var(--accent)", border: "1px solid var(--accent)" } : { background: "var(--surface-alt)", color: "var(--text-secondary)" }}>
+                              {r}%
+                            </button>
+                          ))}
+                          <input type="number" min="0" max="100" step="0.01" value={form.tax_rate} onChange={e => setForm(p => ({ ...p, tax_rate: e.target.value }))} placeholder={t("money.form.customTaxPlaceholder" as any)} className="input-base flex-1 px-3 py-1.5 text-[11px] min-w-0" />
+                        </div>
+                      )}
+                    </FL>
                     <div className="border-t" style={{ borderColor: "var(--border)" }} />
                     <span className="section-label">{t("pipeline.clients.timeline" as any)}</span>
                     <div className="grid grid-cols-2 gap-3">
@@ -597,6 +598,30 @@ export function ClientsView() {
                       <FL label={t("pipeline.clients.projectFee" as any)}><input type="number" required min="0" value={form.project_fee} onChange={e => setForm(p => ({ ...p, project_fee: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
                       <FL label={t("common.status" as any)}><select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]"><option value="Active">Active</option><option value="Paused">Paused</option></select></FL>
                     </div>
+                    {/* Tax settings — after amount */}
+                    <FL label={t("pipeline.clients.taxSetting" as any)}>
+                      <div className="flex gap-2 mb-2">
+                        {([["none", t("money.form.taxNone" as any)], ["exclusive", t("money.form.taxExclBtn" as any)], ["inclusive", t("money.form.taxIncl" as any)]] as [string, string][]).map(([mode, label]) => (
+                          <button key={mode} type="button" onClick={() => setForm(p => ({ ...p, tax_mode: mode as any }))}
+                            className="flex-1 py-1.5 rounded-lg text-[12px] font-medium transition-all"
+                            style={form.tax_mode === mode ? { background: "var(--text)", color: "var(--bg)" } : { background: "var(--surface-alt)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                      {form.tax_mode !== "none" && (
+                        <div className="flex gap-2">
+                          {[13, 6, 3].map(r => (
+                            <button key={r} type="button" onClick={() => setForm(p => ({ ...p, tax_rate: String(r) }))}
+                              className="px-3 py-1.5 rounded-md text-[11px] font-medium transition-all"
+                              style={Number(form.tax_rate) === r ? { background: "var(--accent-light)", color: "var(--accent)", border: "1px solid var(--accent)" } : { background: "var(--surface-alt)", color: "var(--text-secondary)" }}>
+                              {r}%
+                            </button>
+                          ))}
+                          <input type="number" min="0" max="100" step="0.01" value={form.tax_rate} onChange={e => setForm(p => ({ ...p, tax_rate: e.target.value }))} placeholder={t("money.form.customTaxPlaceholder" as any)} className="input-base flex-1 px-3 py-1.5 text-[11px] min-w-0" />
+                        </div>
+                      )}
+                    </FL>
                     <div className="border-t" style={{ borderColor: "var(--border)" }} />
                     <span className="section-label">{t("pipeline.clients.projectTimeline" as any)}</span>
                     <div className="grid grid-cols-2 gap-3">

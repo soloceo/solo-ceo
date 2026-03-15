@@ -504,6 +504,7 @@ const en: typeof zh = {
   "settings.imageGen.apiKey": "Image Model API Key (optional)",
   "settings.imageGen.apiKeyPlaceholder": "Leave empty to use Gemini Key",
   "settings.saveBtn": "Save Settings",
+  "settings.version.checkUpdate": "Check latest version on GitHub",
   "settings.saved": "Settings saved",
   "settings.sync": "Data Sync",
   "settings.sync.macHint": "Connect your phone and Mac to the same WiFi, then enter the address below in your phone's settings to sync.",

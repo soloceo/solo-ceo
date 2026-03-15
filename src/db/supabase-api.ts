@@ -629,13 +629,14 @@ export async function handleSupabaseRequest(
     if (String(id).startsWith('client-sub-'))
       return err(400, '订阅流水由客户状态自动生成，请在客户管理中编辑');
     if (method === 'PUT') {
-      const { type, amount, category, description, date, status, tax_mode, tax_rate, tax_amount } = body;
+      const { type, amount, category, description, date, status, tax_mode, tax_rate, tax_amount, client_id, client_name } = body;
       const { error: e } = await supabase
         .from('finance_transactions')
         .update({
           type: type || 'income', amount: amount || 0, category: category || '',
           description: description || '', date: date || '', status: status || '已完成',
           tax_mode: tax_mode || 'none', tax_rate: tax_rate || 0, tax_amount: tax_amount || 0,
+          client_id: client_id || null, client_name: client_name || '',
         })
         .eq('id', Number(id));
       if (e) return err(500, e.message);

@@ -181,8 +181,9 @@ export function TransactionsView({ showToast }: { showToast: (m: string) => void
     return () => window.dispatchEvent(new CustomEvent("mobile-nav-visibility", { detail: { hidden: false } }));
   }, [showPanel, showAll, showRules, isMobile]);
 
-  const openPanel = (tx: any = null) => {
-    fetch("/api/clients").then(r => r.json()).then(setClientList).catch(() => {});
+  const openPanel = async (tx: any = null) => {
+    let clients: any[] = [];
+    try { const r = await fetch("/api/clients"); clients = await r.json(); setClientList(clients); } catch { clients = clientList; }
     if (tx) {
       setEditingTx(tx);
       setFormData({
@@ -343,8 +344,8 @@ export function TransactionsView({ showToast }: { showToast: (m: string) => void
             {transactions.slice(0, 10).map((tx) => (
               <div
                 key={tx.id}
-                onClick={() => openPanel(tx)}
-                className="list-item px-4 py-3 cursor-pointer"
+                onClick={() => !tx.source && openPanel(tx)}
+                className={`list-item px-4 py-3 ${tx.source ? "opacity-60" : "cursor-pointer"}`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -353,6 +354,8 @@ export function TransactionsView({ showToast }: { showToast: (m: string) => void
                       <span className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>{tx.date}</span>
                       <span className="w-1 h-1 rounded-full" style={{ background: "var(--border-strong)" }} />
                       <span className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>{tx.category}</span>
+                      {tx.source === "client_subscription" && <span className="badge text-[10px]" style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)" }}>{t("money.badge.subscription" as any)}</span>}
+                      {tx.source === "client_project" && <span className="badge text-[10px]" style={{ background: "color-mix(in srgb, var(--warning) 12%, transparent)", color: "var(--warning)" }}>{t("money.badge.project" as any)}</span>}
                     </div>
                   </div>
                   <div className="text-right shrink-0">
@@ -528,7 +531,7 @@ export function TransactionsView({ showToast }: { showToast: (m: string) => void
                   <div><FL>{t("money.form.category" as any)}</FL><select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className="input-base w-full px-3 py-2 text-[13px]">{categories.map((c) => <option key={c} value={c}>{c}</option>)}</select></div>
                 </div>
                 <div><FL>{t("money.form.description" as any)}</FL><input type="text" required value={formData.desc} onChange={(e) => setFormData({ ...formData, desc: e.target.value })} placeholder={t("money.form.descPlaceholder" as any)} className="input-base w-full px-3 py-2 text-[13px]" /></div>
-                <div><FL>{t("money.form.client" as any)}</FL><select value={formData.client_id} onChange={(e) => { const cid = e.target.value; const c = clientList.find((x: any) => String(x.id) === cid); setFormData({ ...formData, client_id: cid ? Number(cid) : "", client_name: c ? (c.company_name || c.name) : "", taxMode: (c?.tax_mode && c.tax_mode !== "none" ? c.tax_mode : formData.taxMode) as any, taxRate: c?.tax_rate ? String(c.tax_rate) : formData.taxRate }); }} className="input-base w-full px-3 py-2 text-[13px]"><option value="">{t("money.form.clientNone" as any)}</option>{clientList.map((c: any) => <option key={c.id} value={c.id}>{c.company_name || c.name}</option>)}</select></div>
+                <div><FL>{t("money.form.client" as any)}</FL><select value={String(formData.client_id || "")} onChange={(e) => { const cid = e.target.value; const c = clientList.find((x: any) => String(x.id) === cid); setFormData({ ...formData, client_id: cid ? Number(cid) : "", client_name: c ? (c.company_name || c.name) : "", taxMode: (c?.tax_mode && c.tax_mode !== "none" ? c.tax_mode : formData.taxMode) as any, taxRate: c?.tax_rate ? String(c.tax_rate) : formData.taxRate }); }} className="input-base w-full px-3 py-2 text-[13px]"><option value="">{t("money.form.clientNone" as any)}</option>{clientList.map((c: any) => <option key={c.id} value={String(c.id)}>{c.company_name || c.name}</option>)}</select></div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <FL>{t("money.form.amount" as any)}</FL>
