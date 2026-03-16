@@ -128,6 +128,8 @@ export function TransactionsView({ showToast }: { showToast: (m: string) => void
     client_id: "" as string | number, client_name: "",
   });
   const [clientList, setClientList] = useState<any[]>([]);
+  const [panelMilestones, setPanelMilestones] = useState<any[]>([]);
+  const [msLoading, setMsLoading] = useState(false);
 
   const categories = ["收入", "软件支出", "外包支出", "应收", "应付", "其他支出"];
   const statuses = ["已完成", "待收款 (应收)", "待支付 (应付)"];
@@ -181,9 +183,17 @@ export function TransactionsView({ showToast }: { showToast: (m: string) => void
     return () => window.dispatchEvent(new CustomEvent("mobile-nav-visibility", { detail: { hidden: false } }));
   }, [showPanel, showAll, showRules, isMobile]);
 
+  const fetchPanelMilestones = async (clientId: number) => {
+    setMsLoading(true);
+    try { const res = await fetch(`/api/clients/${clientId}/milestones`); setPanelMilestones(await res.json()); }
+    catch { setPanelMilestones([]); }
+    finally { setMsLoading(false); }
+  };
+
   const openPanel = async (tx: any = null) => {
     let clients: any[] = [];
     try { const r = await fetch("/api/clients"); clients = await r.json(); setClientList(clients); } catch { clients = clientList; }
+    setPanelMilestones([]);
     if (tx) {
       setEditingTx(tx);
       setFormData({
@@ -192,6 +202,11 @@ export function TransactionsView({ showToast }: { showToast: (m: string) => void
         taxMode: tx.tax_mode || "none", taxRate: tx.tax_rate ? String(tx.tax_rate) : "",
         client_id: tx.client_id || "", client_name: tx.client_name || "",
       });
+      // Fetch milestones for project clients
+      if (tx.client_id) {
+        const cl = clients.find(c => c.id === tx.client_id);
+        if (cl?.billing_type === "project") fetchPanelMilestones(tx.client_id);
+      }
     } else {
       setEditingTx(null);
       setFormData({ date: new Date().toISOString().split("T")[0], desc: "", category: "收入", amount: "", status: "已完成", taxMode: "none", taxRate: "", client_id: "", client_name: "" });
@@ -619,6 +634,43 @@ export function TransactionsView({ showToast }: { showToast: (m: string) => void
                     </div>
                   )}
                 </div>
+
+                {/* Milestones section for project clients */}
+                {panelMilestones.length > 0 && (
+                  <div>
+                    <FL>{t("money.form.milestones" as any)}</FL>
+                    <div className="space-y-2">
+                      {panelMilestones.map((ms: any) => {
+                        const isPaid = ms.status === "paid";
+                        return (
+                          <div key={ms.id} className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ background: "var(--surface-alt)", border: "1px solid var(--border)" }}>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-[12px] font-medium" style={{ color: isPaid ? "var(--success)" : "var(--text)" }}>
+                                {ms.label || t("pipeline.milestones.defaultLabel" as any)} · ${Number(ms.amount || 0).toLocaleString()}
+                              </div>
+                              {ms.due_date && <div className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>{ms.due_date}</div>}
+                            </div>
+                            {isPaid ? (
+                              <span className="badge text-[10px]" style={{ background: "var(--success-light)", color: "var(--success)" }}>{t("money.form.msPaid" as any)}</span>
+                            ) : (
+                              <button type="button" onClick={async () => {
+                                try {
+                                  await fetch(`/api/milestones/${ms.id}/mark-paid`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paid_date: new Date().toISOString().split("T")[0] }) });
+                                  showToast(t("money.toast.msPaid" as any));
+                                  if (editingTx?.client_id) fetchPanelMilestones(editingTx.client_id);
+                                  fetchFinance();
+                                } catch { showToast(t("common.saveFailed" as any)); }
+                              }} className="badge text-[10px] cursor-pointer" style={{ background: "var(--warning-light)", color: "var(--warning)" }}>
+                                {t("money.form.msMarkPaid" as any)}
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {msLoading && <div className="text-center py-2"><Loader2 size={14} className="animate-spin inline" style={{ color: "var(--text-tertiary)" }} /></div>}
               </form>
 
               {/* Footer */}

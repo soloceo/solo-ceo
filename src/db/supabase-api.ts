@@ -139,6 +139,7 @@ export async function handleSupabaseRequest(
     const { data, error: e } = await supabase
       .from('leads')
       .select('*')
+      .eq('user_id', userId)
       .eq('soft_deleted', false)
       .order('created_at', { ascending: false });
     if (e) return err(500, e.message);
@@ -223,11 +224,13 @@ export async function handleSupabaseRequest(
     const { data: clients } = await supabase
       .from('clients')
       .select('*')
+      .eq('user_id', userId)
       .eq('soft_deleted', false)
       .order('joined_at', { ascending: false });
     const { data: ledger } = await supabase
       .from('client_subscription_ledger')
-      .select('client_id, amount, ledger_month');
+      .select('client_id, amount, ledger_month')
+      .eq('user_id', userId);
     const rows = (clients || []).map((client) => {
       const cl = (ledger || []).filter((r) => Number(r.client_id) === Number(client.id));
       const lifetimeRevenue = cl.reduce((s, r) => s + Number(r.amount || 0), 0);
@@ -313,6 +316,7 @@ export async function handleSupabaseRequest(
       const { data, error: e } = await supabase
         .from('payment_milestones')
         .select('*')
+        .eq('user_id', userId)
         .eq('client_id', clientId)
         .eq('soft_deleted', false)
         .order('sort_order', { ascending: true })
@@ -440,6 +444,7 @@ export async function handleSupabaseRequest(
     const { data } = await supabase
       .from('tasks')
       .select('*')
+      .eq('user_id', userId)
       .eq('soft_deleted', false)
       .order('created_at', { ascending: false });
     return ok(data || []);
@@ -494,6 +499,7 @@ export async function handleSupabaseRequest(
     const { data: planClientCounts } = await supabase
       .from('clients')
       .select('plan_tier')
+      .eq('user_id', userId)
       .eq('status', 'Active')
       .eq('soft_deleted', false);
     const countMap = new Map<string, number>();
@@ -510,6 +516,7 @@ export async function handleSupabaseRequest(
     const { data: plans } = await supabase
       .from('plans')
       .select('*')
+      .eq('user_id', userId)
       .eq('soft_deleted', false);
     const rows = (plans || []).map((p) => {
       const al = aliases[p.name as string] || [p.name];
@@ -567,10 +574,12 @@ export async function handleSupabaseRequest(
     const { data: transactions } = await supabase
       .from('finance_transactions')
       .select('*')
+      .eq('user_id', userId)
       .eq('soft_deleted', false);
     const { data: ledgerRows } = await supabase
       .from('client_subscription_ledger')
       .select('id, client_id, client_name, plan_tier, amount, ledger_month')
+      .eq('user_id', userId)
       .order('ledger_month', { ascending: false });
 
     // Dedup: find which client+month combos already have real finance records
@@ -584,7 +593,7 @@ export async function handleSupabaseRequest(
     const subClientIds = [...new Set((ledgerRows || []).map(r => r.client_id))];
     let subClientTax: Record<number, { tax_mode: string; tax_rate: number }> = {};
     if (subClientIds.length > 0) {
-      const { data: subCls } = await supabase.from('clients').select('id, tax_mode, tax_rate').in('id', subClientIds);
+      const { data: subCls } = await supabase.from('clients').select('id, tax_mode, tax_rate').eq('user_id', userId).in('id', subClientIds);
       (subCls || []).forEach(c => { subClientTax[c.id] = { tax_mode: c.tax_mode || 'none', tax_rate: Number(c.tax_rate || 0) }; });
     }
 
@@ -616,17 +625,20 @@ export async function handleSupabaseRequest(
     const { data: pendingMs } = await supabase
       .from('payment_milestones')
       .select('id, client_id, label, amount, due_date, status, finance_tx_id')
+      .eq('user_id', userId)
       .eq('soft_deleted', false)
       .eq('status', 'pending');
     const { data: projectClients } = await supabase
       .from('clients')
       .select('id, name, company_name, project_fee, project_end_date, tax_mode, tax_rate, status')
+      .eq('user_id', userId)
       .eq('billing_type', 'project')
       .eq('soft_deleted', false)
       .eq('status', 'Active');
     const { data: allMilestones } = await supabase
       .from('payment_milestones')
       .select('client_id')
+      .eq('user_id', userId)
       .eq('soft_deleted', false);
     const clientsWithMs = new Set((allMilestones || []).map(m => m.client_id));
 
@@ -637,7 +649,7 @@ export async function handleSupabaseRequest(
     });
     const msClientIds = [...new Set((pendingMs || []).map(m => m.client_id))];
     if (msClientIds.length > 0) {
-      const { data: cls } = await supabase.from('clients').select('id, name, company_name, tax_mode, tax_rate').in('id', msClientIds);
+      const { data: cls } = await supabase.from('clients').select('id, name, company_name, tax_mode, tax_rate').eq('user_id', userId).in('id', msClientIds);
       (cls || []).forEach(c => {
         if (!clientMap[c.id]) clientMap[c.id] = { name: c.company_name || c.name, tax_mode: c.tax_mode || 'none', tax_rate: Number(c.tax_rate || 0) };
       });
@@ -768,6 +780,7 @@ export async function handleSupabaseRequest(
     const { data } = await supabase
       .from('content_drafts')
       .select('*')
+      .eq('user_id', userId)
       .eq('soft_deleted', false)
       .order('updated_at', { ascending: false })
       .limit(20);
@@ -882,6 +895,7 @@ export async function handleSupabaseRequest(
     const { data: activeClients } = await supabase
       .from('clients')
       .select('id', { count: 'exact' })
+      .eq('user_id', userId)
       .eq('status', 'Active')
       .eq('soft_deleted', false);
     const clientsCount = activeClients?.length || 0;
@@ -889,6 +903,7 @@ export async function handleSupabaseRequest(
     const { data: mrrData } = await supabase
       .from('clients')
       .select('mrr')
+      .eq('user_id', userId)
       .eq('status', 'Active')
       .eq('soft_deleted', false);
     const mrr = (mrrData || []).reduce((s, r) => s + Number(r.mrr || 0), 0);
@@ -896,6 +911,7 @@ export async function handleSupabaseRequest(
     const { data: taskData } = await supabase
       .from('tasks')
       .select('id')
+      .eq('user_id', userId)
       .neq('column', 'done')
       .eq('soft_deleted', false);
     const activeTasks = taskData?.length || 0;
@@ -903,13 +919,15 @@ export async function handleSupabaseRequest(
     const { data: leadData } = await supabase
       .from('leads')
       .select('id')
+      .eq('user_id', userId)
       .eq('soft_deleted', false);
     const leadsCount = leadData?.length || 0;
 
     // MRR series from ledger
     const { data: ledgerSeries } = await supabase
       .from('client_subscription_ledger')
-      .select('ledger_month, amount');
+      .select('ledger_month, amount')
+      .eq('user_id', userId);
 
     const monthTotals = new Map<string, number>();
     for (const r of (ledgerSeries || [])) {
@@ -930,6 +948,7 @@ export async function handleSupabaseRequest(
     const { data: recentActivityRows } = await supabase
       .from('activity_log')
       .select('title, detail, created_at, entity_type, action')
+      .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(8);
 
@@ -946,6 +965,7 @@ export async function handleSupabaseRequest(
     const { data: focusStates } = await supabase
       .from('today_focus_state')
       .select('focus_key, status')
+      .eq('user_id', userId)
       .eq('focus_date', focusDate);
     const focusStateMap: Record<string, string> = {};
     for (const r of (focusStates || [])) {
@@ -959,6 +979,7 @@ export async function handleSupabaseRequest(
     const { data: bestLeadArr } = await supabase
       .from('leads')
       .select('id, name, industry, needs, column')
+      .eq('user_id', userId)
       .eq('soft_deleted', false)
       .in('column', ['proposal', 'contacted', 'new'])
       .order('column', { ascending: true })
@@ -968,6 +989,7 @@ export async function handleSupabaseRequest(
     const { data: urgentTaskArr } = await supabase
       .from('tasks')
       .select('id, title, client, priority, due, column')
+      .eq('user_id', userId)
       .eq('soft_deleted', false)
       .neq('column', 'done')
       .order('priority', { ascending: true })
@@ -978,6 +1000,7 @@ export async function handleSupabaseRequest(
     const { data: overdueMsArr } = await supabase
       .from('payment_milestones')
       .select('id, label, amount, due_date, client_id, clients(name)')
+      .eq('user_id', userId)
       .eq('status', 'pending')
       .eq('soft_deleted', false)
       .not('due_date', 'is', null)
@@ -1007,6 +1030,7 @@ export async function handleSupabaseRequest(
     const { data: manualFocusRows } = await supabase
       .from('today_focus_manual')
       .select('id, type, title, note')
+      .eq('user_id', userId)
       .eq('focus_date', focusDate)
       .eq('soft_deleted', false)
       .order('id', { ascending: false });
@@ -1030,7 +1054,8 @@ export async function handleSupabaseRequest(
   if (path === '/api/settings' && method === 'GET') {
     const { data } = await supabase
       .from('app_settings')
-      .select('key, value');
+      .select('key, value')
+      .eq('user_id', userId);
     const settings: Record<string, string> = {};
     for (const r of (data || [])) settings[r.key] = r.value;
     return ok(settings);

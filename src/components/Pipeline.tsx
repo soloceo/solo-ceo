@@ -333,9 +333,12 @@ export function ClientsView() {
 
   const PAYMENT_METHODS = ["bank_transfer", "wechat", "alipay", "cash", "paypal", "stripe", "other"] as const;
 
+  const [finTxs, setFinTxs] = useState<any[]>([]);
+
   const showToast = (m: string) => { setToast(m); setTimeout(() => setToast(""), 3000); };
   const fetchPlans = async () => { try { setPlans(await (await fetch("/api/plans")).json()); } catch {} };
   const fetchClients = async () => { try { const res = await fetch("/api/clients"); setClients(await res.json()); } catch { showToast(t("pipeline.toast.clientLoadFailed" as any)); } finally { setLoading(false); } };
+  const fetchFinance = async () => { try { const res = await fetch("/api/finance"); setFinTxs(await res.json()); } catch {} };
 
   const fetchMilestones = async (clientId: number) => {
     setMsLoading(true);
@@ -383,8 +386,8 @@ export function ClientsView() {
     }));
   };
 
-  useEffect(() => { fetchClients(); fetchPlans(); }, []);
-  useRealtimeRefresh(['clients', 'plans', 'payment_milestones'], () => { fetchClients(); if (editId && form.billing_type === "project") fetchMilestones(editId); });
+  useEffect(() => { fetchClients(); fetchPlans(); fetchFinance(); }, []);
+  useRealtimeRefresh(['clients', 'plans', 'payment_milestones', 'finance_transactions'], () => { fetchClients(); fetchFinance(); if (editId && form.billing_type === "project") fetchMilestones(editId); });
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check(); window.addEventListener("resize", check);
@@ -421,9 +424,16 @@ export function ClientsView() {
   const filtered = clients.filter(c => { const q = search.toLowerCase(); const ms = c.name.toLowerCase().includes(q) || (c.company_name || "").toLowerCase().includes(q) || (c.contact_name || "").toLowerCase().includes(q) || (c.contact_email || "").toLowerCase().includes(q); const mf = filterSt === "All" || c.status === filterSt; return ms && mf; });
   const activeN = filtered.filter(c => c.status === "Active").length;
   const pausedN = filtered.filter(c => c.status === "Paused").length;
-  const totalMRR = filtered.reduce((s, c) => s + Number(c.mrr || 0), 0);
-  const totalProjectFees = filtered.reduce((s, c) => c.billing_type === "project" ? s + Number(c.project_fee || 0) : s, 0);
-  const totalRevenue = totalMRR + totalProjectFees;
+  // 合同总额 = subscription lifetimeRevenue + project fees
+  const contractTotal = filtered.reduce((s, c) => {
+    if (c.billing_type === "project") return s + Number(c.project_fee || 0);
+    return s + Number(c.lifetimeRevenue || 0);
+  }, 0);
+  // 已到账 = 所有已完成收入（含订阅月付虚拟行 + 真实交易记录）
+  const filteredIds = new Set(filtered.map(c => c.id));
+  const totalReceived = finTxs
+    .filter((tx: any) => tx.type === "income" && (tx.status || "已完成") === "已完成" && filteredIds.has(tx.client_id))
+    .reduce((s: number, tx: any) => s + Number(tx.amount || 0), 0);
 
   const rowV = useVirtualizer({ count: filtered.length, getScrollElement: () => parentRef.current, estimateSize: () => 72, overscan: 6 });
   const vItems = rowV.getVirtualItems();
@@ -434,10 +444,11 @@ export function ClientsView() {
     <>
       {toast && <Toast msg={toast} />}
 
-      <div className="grid grid-cols-3 gap-3 mb-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
         <div className="stat-card"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: "color-mix(in srgb, var(--success) 12%, transparent)" }}><PlayCircle size={13} style={{ color: "var(--success)" }} /></div><span className="text-[11px] font-medium" style={{ color: "var(--text-tertiary)" }}>{t("common.active" as any)}</span></div><span className="text-xl font-semibold tabular-nums" style={{ color: "var(--text)" }}>{activeN}</span></div>
         <div className="stat-card"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: "color-mix(in srgb, var(--warning) 12%, transparent)" }}><PauseCircle size={13} style={{ color: "var(--warning)" }} /></div><span className="text-[11px] font-medium" style={{ color: "var(--text-tertiary)" }}>{t("common.paused" as any)}</span></div><span className="text-xl font-semibold tabular-nums" style={{ color: "var(--text)" }}>{pausedN}</span></div>
-        <div className="stat-card"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)" }}><Layers size={13} style={{ color: "var(--accent)" }} /></div><span className="text-[11px] font-medium" style={{ color: "var(--text-tertiary)" }}>{t("pipeline.clients.totalRevenue" as any)}</span></div><span className="text-xl font-semibold tabular-nums" style={{ color: "var(--text)" }}>${totalRevenue.toLocaleString()}</span></div>
+        <div className="stat-card"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)" }}><Layers size={13} style={{ color: "var(--accent)" }} /></div><span className="text-[11px] font-medium" style={{ color: "var(--text-tertiary)" }}>{t("pipeline.clients.contractTotal" as any)}</span></div><span className="text-xl font-semibold tabular-nums" style={{ color: "var(--text)" }}>${contractTotal.toLocaleString()}</span></div>
+        <div className="stat-card"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: "color-mix(in srgb, var(--success) 12%, transparent)" }}><CircleCheck size={13} style={{ color: "var(--success)" }} /></div><span className="text-[11px] font-medium" style={{ color: "var(--text-tertiary)" }}>{t("pipeline.clients.totalReceived" as any)}</span></div><span className="text-xl font-semibold tabular-nums" style={{ color: "var(--success)" }}>${totalReceived.toLocaleString()}</span></div>
       </div>
 
       <div className="flex flex-col md:flex-row md:items-center gap-3 mb-4">
@@ -468,7 +479,14 @@ export function ClientsView() {
                   <span className="badge" style={c.status === "Active" ? { background: "var(--success-light)", color: "var(--success)" } : { background: "var(--warning-light)", color: "var(--warning)" }}>{c.status === "Active" ? t("common.active" as any) : t("common.paused" as any)}</span>
                 </div>
                 {c.contact_name && <div className="text-[11px] mt-0.5 truncate" style={{ color: "var(--text-secondary)" }}>{c.contact_name}{c.contact_phone ? ` · ${c.contact_phone}` : ""}</div>}
-                <div className="text-[11px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>{c.billing_type === "project" ? <>{t("pipeline.clients.billingProject" as any)} · <strong style={{ color: "var(--text)" }}>${Number(c.project_fee || 0).toLocaleString()}</strong></> : <>{plan} · <strong style={{ color: "var(--text)" }}>${Number(c.mrr || 0).toLocaleString()}</strong>{t("pipeline.clients.perMonth" as any)}</>}{c.tax_mode && c.tax_mode !== "none" && <> · <span style={{ color: "var(--accent)" }}>{c.tax_mode === "exclusive" ? t("money.form.taxExclBtn" as any) : t("money.form.taxIncl" as any)} {c.tax_rate}%</span></>}</div>
+                <div className="text-[11px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>
+                  {c.billing_type === "project"
+                    ? <>{t("pipeline.clients.billingProject" as any)} · {t("pipeline.clients.contract" as any)} <strong style={{ color: "var(--text)" }}>${Number(c.project_fee || 0).toLocaleString()}</strong></>
+                    : <>{plan} · <strong style={{ color: "var(--text)" }}>${Number(c.mrr || 0).toLocaleString()}</strong>{t("pipeline.clients.perMonth" as any)}</>
+                  }
+                  {(() => { const cR = finTxs.filter((tx: any) => tx.type === "income" && (tx.status || "已完成") === "已完成" && tx.client_id === c.id).reduce((s: number, tx: any) => s + Number(tx.amount || 0), 0); return cR > 0 ? <> · <span style={{ color: "var(--success)" }}>{t("pipeline.clients.received" as any)} ${cR.toLocaleString()}</span></> : null; })()}
+                  {c.tax_mode && c.tax_mode !== "none" && <> · <span style={{ color: "var(--accent)" }}>{c.tax_mode === "exclusive" ? t("money.form.taxExclBtn" as any) : t("money.form.taxIncl" as any)} {c.tax_rate}%</span></>}
+                </div>
               </div>
             </button>
           );
@@ -480,7 +498,7 @@ export function ClientsView() {
         <table className="w-full text-left min-w-[1000px]">
           <thead className="sticky top-0 z-10" style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
             <tr className="section-label">
-              <th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.name" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.contact" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.type" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.plan" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.status" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.revenue" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.taxSetting" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.joined" as any)}</th><th className="px-4 py-3 text-right font-semibold">{t("pipeline.clients.table.actions" as any)}</th>
+              <th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.name" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.contact" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.type" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.plan" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.status" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.expectedActual" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.taxSetting" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.joined" as any)}</th><th className="px-4 py-3 text-right font-semibold">{t("pipeline.clients.table.actions" as any)}</th>
             </tr>
           </thead>
           <tbody className="text-[13px]">
@@ -499,7 +517,11 @@ export function ClientsView() {
                   <td className="px-4 py-3"><span className="badge" style={c.billing_type === "project" ? { background: "color-mix(in srgb, var(--warning) 12%, transparent)", color: "var(--warning)" } : { background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)" }}>{c.billing_type === "project" ? t("pipeline.clients.billingProject" as any) : t("pipeline.clients.billingSubscription" as any)}</span></td>
                   <td className="px-4 py-3"><span className="badge">{c.billing_type === "project" ? "—" : plan}</span></td>
                   <td className="px-4 py-3"><span className="badge" style={c.status === "Active" ? { background: "var(--success-light)", color: "var(--success)" } : { background: "var(--warning-light)", color: "var(--warning)" }}>{c.status}</span></td>
-                  <td className="px-4 py-3 font-medium tabular-nums" style={{ color: "var(--text)" }}>{c.billing_type === "project" ? `$${Number(c.project_fee || 0).toLocaleString()}` : `$${Number(c.mrr || 0).toLocaleString()}${t("pipeline.clients.perMonth" as any)}`}</td>
+                  <td className="px-4 py-3 font-medium tabular-nums" style={{ color: "var(--text)" }}>
+                    <div>${c.billing_type === "project" ? Number(c.project_fee || 0).toLocaleString() : Number(c.lifetimeRevenue || 0).toLocaleString()}</div>
+                    {(() => { const cReceived = finTxs.filter((tx: any) => tx.type === "income" && (tx.status || "已完成") === "已完成" && tx.client_id === c.id).reduce((s: number, tx: any) => s + Number(tx.amount || 0), 0); return cReceived > 0 ? <div className="text-[10px]" style={{ color: "var(--success)" }}>{t("pipeline.clients.received" as any)} ${cReceived.toLocaleString()}</div> : null; })()}
+                    {c.billing_type === "subscription" && <div className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>${Number(c.mrr || 0).toLocaleString()}{t("pipeline.clients.perMonth" as any)}</div>}
+                  </td>
                   <td className="px-4 py-3">{c.tax_mode && c.tax_mode !== "none" ? <span className="badge" style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)" }}>{c.tax_mode === "exclusive" ? t("money.form.taxExclBtn" as any) : t("money.form.taxIncl" as any)} {c.tax_rate}%</span> : <span style={{ color: "var(--text-tertiary)" }}>—</span>}</td>
                   <td className="px-4 py-3" style={{ color: "var(--text-secondary)" }}>{c.joined_at ? c.joined_at.split(" ")[0] : ""}</td>
                   <td className="px-4 py-3 text-right"><button onClick={e => { e.stopPropagation(); openPanel(c); }} className="btn-ghost text-[11px] opacity-0 group-hover:opacity-100"><Edit2 size={11} /> {t("common.edit" as any)}</button></td>
