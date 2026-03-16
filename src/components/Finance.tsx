@@ -1,0 +1,847 @@
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { createPortal } from "react-dom";
+import { useT } from "../i18n/context";
+import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh";
+import { useIsMobile } from "../hooks/useIsMobile";
+import { useToast } from "../hooks/useToast";
+import { Toast } from "./Money";
+import { motion, AnimatePresence } from "motion/react";
+import {
+  ResponsiveContainer,
+  ComposedChart,
+  Bar,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+} from "recharts";
+import {
+  Plus,
+  Edit2,
+  X,
+  Check,
+  Trash2,
+  Loader2,
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  AlertCircle,
+  PanelRightClose,
+  Filter,
+  Download,
+  Search,
+  Receipt,
+  FileText,
+  ArrowUpRight,
+  ArrowDownRight,
+  Lock,
+} from "lucide-react";
+
+/* ── Helpers ────────────────────────────────────────────────────── */
+const calcTaxAmount = (amount: number, mode: string, rate: number): number => {
+  if (mode === "none" || !rate) return 0;
+  if (mode === "exclusive") return Math.round((amount * rate) / 100 * 100) / 100;
+  if (mode === "inclusive") return Math.round((amount * rate) / (100 + rate) * 100) / 100;
+  return 0;
+};
+
+const CATEGORY_I18N: Record<string, string> = {
+  "收入": "money.cat.income",
+  "软件支出": "money.cat.software",
+  "外包支出": "money.cat.outsource",
+  "应收": "money.cat.receivable",
+  "应付": "money.cat.payable",
+  "其他支出": "money.cat.other",
+  "项目收入": "money.category.projectIncome",
+};
+
+const STATUS_I18N: Record<string, string> = {
+  "已完成": "money.st.completed",
+  "待收款 (应收)": "money.st.receivable",
+  "待支付 (应付)": "money.st.payable",
+};
+
+const catLabel = (cat: string, t: (k: any) => string) => {
+  const key = CATEGORY_I18N[cat];
+  return key ? t(key as any) : cat;
+};
+
+const stLabel = (st: string, t: (k: any) => string) => {
+  const key = STATUS_I18N[st];
+  return key ? t(key as any) : st;
+};
+
+function FL({ children }: { children: React.ReactNode }) {
+  return <label className="section-label block mb-1">{children}</label>;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Finance — 收支统计
+   ═══════════════════════════════════════════════════════════════════ */
+export default function Finance() {
+  const { t } = useT();
+  const [toast, showToast] = useToast();
+  const isMobile = useIsMobile();
+
+  /* ── Data state ── */
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [clientList, setClientList] = useState<any[]>([]);
+
+  /* ── UI state ── */
+  const [showPanel, setShowPanel] = useState(false);
+  const [editingTx, setEditingTx] = useState<any>(null);
+  const [showAll, setShowAll] = useState(false);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+
+  /* ── Filter state ── */
+  const [filterType, setFilterType] = useState("all");
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterClient, setFilterClient] = useState("all");
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
+  const [filterSearch, setFilterSearch] = useState("");
+
+  /* ── Form state ── */
+  const emptyForm = {
+    date: new Date().toISOString().slice(0, 10),
+    desc: "",
+    category: "收入",
+    amount: "",
+    status: "已完成",
+    taxMode: "none" as "none" | "exclusive" | "inclusive",
+    taxRate: "",
+    client_id: "" as string | number,
+    client_name: "",
+  };
+  const [formData, setFormData] = useState(emptyForm);
+
+  const categories = ["收入", "软件支出", "外包支出", "应收", "应付", "其他支出"];
+  const statuses = ["已完成", "待收款 (应收)", "待支付 (应付)"];
+
+  /* ── Fetch ── */
+  const fetchFinance = useCallback(async () => {
+    try {
+      const res = await fetch("/api/finance");
+      setTransactions(await res.json());
+    } catch { showToast(t("money.loadFail" as any)); }
+    finally { setIsLoading(false); }
+  }, [showToast, t]);
+
+  const fetchClients = useCallback(async () => {
+    try { setClientList(await (await fetch("/api/clients")).json()); } catch {}
+  }, []);
+
+  useEffect(() => { fetchFinance(); fetchClients(); }, [fetchFinance, fetchClients]);
+  useRealtimeRefresh(['finance_transactions', 'clients', 'payment_milestones', 'client_subscription_ledger'], fetchFinance);
+
+  useEffect(() => {
+    const anyOpen = isMobile && (showPanel || showAll);
+    window.dispatchEvent(new CustomEvent("mobile-nav-visibility", { detail: { hidden: anyOpen } }));
+    return () => window.dispatchEvent(new CustomEvent("mobile-nav-visibility", { detail: { hidden: false } }));
+  }, [showPanel, showAll, isMobile]);
+
+  /* ── Stats computation ── */
+  const stats = useMemo(() => {
+    const now = new Date();
+    const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const thisYear = String(now.getFullYear());
+
+    let totalIncome = 0, totalExpense = 0, receivable = 0, payable = 0;
+    let monthIncome = 0, monthExpense = 0;
+
+    for (const tx of transactions) {
+      const amt = Number(tx.amount || 0);
+      const isIncome = tx.type === "income" || amt > 0;
+      const absAmt = Math.abs(amt);
+
+      if (tx.status === "待收款 (应收)") { receivable += absAmt; continue; }
+      if (tx.status === "待支付 (应付)") { payable += absAmt; continue; }
+
+      if (isIncome) { totalIncome += absAmt; }
+      else { totalExpense += absAmt; }
+
+      if ((tx.date || "").startsWith(thisMonth)) {
+        if (isIncome) monthIncome += absAmt;
+        else monthExpense += absAmt;
+      }
+    }
+
+    return {
+      totalIncome, totalExpense,
+      netProfit: totalIncome - totalExpense,
+      margin: totalIncome > 0 ? ((totalIncome - totalExpense) / totalIncome * 100).toFixed(1) : "0",
+      receivable, payable,
+      monthIncome, monthExpense,
+      monthNet: monthIncome - monthExpense,
+    };
+  }, [transactions]);
+
+  /* ── Chart data ── */
+  const chartData = useMemo(() => {
+    const months: Record<string, { month: string; income: number; expense: number; net: number }> = {};
+    const now = new Date();
+
+    // Init last 12 months
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      months[key] = { month: key, income: 0, expense: 0, net: 0 };
+    }
+
+    for (const tx of transactions) {
+      if (!tx.date) continue;
+      const m = tx.date.slice(0, 7);
+      if (!months[m]) continue;
+      const amt = Math.abs(Number(tx.amount || 0));
+      const isIncome = tx.type === "income" || Number(tx.amount) > 0;
+
+      if (tx.status === "待收款 (应收)" || tx.status === "待支付 (应付)") continue;
+
+      if (isIncome) months[m].income += amt;
+      else months[m].expense += amt;
+    }
+
+    return Object.values(months).map(m => ({
+      ...m,
+      net: m.income - m.expense,
+      label: m.month.slice(5), // "01", "02"
+    }));
+  }, [transactions]);
+
+  /* ── Filtered transactions for "View All" ── */
+  const filteredTxs = useMemo(() => {
+    return transactions
+      .filter(tx => {
+        if (filterType !== "all") {
+          const isIncome = tx.type === "income" || Number(tx.amount) > 0;
+          if (filterType === "income" && !isIncome) return false;
+          if (filterType === "expense" && isIncome) return false;
+        }
+        if (filterCategory !== "all" && tx.category !== filterCategory) return false;
+        if (filterStatus !== "all" && tx.status !== filterStatus) return false;
+        if (filterClient !== "all" && String(tx.client_id) !== filterClient) return false;
+        if (filterDateFrom && (tx.date || "") < filterDateFrom) return false;
+        if (filterDateTo && (tx.date || "") > filterDateTo) return false;
+        if (filterSearch) {
+          const s = filterSearch.toLowerCase();
+          const desc = (tx.description || tx.desc || "").toLowerCase();
+          const cat = (tx.category || "").toLowerCase();
+          const client = (tx.client_name || "").toLowerCase();
+          if (!desc.includes(s) && !cat.includes(s) && !client.includes(s)) return false;
+        }
+        return true;
+      })
+      .sort((a: any, b: any) => (b.date || "").localeCompare(a.date || ""));
+  }, [transactions, filterType, filterCategory, filterStatus, filterClient, filterDateFrom, filterDateTo, filterSearch]);
+
+  /* ── Recent transactions (top 8) ── */
+  const recentTxs = useMemo(() =>
+    [...transactions].sort((a, b) => (b.date || "").localeCompare(a.date || "")).slice(0, 8),
+  [transactions]);
+
+  /* ── Panel open/close ── */
+  const openPanel = async (tx: any = null) => {
+    if (tx) {
+      setEditingTx(tx);
+      setFormData({
+        date: tx.date || "",
+        desc: tx.description || tx.desc || "",
+        category: tx.category || "收入",
+        amount: String(Math.abs(Number(tx.amount || 0))),
+        status: tx.status || "已完成",
+        taxMode: tx.tax_mode || "none",
+        taxRate: tx.tax_rate ? String(tx.tax_rate) : "",
+        client_id: tx.client_id || "",
+        client_name: tx.client_name || "",
+      });
+    } else {
+      setEditingTx(null);
+      setFormData({ ...emptyForm, date: new Date().toISOString().slice(0, 10) });
+    }
+    setShowPanel(true);
+  };
+
+  /* ── Save ── */
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const amt = Number(formData.amount);
+    if (!amt) return;
+
+    const isIncome = ["收入", "应收", "项目收入"].includes(formData.category);
+    const rate = Number(formData.taxRate) || 0;
+    const taxAmount = calcTaxAmount(amt, formData.taxMode, rate);
+    const selectedClient = clientList.find(c => String(c.id) === String(formData.client_id));
+
+    const txData = {
+      date: formData.date,
+      description: formData.desc,
+      category: formData.category,
+      amount: isIncome ? amt : -amt,
+      type: isIncome ? "income" : "expense",
+      status: formData.status,
+      tax_mode: formData.taxMode,
+      tax_rate: rate,
+      tax_amount: taxAmount,
+      client_id: formData.client_id || null,
+      client_name: selectedClient?.name || formData.client_name || "",
+    };
+
+    try {
+      if (editingTx && !String(editingTx.id).includes("-")) {
+        await fetch(`/api/finance/${editingTx.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(txData),
+        });
+        showToast(t("money.toast.updated" as any));
+      } else {
+        await fetch("/api/finance", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(txData),
+        });
+        showToast(t("money.toast.added" as any));
+      }
+      setShowPanel(false);
+      fetchFinance();
+    } catch {
+      showToast(t("money.saveFail" as any));
+    }
+  };
+
+  /* ── Delete ── */
+  const deleteTx = async (id: number) => {
+    try {
+      await fetch(`/api/finance/${id}`, { method: "DELETE" });
+      setDeleteId(null);
+      showToast(t("money.toast.deleted" as any));
+      fetchFinance();
+    } catch { showToast(t("money.deleteFail" as any)); }
+  };
+
+  /* ── Export CSV ── */
+  const exportCSV = () => {
+    const data = filteredTxs.length > 0 ? filteredTxs : transactions;
+    const header = [t("money.table.date" as any), t("money.table.description" as any), t("money.table.category" as any), t("money.table.amount" as any), t("money.table.status" as any), t("money.filter.client" as any)].join(",");
+    const rows = data.map(tx =>
+      [tx.date, `"${(tx.description || tx.desc || "").replace(/"/g, '""')}"`, tx.category, tx.amount, tx.status, `"${tx.client_name || ""}"`].join(",")
+    );
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `finance-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(t("money.export.csvDone" as any));
+  };
+
+  /* ── Format helpers ── */
+  const fmtAmt = (amt: number) => {
+    const abs = Math.abs(amt);
+    return `${amt >= 0 ? "+" : "-"}$${abs.toLocaleString()}`;
+  };
+
+  const fmtAmtColor = (amt: number) =>
+    amt >= 0 ? "var(--success, #22c55e)" : "var(--danger, #ef4444)";
+
+  /* ── Loading ── */
+  if (isLoading) {
+    return (
+      <div className="mobile-page max-w-[1680px] mx-auto min-h-full flex items-center justify-center">
+        <Loader2 size={24} className="animate-spin" style={{ color: "var(--accent)" }} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col px-4 py-3 md:px-6 md:py-4 lg:px-8 lg:py-5 relative">
+      <Toast message={toast} />
+
+      {/* Header */}
+      <header className="flex items-center justify-between mb-4">
+        <h1 className="page-title">{t("finance.pageTitle" as any)}</h1>
+        <div className="flex items-center gap-2">
+          <button onClick={exportCSV} className="btn-ghost text-[13px] gap-1.5">
+            <Download size={14} /> {t("money.export.csv" as any)}
+          </button>
+          <button onClick={() => openPanel()} className="btn-primary text-[13px]">
+            <Plus size={14} /> {t("finance.addRecord" as any)}
+          </button>
+        </div>
+      </header>
+
+      {/* ── KPI Stat Cards ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+        <StatCard
+          label={t("money.stat.completedRevenue" as any)}
+          value={`$${stats.totalIncome.toLocaleString()}`}
+          sub={`${t("finance.thisMonth" as any)} $${stats.monthIncome.toLocaleString()}`}
+          icon={<TrendingUp size={16} />}
+          color="var(--success, #22c55e)"
+        />
+        <StatCard
+          label={t("money.stat.completedExpense" as any)}
+          value={`$${stats.totalExpense.toLocaleString()}`}
+          sub={`${t("finance.thisMonth" as any)} $${stats.monthExpense.toLocaleString()}`}
+          icon={<TrendingDown size={16} />}
+          color="var(--danger, #ef4444)"
+        />
+        <StatCard
+          label={t("money.stat.netProfit" as any)}
+          value={`$${stats.netProfit.toLocaleString()}`}
+          sub={`${t("money.stat.margin" as any)} ${stats.margin}%`}
+          icon={<Wallet size={16} />}
+          color={stats.netProfit >= 0 ? "var(--success, #22c55e)" : "var(--danger, #ef4444)"}
+        />
+        <StatCard
+          label={t("money.stat.receivable" as any)}
+          value={`$${stats.receivable.toLocaleString()}`}
+          sub={stats.payable > 0 ? `${t("money.st.payable" as any)} $${stats.payable.toLocaleString()}` : ""}
+          icon={<AlertCircle size={16} />}
+          color="var(--warning, #f59e0b)"
+        />
+      </div>
+
+      {/* ── Chart ── */}
+      <div className="card p-4 mb-5">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h3 className="text-[14px] font-semibold" style={{ color: "var(--text)" }}>{t("money.chart.title" as any)}</h3>
+            <p className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>{t("money.chart.subtitle" as any)}</p>
+          </div>
+          <div className="flex items-center gap-3 text-[11px]" style={{ color: "var(--text-tertiary)" }}>
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: "var(--success, #22c55e)" }} />{t("money.chart.revenue" as any)}</span>
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: "var(--danger, #ef4444)" }} />{t("money.chart.expense" as any)}</span>
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full" style={{ background: "var(--accent)" }} />{t("money.chart.net" as any)}</span>
+          </div>
+        </div>
+        <div className="h-[200px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--text-tertiary)" }} tickLine={false} axisLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: "var(--text-tertiary)" }} tickLine={false} axisLine={false} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
+              <Tooltip
+                contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
+                formatter={(value: number, name: string) => [`$${value.toLocaleString()}`, name === "income" ? t("money.chart.revenue" as any) : name === "expense" ? t("money.chart.expense" as any) : t("money.chart.net" as any)]}
+                labelFormatter={(label: string) => `${label}${t("money.monthSuffix" as any)}`}
+              />
+              <Bar dataKey="income" fill="var(--success, #22c55e)" radius={[3, 3, 0, 0]} opacity={0.8} />
+              <Bar dataKey="expense" fill="var(--danger, #ef4444)" radius={[3, 3, 0, 0]} opacity={0.8} />
+              <Line type="monotone" dataKey="net" stroke="var(--accent)" strokeWidth={2} dot={{ r: 3, fill: "var(--accent)" }} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* ── Recent Transactions ── */}
+      <div className="card p-4 flex-1 min-h-0">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-[14px] font-semibold" style={{ color: "var(--text)" }}>{t("money.recent.title" as any)}</h3>
+          <button onClick={() => setShowAll(true)} className="btn-ghost text-[12px]">
+            {t("money.recent.viewAll" as any)} ({transactions.length})
+          </button>
+        </div>
+
+        <div className="space-y-0">
+          {recentTxs.map(tx => {
+            const virtual = String(tx.id).includes("-");
+            const locked = !virtual && !!tx.milestone_linked;
+            return (
+              <TxRow
+                key={tx.id}
+                tx={tx}
+                t={t}
+                fmtAmt={fmtAmt}
+                fmtAmtColor={fmtAmtColor}
+                onEdit={() => { if (!virtual && !locked) openPanel(tx); }}
+                onDelete={() => { if (!virtual && !locked) setDeleteId(tx.id); }}
+                isVirtual={virtual}
+                isLocked={locked}
+              />
+            );
+          })}
+          {recentTxs.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-12 gap-2">
+              <Receipt size={32} style={{ color: "var(--text-tertiary)" }} />
+              <p className="text-[13px]" style={{ color: "var(--text-tertiary)" }}>{t("money.noData" as any)}</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Delete Confirmation ── */}
+      {deleteId !== null && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.4)" }}>
+          <div className="card-elevated p-5 max-w-sm w-full">
+            <h3 className="text-[15px] font-semibold mb-2" style={{ color: "var(--text)" }}>{t("money.delete.title" as any)}</h3>
+            <p className="text-[13px] mb-4" style={{ color: "var(--text-secondary)" }}>{t("money.delete.message" as any)}</p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setDeleteId(null)} className="btn-ghost text-[13px]">{t("money.cancel" as any)}</button>
+              <button onClick={() => deleteTx(deleteId)} className="text-[13px] font-medium px-4 py-2 rounded-lg text-white transition-colors" style={{ background: "var(--danger)" }}>{t("money.delete.confirm" as any)}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── View All Modal ── */}
+      {showAll && createPortal(
+        <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "var(--bg)" }}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-3 border-b shrink-0" style={{ borderColor: "var(--border)", paddingTop: "var(--mobile-header-pt, max(env(safe-area-inset-top), 18px))" }}>
+              <div>
+                <h3 className="text-[14px] font-semibold" style={{ color: "var(--text)" }}>{t("money.allTx.title" as any)}</h3>
+                <p className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>{t("money.filter.results" as any).replace("{count}", String(filteredTxs.length))}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={exportCSV} className="btn-ghost text-[12px] gap-1"><Download size={13} /></button>
+                <button onClick={() => setShowAll(false)} className="p-1.5 rounded-lg" style={{ color: "var(--text-secondary)" }}><X size={18} /></button>
+              </div>
+            </div>
+
+            {/* Filters */}
+            <div className="flex flex-wrap items-center gap-2 px-5 py-2.5 border-b shrink-0" style={{ borderColor: "var(--border)" }}>
+              <div className="relative flex-1 min-w-[140px] max-w-[240px]">
+                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: "var(--text-tertiary)" }} />
+                <input
+                  type="text" value={filterSearch} onChange={e => setFilterSearch(e.target.value)}
+                  placeholder={t("finance.searchPlaceholder" as any)}
+                  className="input-base w-full pl-8 pr-3 py-1.5 text-[12px]"
+                />
+              </div>
+              <select value={filterType} onChange={e => setFilterType(e.target.value)} className="input-base px-2 py-1.5 text-[12px]">
+                <option value="all">{t("money.filter.typeAll" as any)}</option>
+                <option value="income">{t("money.filter.income" as any)}</option>
+                <option value="expense">{t("money.filter.expense" as any)}</option>
+              </select>
+              <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="input-base px-2 py-1.5 text-[12px]">
+                <option value="all">{t("money.filter.categoryAll" as any)}</option>
+                {categories.map(c => <option key={c} value={c}>{catLabel(c, t)}</option>)}
+              </select>
+              <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="input-base px-2 py-1.5 text-[12px]">
+                <option value="all">{t("money.filter.statusAll" as any)}</option>
+                {statuses.map(s => <option key={s} value={s}>{stLabel(s, t)}</option>)}
+              </select>
+              <select value={filterClient} onChange={e => setFilterClient(e.target.value)} className="input-base px-2 py-1.5 text-[12px]">
+                <option value="all">{t("money.filter.clientAll" as any)}</option>
+                {clientList.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
+              </select>
+              <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} className="input-base px-2 py-1.5 text-[12px]" />
+              <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} className="input-base px-2 py-1.5 text-[12px]" />
+              {(filterType !== "all" || filterCategory !== "all" || filterStatus !== "all" || filterClient !== "all" || filterDateFrom || filterDateTo || filterSearch) && (
+                <button
+                  onClick={() => { setFilterType("all"); setFilterCategory("all"); setFilterStatus("all"); setFilterClient("all"); setFilterDateFrom(""); setFilterDateTo(""); setFilterSearch(""); }}
+                  className="btn-ghost text-[11px]"
+                >{t("money.filter.clear" as any)}</button>
+              )}
+            </div>
+
+            {/* Table */}
+            <div className="flex-1 overflow-y-auto ios-scroll">
+              {/* Desktop table header */}
+              <div className="hidden md:grid grid-cols-[100px_1fr_120px_120px_120px_80px] gap-2 px-5 py-2 text-[11px] font-medium sticky top-0" style={{ color: "var(--text-tertiary)", background: "var(--bg)", borderBottom: "1px solid var(--border)" }}>
+                <span>{t("money.table.date" as any)}</span>
+                <span>{t("money.table.description" as any)}</span>
+                <span>{t("money.table.category" as any)}</span>
+                <span className="text-right">{t("money.table.amount" as any)}</span>
+                <span>{t("money.table.status" as any)}</span>
+                <span></span>
+              </div>
+              {filteredTxs.map(tx => {
+                const virtual = String(tx.id).includes("-");
+                const locked = !virtual && !!tx.milestone_linked;
+                return (
+                  <TxRow
+                    key={tx.id}
+                    tx={tx}
+                    t={t}
+                    fmtAmt={fmtAmt}
+                    fmtAmtColor={fmtAmtColor}
+                    onEdit={() => { if (!virtual && !locked) openPanel(tx); }}
+                    onDelete={() => { if (!virtual && !locked) setDeleteId(tx.id); }}
+                    isVirtual={virtual}
+                    isLocked={locked}
+                    expanded
+                  />
+                );
+              })}
+              {filteredTxs.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-20 gap-2">
+                  <Receipt size={32} style={{ color: "var(--text-tertiary)" }} />
+                  <p className="text-[13px]" style={{ color: "var(--text-tertiary)" }}>{t("money.noData" as any)}</p>
+                </div>
+              )}
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {/* ── Add/Edit Panel ── */}
+      <AnimatePresence>
+        {showPanel && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50"
+              style={{ background: isMobile ? "var(--bg)" : "rgba(0,0,0,0.2)" }}
+              onClick={() => !isMobile && setShowPanel(false)}
+            />
+            <motion.div
+              initial={{ x: isMobile ? 0 : "100%", y: isMobile ? "100%" : 0 }}
+              animate={{ x: 0, y: 0 }}
+              exit={{ x: isMobile ? 0 : "100%", y: isMobile ? "100%" : 0 }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className={isMobile
+                ? "fixed inset-0 z-50 flex flex-col"
+                : "fixed top-0 right-0 z-50 h-full w-full max-w-[480px] border-l flex flex-col"
+              }
+              style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+            >
+              {/* Panel header */}
+              <div className="flex items-center justify-between px-5 py-3 border-b shrink-0" style={{ borderColor: "var(--border)", paddingTop: "var(--mobile-header-pt, max(env(safe-area-inset-top), 18px))" }}>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: "var(--accent-light)", color: "var(--accent)" }}>
+                    <Receipt size={16} />
+                  </div>
+                  <div>
+                    <h3 className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>
+                      {editingTx ? t("money.panel.edit" as any) : t("money.panel.new" as any)}
+                    </h3>
+                    <p className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
+                      {editingTx ? t("money.panel.editDesc" as any) : t("money.panel.newDesc" as any)}
+                    </p>
+                  </div>
+                </div>
+                <button onClick={() => setShowPanel(false)} className="p-1.5 rounded-lg" style={{ color: "var(--text-secondary)" }}>
+                  {isMobile ? <X size={18} /> : <PanelRightClose size={18} />}
+                </button>
+              </div>
+
+              {/* Form */}
+              <form id="finance-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-4 ios-scroll">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <FL>{t("money.form.date" as any)}</FL>
+                    <input type="date" required value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} className="input-base w-full px-3 py-2 text-[13px]" />
+                  </div>
+                  <div>
+                    <FL>{t("money.form.category" as any)}</FL>
+                    <select value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} className="input-base w-full px-3 py-2 text-[13px]">
+                      {categories.map(c => <option key={c} value={c}>{catLabel(c, t)}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <FL>{t("money.form.description" as any)}</FL>
+                  <input type="text" value={formData.desc} onChange={e => setFormData({ ...formData, desc: e.target.value })} placeholder={t("money.form.descPlaceholder" as any)} className="input-base w-full px-3 py-2 text-[13px]" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <FL>{t("money.form.amount" as any)}</FL>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px]" style={{ color: "var(--text-tertiary)" }}>$</span>
+                      <input type="number" required min="0" step="0.01" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} placeholder="0.00" className="input-base w-full pl-7 pr-3 py-2 text-[13px]" />
+                    </div>
+                  </div>
+                  <div>
+                    <FL>{t("money.form.status" as any)}</FL>
+                    <select value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })} className="input-base w-full px-3 py-2 text-[13px]">
+                      {statuses.map(s => <option key={s} value={s}>{stLabel(s, t)}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <FL>{t("money.form.client" as any)}</FL>
+                  <select value={formData.client_id} onChange={e => { const c = clientList.find(cl => String(cl.id) === e.target.value); setFormData({ ...formData, client_id: e.target.value, client_name: c?.name || "" }); }} className="input-base w-full px-3 py-2 text-[13px]">
+                    <option value="">{t("money.form.clientNone" as any)}</option>
+                    {clientList.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
+                  </select>
+                </div>
+
+                {/* Tax */}
+                <div>
+                  <FL>{t("money.form.tax" as any)}</FL>
+                  <div className="flex gap-2 mb-2">
+                    {(["none", "exclusive", "inclusive"] as const).map(mode => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, taxMode: mode })}
+                        className="text-[12px] px-3 py-1.5 rounded-lg transition-colors"
+                        style={{
+                          background: formData.taxMode === mode ? "var(--accent)" : "var(--surface-alt)",
+                          color: formData.taxMode === mode ? "#fff" : "var(--text-secondary)",
+                        }}
+                      >
+                        {mode === "none" ? t("money.form.taxNone" as any) : mode === "exclusive" ? t("money.form.taxExcl" as any) : t("money.form.taxIncl" as any)}
+                      </button>
+                    ))}
+                  </div>
+                  {formData.taxMode !== "none" && (
+                    <div className="flex gap-2 items-center">
+                      {[13, 6, 3].map(r => (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, taxRate: String(r) })}
+                          className="text-[12px] px-2.5 py-1 rounded-md transition-colors"
+                          style={{
+                            background: String(formData.taxRate) === String(r) ? "var(--accent-light)" : "var(--surface-alt)",
+                            color: String(formData.taxRate) === String(r) ? "var(--accent)" : "var(--text-tertiary)",
+                          }}
+                        >
+                          {r}%
+                        </button>
+                      ))}
+                      <input
+                        type="number"
+                        min="0" max="100" step="0.1"
+                        value={formData.taxRate}
+                        onChange={e => setFormData({ ...formData, taxRate: e.target.value })}
+                        placeholder={t("money.form.customTaxPlaceholder" as any)}
+                        className="input-base flex-1 px-2 py-1 text-[12px]"
+                      />
+                    </div>
+                  )}
+                </div>
+              </form>
+
+              {/* Footer */}
+              <div className="flex items-center justify-end gap-2 px-5 py-3 border-t pb-safe shrink-0" style={{ borderColor: "var(--border)" }}>
+                <button type="button" onClick={() => setShowPanel(false)} className="btn-ghost text-[13px]">{t("money.cancel" as any)}</button>
+                <button type="submit" form="finance-form" className="btn-primary text-[13px]">{t("money.saveRecord" as any)}</button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/* ── Stat Card ──────────────────────────────────────────────────── */
+function StatCard({ label, value, sub, icon, color }: {
+  label: string; value: string; sub: string; icon: React.ReactNode; color: string;
+}) {
+  return (
+    <div className="stat-card">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[11px] font-medium" style={{ color: "var(--text-tertiary)" }}>{label}</span>
+        <span style={{ color }}>{icon}</span>
+      </div>
+      <div className="text-lg font-semibold tracking-tight" style={{ color: "var(--text)" }}>{value}</div>
+      {sub && <div className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>{sub}</div>}
+    </div>
+  );
+}
+
+/* ── Transaction Row ────────────────────────────────────────────── */
+const TxRow = React.memo(function TxRow({ tx, t, fmtAmt, fmtAmtColor, onEdit, onDelete, isVirtual, isLocked, expanded }: {
+  tx: any; t: (k: any) => string; fmtAmt: (n: number) => string; fmtAmtColor: (n: number) => string;
+  onEdit: () => void; onDelete: () => void; isVirtual: boolean; isLocked?: boolean; expanded?: boolean;
+}) {
+  const amt = Number(tx.amount || 0);
+  const isIncome = tx.type === "income" || amt > 0;
+  const sourceBadge = tx.source === "client_subscription"
+    ? t("money.badge.subscription" as any)
+    : tx.source === "client_project"
+    ? t("money.badge.project" as any)
+    : null;
+
+  if (expanded) {
+    // Desktop table row (md+) + mobile compact row (<md)
+    return (
+      <>
+        {/* Desktop */}
+        <div className="hidden md:grid grid-cols-[100px_1fr_120px_120px_120px_80px] gap-2 px-5 py-2.5 items-center border-b group hover:bg-[var(--surface-alt)] transition-colors" style={{ borderColor: "var(--border)" }}>
+          <span className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>{tx.date || "—"}</span>
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-[13px] truncate" style={{ color: "var(--text)" }}>{tx.description || tx.desc || tx.client_name || "—"}</span>
+            {sourceBadge && <span className="badge text-[10px] shrink-0">{sourceBadge}</span>}
+          </div>
+          <span className="text-[12px]" style={{ color: "var(--text-secondary)" }}>{catLabel(tx.category || "", t)}</span>
+          <span className="text-[13px] font-semibold text-right tabular-nums" style={{ color: fmtAmtColor(amt) }}>{fmtAmt(amt)}</span>
+          <span className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{stLabel(tx.status || "", t)}</span>
+          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {isLocked ? (
+              <span className="p-1 rounded" style={{ color: "var(--text-tertiary)" }} title={t("finance.locked.hint" as any)}><Lock size={12} /></span>
+            ) : !isVirtual ? (
+              <>
+                <button onClick={onEdit} className="p-1 rounded" style={{ color: "var(--text-tertiary)" }}><Edit2 size={12} /></button>
+                <button onClick={onDelete} className="p-1 rounded" style={{ color: "var(--text-tertiary)" }}><Trash2 size={12} /></button>
+              </>
+            ) : null}
+          </div>
+        </div>
+        {/* Mobile */}
+        <div className="flex md:hidden items-center gap-3 px-4 py-2.5 border-b" style={{ borderColor: "var(--border)" }}>
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: isIncome ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)" }}>
+            {isIncome ? <ArrowUpRight size={14} style={{ color: "var(--success, #22c55e)" }} /> : <ArrowDownRight size={14} style={{ color: "var(--danger, #ef4444)" }} />}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[13px] font-medium truncate" style={{ color: "var(--text)" }}>{tx.description || tx.desc || tx.client_name || catLabel(tx.category || "", t)}</span>
+              {sourceBadge && <span className="badge text-[9px] shrink-0">{sourceBadge}</span>}
+              {isLocked && <Lock size={10} className="shrink-0" style={{ color: "var(--text-tertiary)" }} />}
+            </div>
+            <div className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>
+              {tx.date || "—"} · {catLabel(tx.category || "", t)}
+            </div>
+          </div>
+          <div className="text-right shrink-0">
+            <div className="text-[13px] font-semibold tabular-nums" style={{ color: fmtAmtColor(amt) }}>{fmtAmt(amt)}</div>
+            <div className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>{stLabel(tx.status || "", t)}</div>
+          </div>
+          {isLocked ? (
+            <span className="p-1 shrink-0" style={{ color: "var(--text-tertiary)" }} title={t("finance.locked.hint" as any)}><Lock size={12} /></span>
+          ) : !isVirtual ? (
+            <div className="flex gap-0.5 shrink-0">
+              <button onClick={onEdit} className="p-1 rounded" style={{ color: "var(--text-tertiary)" }}><Edit2 size={12} /></button>
+              <button onClick={onDelete} className="p-1 rounded" style={{ color: "var(--text-tertiary)" }}><Trash2 size={12} /></button>
+            </div>
+          ) : null}
+        </div>
+      </>
+    );
+  }
+
+  // Mobile / compact row (homepage recent list)
+  return (
+    <div className="flex items-center gap-3 px-1 py-2.5 border-b group" style={{ borderColor: "var(--border)" }}>
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: isIncome ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)" }}>
+        {isIncome ? <ArrowUpRight size={14} style={{ color: "var(--success, #22c55e)" }} /> : <ArrowDownRight size={14} style={{ color: "var(--danger, #ef4444)" }} />}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[13px] font-medium truncate" style={{ color: "var(--text)" }}>{tx.description || tx.desc || tx.client_name || catLabel(tx.category || "", t)}</span>
+          {sourceBadge && <span className="badge text-[9px] shrink-0">{sourceBadge}</span>}
+          {isLocked && <Lock size={10} className="shrink-0" style={{ color: "var(--text-tertiary)" }} />}
+        </div>
+        <div className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>
+          {tx.date || "—"} · {catLabel(tx.category || "", t)}
+          {tx.client_name ? ` · ${tx.client_name}` : ""}
+        </div>
+      </div>
+      <div className="text-right shrink-0">
+        <div className="text-[13px] font-semibold tabular-nums" style={{ color: fmtAmtColor(amt) }}>{fmtAmt(amt)}</div>
+        <div className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>{stLabel(tx.status || "", t)}</div>
+      </div>
+      {isLocked ? (
+        <span className="p-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "var(--text-tertiary)" }} title={t("finance.locked.hint" as any)}><Lock size={12} /></span>
+      ) : !isVirtual ? (
+        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+          <button onClick={onEdit} className="p-1 rounded" style={{ color: "var(--text-tertiary)" }}><Edit2 size={12} /></button>
+          <button onClick={onDelete} className="p-1 rounded" style={{ color: "var(--text-tertiary)" }}><Trash2 size={12} /></button>
+        </div>
+      ) : null}
+    </div>
+  );
+});

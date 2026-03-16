@@ -5,7 +5,7 @@ import {
   ClipboardList,
   UserSearch,
   Users,
-  Receipt,
+  Wallet,
   Layers,
   Sparkles,
   MoreHorizontal,
@@ -29,13 +29,14 @@ const HomePage          = lazy(() => import("./components/Home"));
 const WorkPage          = lazy(() => import("./components/Work"));
 const LeadsPage         = lazy(() => import("./components/LeadsPage"));
 const ClientsPage       = lazy(() => import("./components/ClientsPage"));
-const TransactionsPage  = lazy(() => import("./components/Transactions"));
+
+const FinancePage       = lazy(() => import("./components/Finance"));
 const PlansPage         = lazy(() => import("./components/Plans"));
 const CreatePage        = lazy(() => import("./components/Create"));
 const SettingsPage      = lazy(() => import("./components/Settings"));
 
 /* ── Tab definitions ───────────────────────────────────────────── */
-type TabId = "home" | "work" | "leads" | "clients" | "transactions" | "plans" | "create";
+type TabId = "home" | "work" | "leads" | "clients" | "finance" | "plans" | "create";
 
 interface TabDef {
   id: TabId;
@@ -49,14 +50,15 @@ const TABS: TabDef[] = [
   { id: "work",         labelKey: "nav.work",         icon: <ClipboardList size={18} />,  component: WorkPage },
   { id: "leads",        labelKey: "nav.leads",        icon: <UserSearch size={18} />,     component: LeadsPage },
   { id: "clients",      labelKey: "nav.clients",      icon: <Users size={18} />,          component: ClientsPage },
-  { id: "transactions", labelKey: "nav.money",        icon: <Receipt size={18} />,        component: TransactionsPage },
+
+  { id: "finance",      labelKey: "nav.finance",      icon: <Wallet size={18} />,         component: FinancePage },
   { id: "plans",        labelKey: "nav.plans",        icon: <Layers size={18} />,         component: PlansPage },
   { id: "create",       labelKey: "nav.create",       icon: <Sparkles size={18} />,       component: CreatePage },
 ];
 
 /* Primary tabs shown in bottom nav; rest go into "More" menu */
 const PRIMARY_TABS = TABS.slice(0, 4);   // home, work, leads, clients
-const MORE_TABS    = TABS.slice(4);       // transactions, plans, create
+const MORE_TABS    = TABS.slice(4);       // finance, plans, create
 const MORE_TAB_IDS = new Set(MORE_TABS.map(t => t.id));
 
 const TAB_MAP = Object.fromEntries(TABS.map(t => [t.id, t]));

@@ -10,6 +10,7 @@ const en: typeof zh = {
   "nav.leads": "Leads",
   "nav.clients": "Signed",
   "nav.transactions": "Money",
+  "nav.finance": "Finance",
   "nav.plans": "Pricing",
   "nav.create": "Create",
   "nav.more": "More",
@@ -294,6 +295,14 @@ const en: typeof zh = {
   "pipeline.tx.received": "Received",
   "pipeline.tx.pending": "Pending",
   "pipeline.tx.expense": "Expense",
+
+  /* ── Finance ── */
+  "finance.pageTitle": "Finance",
+  "finance.addRecord": "Add Record",
+  "finance.thisMonth": "This month",
+  "finance.searchPlaceholder": "Search description, category, client...",
+  "finance.locked.hint": "Auto-generated from milestone payment. Edit in client details.",
+  "finance.locked.badge": "Milestone linked",
 
   /* ── Money ── */
   "money.pageTitle": "Money",

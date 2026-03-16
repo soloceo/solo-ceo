@@ -715,7 +715,20 @@ export async function handleSupabaseRequest(
         };
       });
 
-    const merged = [...subscriptionRows, ...projectRows, ...projectFeeRows, ...(transactions || [])].sort(
+    // Flag real transactions that were auto-created from milestones (mark-paid)
+    const { data: paidMilestones } = await supabase
+      .from('payment_milestones')
+      .select('finance_tx_id')
+      .eq('user_id', userId)
+      .eq('soft_deleted', false)
+      .not('finance_tx_id', 'is', null);
+    const milestoneTxIds = new Set((paidMilestones || []).map(m => Number(m.finance_tx_id)));
+    const taggedTransactions = (transactions || []).map((tx: any) => ({
+      ...tx,
+      milestone_linked: milestoneTxIds.has(Number(tx.id)),
+    }));
+
+    const merged = [...subscriptionRows, ...projectRows, ...projectFeeRows, ...taggedTransactions].sort(
       (a: any, b: any) => String(b.date || '').localeCompare(String(a.date || '')),
     );
     return ok(merged);
@@ -764,6 +777,17 @@ export async function handleSupabaseRequest(
     if (String(id).startsWith('proj-fee-'))
       return err(400, '项目总费待收款，请在客户管理中编辑');
     if (method === 'PUT') {
+      // Block editing milestone-linked transactions
+      const { data: linkedMs } = await supabase
+        .from('payment_milestones')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('finance_tx_id', Number(id))
+        .eq('soft_deleted', false)
+        .limit(1);
+      if (linkedMs && linkedMs.length > 0) {
+        return err(400, '此交易由里程碑收款自动生成，请前往签约客户中修改');
+      }
       const { type, amount, category, description, date, status, tax_mode, tax_rate, tax_amount, client_id, client_name } = body;
       const { error: e } = await supabase
         .from('finance_transactions')
@@ -779,6 +803,17 @@ export async function handleSupabaseRequest(
       return ok({ success: true });
     }
     if (method === 'DELETE') {
+      // Block deleting milestone-linked transactions
+      const { data: linkedMsDel } = await supabase
+        .from('payment_milestones')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('finance_tx_id', Number(id))
+        .eq('soft_deleted', false)
+        .limit(1);
+      if (linkedMsDel && linkedMsDel.length > 0) {
+        return err(400, '此交易由里程碑收款自动生成，无法直接删除');
+      }
       const { data: prev } = await supabase.from('finance_transactions').select('description').eq('id', Number(id)).single();
       await supabase.from('finance_transactions').update({ soft_deleted: true }).eq('id', Number(id));
       await logActivity(userId, 'finance', 'deleted', `删除交易：${prev?.description || '未命名交易'}`, '', id);

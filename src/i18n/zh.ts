@@ -8,6 +8,7 @@ const zh = {
   "nav.leads": "销售线索",
   "nav.clients": "签约客户",
   "nav.transactions": "收支流水",
+  "nav.finance": "收支统计",
   "nav.plans": "定价方案",
   "nav.create": "内容创作",
   "nav.more": "更多功能",
@@ -292,6 +293,14 @@ const zh = {
   "pipeline.tx.received": "已到账",
   "pipeline.tx.pending": "待收",
   "pipeline.tx.expense": "支出",
+
+  /* ── Finance ── */
+  "finance.pageTitle": "收支统计",
+  "finance.addRecord": "记账",
+  "finance.thisMonth": "本月",
+  "finance.searchPlaceholder": "搜索描述、分类、客户...",
+  "finance.locked.hint": "此交易由里程碑收款自动生成，如需修改请前往签约客户详情",
+  "finance.locked.badge": "里程碑关联",
 
   /* ── Money ── */
   "money.pageTitle": "收支",
