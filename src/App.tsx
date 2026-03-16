@@ -17,6 +17,9 @@ import {
   Cloud,
   CloudOff,
   RefreshCw,
+  Settings as SettingsIcon,
+  LogOut,
+  ChevronRight,
 } from "lucide-react";
 import { LanguageProvider, useT } from "./i18n/context";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
@@ -85,7 +88,7 @@ const Content = React.memo(({ activeTab }: { activeTab: string }) => {
 
 /* ── App ───────────────────────────────────────────────────────── */
 function App() {
-  const { user, loading: authLoading, offlineMode } = useAuth();
+  const { user, loading: authLoading, offlineMode, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("home");
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [hideMobileNav, setHideMobileNav] = useState(false);
@@ -101,11 +104,23 @@ function App() {
     return () => stopRealtime();
   }, [user]);
 
-  // Operator profile
+  // Operator profile — from localStorage (uploaded avatar in Settings)
   const [operatorName, setOperatorName] = useState(() => localStorage.getItem("OPERATOR_NAME") || "Andy");
   const [operatorAvatar, setOperatorAvatar] = useState(() => localStorage.getItem("OPERATOR_AVATAR") || "");
-  const operatorDisplayName = operatorName.trim() || "Andy";
+  const operatorDisplayName = operatorName.trim() || (user?.email?.split("@")[0] || "Andy");
   const operatorInitial = operatorDisplayName.charAt(0).toUpperCase();
+
+  // Avatar dropdown
+  const [avatarMenu, setAvatarMenu] = useState(false);
+  const avatarMenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!avatarMenu) return;
+    const close = (e: MouseEvent) => {
+      if (avatarMenuRef.current && !avatarMenuRef.current.contains(e.target as Node)) setAvatarMenu(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [avatarMenu]);
 
   // Connection & sync status
   const [isOnline, setIsOnline] = useState(() => navigator.onLine);
@@ -243,31 +258,51 @@ function App() {
               </span>
             )}
           </div>
-          <button
-            onClick={() => handleTabChange("settings")}
-            className="flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors"
-            style={{
-              background: isSettings ? "var(--surface-alt)" : "transparent",
-            }}
-            aria-label="Settings"
-          >
-            <div
-              className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full text-[11px] font-bold"
+          <div className="relative" ref={sidebarExpanded ? avatarMenuRef : undefined}>
+            <button
+              onClick={() => setAvatarMenu(p => !p)}
+              className="flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors w-full"
               style={{
-                background: operatorAvatar ? "transparent" : "var(--accent)",
-                color: operatorAvatar ? undefined : "#fff",
+                background: avatarMenu || isSettings ? "var(--surface-alt)" : "transparent",
               }}
+              aria-label="Settings"
             >
-              {operatorAvatar
-                ? <img src={operatorAvatar} alt={operatorDisplayName} className="h-full w-full object-cover" />
-                : operatorInitial}
-            </div>
-            {sidebarExpanded && (
-              <span className="text-[13px] font-medium truncate" style={{ color: "var(--text)" }}>
-                {operatorDisplayName}
-              </span>
+              <div
+                className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full text-[11px] font-bold"
+                style={{
+                  background: operatorAvatar ? "transparent" : "var(--accent)",
+                  color: operatorAvatar ? undefined : "#fff",
+                }}
+              >
+                {operatorAvatar
+                  ? <img src={operatorAvatar} alt={operatorDisplayName} className="h-full w-full object-cover" />
+                  : operatorInitial}
+              </div>
+              {sidebarExpanded && (
+                <span className="text-[13px] font-medium truncate" style={{ color: "var(--text)" }}>
+                  {operatorDisplayName}
+                </span>
+              )}
+            </button>
+            {avatarMenu && (
+              <div className="absolute bottom-full left-0 mb-2 w-56 rounded-xl overflow-hidden z-50" style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "var(--shadow-lg)" }}>
+                <div className="px-4 py-3 border-b" style={{ borderColor: "var(--border)" }}>
+                  <div className="text-[13px] font-semibold truncate" style={{ color: "var(--text)" }}>{operatorDisplayName}</div>
+                  {user?.email && <div className="text-[11px] truncate" style={{ color: "var(--text-tertiary)" }}>{user.email}</div>}
+                </div>
+                <button onClick={() => { setAvatarMenu(false); handleTabChange("settings"); }} className="flex items-center gap-2.5 w-full px-4 py-2.5 text-[13px] transition-colors hover:bg-[var(--surface-alt)]" style={{ color: "var(--text)" }}>
+                  <SettingsIcon size={14} style={{ color: "var(--text-secondary)" }} />
+                  {t("settings.title" as any)}
+                  <ChevronRight size={12} className="ml-auto" style={{ color: "var(--text-tertiary)" }} />
+                </button>
+                <div className="border-t" style={{ borderColor: "var(--border)" }} />
+                <button onClick={() => { setAvatarMenu(false); signOut(); }} className="flex items-center gap-2.5 w-full px-4 py-2.5 text-[13px] transition-colors hover:bg-[var(--surface-alt)]" style={{ color: "var(--danger)" }}>
+                  <LogOut size={14} />
+                  {t("auth.logoutBtn" as any)}
+                </button>
+              </div>
             )}
-          </button>
+          </div>
         </div>
       </aside>
 
@@ -298,19 +333,39 @@ function App() {
             >
               {darkMode ? <Sun size={16} /> : <Moon size={16} />}
             </button>
-            <button
-              onClick={() => handleTabChange("settings")}
-              className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full text-[10px] font-bold"
-              style={{
-                background: operatorAvatar ? "transparent" : "var(--accent)",
-                color: operatorAvatar ? undefined : "#fff",
-              }}
-              aria-label="Settings"
-            >
-              {operatorAvatar
-                ? <img src={operatorAvatar} alt={operatorDisplayName} className="h-full w-full object-cover rounded-full" />
-                : operatorInitial}
-            </button>
+            <div className="relative" ref={!sidebarExpanded ? avatarMenuRef : undefined}>
+              <button
+                onClick={() => setAvatarMenu(p => !p)}
+                className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full text-[10px] font-bold"
+                style={{
+                  background: operatorAvatar ? "transparent" : "var(--accent)",
+                  color: operatorAvatar ? undefined : "#fff",
+                }}
+                aria-label="Settings"
+              >
+                {operatorAvatar
+                  ? <img src={operatorAvatar} alt={operatorDisplayName} className="h-full w-full object-cover rounded-full" />
+                  : operatorInitial}
+              </button>
+              {avatarMenu && (
+                <div className="absolute top-full right-0 mt-2 w-56 rounded-xl overflow-hidden z-50" style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "var(--shadow-lg)" }}>
+                  <div className="px-4 py-3 border-b" style={{ borderColor: "var(--border)" }}>
+                    <div className="text-[13px] font-semibold truncate" style={{ color: "var(--text)" }}>{operatorDisplayName}</div>
+                    {user?.email && <div className="text-[11px] truncate" style={{ color: "var(--text-tertiary)" }}>{user.email}</div>}
+                  </div>
+                  <button onClick={() => { setAvatarMenu(false); handleTabChange("settings"); }} className="flex items-center gap-2.5 w-full px-4 py-2.5 text-[13px] transition-colors" style={{ color: "var(--text)" }}>
+                    <SettingsIcon size={14} style={{ color: "var(--text-secondary)" }} />
+                    {t("settings.title" as any)}
+                    <ChevronRight size={12} className="ml-auto" style={{ color: "var(--text-tertiary)" }} />
+                  </button>
+                  <div className="border-t" style={{ borderColor: "var(--border)" }} />
+                  <button onClick={() => { setAvatarMenu(false); signOut(); }} className="flex items-center gap-2.5 w-full px-4 py-2.5 text-[13px] transition-colors" style={{ color: "var(--danger)" }}>
+                    <LogOut size={14} />
+                    {t("auth.logoutBtn" as any)}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 

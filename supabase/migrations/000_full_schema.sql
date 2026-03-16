@@ -76,6 +76,7 @@ CREATE TABLE clients (
   project_end_date        TEXT DEFAULT '',
   tax_mode                TEXT DEFAULT 'none',
   tax_rate                DOUBLE PRECISION DEFAULT 0,
+  drive_folder_url        TEXT DEFAULT '',
   created_at              TIMESTAMPTZ DEFAULT now(),
   updated_at              TIMESTAMPTZ DEFAULT now(),
   soft_deleted            BOOLEAN DEFAULT FALSE

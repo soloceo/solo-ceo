@@ -78,6 +78,22 @@ function createWindow() {
     return { action: 'deny' };
   });
 
+  // ── Right-click context menu (Cut/Copy/Paste/Select All) ──
+  mainWindow.webContents.on('context-menu', (_event, params) => {
+    const { Menu: CtxMenu, MenuItem } = require('electron');
+    const menu = new CtxMenu();
+    if (params.isEditable) {
+      menu.append(new MenuItem({ role: 'cut', label: '剪切' }));
+      menu.append(new MenuItem({ role: 'copy', label: '复制' }));
+      menu.append(new MenuItem({ role: 'paste', label: '粘贴' }));
+      menu.append(new MenuItem({ type: 'separator' }));
+      menu.append(new MenuItem({ role: 'selectAll', label: '全选' }));
+    } else if (params.selectionText) {
+      menu.append(new MenuItem({ role: 'copy', label: '复制' }));
+    }
+    if (menu.items.length > 0) menu.popup();
+  });
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });

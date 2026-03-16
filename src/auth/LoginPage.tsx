@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { Loader2, Mail, Lock, ArrowRight, UserPlus, LogIn } from 'lucide-react';
+import { Loader2, Mail, Lock, ArrowRight, UserPlus, LogIn, KeyRound } from 'lucide-react';
 import { useAuth } from './AuthProvider';
 import { useT } from '../i18n/context';
+import { supabase } from '../db/supabase-client';
 
 export default function LoginPage() {
   const { signIn, signUp } = useAuth();
   const { t } = useT();
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -19,8 +20,18 @@ export default function LoginPage() {
     setError('');
     setSuccess('');
 
-    if (!email.trim() || !password) {
+    if (!email.trim() || (mode !== 'forgot' && !password)) {
       setError(t('auth.fillAll' as any));
+      return;
+    }
+
+    if (mode === 'forgot') {
+      setLoading(true);
+      try {
+        const { error: e } = await supabase.auth.resetPasswordForEmail(email.trim());
+        if (e) setError(e.message);
+        else setSuccess(t('auth.resetPasswordSent' as any));
+      } finally { setLoading(false); }
       return;
     }
 
@@ -96,21 +107,23 @@ export default function LoginPage() {
               />
             </div>
 
-            <div className="relative">
-              <Lock
-                size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2"
-                style={{ color: 'var(--text-tertiary)' }}
-              />
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={t('auth.passwordPlaceholder' as any)}
-                className="input-base w-full py-3 pl-10 pr-3 text-[14px]"
-                autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
-              />
-            </div>
+            {mode !== 'forgot' && (
+              <div className="relative">
+                <Lock
+                  size={16}
+                  className="absolute left-3 top-1/2 -translate-y-1/2"
+                  style={{ color: 'var(--text-tertiary)' }}
+                />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={t('auth.passwordPlaceholder' as any)}
+                  className="input-base w-full py-3 pl-10 pr-3 text-[14px]"
+                  autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+                />
+              </div>
+            )}
 
             {mode === 'register' && (
               <div className="relative">
@@ -157,6 +170,11 @@ export default function LoginPage() {
           >
             {loading ? (
               <Loader2 size={16} className="animate-spin" />
+            ) : mode === 'forgot' ? (
+              <>
+                <KeyRound size={16} />
+                {t('auth.resetPasswordBtn' as any)}
+              </>
             ) : mode === 'login' ? (
               <>
                 <LogIn size={16} />
@@ -171,8 +189,8 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* Toggle login / register */}
-        <div className="mt-6 text-center">
+        {/* Toggle login / register / forgot */}
+        <div className="mt-6 text-center space-y-2">
           <button
             onClick={() => {
               setMode(mode === 'login' ? 'register' : 'login');
@@ -182,10 +200,23 @@ export default function LoginPage() {
             className="text-[13px] font-medium"
             style={{ color: 'var(--accent)' }}
           >
-            {mode === 'login'
+            {mode === 'forgot'
+              ? t('auth.switchToLogin' as any)
+              : mode === 'login'
               ? t('auth.switchToRegister' as any)
               : t('auth.switchToLogin' as any)}
           </button>
+          {mode === 'login' && (
+            <div>
+              <button
+                onClick={() => { setMode('forgot'); setError(''); setSuccess(''); }}
+                className="text-[12px]"
+                style={{ color: 'var(--text-tertiary)' }}
+              >
+                {t('auth.forgotPassword' as any)}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
