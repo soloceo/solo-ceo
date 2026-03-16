@@ -104,22 +104,44 @@ function App() {
     return () => stopRealtime();
   }, [user]);
 
-  // Operator profile — from localStorage (uploaded avatar in Settings)
+  // Operator profile — from localStorage, synced from cloud on login
   const [operatorName, setOperatorName] = useState(() => localStorage.getItem("OPERATOR_NAME") || "Andy");
   const [operatorAvatar, setOperatorAvatar] = useState(() => localStorage.getItem("OPERATOR_AVATAR") || "");
+
+  // Sync settings from cloud when user is logged in
+  React.useEffect(() => {
+    if (!user) return;
+    fetch("/api/settings")
+      .then(r => r.json())
+      .then((s: Record<string, string>) => {
+        if (s.OPERATOR_NAME) {
+          localStorage.setItem("OPERATOR_NAME", s.OPERATOR_NAME);
+          setOperatorName(s.OPERATOR_NAME);
+        }
+        if (s.OPERATOR_AVATAR) {
+          localStorage.setItem("OPERATOR_AVATAR", s.OPERATOR_AVATAR);
+          setOperatorAvatar(s.OPERATOR_AVATAR);
+        }
+      })
+      .catch(() => {});
+  }, [user]);
+
   const operatorDisplayName = operatorName.trim() || (user?.email?.split("@")[0] || "Andy");
   const operatorInitial = operatorDisplayName.charAt(0).toUpperCase();
 
   // Avatar dropdown
   const [avatarMenu, setAvatarMenu] = useState(false);
-  const avatarMenuRef = useRef<HTMLDivElement>(null);
+  const desktopAvatarRef = useRef<HTMLDivElement>(null);
+  const mobileAvatarRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!avatarMenu) return;
     const close = (e: MouseEvent) => {
-      if (avatarMenuRef.current && !avatarMenuRef.current.contains(e.target as Node)) setAvatarMenu(false);
+      const t = e.target as Node;
+      if (desktopAvatarRef.current?.contains(t) || mobileAvatarRef.current?.contains(t)) return;
+      setAvatarMenu(false);
     };
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
+    const id = setTimeout(() => document.addEventListener("click", close), 0);
+    return () => { clearTimeout(id); document.removeEventListener("click", close); };
   }, [avatarMenu]);
 
   // Connection & sync status
@@ -258,7 +280,7 @@ function App() {
               </span>
             )}
           </div>
-          <div className="relative" ref={sidebarExpanded ? avatarMenuRef : undefined}>
+          <div className="relative" ref={desktopAvatarRef}>
             <button
               onClick={() => setAvatarMenu(p => !p)}
               className="flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors w-full"
@@ -333,7 +355,7 @@ function App() {
             >
               {darkMode ? <Sun size={16} /> : <Moon size={16} />}
             </button>
-            <div className="relative" ref={!sidebarExpanded ? avatarMenuRef : undefined}>
+            <div className="relative" ref={mobileAvatarRef}>
               <button
                 onClick={() => setAvatarMenu(p => !p)}
                 className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full text-[10px] font-bold"
