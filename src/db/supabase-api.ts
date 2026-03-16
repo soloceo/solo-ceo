@@ -22,11 +22,22 @@ function monthKey(value: string | null | undefined, fallback?: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
+// Cache userId from session (local, no network call) instead of getUser() (network)
+let _cachedUserId: string | null = null;
+
 async function getUserId(): Promise<string> {
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) throw new Error('Not authenticated');
-  return data.user.id;
+  if (_cachedUserId) return _cachedUserId;
+  // getSession() reads from localStorage — instant, no network
+  const { data } = await supabase.auth.getSession();
+  if (!data.session?.user) throw new Error('Not authenticated');
+  _cachedUserId = data.session.user.id;
+  return _cachedUserId;
 }
+
+// Clear cache on auth state change
+supabase.auth.onAuthStateChange((_event, session) => {
+  _cachedUserId = session?.user?.id ?? null;
+});
 
 function normalizePlanTier(t: string): string {
   if (!t) return '';
@@ -211,7 +222,7 @@ export async function handleSupabaseRequest(
       .single();
     if (e) return err(500, e.message);
     await supabase.from('leads').update({ column: 'won' }).eq('id', id);
-    await syncClientSubscriptionLedger(userId);
+    syncClientSubscriptionLedger(userId).catch(() => {});
     await logActivity(userId, 'lead', 'converted', `线索转客户：${lead.name || '未命名线索'}`, np ? `方案：${np}` : '', id);
     await logActivity(userId, 'client', 'created', `新增客户：${lead.name || '未命名客户'}`, np ? `来自线索转化 · 方案：${np}` : '来自线索转化', newClient!.id);
     return ok({ success: true, clientId: newClient!.id });
@@ -219,7 +230,7 @@ export async function handleSupabaseRequest(
 
   // ── CLIENTS ────────────────────────────────────────────────────
   if (path === '/api/clients' && method === 'GET') {
-    await syncClientSubscriptionLedger(userId);
+    // NOTE: syncClientSubscriptionLedger removed from GET — only runs on writes
     const currentYear = new Date().getFullYear();
     const { data: clients } = await supabase
       .from('clients')
@@ -265,7 +276,7 @@ export async function handleSupabaseRequest(
       .select('id')
       .single();
     if (e) return err(500, e.message);
-    await syncClientSubscriptionLedger(userId);
+    syncClientSubscriptionLedger(userId).catch(() => {});
     await logActivity(userId, 'client', 'created', `新增客户：${name || '未命名客户'}`, np ? `方案：${np}` : '', data!.id);
     return ok({ id: data!.id });
   }
@@ -294,14 +305,14 @@ export async function handleSupabaseRequest(
         })
         .eq('id', id);
       if (e) return err(500, e.message);
-      await syncClientSubscriptionLedger(userId);
+      syncClientSubscriptionLedger(userId).catch(() => {});
       await logActivity(userId, 'client', 'updated', `更新客户：${name || '未命名客户'}`, '客户信息已更新', id);
       return ok({ success: true });
     }
     if (method === 'DELETE') {
       const { data: prev } = await supabase.from('clients').select('name').eq('id', id).single();
       await supabase.from('clients').update({ soft_deleted: true }).eq('id', id);
-      await syncClientSubscriptionLedger(userId);
+      syncClientSubscriptionLedger(userId).catch(() => {});
       await logActivity(userId, 'client', 'deleted', `删除客户：${prev?.name || '未命名客户'}`, '', id);
       return ok({ success: true });
     }
@@ -570,7 +581,7 @@ export async function handleSupabaseRequest(
 
   // ── FINANCE ────────────────────────────────────────────────────
   if (path === '/api/finance' && method === 'GET') {
-    await syncClientSubscriptionLedger(userId);
+    // NOTE: syncClientSubscriptionLedger removed from GET — only runs on writes
     const { data: transactions } = await supabase
       .from('finance_transactions')
       .select('*')
@@ -890,52 +901,46 @@ export async function handleSupabaseRequest(
 
   // ── DASHBOARD ──────────────────────────────────────────────────
   if (path === '/api/dashboard' && method === 'GET') {
-    await syncClientSubscriptionLedger(userId);
+    // All queries run in PARALLEL — no serial waterfall
+    const focusDate = todayDateKey();
+    const currentYear = new Date().getFullYear();
 
-    const { data: activeClients } = await supabase
-      .from('clients')
-      .select('id', { count: 'exact' })
-      .eq('user_id', userId)
-      .eq('status', 'Active')
-      .eq('soft_deleted', false);
+    const [
+      { data: activeClients },
+      { data: taskData },
+      { data: leadData },
+      { data: ledgerSeries },
+      { data: recentActivityRows },
+      { data: focusStates },
+      { data: receivablesData },
+      { data: bestLeadArr },
+      { data: urgentTaskArr },
+      { data: overdueMsArr },
+      { data: manualFocusRows },
+    ] = await Promise.all([
+      supabase.from('clients').select('id, mrr').eq('user_id', userId).eq('status', 'Active').eq('soft_deleted', false),
+      supabase.from('tasks').select('id').eq('user_id', userId).neq('column', 'done').eq('soft_deleted', false),
+      supabase.from('leads').select('id').eq('user_id', userId).eq('soft_deleted', false),
+      supabase.from('client_subscription_ledger').select('ledger_month, amount').eq('user_id', userId),
+      supabase.from('activity_log').select('title, detail, created_at, entity_type, action').eq('user_id', userId).order('created_at', { ascending: false }).limit(8),
+      supabase.from('today_focus_state').select('focus_key, status').eq('user_id', userId).eq('focus_date', focusDate),
+      supabase.from('finance_transactions').select('id, description, status').eq('user_id', userId).eq('soft_deleted', false).like('status', '%应收%'),
+      supabase.from('leads').select('id, name, industry, needs, column').eq('user_id', userId).eq('soft_deleted', false).in('column', ['proposal', 'contacted', 'new']).order('column', { ascending: true }).limit(1),
+      supabase.from('tasks').select('id, title, client, priority, due, column').eq('user_id', userId).eq('soft_deleted', false).neq('column', 'done').order('priority', { ascending: true }).limit(1),
+      supabase.from('payment_milestones').select('id, label, amount, due_date, client_id, clients(name)').eq('user_id', userId).eq('status', 'pending').eq('soft_deleted', false).not('due_date', 'is', null).lt('due_date', todayDateKey()).order('due_date', { ascending: true }).limit(1),
+      supabase.from('today_focus_manual').select('id, type, title, note').eq('user_id', userId).eq('focus_date', focusDate).eq('soft_deleted', false).order('id', { ascending: false }),
+    ]);
+
     const clientsCount = activeClients?.length || 0;
-
-    const { data: mrrData } = await supabase
-      .from('clients')
-      .select('mrr')
-      .eq('user_id', userId)
-      .eq('status', 'Active')
-      .eq('soft_deleted', false);
-    const mrr = (mrrData || []).reduce((s, r) => s + Number(r.mrr || 0), 0);
-
-    const { data: taskData } = await supabase
-      .from('tasks')
-      .select('id')
-      .eq('user_id', userId)
-      .neq('column', 'done')
-      .eq('soft_deleted', false);
+    const mrr = (activeClients || []).reduce((s, r) => s + Number(r.mrr || 0), 0);
     const activeTasks = taskData?.length || 0;
-
-    const { data: leadData } = await supabase
-      .from('leads')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('soft_deleted', false);
     const leadsCount = leadData?.length || 0;
-
-    // MRR series from ledger
-    const { data: ledgerSeries } = await supabase
-      .from('client_subscription_ledger')
-      .select('ledger_month, amount')
-      .eq('user_id', userId);
 
     const monthTotals = new Map<string, number>();
     for (const r of (ledgerSeries || [])) {
-      const m = r.ledger_month;
-      monthTotals.set(m, (monthTotals.get(m) || 0) + Number(r.amount || 0));
+      monthTotals.set(r.ledger_month, (monthTotals.get(r.ledger_month) || 0) + Number(r.amount || 0));
     }
     const sortedMonths = [...monthTotals.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-    const currentYear = new Date().getFullYear();
     const mrrSeries = sortedMonths.slice(-12).map(([m, total]) => {
       const [year, month] = m.split('-');
       return { name: `${year.slice(2)}-${month}`, mrr: total };
@@ -944,69 +949,18 @@ export async function handleSupabaseRequest(
       .filter(([m]) => m.startsWith(`${currentYear}-`))
       .reduce((s, [, total]) => s + total, 0);
 
-    // Recent activity
-    const { data: recentActivityRows } = await supabase
-      .from('activity_log')
-      .select('title, detail, created_at, entity_type, action')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(8);
-
     const recentActivity = (recentActivityRows || []).map((r) => ({
-      activity: r.title,
-      detail: r.detail,
-      time: r.created_at,
-      type: r.entity_type,
-      action: r.action,
+      activity: r.title, detail: r.detail, time: r.created_at, type: r.entity_type, action: r.action,
     }));
 
-    // Today focus
-    const focusDate = todayDateKey();
-    const { data: focusStates } = await supabase
-      .from('today_focus_state')
-      .select('focus_key, status')
-      .eq('user_id', userId)
-      .eq('focus_date', focusDate);
     const focusStateMap: Record<string, string> = {};
     for (const r of (focusStates || [])) {
       focusStateMap[String(r.focus_key)] = String(r.status || 'pending');
     }
 
-    // Best lead & urgent task for auto-focus
-    const { data: allFinance } = await handleSupabaseRequest('GET', '/api/finance', null);
-    const receivables = (allFinance || []).filter((t: any) => String(t.status || '').includes('应收'));
-
-    const { data: bestLeadArr } = await supabase
-      .from('leads')
-      .select('id, name, industry, needs, column')
-      .eq('user_id', userId)
-      .eq('soft_deleted', false)
-      .in('column', ['proposal', 'contacted', 'new'])
-      .order('column', { ascending: true })
-      .limit(1);
+    const receivables = receivablesData || [];
     const bestLead = bestLeadArr?.[0] || null;
-
-    const { data: urgentTaskArr } = await supabase
-      .from('tasks')
-      .select('id, title, client, priority, due, column')
-      .eq('user_id', userId)
-      .eq('soft_deleted', false)
-      .neq('column', 'done')
-      .order('priority', { ascending: true })
-      .limit(1);
     const urgentTask = urgentTaskArr?.[0] || null;
-
-    // Overdue milestones detection
-    const { data: overdueMsArr } = await supabase
-      .from('payment_milestones')
-      .select('id, label, amount, due_date, client_id, clients(name)')
-      .eq('user_id', userId)
-      .eq('status', 'pending')
-      .eq('soft_deleted', false)
-      .not('due_date', 'is', null)
-      .lt('due_date', todayDateKey())
-      .order('due_date', { ascending: true })
-      .limit(1);
     const overdueMs = overdueMsArr?.[0] as any;
 
     const systemTask = overdueMs
@@ -1026,14 +980,6 @@ export async function handleSupabaseRequest(
         : { key: 'delivery-fallback', type: '交付', title: '完成一个关键交付', reason: '每天至少推进一件真实交付，避免系统只转不产出。', actionHint: '去任务看板推进进行中任务' },
       systemTask,
     ];
-
-    const { data: manualFocusRows } = await supabase
-      .from('today_focus_manual')
-      .select('id, type, title, note')
-      .eq('user_id', userId)
-      .eq('focus_date', focusDate)
-      .eq('soft_deleted', false)
-      .order('id', { ascending: false });
 
     const manualTodayEvents = (manualFocusRows || []).map((row) => ({
       key: `manual-${row.id}`,

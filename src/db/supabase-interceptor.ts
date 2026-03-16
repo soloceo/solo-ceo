@@ -19,18 +19,21 @@ function isOnline(): boolean {
   return navigator.onLine;
 }
 
-async function isAuthenticated(): Promise<boolean> {
-  try {
-    // Use a timeout to avoid hanging when offline
-    const result = await Promise.race([
-      supabase.auth.getSession(),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
-    ]);
-    if (!result) return false; // timed out
-    return !!(result as any).data?.session;
-  } catch {
-    return false;
-  }
+// ── Auth status cache (sync, zero network calls) ─────────────────
+
+let _cachedAuthed = false;
+
+supabase.auth.onAuthStateChange((_event, session) => {
+  _cachedAuthed = !!session;
+});
+
+// Init from localStorage — no network request
+supabase.auth.getSession().then(({ data }) => {
+  _cachedAuthed = !!data.session;
+}).catch(() => {});
+
+function isAuthenticated(): boolean {
+  return _cachedAuthed;
 }
 
 // ── Parse body from fetch args ────────────────────────────────────
@@ -112,13 +115,8 @@ export async function installSupabaseInterceptor(): Promise<void> {
   startOfflineQueueListener();
 
   // Try replaying any pending offline ops
-  if (isOnline()) {
-    try {
-      const authed = await isAuthenticated();
-      if (authed) {
-        replayQueue().catch(() => {});
-      }
-    } catch { /* ignore */ }
+  if (isOnline() && isAuthenticated()) {
+    replayQueue().catch(() => {});
   }
 
   const orig = window.fetch.bind(window);
@@ -141,16 +139,9 @@ export async function installSupabaseInterceptor(): Promise<void> {
     const path = url.split('?')[0];
     const body = await parseBody(input, init);
 
-    // Check if we're online and authenticated
-    if (isOnline()) {
-      try {
-        const authed = await isAuthenticated();
-        if (authed) {
-          return await handleViaSupabase(method, path, body);
-        }
-      } catch {
-        // Supabase unavailable, fall through to local
-      }
+    // Check if we're online and authenticated — both are sync, zero latency
+    if (isOnline() && isAuthenticated()) {
+      return await handleViaSupabase(method, path, body);
     }
 
     // Offline or not authenticated → use local DB
