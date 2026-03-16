@@ -25,6 +25,20 @@ const cleanCopy = (t: string) =>
     .replace(/\n{3,}/g, "\n\n").replace(/^以下是.*$/gim, "")
     .replace(/^当然可以.*$/gim, "").trim();
 
+/* ── Finance helpers (shared with Money) ── */
+const calcTaxAmount = (amount: number, mode: string, rate: number): number => {
+  if (mode === "none" || !rate) return 0;
+  if (mode === "exclusive") return Math.round((amount * rate) / 100 * 100) / 100;
+  if (mode === "inclusive") return Math.round((amount * rate) / (100 + rate) * 100) / 100;
+  return 0;
+};
+const CATEGORY_I18N: Record<string, string> = { "收入": "money.cat.income", "软件支出": "money.cat.software", "外包支出": "money.cat.outsource", "应收": "money.cat.receivable", "应付": "money.cat.payable", "其他支出": "money.cat.other" };
+const STATUS_I18N: Record<string, string> = { "已完成": "money.st.completed", "待收款 (应收)": "money.st.receivable", "待支付 (应付)": "money.st.payable" };
+const catLabel = (cat: string, t: (k: any) => string) => { const key = CATEGORY_I18N[cat]; return key ? t(key as any) : cat; };
+const stLabel = (st: string, t: (k: any) => string) => { const key = STATUS_I18N[st]; return key ? t(key as any) : st; };
+const TX_CATEGORIES = ["收入", "软件支出", "外包支出", "应收", "应付", "其他支出"];
+const TX_STATUSES = ["已完成", "待收款 (应收)", "待支付 (应付)"];
+
 const LEAD_COL_IDS = [
   { id: "new", color: "var(--text-tertiary)" },
   { id: "contacted", color: "var(--accent)" },
@@ -377,6 +391,12 @@ export function ClientsView() {
 
   const [finTxs, setFinTxs] = useState<any[]>([]);
 
+  /* ── Transaction editing state ── */
+  const [showTxForm, setShowTxForm] = useState(false);
+  const [editTxId, setEditTxId] = useState<number | null>(null);
+  const emptyTx = { date: new Date().toISOString().split("T")[0], desc: "", category: "收入", amount: "", status: "已完成", taxMode: "none" as "none" | "exclusive" | "inclusive", taxRate: "" };
+  const [txForm, setTxForm] = useState(emptyTx);
+
   const showToast = (m: string) => { setToast(m); setTimeout(() => setToast(""), 3000); };
   const fetchPlans = async () => { try { setPlans(await (await fetch("/api/plans")).json()); } catch {} };
   const fetchClients = async () => { try { const res = await fetch("/api/clients"); setClients(await res.json()); } catch { showToast(t("pipeline.toast.clientLoadFailed" as any)); } finally { setLoading(false); } };
@@ -428,6 +448,32 @@ export function ClientsView() {
     }));
   };
 
+  const saveTx = async () => {
+    if (!editId) return;
+    const isIncome = txForm.category === "收入" || txForm.category === "应收";
+    const amt = Math.abs(Number(txForm.amount));
+    const rate = Number(txForm.taxRate) || 0;
+    const taxAmount = calcTaxAmount(amt, txForm.taxMode, rate);
+    const txData = { date: txForm.date, description: txForm.desc, category: txForm.category, amount: amt, type: isIncome ? "income" : "expense", status: txForm.status, tax_mode: txForm.taxMode, tax_rate: rate, tax_amount: taxAmount, client_id: editId, client_name: form.company_name || form.name };
+    try {
+      if (editTxId) { await fetch(`/api/finance/${editTxId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(txData) }); }
+      else { await fetch("/api/finance", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(txData) }); }
+      showToast(t("pipeline.tx.saved" as any));
+      setShowTxForm(false); setEditTxId(null); setTxForm(emptyTx);
+      fetchFinance();
+    } catch { showToast(t("common.saveFailed" as any)); }
+  };
+
+  const deleteTx = async (txId: number) => {
+    try { await fetch(`/api/finance/${txId}`, { method: "DELETE" }); showToast(t("pipeline.tx.deleted" as any)); fetchFinance(); }
+    catch { showToast(t("common.deleteFailed" as any)); }
+  };
+
+  const clientTxs = useMemo(() =>
+    editId ? finTxs.filter(tx => tx.client_id === editId).sort((a: any, b: any) => (b.date || "").localeCompare(a.date || "")) : [],
+    [finTxs, editId]
+  );
+
   useEffect(() => { fetchClients(); fetchPlans(); fetchFinance(); }, []);
   useRealtimeRefresh(['clients', 'plans', 'payment_milestones', 'finance_transactions'], () => { fetchClients(); fetchFinance(); if (editId && form.billing_type === "project") fetchMilestones(editId); });
   useEffect(() => {
@@ -443,6 +489,7 @@ export function ClientsView() {
 
   const openPanel = (c: any = null) => {
     setMilestones([]); setShowAddMs(false); setEditMsId(null); setMarkPaidId(null); setMsForm(emptyMs);
+    setShowTxForm(false); setEditTxId(null); setTxForm(emptyTx);
     if (c) {
       setEditId(c.id);
       setForm({ name: c.name, company_name: c.company_name || "", contact_name: c.contact_name || "", contact_email: c.contact_email || "", contact_phone: c.contact_phone || "", billing_type: c.billing_type || "subscription", plan: c.plan_tier || c.plan, status: c.status, mrr: String(c.mrr).replace(/[^0-9.-]+/g, ""), project_fee: String(c.project_fee || "").replace(/[^0-9.-]+/g, ""), subscription_start_date: c.subscription_start_date || (c.joined_at ? String(c.joined_at).split(" ")[0] : ""), project_end_date: c.project_end_date || "", paused_at: c.paused_at || "", resumed_at: c.resumed_at || "", cancelled_at: c.cancelled_at || "", mrr_effective_from: c.mrr_effective_from || c.subscription_start_date || "", tax_mode: (c.tax_mode || "none") as any, tax_rate: String(c.tax_rate || "") });
@@ -837,6 +884,123 @@ export function ClientsView() {
                         )}
                       </>
                     )}
+                  </>
+                )}
+
+                {/* ═══ Financial Transactions ═══ */}
+                {editId && (
+                  <>
+                    <div className="border-t" style={{ borderColor: "var(--border)" }} />
+                    <div className="flex items-center justify-between">
+                      <span className="section-label flex items-center gap-1.5"><DollarSign size={13} /> {t("pipeline.tx.title" as any)}</span>
+                      <button onClick={() => { setShowTxForm(true); setEditTxId(null); setTxForm({ ...emptyTx, taxMode: (form.tax_mode || "none") as any, taxRate: form.tax_rate || "" }); }} className="btn-ghost text-[11px] flex items-center gap-1" style={{ color: "var(--accent)" }}><Plus size={12} /> {t("pipeline.tx.add" as any)}</button>
+                    </div>
+
+                    {/* Summary bar */}
+                    {clientTxs.length > 0 && (() => {
+                      const received = clientTxs.filter((tx: any) => tx.type === "income" && (tx.status || "已完成") === "已完成").reduce((s: number, tx: any) => s + Number(tx.amount || 0), 0);
+                      const pending = clientTxs.filter((tx: any) => (tx.status || "").includes("应收")).reduce((s: number, tx: any) => s + Number(tx.amount || 0), 0);
+                      const expense = clientTxs.filter((tx: any) => tx.type === "expense" && (tx.status || "已完成") === "已完成").reduce((s: number, tx: any) => s + Number(tx.amount || 0), 0);
+                      return (
+                        <div className="flex items-center gap-3 text-[11px] font-medium">
+                          <span style={{ color: "var(--success)" }}>{t("pipeline.tx.received" as any)} ${received.toLocaleString()}</span>
+                          {pending > 0 && <span style={{ color: "var(--warning)" }}>{t("pipeline.tx.pending" as any)} ${pending.toLocaleString()}</span>}
+                          {expense > 0 && <span style={{ color: "var(--text-secondary)" }}>{t("pipeline.tx.expense" as any)} ${expense.toLocaleString()}</span>}
+                        </div>
+                      );
+                    })()}
+
+                    {/* Transaction list */}
+                    {clientTxs.length > 0 ? (
+                      <div className="space-y-2">
+                        {clientTxs.map((tx: any) => (
+                          <div key={tx.id} className="rounded-lg p-3 space-y-1" style={{ background: "var(--surface-alt)", border: "1px solid var(--border)" }}>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <span className="text-[12px] font-semibold shrink-0" style={{ color: tx.type === "income" ? "var(--success)" : "var(--text)" }}>
+                                  {tx.type === "income" ? "+" : "-"}${Math.abs(tx.amount).toLocaleString()}
+                                </span>
+                                <span className="text-[12px] font-medium truncate" style={{ color: "var(--text)" }}>{tx.description || tx.desc}</span>
+                              </div>
+                              {!tx.source && (
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button onClick={() => { setEditTxId(tx.id); setTxForm({ date: tx.date, desc: tx.description || tx.desc, category: tx.category, amount: String(Math.abs(tx.amount)), status: tx.status || "已完成", taxMode: tx.tax_mode || "none", taxRate: tx.tax_rate ? String(tx.tax_rate) : "" }); setShowTxForm(true); }} className="btn-ghost p-1"><Edit2 size={11} /></button>
+                                  <button onClick={() => deleteTx(tx.id)} className="btn-ghost p-1" style={{ color: "var(--danger)" }}><Trash2 size={11} /></button>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>{tx.date}</span>
+                              <span className="badge text-[9px]">{catLabel(tx.category, t)}</span>
+                              <span className="badge text-[9px]" style={{
+                                background: (tx.status || "已完成") === "已完成" ? "var(--success-light)" : (tx.status || "").includes("应收") ? "var(--warning-light)" : "var(--danger-light)",
+                                color: (tx.status || "已完成") === "已完成" ? "var(--success)" : (tx.status || "").includes("应收") ? "var(--warning)" : "var(--danger)",
+                              }}>{stLabel(tx.status || "已完成", t)}</span>
+                              {tx.source === "client_subscription" && <span className="badge text-[9px]" style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)" }}>{t("money.badge.subscription" as any)}</span>}
+                              {tx.source === "client_project" && <span className="badge text-[9px]" style={{ background: "color-mix(in srgb, var(--warning) 12%, transparent)", color: "var(--warning)" }}>{t("money.badge.project" as any)}</span>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : !showTxForm && (
+                      <div className="text-center py-3 text-[12px]" style={{ color: "var(--text-tertiary)" }}>{t("pipeline.tx.empty" as any)}</div>
+                    )}
+
+                    {/* Add/Edit transaction form */}
+                    <AnimatePresence>
+                      {showTxForm && (
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                          <div className="rounded-lg p-3 space-y-3" style={{ background: "var(--surface-alt)", border: "1px solid var(--accent)", borderStyle: "dashed" }}>
+                            <div className="flex items-center justify-between">
+                              <span className="text-[12px] font-semibold" style={{ color: "var(--text)" }}>{editTxId ? t("common.edit" as any) : t("pipeline.tx.add" as any)}</span>
+                              <button onClick={() => { setShowTxForm(false); setEditTxId(null); setTxForm(emptyTx); }} className="btn-ghost p-0.5"><X size={13} /></button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <FL label={t("pipeline.tx.date" as any)}><input type="date" value={txForm.date} onChange={e => setTxForm(p => ({ ...p, date: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
+                              <FL label={t("pipeline.tx.category" as any)}><select value={txForm.category} onChange={e => setTxForm(p => ({ ...p, category: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]">{TX_CATEGORIES.map(c => <option key={c} value={c}>{catLabel(c, t)}</option>)}</select></FL>
+                            </div>
+                            <FL label={t("pipeline.tx.description" as any)}><input value={txForm.desc} onChange={e => setTxForm(p => ({ ...p, desc: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
+                            <div className="grid grid-cols-2 gap-3">
+                              <FL label={t("pipeline.tx.amount" as any)}>
+                                <div className="relative">
+                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px]" style={{ color: "var(--text-tertiary)" }}>$</span>
+                                  <input type="number" min="0" step="0.01" value={txForm.amount} onChange={e => setTxForm(p => ({ ...p, amount: e.target.value }))} className="input-base w-full pl-7 pr-3 py-2 text-[13px]" />
+                                </div>
+                              </FL>
+                              <FL label={t("pipeline.tx.status" as any)}><select value={txForm.status} onChange={e => setTxForm(p => ({ ...p, status: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]">{TX_STATUSES.map(s => <option key={s} value={s}>{stLabel(s, t)}</option>)}</select></FL>
+                            </div>
+                            {/* Tax */}
+                            <FL label={t("pipeline.clients.taxSetting" as any)}>
+                              <div className="flex gap-2 mb-2">
+                                {([["none", t("money.form.taxNone" as any)], ["exclusive", t("money.form.taxExclBtn" as any)], ["inclusive", t("money.form.taxIncl" as any)]] as [string, string][]).map(([mode, label]) => (
+                                  <button key={mode} type="button" onClick={() => setTxForm(p => ({ ...p, taxMode: mode as any }))}
+                                    className="flex-1 py-1.5 rounded-lg text-[12px] font-medium transition-all"
+                                    style={txForm.taxMode === mode ? { background: "var(--text)", color: "var(--bg)" } : { background: "var(--surface-alt)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
+                                    {label}
+                                  </button>
+                                ))}
+                              </div>
+                              {txForm.taxMode !== "none" && (
+                                <div className="flex gap-2">
+                                  {[13, 6, 3].map(r => (
+                                    <button key={r} type="button" onClick={() => setTxForm(p => ({ ...p, taxRate: String(r) }))}
+                                      className="px-3 py-1.5 rounded-md text-[11px] font-medium transition-all"
+                                      style={Number(txForm.taxRate) === r ? { background: "var(--accent-light)", color: "var(--accent)", border: "1px solid var(--accent)" } : { background: "var(--surface-alt)", color: "var(--text-secondary)" }}>
+                                      {r}%
+                                    </button>
+                                  ))}
+                                  <input type="number" min="0" max="100" step="0.01" value={txForm.taxRate} onChange={e => setTxForm(p => ({ ...p, taxRate: e.target.value }))} placeholder={t("money.form.customTaxPlaceholder" as any)} className="input-base flex-1 px-3 py-1.5 text-[11px] min-w-0" />
+                                </div>
+                              )}
+                            </FL>
+                            <div className="flex justify-end gap-2">
+                              <button onClick={() => { setShowTxForm(false); setEditTxId(null); setTxForm(emptyTx); }} className="btn-secondary text-[12px]">{t("common.cancel" as any)}</button>
+                              <button onClick={saveTx} disabled={!txForm.desc || !txForm.amount} className="btn-primary text-[12px]">{t("common.save" as any)}</button>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </>
                 )}
               </div>

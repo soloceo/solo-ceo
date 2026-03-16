@@ -213,7 +213,7 @@ export default function Work() {
             </select>
           </div>
           <div className="segment-switcher">
-            {([["vertical", <LayoutGrid size={13} />, "看板"], ["horizontal", <AlignJustify size={13} />, "泳道"]] as const).map(([mode, icon, label]) => (
+            {([["vertical", <LayoutGrid size={13} />, t("work.view.board" as any)], ["horizontal", <AlignJustify size={13} />, t("work.view.swimlane" as any)]] as [string, React.ReactNode, string][]).map(([mode, icon, label]) => (
               <button key={mode} onClick={() => { setViewMode(mode as any); localStorage.setItem("tasks_view_mode", mode as string); }}
                 data-active={viewMode === mode}>
                 {icon}

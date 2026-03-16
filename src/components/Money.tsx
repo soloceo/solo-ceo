@@ -645,7 +645,7 @@ export function TransactionsView({ showToast }: { showToast: (m: string) => void
                 <tbody>
                   {filteredTx.length === 0 && <tr><td colSpan={6} className="py-10 text-center" style={{ color: "var(--text-tertiary)" }}>{t("common.noData" as any)}</td></tr>}
                   {filteredTx.map((tx) => (
-                    <tr key={tx.id} className="list-item transition-colors" style={{ borderBottom: "1px solid var(--border)" }}>
+                    <tr key={tx.id} onClick={() => { setShowAll(false); openPanel(tx); }} className="list-item transition-colors cursor-pointer" style={{ borderBottom: "1px solid var(--border)" }}>
                       <td className="px-4 py-3 whitespace-nowrap" style={{ color: "var(--text-secondary)" }}>{tx.date}</td>
                       <td className="px-4 py-3">
                         <div className="font-medium" style={{ color: "var(--text)" }}>{tx.description || tx.desc}</div>

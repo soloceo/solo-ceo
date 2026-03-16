@@ -87,6 +87,8 @@ const zh = {
   "work.col.review": "待审核",
   "work.col.done": "已完成",
   "work.new": "新建",
+  "work.view.board": "看板",
+  "work.view.swimlane": "泳道",
   "work.aiPlan": "AI 规划",
   "work.filter.all": "全部",
   "work.filter.high": "高",
@@ -268,6 +270,21 @@ const zh = {
   "pipeline.milestones.method.paypal": "PayPal",
   "pipeline.milestones.method.stripe": "Stripe",
   "pipeline.milestones.method.other": "其他",
+
+  /* ── Pipeline: Transaction editing ── */
+  "pipeline.tx.title": "收支记录",
+  "pipeline.tx.add": "添加记录",
+  "pipeline.tx.empty": "暂无收支记录",
+  "pipeline.tx.saved": "记录已保存",
+  "pipeline.tx.deleted": "记录已删除",
+  "pipeline.tx.date": "日期",
+  "pipeline.tx.description": "描述",
+  "pipeline.tx.category": "分类",
+  "pipeline.tx.amount": "金额",
+  "pipeline.tx.status": "状态",
+  "pipeline.tx.received": "已到账",
+  "pipeline.tx.pending": "待收",
+  "pipeline.tx.expense": "支出",
 
   /* ── Money ── */
   "money.pageTitle": "收支",

@@ -89,6 +89,8 @@ const en: typeof zh = {
   "work.col.review": "Review",
   "work.col.done": "Done",
   "work.new": "New",
+  "work.view.board": "Board",
+  "work.view.swimlane": "Swimlane",
   "work.aiPlan": "AI Plan",
   "work.filter.all": "All",
   "work.filter.high": "High",
@@ -270,6 +272,21 @@ const en: typeof zh = {
   "pipeline.milestones.method.paypal": "PayPal",
   "pipeline.milestones.method.stripe": "Stripe",
   "pipeline.milestones.method.other": "Other",
+
+  /* ── Pipeline: Transaction editing ── */
+  "pipeline.tx.title": "Transactions",
+  "pipeline.tx.add": "Add Record",
+  "pipeline.tx.empty": "No transactions yet",
+  "pipeline.tx.saved": "Record saved",
+  "pipeline.tx.deleted": "Record deleted",
+  "pipeline.tx.date": "Date",
+  "pipeline.tx.description": "Description",
+  "pipeline.tx.category": "Category",
+  "pipeline.tx.amount": "Amount",
+  "pipeline.tx.status": "Status",
+  "pipeline.tx.received": "Received",
+  "pipeline.tx.pending": "Pending",
+  "pipeline.tx.expense": "Expense",
 
   /* ── Money ── */
   "money.pageTitle": "Money",
