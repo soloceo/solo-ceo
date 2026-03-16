@@ -228,6 +228,36 @@ export default function Settings() {
 
   /* ── Avatar ── */
   const MAX_AVATAR_SIZE = 2 * 1024 * 1024; // 2MB
+
+  // Compress image to 128x128 thumbnail for small base64, then save + sync to cloud
+  const compressAndSaveAvatar = (dataUrl: string) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const size = 128;
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d')!;
+      // Center-crop: draw the largest square from the source
+      const srcSize = Math.min(img.width, img.height);
+      const sx = (img.width - srcSize) / 2;
+      const sy = (img.height - srcSize) / 2;
+      ctx.drawImage(img, sx, sy, srcSize, srcSize, 0, 0, size, size);
+      const compressed = canvas.toDataURL('image/jpeg', 0.8);
+      setOperatorAvatar(compressed);
+      localStorage.setItem('OPERATOR_AVATAR', compressed);
+      window.dispatchEvent(new Event('operator-avatar-updated'));
+      // Immediately sync to cloud
+      fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ OPERATOR_AVATAR: compressed }),
+      }).catch(() => {});
+      showToast(t("settings.avatarUpdated" as any));
+    };
+    img.src = dataUrl;
+  };
+
   const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -236,10 +266,7 @@ export default function Settings() {
     const reader = new FileReader();
     reader.onload = () => {
       const result = typeof reader.result === 'string' ? reader.result : '';
-      setOperatorAvatar(result);
-      localStorage.setItem('OPERATOR_AVATAR', result);
-      window.dispatchEvent(new Event('operator-avatar-updated'));
-      showToast(t("settings.avatarUpdated" as any));
+      compressAndSaveAvatar(result);
     };
     reader.readAsDataURL(file);
     event.target.value = '';
@@ -249,6 +276,12 @@ export default function Settings() {
     setOperatorAvatar('');
     localStorage.removeItem('OPERATOR_AVATAR');
     window.dispatchEvent(new Event('operator-avatar-updated'));
+    // Sync removal to cloud
+    fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ OPERATOR_AVATAR: '' }),
+    }).catch(() => {});
     showToast(t("settings.avatarRemoved" as any));
   };
 
