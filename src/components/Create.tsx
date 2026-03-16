@@ -4,11 +4,13 @@ import {
   Sparkles, Loader2, Copy, Check, Linkedin, FileText, Send, Instagram,
   TrendingUp, Mail, Megaphone, MessageSquare, BookOpen, Image as ImageIcon,
   Download, PenTool, Save, Trash2, RotateCcw, AlertCircle, X,
-  PanelRightClose,
+  PanelRightClose, Music, Youtube,
 } from "lucide-react";
 import { GoogleGenAI } from "@google/genai";
 import { useT } from '../i18n/context';
 import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh";
+import { useIsMobile } from "../hooks/useIsMobile";
+import { useToast } from "../hooks/useToast";
 
 /* ── Helpers ─────────────────────────────────────────────────────── */
 const getAIClient = (customKey?: string) => {
@@ -22,7 +24,8 @@ const getPlatformLabel = (platform: string) => {
   const labels: Record<string, string> = {
     x: "X / Twitter", linkedin: "LinkedIn", newsletter: "Newsletter",
     cold_email: "Cold Email", instagram: "Instagram", wechat: "微信朋友圈",
-    xiaohongshu: "小红书", blog: "Blog",
+    xiaohongshu: "小红书", blog: "Blog", tiktok: "TikTok / 抖音",
+    youtube_shorts: "YouTube Shorts",
   };
   return labels[platform] || platform;
 };
@@ -34,6 +37,7 @@ const getPlatformDisplayLabel = (platform: string, t: (k: any) => string) => {
     newsletter: "create.platform.newsletter", cold_email: "create.platform.coldEmail",
     instagram: "create.platform.instagram", wechat: "create.platform.wechat",
     xiaohongshu: "create.platform.xiaohongshu", blog: "create.platform.blog",
+    tiktok: "create.platform.tiktok", youtube_shorts: "create.platform.youtubeShorts",
   };
   const key = keyMap[platform];
   return key ? t(key as any) : platform;
@@ -140,6 +144,8 @@ const PLATFORMS = [
   { id: "wechat", icon: <MessageSquare size={13} />, labelKey: "create.platform.wechat" },
   { id: "xiaohongshu", icon: <BookOpen size={13} />, labelKey: "create.platform.xiaohongshu" },
   { id: "blog", icon: <FileText size={13} />, labelKey: "create.platform.blog" },
+  { id: "tiktok", icon: <Music size={13} />, labelKey: "create.platform.tiktok" },
+  { id: "youtube_shorts", icon: <Youtube size={13} />, labelKey: "create.platform.youtubeShorts" },
 ];
 
 /* ── Prompt builders ─────────────────────────────────────────────── */
@@ -165,7 +171,9 @@ const buildCopyPrompt = ({ platform, language, topic, useTrending }: { platform:
 - instagram：配图文案，视觉感、节奏感、标签。
 - wechat：80-220 字朋友圈，自然、有观点、有现场感。
 - xiaohongshu：笔记文案，标题抓人，正文分点，标签。
-- blog：博客正文草稿。`;
+- blog：博客正文草稿。
+- tiktok：15-60秒短视频脚本，开头3秒抓注意力，节奏快，口语化，带钩子。
+- youtube_shorts：60秒以内竖屏短视频脚本，开头即高潮，信息密度高，留悬念。`;
 
   const formatRules = `输出格式要求：
 - 只输出最终可用正文。
@@ -213,24 +221,17 @@ export default function Create() {
   const [loading, setLoading] = useState(false);
   const [loadingType, setLoadingType] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
-  const [toast, setToast] = useState("");
+  const [toast, showToast] = useToast();
   const [savedDrafts, setSavedDrafts] = useState<any[]>([]);
   const [showDrafts, setShowDrafts] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useIsMobile();
   const endRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
   const fetchDrafts = async () => {
     try { setSavedDrafts(await (await fetch("/api/content-drafts")).json()); }
-    catch { /* ignore */ }
+    catch (e) { console.error("Failed to load drafts:", e); }
   };
 
   useEffect(() => { fetchDrafts(); }, []);
@@ -240,8 +241,6 @@ export default function Create() {
     window.dispatchEvent(new CustomEvent("mobile-nav-visibility", { detail: { hidden: isMobile && showDrafts } }));
     return () => window.dispatchEvent(new CustomEvent("mobile-nav-visibility", { detail: { hidden: false } }));
   }, [showDrafts, isMobile]);
-
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 3000); };
 
   const addMsg = (type: MessageType, content: string, extra?: Partial<ChatMessage>) => {
     const m: ChatMessage = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, type, content, timestamp: new Date(), ...extra };
@@ -551,7 +550,7 @@ Requirements:
           {loading && (
             <div className="flex justify-start" style={{ animation: "msgIn 0.25s ease-out forwards" }}>
               <div className="card rounded-2xl rounded-bl-sm overflow-hidden max-w-xs">
-                <div className="h-[2px] w-full" style={{ background: "linear-gradient(90deg, var(--accent), #a78bfa, var(--accent))", backgroundSize: "200% 100%", animation: "shimmer 1.5s linear infinite" }} />
+                <div className="h-[2px] w-full" style={{ background: "linear-gradient(90deg, var(--accent), var(--accent-light), var(--accent))", backgroundSize: "200% 100%", animation: "shimmer 1.5s linear infinite" }} />
                 <div className="px-4 py-3 flex items-center gap-3">
                   <div className="flex gap-1">
                     <div className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: "var(--accent)", animationDelay: "0ms" }} />
@@ -663,7 +662,7 @@ Requirements:
                           {getPlatformDisplayLabel(item.platform, t)} · {item.language === "en" ? t("create.langToggle.en" as any) : t("create.langToggle.zh" as any)}
                         </div>
                       </div>
-                      <button onClick={(e) => { e.stopPropagation(); deleteDraft(item.id); }} className="p-1.5 rounded-lg transition-colors opacity-0 group-hover:opacity-100" style={{ color: "var(--text-tertiary)" }}>
+                      <button onClick={(e) => { e.stopPropagation(); deleteDraft(item.id); }} className="p-1.5 rounded-lg transition-colors md:opacity-0 md:group-hover:opacity-100" style={{ color: "var(--text-tertiary)" }} aria-label={t("common.delete" as any)}>
                         <Trash2 size={13} />
                       </button>
                     </div>

@@ -62,7 +62,7 @@ const MORE_TAB_IDS = new Set(MORE_TABS.map(t => t.id));
 const TAB_MAP = Object.fromEntries(TABS.map(t => [t.id, t]));
 
 const LOADING = (
-  <div className="flex h-full items-center justify-center">
+  <div className="flex h-full items-center justify-center" role="status" aria-label="Loading">
     <Loader2 className="h-5 w-5 animate-spin" style={{ color: "var(--text-tertiary)" }} />
   </div>
 );
@@ -83,7 +83,7 @@ const Content = React.memo(({ activeTab }: { activeTab: string }) => {
 
 /* ── App ───────────────────────────────────────────────────────── */
 function App() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, offlineMode } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("home");
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [hideMobileNav, setHideMobileNav] = useState(false);
@@ -170,7 +170,8 @@ function App() {
   const pageTitle = isSettings ? t("nav.settings" as any) : (currentTab ? t(currentTab.labelKey as any) : t("nav.home" as any));
 
   // Auth gate: show loading or login page
-  if (authLoading) {
+  // But NEVER block the app if offline — allow local-only usage
+  if (authLoading && !offlineMode) {
     return (
       <div className="flex h-screen items-center justify-center" style={{ background: "var(--bg)" }}>
         <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--accent)" }} />
@@ -178,7 +179,7 @@ function App() {
     );
   }
 
-  if (!user) {
+  if (!user && !offlineMode) {
     return <LoginPage />;
   }
 

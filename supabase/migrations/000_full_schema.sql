@@ -3,7 +3,7 @@
 -- 版本: v1.0.6 | 更新日期: 2026-03-15
 --
 -- 使用方法: 在 Supabase SQL Editor 中一次性执行
--- 注意: 如果表已存在会跳过 (IF NOT EXISTS)
+-- 安全: 所有语句均为幂等 (可重复执行不报错)
 -- ══════════════════════════════════════════════════════════════════════
 
 
@@ -240,6 +240,7 @@ CREATE TABLE IF NOT EXISTS app_settings (
 
 -- ┌─────────────────────────────────────────────────────────────────────┐
 -- │  2. ROW LEVEL SECURITY — 每个用户只能访问自己的数据                  │
+-- │     使用 DROP POLICY IF EXISTS + CREATE POLICY 保证幂等             │
 -- └─────────────────────────────────────────────────────────────────────┘
 
 DO $$
@@ -255,6 +256,7 @@ BEGIN
     ])
   LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', tbl);
+    EXECUTE format('DROP POLICY IF EXISTS "users_own_data_%1$s" ON %1$I', tbl);
     EXECUTE format(
       'CREATE POLICY "users_own_data_%1$s" ON %1$I FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id)',
       tbl
@@ -265,6 +267,7 @@ END $$;
 
 -- ┌─────────────────────────────────────────────────────────────────────┐
 -- │  3. AUTO-UPDATE updated_at 触发器                                   │
+-- │     使用 DROP TRIGGER IF EXISTS + CREATE TRIGGER 保证幂等           │
 -- └─────────────────────────────────────────────────────────────────────┘
 
 CREATE OR REPLACE FUNCTION update_updated_at()
@@ -286,6 +289,7 @@ BEGIN
       'payment_milestones'
     ])
   LOOP
+    EXECUTE format('DROP TRIGGER IF EXISTS trg_updated_at_%1$s ON %1$I', tbl);
     EXECUTE format(
       'CREATE TRIGGER trg_updated_at_%1$s BEFORE UPDATE ON %1$I FOR EACH ROW EXECUTE FUNCTION update_updated_at()',
       tbl
@@ -295,15 +299,25 @@ END $$;
 
 
 -- ┌─────────────────────────────────────────────────────────────────────┐
--- │  4. REALTIME — 启用实时订阅                                        │
+-- │  4. REALTIME — 启用实时订阅 (忽略已存在的错误)                      │
 -- └─────────────────────────────────────────────────────────────────────┘
 
-ALTER PUBLICATION supabase_realtime ADD TABLE leads;
-ALTER PUBLICATION supabase_realtime ADD TABLE clients;
-ALTER PUBLICATION supabase_realtime ADD TABLE tasks;
-ALTER PUBLICATION supabase_realtime ADD TABLE plans;
-ALTER PUBLICATION supabase_realtime ADD TABLE finance_transactions;
-ALTER PUBLICATION supabase_realtime ADD TABLE content_drafts;
-ALTER PUBLICATION supabase_realtime ADD TABLE today_focus_state;
-ALTER PUBLICATION supabase_realtime ADD TABLE today_focus_manual;
-ALTER PUBLICATION supabase_realtime ADD TABLE payment_milestones;
+DO $$
+DECLARE
+  tbl TEXT;
+BEGIN
+  FOR tbl IN
+    SELECT unnest(ARRAY[
+      'leads', 'clients', 'tasks', 'plans', 'finance_transactions',
+      'content_drafts', 'today_focus_state', 'today_focus_manual',
+      'payment_milestones'
+    ])
+  LOOP
+    BEGIN
+      EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE %I', tbl);
+    EXCEPTION WHEN duplicate_object THEN
+      -- 表已在 publication 中，跳过
+      NULL;
+    END;
+  END LOOP;
+END $$;

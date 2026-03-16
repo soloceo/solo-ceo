@@ -4,6 +4,7 @@ import { GoogleGenAI } from '@google/genai';
 import { useT, type Lang } from '../i18n/context';
 import { useAuth } from '../auth/AuthProvider';
 import { getQueueLength } from '../db/offline-queue';
+import { useToast } from '../hooks/useToast';
 
 /* ── Sub-components ────────────────────────────────────────────── */
 
@@ -51,7 +52,7 @@ export default function Settings() {
   const [imageApiKey, setImageApiKey] = useState('');
   const [imageModel, setImageModel] = useState('imagen-4.0-generate-001');
   const [imageProvider, setImageProvider] = useState('google');
-  const [toast, setToast] = useState('');
+  const [toast, showToast] = useToast();
   const [darkMode, setDarkMode] = useState(false);
   const [currency, setCurrency] = useState('USD');
   const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
@@ -97,8 +98,6 @@ export default function Settings() {
       window.removeEventListener('sync-status', onSyncStatus);
     };
   }, []);
-
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
   const toggleDarkMode = () => {
     const next = !darkMode;
@@ -464,7 +463,7 @@ export default function Settings() {
         {/* ── Version info ── */}
         <div className="text-center py-4 space-y-1">
           <div className="text-[12px] font-medium" style={{ color: 'var(--text-tertiary)' }}>
-            一人CEO v{__APP_VERSION__}
+            {t("auth.title" as any)} v{__APP_VERSION__}
           </div>
           <div className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
             {t("settings.version.checkUpdate" as any)}

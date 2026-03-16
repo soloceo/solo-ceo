@@ -198,7 +198,7 @@ export default function Home() {
                 <div className="w-16 h-1 rounded-full overflow-hidden" style={{ background: "var(--border)" }}>
                   <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progressPct}%`, background: "var(--accent)" }} />
                 </div>
-                <span className="text-[11px] tabular-nums font-medium" style={{ color: "var(--text-tertiary)" }}>{doneCount}/{total || 3}</span>
+                <span className="text-[11px] tabular-nums font-medium" style={{ color: "var(--text-tertiary)" }}>{doneCount}/{total}</span>
               </div>
             </div>
           </div>
@@ -383,7 +383,7 @@ function FocusCard({ item, saving, onComplete, onSkip }: {
         <div className="flex items-center justify-between mb-2">
           <span className="badge" style={{ background: badgeBg, color: badgeColor }}>{icon} {item.type}</span>
           {isRevenue && (
-            <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--success)" }}>Priority</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--success)" }}>{t("home.focus.priority" as any)}</span>
           )}
         </div>
         <h4 className="text-[13px] font-medium leading-snug mb-1" style={{ color: "var(--text)" }}>{item.title}</h4>

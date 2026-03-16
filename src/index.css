@@ -101,6 +101,10 @@ button, input, select, textarea {
   max-width: 100%;
 }
 
+button:disabled {
+  cursor: not-allowed;
+}
+
 /* ── Utility layer ───────────────────────────────────────────── */
 
 @layer utilities {

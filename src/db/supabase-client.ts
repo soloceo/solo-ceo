@@ -7,7 +7,13 @@ if (!url || !anon) {
   console.error('[Supabase] Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY');
 }
 
-export const supabase = createClient(url, anon, {
+// Use fallback values to prevent createClient from throwing
+// when env vars are missing (e.g. in offline-only builds).
+// All Supabase calls are wrapped in try/catch so a dummy client is harmless.
+const safeUrl  = url  || 'https://placeholder.supabase.co';
+const safeAnon = anon || 'placeholder-anon-key';
+
+export const supabase = createClient(safeUrl, safeAnon, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
@@ -16,5 +22,16 @@ export const supabase = createClient(url, anon, {
   },
   realtime: {
     params: { eventsPerSecond: 10 },
+  },
+  // Global fetch with timeout to prevent hanging when offline
+  global: {
+    fetch: (input, init) => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      return fetch(input, {
+        ...init,
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timeout));
+    },
   },
 });

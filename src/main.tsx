@@ -31,8 +31,14 @@ async function bootstrap() {
 
   // Install Supabase interceptor on ALL platforms (Electron, iOS, Android, Web).
   // It handles: online → Supabase cloud, offline → local sql.js with queue.
-  const { installSupabaseInterceptor } = await import('./db/supabase-interceptor');
-  await installSupabaseInterceptor();
+  try {
+    const { installSupabaseInterceptor } = await import('./db/supabase-interceptor');
+    await installSupabaseInterceptor();
+  } catch (err) {
+    console.error('[Bootstrap] Failed to install interceptor:', err);
+    // Even if interceptor fails, still render the app
+    // Components will show errors but the app won't white-screen
+  }
 
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
@@ -41,4 +47,17 @@ async function bootstrap() {
   );
 }
 
-bootstrap();
+bootstrap().catch((err) => {
+  console.error('[Bootstrap] Fatal error:', err);
+  // Last-resort: show something instead of white screen
+  const root = document.getElementById('root');
+  if (root) {
+    root.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:system-ui;color:#666;gap:12px;">
+        <p style="font-size:16px;">App failed to load</p>
+        <p style="font-size:13px;color:#999;">${String(err?.message || err)}</p>
+        <button onclick="location.reload()" style="padding:8px 20px;border-radius:8px;border:1px solid #ddd;background:#fff;cursor:pointer;font-size:14px;">Reload</button>
+      </div>
+    `;
+  }
+});

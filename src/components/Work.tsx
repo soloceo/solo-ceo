@@ -9,6 +9,8 @@ import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { motion, AnimatePresence } from "motion/react";
 import { useT } from '../i18n/context';
 import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh";
+import { useIsMobile } from "../hooks/useIsMobile";
+import { useToast } from "../hooks/useToast";
 
 /* ── Helpers ────────────────────────────────────────────────────── */
 const getAI = () => {
@@ -39,12 +41,12 @@ export default function Work() {
   const [showPanel, setShowPanel] = useState(false);
   const [showAIModal, setShowAIModal] = useState(false);
   const [filterPriority, setFilterPriority] = useState("All");
-  const [toast, setToast] = useState("");
+  const [toast, showToast] = useToast();
   const [editId, setEditId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<"vertical" | "horizontal">(() =>
     (localStorage.getItem("tasks_view_mode") as any) || "vertical",
   );
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useIsMobile();
 
   // AI planner
   const [projectType, setProjectType] = useState("brand-identity");
@@ -78,17 +80,8 @@ export default function Work() {
     finally { setIsLoading(false); }
   };
 
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 3000); };
-
   useEffect(() => { fetchTasks(); }, []);
   useRealtimeRefresh(['tasks'], fetchTasks);
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
 
   useEffect(() => {
     const showFullscreen = isMobile && (showPanel || showAIModal);
@@ -498,11 +491,17 @@ function TaskCard({ task, provided, snapshot, onEdit, onDelete }: any) {
       {task.client && <p className="text-[11px] mb-1 pl-3.5" style={{ color: "var(--text-tertiary)" }}>{task.client}</p>}
       <div className="flex items-center justify-between pl-3.5 mt-1.5">
         <div className="flex items-center gap-1">
-          {task.due && <span className="badge text-[10px]"><Clock size={9} /> {task.due}</span>}
+          {task.due && (() => {
+            const today = new Date().toISOString().split("T")[0];
+            const isOverdue = task.due < today;
+            const isToday = task.due === today;
+            const dueSt = isOverdue ? { background: "var(--danger-light)", color: "var(--danger)" } : isToday ? { background: "var(--warning-light)", color: "var(--warning)" } : undefined;
+            return <span className="badge text-[10px]" style={dueSt}><Clock size={9} /> {task.due}</span>;
+          })()}
           {hasAI && <span className="badge text-[10px]" style={{ background: "var(--accent-light)", color: "var(--accent)" }}><Sparkles size={9} /></span>}
         </div>
-        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onClick={e => { e.stopPropagation(); onDelete(task.id); }} className="p-0.5 rounded" style={{ color: "var(--text-tertiary)" }}><Trash2 size={11} /></button>
+        <div className="flex gap-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+          <button onClick={e => { e.stopPropagation(); onDelete(task.id); }} className="p-0.5 rounded" style={{ color: "var(--text-tertiary)" }} aria-label="Delete"><Trash2 size={11} /></button>
         </div>
       </div>
     </div>

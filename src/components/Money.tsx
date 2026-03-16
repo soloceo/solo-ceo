@@ -2,11 +2,14 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useT } from "../i18n/context";
 import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh";
+import { useIsMobile } from "../hooks/useIsMobile";
+import { useToast } from "../hooks/useToast";
 import { motion, AnimatePresence } from "motion/react";
 import {
   ResponsiveContainer,
-  BarChart,
+  ComposedChart,
   Bar,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -120,12 +123,7 @@ function FL({ children }: { children: React.ReactNode }) {
 export default function Money() {
   const { t } = useT();
   const [segment, setSegment] = useState<Segment>("transactions");
-  const [toast, setToast] = useState("");
-
-  const showToast = useCallback((msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(""), 3000);
-  }, []);
+  const [toast, showToast] = useToast();
 
   return (
     <div className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col px-4 py-3 md:px-6 md:py-4 lg:px-8 lg:py-5 relative">
@@ -163,7 +161,7 @@ export function TransactionsView({ showToast }: { showToast: (m: string) => void
   const [showRules, setShowRules] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
   const [editingTx, setEditingTx] = useState<any>(null);
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useIsMobile();
   const [formData, setFormData] = useState({
     date: "", desc: "", category: "收入", amount: "", status: "已完成",
     taxMode: "none" as "none" | "exclusive" | "inclusive", taxRate: "",
@@ -184,13 +182,6 @@ export function TransactionsView({ showToast }: { showToast: (m: string) => void
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
   const [filterSearch, setFilterSearch] = useState("");
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
 
   const [pendingMilestones, setPendingMilestones] = useState<{ total: number; overdue: number; overdueAmt: number; pendingAmt: number }>({ total: 0, overdue: 0, overdueAmt: 0, pendingAmt: 0 });
 
@@ -308,16 +299,16 @@ export function TransactionsView({ showToast }: { showToast: (m: string) => void
   };
 
   /* ── Derived data ─── */
-  const cashFlowMap = new Map<string, { month: string; income: number; expense: number }>();
+  const cashFlowMap = new Map<string, { month: string; income: number; expense: number; net: number }>();
   transactions.forEach((tx) => {
     if ((tx.status || "已完成") !== "已完成" || !tx.date) return;
     const d = new Date(tx.date);
     if (Number.isNaN(d.getTime())) return;
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    if (!cashFlowMap.has(key)) cashFlowMap.set(key, { month: `${d.getMonth() + 1}${t("money.monthSuffix" as any)}`, income: 0, expense: 0 });
+    if (!cashFlowMap.has(key)) cashFlowMap.set(key, { month: `${d.getMonth() + 1}${t("money.monthSuffix" as any)}`, income: 0, expense: 0, net: 0 });
     const row = cashFlowMap.get(key)!;
     const amt = Number(tx.amount || 0);
-    if (tx.type === "income" || tx.category === "收入") row.income += amt; else row.expense += amt;
+    if (tx.type === "income" || tx.category === "收入") { row.income += amt; row.net += amt; } else { row.expense += amt; row.net -= amt; }
   });
   const cashFlowData = Array.from(cashFlowMap.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([, v]) => v);
 
@@ -417,7 +408,12 @@ export function TransactionsView({ showToast }: { showToast: (m: string) => void
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <StatCard title={t("money.stat.completedRevenue" as any)} value={isLoading ? "—" : `$${completedIncome.toLocaleString()}`} sub={totalExclTax > 0 ? `${t("money.stat.count" as any).replace("{count}", String(incomeCount))} · +税$${totalExclTax.toLocaleString()}` : t("money.stat.count" as any).replace("{count}", String(incomeCount))} icon={<Wallet size={15} />} color="var(--success)" />
         <StatCard title={t("money.stat.completedExpense" as any)} value={isLoading ? "—" : `$${completedExpense.toLocaleString()}`} sub={t("money.stat.count" as any).replace("{count}", String(expenseCount))} icon={<ArrowDownRight size={15} />} color="var(--danger)" />
-        <StatCard title={t("money.stat.netProfit" as any)} value={isLoading ? "—" : `$${netProfit.toLocaleString()}`} sub={totalTax > 0 ? `${netProfit >= 0 ? t("money.stat.realtime" as any) : t("money.lossWarning" as any)} · 税合计$${totalTax.toLocaleString()}` : (netProfit >= 0 ? t("money.stat.realtime" as any) : t("money.lossWarning" as any))} icon={<Landmark size={15} />} color={netProfit >= 0 ? "var(--success)" : "var(--danger)"} />
+        <StatCard title={t("money.stat.netProfit" as any)} value={isLoading ? "—" : `$${netProfit.toLocaleString()}`} sub={(() => {
+          const margin = completedIncome > 0 ? Math.round((netProfit / completedIncome) * 100) : 0;
+          const marginStr = completedIncome > 0 ? ` · ${t("money.stat.margin" as any)} ${margin}%` : "";
+          const base = netProfit >= 0 ? t("money.stat.realtime" as any) : t("money.lossWarning" as any);
+          return totalTax > 0 ? `${base}${marginStr} · 税$${totalTax.toLocaleString()}` : `${base}${marginStr}`;
+        })()} icon={<Landmark size={15} />} color={netProfit >= 0 ? "var(--success)" : "var(--danger)"} />
         <StatCard title={t("money.stat.yearRevenue" as any)} value={isLoading ? "—" : `$${ytdIncome.toLocaleString()}`} sub={`${cy} ${t("money.stat.ytd" as any)}`} icon={<ArrowUpRight size={15} />} color="var(--success)" />
         <StatCard title={t("money.stat.yearProfit" as any)} value={isLoading ? "—" : `$${ytdProfit.toLocaleString()}`} sub={`${cy} ${t("money.stat.ytd" as any)}`} icon={<ArrowUpRight size={15} />} color={ytdProfit >= 0 ? "var(--success)" : "var(--danger)"} />
         {/* Receivables / payables */}
@@ -461,7 +457,7 @@ export function TransactionsView({ showToast }: { showToast: (m: string) => void
               <div className="h-full flex items-center justify-center text-[13px]" style={{ color: "var(--text-tertiary)" }}>{t("money.noData" as any)}</div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={cashFlowData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <ComposedChart data={cashFlowData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                   <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 11 }} dy={10} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 11 }} tickFormatter={(v) => `$${v}`} />
@@ -472,7 +468,8 @@ export function TransactionsView({ showToast }: { showToast: (m: string) => void
                   />
                   <Bar dataKey="income" name={t("money.chart.revenue" as any)} fill="var(--success)" radius={[3, 3, 0, 0]} maxBarSize={24} />
                   <Bar dataKey="expense" name={t("money.chart.expense" as any)} fill="var(--danger)" radius={[3, 3, 0, 0]} maxBarSize={24} />
-                </BarChart>
+                  <Line type="monotone" dataKey="net" name={t("money.chart.net" as any)} stroke="var(--accent)" strokeWidth={2} dot={{ r: 3, fill: "var(--accent)" }} />
+                </ComposedChart>
               </ResponsiveContainer>
             )}
           </div>
@@ -934,15 +931,8 @@ export function PlansView({ showToast }: { showToast: (m: string) => void }) {
   const [aiText, setAiText] = useState("");
   const [loadingAI, setLoadingAI] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useIsMobile();
   const [formData, setFormData] = useState({ name: "", price: "", deliverySpeed: "", features: "" });
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
 
   const fetchPlans = useCallback(async () => {
     try { setPlans(await (await fetch("/api/plans")).json()); }

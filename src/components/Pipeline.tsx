@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useT } from "../i18n/context";
 import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh";
+import { useIsMobile } from "../hooks/useIsMobile";
+import { useToast } from "../hooks/useToast";
 import { createPortal } from "react-dom";
 import {
   Plus, Mail, Sparkles, Loader2, X, Check, Edit2, Trash2,
   UserPlus, LayoutGrid, AlignJustify, ChevronDown,
   Search, Filter, PlayCircle, PauseCircle, Layers, PanelRightClose, Phone,
-  DollarSign, CircleCheck, Clock, AlertCircle, ChevronUp,
+  DollarSign, CircleCheck, Clock, AlertCircle, ChevronUp, Download,
 } from "lucide-react";
 import { GoogleGenAI } from "@google/genai";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
@@ -89,9 +91,9 @@ export function LeadsView() {
   const [generating, setGenerating] = useState(false);
   const [converting, setConverting] = useState(false);
   const [showConvert, setShowConvert] = useState(false);
-  const [toast, setToast] = useState("");
+  const [toast, showToast] = useToast();
   const [outreach, setOutreach] = useState("cold_email");
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useIsMobile();
   const [viewMode, setViewMode] = useState<"vertical" | "horizontal">(() =>
     (localStorage.getItem("sales_view_mode") as any) || "vertical",
   );
@@ -99,8 +101,6 @@ export function LeadsView() {
   const [plans, setPlans] = useState<any[]>([]);
   const emptyLead = { name: "", industry: "", needs: "", website: "", column: "new", aiDraft: "", source: "", language: "zh" };
   const [form, setForm] = useState(emptyLead);
-
-  const showToast = (m: string) => { setToast(m); setTimeout(() => setToast(""), 3000); };
 
   const fetchPlans = async () => { try { setPlans(await (await fetch("/api/plans")).json()); } catch {} };
 
@@ -115,11 +115,6 @@ export function LeadsView() {
 
   useEffect(() => { fetchLeads(); fetchPlans(); }, []);
   useRealtimeRefresh(['leads', 'plans'], fetchLeads);
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
-    check(); window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
   useEffect(() => {
     const show = isMobile && (showPanel || showConvert);
     window.dispatchEvent(new CustomEvent("mobile-nav-visibility", { detail: { hidden: show } }));
@@ -270,7 +265,12 @@ export function LeadsView() {
                   <FL label={t("pipeline.form.name" as any)}><input required value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
                   <div className="grid grid-cols-2 gap-3">
                     <FL label={t("pipeline.form.industry" as any)}><input value={form.industry} onChange={e => setForm(p => ({ ...p, industry: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
-                    <FL label={t("pipeline.form.source" as any)}><input value={form.source} onChange={e => setForm(p => ({ ...p, source: e.target.value }))} placeholder={t("pipeline.form.sourcePlaceholder" as any)} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
+                    <FL label={t("pipeline.form.source" as any)}>
+                      <input list="source-presets" value={form.source} onChange={e => setForm(p => ({ ...p, source: e.target.value }))} placeholder={t("pipeline.form.sourcePlaceholder" as any)} className="input-base w-full px-3 py-2 text-[13px]" />
+                      <datalist id="source-presets">
+                        {["LinkedIn", "Twitter / X", "Instagram", t("pipeline.source.referral" as any), t("pipeline.source.website" as any), t("pipeline.source.event" as any), t("pipeline.source.coldOutreach" as any), t("pipeline.source.other" as any)].map(s => <option key={s} value={s} />)}
+                      </datalist>
+                    </FL>
                   </div>
                   <FL label={t("pipeline.form.needs" as any)}><input value={form.needs} onChange={e => setForm(p => ({ ...p, needs: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
                   <FL label={t("pipeline.form.stage" as any)}>
@@ -366,12 +366,12 @@ export function ClientsView() {
   const [loading, setLoading] = useState(true);
   const [showPanel, setShowPanel] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
-  const [toast, setToast] = useState("");
+  const [toast, showToast] = useToast();
   const [search, setSearch] = useState("");
   const [filterSt, setFilterSt] = useState("All");
   const [filterBilling, setFilterBilling] = useState("All");
   const [filterPlan, setFilterPlan] = useState("All");
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useIsMobile();
   const [plans, setPlans] = useState<any[]>([]);
   const emptyClient = { name: "", company_name: "", contact_name: "", contact_email: "", contact_phone: "", billing_type: "subscription" as "subscription" | "project", plan: "", status: "Active", mrr: "", project_fee: "", subscription_start_date: new Date().toISOString().split("T")[0], project_end_date: "", paused_at: "", resumed_at: "", cancelled_at: "", mrr_effective_from: new Date().toISOString().split("T")[0], tax_mode: "none" as "none" | "exclusive" | "inclusive", tax_rate: "" };
   const [form, setForm] = useState(emptyClient);
@@ -397,7 +397,6 @@ export function ClientsView() {
   const emptyTx = { date: new Date().toISOString().split("T")[0], desc: "", category: "收入", amount: "", status: "已完成", taxMode: "none" as "none" | "exclusive" | "inclusive", taxRate: "" };
   const [txForm, setTxForm] = useState(emptyTx);
 
-  const showToast = (m: string) => { setToast(m); setTimeout(() => setToast(""), 3000); };
   const fetchPlans = async () => { try { setPlans(await (await fetch("/api/plans")).json()); } catch {} };
   const fetchClients = async () => { try { const res = await fetch("/api/clients"); setClients(await res.json()); } catch { showToast(t("pipeline.toast.clientLoadFailed" as any)); } finally { setLoading(false); } };
   const fetchFinance = async () => { try { const res = await fetch("/api/finance"); setFinTxs(await res.json()); } catch {} };
@@ -477,11 +476,6 @@ export function ClientsView() {
   useEffect(() => { fetchClients(); fetchPlans(); fetchFinance(); }, []);
   useRealtimeRefresh(['clients', 'plans', 'payment_milestones', 'finance_transactions'], () => { fetchClients(); fetchFinance(); if (editId && form.billing_type === "project") fetchMilestones(editId); });
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
-    check(); window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
-  useEffect(() => {
     const show = isMobile && showPanel;
     window.dispatchEvent(new CustomEvent("mobile-nav-visibility", { detail: { hidden: show } }));
     return () => { window.dispatchEvent(new CustomEvent("mobile-nav-visibility", { detail: { hidden: false } })); };
@@ -532,6 +526,24 @@ export function ClientsView() {
     .filter((tx: any) => tx.type === "income" && (tx.status || "已完成") === "已完成" && filteredIds.has(tx.client_id))
     .reduce((s: number, tx: any) => s + Number(tx.amount || 0), 0);
 
+  const exportClientsCSV = () => {
+    const headers = ["Name", "Contact", "Email", "Phone", "Billing", "Plan", "MRR", "Project Fee", "Status", "Start Date"];
+    const rows = filtered.map((c: any) => [
+      c.name || "", c.contact_name || "", c.contact_email || "", c.contact_phone || "",
+      c.billing_type === "project" ? "Project" : "Subscription",
+      c.plan_tier || "", c.mrr || "", c.project_fee || "",
+      c.status || "", c.subscription_start_date || "",
+    ]);
+    const csv = [headers, ...rows].map(r => r.map((v: any) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `clients-${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast(t("pipeline.clients.csvExported" as any));
+  };
+
   const rowV = useVirtualizer({ count: filtered.length, getScrollElement: () => parentRef.current, estimateSize: () => 72, overscan: 6 });
   const vItems = rowV.getVirtualItems();
   const padTop = vItems.length > 0 ? vItems[0].start : 0;
@@ -571,6 +583,7 @@ export function ClientsView() {
           )}
         </div>
         <div className="flex-1" />
+        <button onClick={exportClientsCSV} className="btn-ghost text-[13px]" style={{ border: "1px solid var(--border)" }}><Download size={13} /> CSV</button>
         <button onClick={() => openPanel()} className="btn-primary text-[13px]"><Plus size={13} /> {t("pipeline.addClient" as any)}</button>
       </div>
 

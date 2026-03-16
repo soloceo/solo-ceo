@@ -20,8 +20,17 @@ function isOnline(): boolean {
 }
 
 async function isAuthenticated(): Promise<boolean> {
-  const { data } = await supabase.auth.getSession();
-  return !!data.session;
+  try {
+    // Use a timeout to avoid hanging when offline
+    const result = await Promise.race([
+      supabase.auth.getSession(),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
+    ]);
+    if (!result) return false; // timed out
+    return !!(result as any).data?.session;
+  } catch {
+    return false;
+  }
 }
 
 // ── Parse body from fetch args ────────────────────────────────────
