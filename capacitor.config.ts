@@ -5,11 +5,7 @@ const config: CapacitorConfig = {
   appName: '一人CEO',
   webDir: 'dist',
   server: {
-    androidScheme: 'http',
-    cleartext: true,
-  },
-  android: {
-    allowMixedContent: true,
+    androidScheme: 'https',
   },
   ios: {
     contentInset: 'never',

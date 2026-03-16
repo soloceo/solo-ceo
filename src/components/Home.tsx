@@ -19,6 +19,8 @@ type FocusItem = {
   isManual?: boolean;
 };
 
+type MrrPoint = { name: string; mrr: number };
+
 type DashboardData = {
   todayFocus: FocusItem[];
   manualTodayEvents: FocusItem[];
@@ -26,6 +28,10 @@ type DashboardData = {
   mrr: number;
   activeTasks: number;
   leadsCount: number;
+  mrrSeries?: MrrPoint[];
+  prevClientsCount?: number;
+  prevLeadsCount?: number;
+  prevActiveTasks?: number;
 };
 
 type ManualForm = { type: string; title: string; note: string };
@@ -47,6 +53,12 @@ function todayStr(lang: string) {
 }
 
 const manualIdFromKey = (k: string) => k.replace("manual-", "");
+
+function pctChange(curr: number, prev: number): number | null {
+  if (prev === 0 && curr === 0) return null;
+  if (prev === 0) return curr > 0 ? 100 : null;
+  return Math.round(((curr - prev) / prev) * 100);
+}
 
 /* ── Component ──────────────────────────────────────────────────── */
 export default function Home() {
@@ -207,12 +219,21 @@ export default function Home() {
         </header>
 
         {/* ── KPI Stats ── */}
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard label={t("home.kpi.mrr" as any)} value={loading ? "—" : `$${Number(data.mrr || 0).toLocaleString()}`} icon={<TrendingUp size={14} />} color="var(--success)" />
-          <StatCard label={t("home.kpi.activeClients" as any)} value={loading ? "—" : String(data.clientsCount || 0)} icon={<Users size={14} />} color="var(--accent)" />
-          <StatCard label={t("home.kpi.leads" as any)} value={loading ? "—" : String(data.leadsCount || 0)} icon={<Briefcase size={14} />} color="var(--warning)" />
-          <StatCard label={t("home.kpi.inProgress" as any)} value={loading ? "—" : String(data.activeTasks || 0)} icon={<CheckSquare size={14} />} color="var(--danger)" />
-        </section>
+        {(() => {
+          const s = data.mrrSeries;
+          const mrrTrend = s && s.length >= 2 ? pctChange(s[s.length - 1].mrr, s[s.length - 2].mrr) : null;
+          const clientsTrend = data.prevClientsCount != null ? pctChange(data.clientsCount, data.prevClientsCount) : null;
+          const leadsTrend = data.prevLeadsCount != null ? pctChange(data.leadsCount, data.prevLeadsCount) : null;
+          const tasksTrend = data.prevActiveTasks != null ? pctChange(data.activeTasks, data.prevActiveTasks) : null;
+          return (
+            <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <StatCard label={t("home.kpi.mrr" as any)} value={loading ? "—" : `$${Number(data.mrr || 0).toLocaleString()}`} icon={<TrendingUp size={14} />} color="var(--success)" trend={mrrTrend} />
+              <StatCard label={t("home.kpi.activeClients" as any)} value={loading ? "—" : String(data.clientsCount || 0)} icon={<Users size={14} />} color="var(--accent)" trend={clientsTrend} />
+              <StatCard label={t("home.kpi.leads" as any)} value={loading ? "—" : String(data.leadsCount || 0)} icon={<Briefcase size={14} />} color="var(--warning)" trend={leadsTrend} />
+              <StatCard label={t("home.kpi.inProgress" as any)} value={loading ? "—" : String(data.activeTasks || 0)} icon={<CheckSquare size={14} />} color="var(--danger)" trend={tasksTrend} />
+            </section>
+          );
+        })()}
 
         {/* ── Inline form ── */}
         {showForm && (
@@ -322,7 +343,7 @@ export default function Home() {
 
 /* ── Sub-components ─────────────────────────────────────────────── */
 
-function StatCard({ label, value, icon, color }: { label: string; value: string; icon: React.ReactNode; color: string }) {
+function StatCard({ label, value, icon, color, trend }: { label: string; value: string; icon: React.ReactNode; color: string; trend?: number | null }) {
   return (
     <div className="stat-card">
       <div className="flex items-center gap-2 mb-1">
@@ -331,7 +352,15 @@ function StatCard({ label, value, icon, color }: { label: string; value: string;
         </div>
         <span className="text-[11px] font-medium" style={{ color: "var(--text-tertiary)" }}>{label}</span>
       </div>
-      <span className="text-xl font-semibold tracking-tight tabular-nums" style={{ color: "var(--text)" }}>{value}</span>
+      <div className="flex items-baseline gap-1.5">
+        <span className="text-xl font-semibold tracking-tight tabular-nums" style={{ color: "var(--text)" }}>{value}</span>
+        {trend != null && trend !== 0 && (
+          <span className="flex items-center gap-0.5 text-[10px] font-medium" style={{ color: trend > 0 ? "var(--success)" : "var(--danger)" }}>
+            {trend > 0 ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
+            {Math.abs(trend)}%
+          </span>
+        )}
+      </div>
     </div>
   );
 }

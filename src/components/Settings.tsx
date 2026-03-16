@@ -53,6 +53,8 @@ export default function Settings() {
   const [imageProvider, setImageProvider] = useState('google');
   const [toast, setToast] = useState('');
   const [darkMode, setDarkMode] = useState(false);
+  const [currency, setCurrency] = useState('USD');
+  const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
   const [testStates, setTestStates] = useState<Record<string, { status: 'idle' | 'testing' | 'success' | 'error'; message: string }>>({
     gemini: { status: 'idle', message: '' },
     openai: { status: 'idle', message: '' },
@@ -73,6 +75,8 @@ export default function Settings() {
     setImageModel(localStorage.getItem('IMAGE_MODEL') || 'imagen-4.0-generate-001');
     setImageProvider(localStorage.getItem('IMAGE_PROVIDER') || 'google');
     setDarkMode(localStorage.getItem('DARK_MODE') === 'true');
+    setCurrency(localStorage.getItem('CURRENCY') || 'USD');
+    setTimezone(localStorage.getItem('TIMEZONE') || Intl.DateTimeFormat().resolvedOptions().timeZone);
 
     // Check pending offline ops
     getQueueLength().then(setPendingOps).catch(() => {});
@@ -128,6 +132,8 @@ export default function Settings() {
     const cleanedImageModel = imageModel.trim();
     cleanedImageModel ? localStorage.setItem('IMAGE_MODEL', cleanedImageModel) : localStorage.removeItem('IMAGE_MODEL');
     localStorage.setItem('IMAGE_PROVIDER', imageProvider);
+    localStorage.setItem('CURRENCY', currency);
+    localStorage.setItem('TIMEZONE', timezone);
     showToast(t("settings.saved" as any));
   };
 
@@ -358,6 +364,32 @@ export default function Settings() {
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Currency */}
+            <div className="list-item flex items-center justify-between px-5 py-3.5" style={{ borderTop: '1px solid var(--border)' }}>
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg text-[13px] font-bold" style={{ background: 'color-mix(in srgb, var(--success) 12%, transparent)', color: 'var(--success)' }}>$</div>
+                <div className="text-[13px] font-medium" style={{ color: 'var(--text)' }}>{t("settings.currency" as any)}</div>
+              </div>
+              <select value={currency} onChange={e => setCurrency(e.target.value)} className="input-base px-2 py-1.5 text-[12px]">
+                {[['USD', '$ USD'], ['CNY', '¥ CNY'], ['EUR', '€ EUR'], ['GBP', '£ GBP'], ['JPY', '¥ JPY'], ['CAD', '$ CAD'], ['AUD', '$ AUD'], ['HKD', '$ HKD'], ['TWD', '$ TWD'], ['SGD', '$ SGD']].map(([v, l]) => (
+                  <option key={v} value={v}>{l}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Timezone */}
+            <div className="list-item flex items-center justify-between px-5 py-3.5" style={{ borderTop: '1px solid var(--border)' }}>
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: 'var(--accent)' }}>🌐</div>
+                <div className="text-[13px] font-medium" style={{ color: 'var(--text)' }}>{t("settings.timezone" as any)}</div>
+              </div>
+              <select value={timezone} onChange={e => setTimezone(e.target.value)} className="input-base px-2 py-1.5 text-[12px] max-w-[200px]">
+                {['Asia/Shanghai', 'Asia/Tokyo', 'Asia/Hong_Kong', 'Asia/Taipei', 'Asia/Singapore', 'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'America/Toronto', 'America/Vancouver', 'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Australia/Sydney', 'Pacific/Auckland'].map(tz => (
+                  <option key={tz} value={tz}>{tz.replace(/_/g, ' ')}</option>
+                ))}
+              </select>
             </div>
           </div>
         </section>

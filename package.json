@@ -2,7 +2,7 @@
   "name": "solo-ceo",
   "productName": "一人CEO",
   "private": true,
-  "version": "1.0.9",
+  "version": "1.0.10",
   "type": "module",
   "main": "electron-dist/main.cjs",
   "scripts": {
@@ -14,7 +14,8 @@
     "electron:build-all": "npm run build && npm run electron:prepare",
     "electron:pack": "npm run electron:build-all && npx electron-builder --mac --arm64",
     "release": "npm run electron:build-all && npx electron-builder --mac --arm64 --publish always",
-    "electron:test": "npm run electron:build-all && npx electron ."
+    "electron:test": "npm run electron:build-all && npx electron .",
+    "release:all": "bash scripts/release.sh"
   },
   "build": {
     "appId": "com.soloceo.app",

@@ -30,6 +30,7 @@ const LEAD_COL_IDS = [
   { id: "contacted", color: "var(--accent)" },
   { id: "proposal", color: "var(--warning)" },
   { id: "won", color: "var(--success)" },
+  { id: "lost", color: "var(--danger)" },
 ] as const;
 
 type Segment = "leads" | "clients";
@@ -65,7 +66,8 @@ export function LeadsView() {
     ...c,
     title: t(`pipeline.col.${c.id}` as any),
   })), [t]);
-  const [leads, setLeads] = useState<any>({ new: [], contacted: [], proposal: [], won: [] });
+  const [leads, setLeads] = useState<any>({ new: [], contacted: [], proposal: [], won: [], lost: [] });
+  const [showFunnel, setShowFunnel] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showPanel, setShowPanel] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
@@ -92,7 +94,7 @@ export function LeadsView() {
     try {
       const res = await fetch("/api/leads");
       const data = await res.json();
-      setLeads({ new: data.filter((l: any) => l.column === "new"), contacted: data.filter((l: any) => l.column === "contacted"), proposal: data.filter((l: any) => l.column === "proposal"), won: data.filter((l: any) => l.column === "won") });
+      setLeads({ new: data.filter((l: any) => l.column === "new"), contacted: data.filter((l: any) => l.column === "contacted"), proposal: data.filter((l: any) => l.column === "proposal"), won: data.filter((l: any) => l.column === "won"), lost: data.filter((l: any) => l.column === "lost") });
     } catch { showToast(t("pipeline.toast.loadFailed" as any)); }
     finally { setLoading(false); }
   };
@@ -171,9 +173,47 @@ export function LeadsView() {
             <button key={m} onClick={() => { setViewMode(m as any); localStorage.setItem("sales_view_mode", m as string); }} data-active={viewMode === m}>{icon}</button>
           ))}
         </div>
+        <button onClick={() => setShowFunnel(f => !f)} className={`btn-ghost text-[13px] gap-1 ${showFunnel ? "ring-1" : ""}`} style={showFunnel ? { color: "var(--accent)", borderColor: "var(--accent)" } : undefined}>
+          <ChevronDown size={13} style={{ transform: showFunnel ? "rotate(180deg)" : undefined, transition: "transform 0.2s" }} /> {t("pipeline.funnel.title" as any)}
+        </button>
         <div className="flex-1" />
         <button onClick={() => openPanel(null, "new")} className="btn-primary text-[13px]"><Plus size={13} /> {t("pipeline.addLead" as any)}</button>
       </div>
+
+      {/* Funnel chart */}
+      {showFunnel && (() => {
+        const total = LEAD_COLS.reduce((s, col) => s + (leads[col.id]?.length || 0), 0);
+        if (total === 0) return null;
+        return (
+          <div className="card p-4 mb-4">
+            <h3 className="section-label mb-3">{t("pipeline.funnel.title" as any)}</h3>
+            <div className="space-y-2">
+              {LEAD_COLS.filter(col => col.id !== "lost").map((col, i) => {
+                const count = leads[col.id]?.length || 0;
+                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                const maxW = 100 - i * 12;
+                return (
+                  <div key={col.id} className="flex items-center gap-3" style={{ paddingLeft: `${i * 6}%`, paddingRight: `${i * 6}%` }}>
+                    <div className="flex-1 rounded-md h-8 flex items-center justify-between px-3 text-[12px] font-medium transition-all" style={{ background: `color-mix(in srgb, ${col.color} 15%, transparent)`, color: col.color, maxWidth: `${maxW}%` }}>
+                      <span>{col.title}</span>
+                      <span className="tabular-nums">{count} ({pct}%)</span>
+                    </div>
+                  </div>
+                );
+              })}
+              {/* Lost row */}
+              {(leads.lost?.length || 0) > 0 && (
+                <div className="flex items-center gap-3 mt-1 pt-1 border-t" style={{ borderColor: "var(--border)" }}>
+                  <div className="flex-1 rounded-md h-7 flex items-center justify-between px-3 text-[11px] font-medium" style={{ background: "color-mix(in srgb, var(--danger) 10%, transparent)", color: "var(--danger)" }}>
+                    <span>{t("pipeline.col.lost" as any)}</span>
+                    <span className="tabular-nums">{leads.lost.length} ({Math.round((leads.lost.length / total) * 100)}%)</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {loading ? (
         <div className="flex flex-1 items-center justify-center"><Loader2 size={24} className="animate-spin" style={{ color: "var(--text-tertiary)" }} /></div>
@@ -315,6 +355,8 @@ export function ClientsView() {
   const [toast, setToast] = useState("");
   const [search, setSearch] = useState("");
   const [filterSt, setFilterSt] = useState("All");
+  const [filterBilling, setFilterBilling] = useState("All");
+  const [filterPlan, setFilterPlan] = useState("All");
   const [isMobile, setIsMobile] = useState(false);
   const [plans, setPlans] = useState<any[]>([]);
   const emptyClient = { name: "", company_name: "", contact_name: "", contact_email: "", contact_phone: "", billing_type: "subscription" as "subscription" | "project", plan: "", status: "Active", mrr: "", project_fee: "", subscription_start_date: new Date().toISOString().split("T")[0], project_end_date: "", paused_at: "", resumed_at: "", cancelled_at: "", mrr_effective_from: new Date().toISOString().split("T")[0], tax_mode: "none" as "none" | "exclusive" | "inclusive", tax_rate: "" };
@@ -421,7 +463,15 @@ export function ClientsView() {
 
   const deleteClient = async (id: number) => { try { await fetch(`/api/clients/${id}`, { method: "DELETE" }); setShowPanel(false); showToast(t("pipeline.toast.clientDeleted" as any)); fetchClients(); } catch { showToast(t("common.deleteFailed" as any)); } };
 
-  const filtered = clients.filter(c => { const q = search.toLowerCase(); const ms = c.name.toLowerCase().includes(q) || (c.company_name || "").toLowerCase().includes(q) || (c.contact_name || "").toLowerCase().includes(q) || (c.contact_email || "").toLowerCase().includes(q); const mf = filterSt === "All" || c.status === filterSt; return ms && mf; });
+  const uniquePlanTiers = [...new Set(clients.filter(c => c.billing_type === "subscription" && c.plan_tier).map(c => c.plan_tier))];
+  const filtered = clients.filter(c => {
+    const q = search.toLowerCase();
+    const ms = c.name.toLowerCase().includes(q) || (c.company_name || "").toLowerCase().includes(q) || (c.contact_name || "").toLowerCase().includes(q) || (c.contact_email || "").toLowerCase().includes(q);
+    const mf = filterSt === "All" || c.status === filterSt;
+    const mb = filterBilling === "All" || c.billing_type === filterBilling;
+    const mp = filterPlan === "All" || c.plan_tier === filterPlan;
+    return ms && mf && mb && mp;
+  });
   const activeN = filtered.filter(c => c.status === "Active").length;
   const pausedN = filtered.filter(c => c.status === "Paused").length;
   // 合同总额 = subscription lifetimeRevenue + project fees
@@ -456,11 +506,22 @@ export function ClientsView() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={14} style={{ color: "var(--text-tertiary)" }} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t("pipeline.clients.search" as any)} className="input-base w-full pl-9 pr-3 py-2 text-[13px]" />
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <Filter size={13} style={{ color: "var(--text-tertiary)" }} />
           <select value={filterSt} onChange={e => setFilterSt(e.target.value)} className="input-base px-2 py-1.5 text-[13px]">
             <option value="All">{t("common.all" as any)}</option><option value="Active">{t("common.active" as any)}</option><option value="Paused">{t("common.paused" as any)}</option>
           </select>
+          <select value={filterBilling} onChange={e => setFilterBilling(e.target.value)} className="input-base px-2 py-1.5 text-[13px]">
+            <option value="All">{t("pipeline.filter.billingAll" as any)}</option>
+            <option value="subscription">{t("pipeline.clients.billingSubscription" as any)}</option>
+            <option value="project">{t("pipeline.clients.billingProject" as any)}</option>
+          </select>
+          {uniquePlanTiers.length > 0 && (
+            <select value={filterPlan} onChange={e => setFilterPlan(e.target.value)} className="input-base px-2 py-1.5 text-[13px]">
+              <option value="All">{t("pipeline.filter.planAll" as any)}</option>
+              {uniquePlanTiers.map(p => <option key={p} value={p}>{p === "Basic" ? t("pipeline.convert.planBasic" as any) : p === "Pro" ? t("pipeline.convert.planPro" as any) : p === "Enterprise" ? t("pipeline.convert.planEnterprise" as any) : p}</option>)}
+            </select>
+          )}
         </div>
         <div className="flex-1" />
         <button onClick={() => openPanel()} className="btn-primary text-[13px]"><Plus size={13} /> {t("pipeline.addClient" as any)}</button>

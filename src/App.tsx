@@ -22,6 +22,7 @@ import { LanguageProvider, useT } from "./i18n/context";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import LoginPage from "./auth/LoginPage";
 import { startRealtime, stopRealtime } from "./db/realtime";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 /* ── Lazy page imports ─────────────────────────────────────────── */
 const HomePage          = lazy(() => import("./components/Home"));
@@ -72,9 +73,11 @@ const Content = React.memo(({ activeTab }: { activeTab: string }) => {
     ? SettingsPage
     : (TAB_MAP[activeTab]?.component ?? HomePage);
   return (
-    <Suspense fallback={LOADING}>
-      <Page />
-    </Suspense>
+    <ErrorBoundary key={activeTab}>
+      <Suspense fallback={LOADING}>
+        <Page />
+      </Suspense>
+    </ErrorBoundary>
   );
 });
 

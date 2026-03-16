@@ -7,6 +7,10 @@ release
 database.sqlite
 *.dmg
 *.zip
+*.apk
 *.blockmap
+*.yml
+builder-debug.yml
+latest-mac.yml
 .DS_Store
 .claude/settings.local.json

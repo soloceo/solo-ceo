@@ -17,6 +17,7 @@ const getAIClient = (customKey?: string) => {
   return new GoogleGenAI({ apiKey });
 };
 
+// For AI prompts — always Chinese (best AI performance)
 const getPlatformLabel = (platform: string) => {
   const labels: Record<string, string> = {
     x: "X / Twitter", linkedin: "LinkedIn", newsletter: "Newsletter",
@@ -24,6 +25,18 @@ const getPlatformLabel = (platform: string) => {
     xiaohongshu: "小红书", blog: "Blog",
   };
   return labels[platform] || platform;
+};
+
+// For UI display — bilingual
+const getPlatformDisplayLabel = (platform: string, t: (k: any) => string) => {
+  const keyMap: Record<string, string> = {
+    x: "create.platform.twitter", linkedin: "create.platform.linkedin",
+    newsletter: "create.platform.newsletter", cold_email: "create.platform.coldEmail",
+    instagram: "create.platform.instagram", wechat: "create.platform.wechat",
+    xiaohongshu: "create.platform.xiaohongshu", blog: "create.platform.blog",
+  };
+  const key = keyMap[platform];
+  return key ? t(key as any) : platform;
 };
 
 const cleanGeneratedText = (text: string, platform: string) => {
@@ -442,7 +455,7 @@ Requirements:
               </div>
               <h3 className="text-xl font-semibold mb-2" style={{ color: "var(--text)" }}>{t("create.emptyTitle" as any)}</h3>
               <p className="text-[13px] max-w-md leading-relaxed mb-1" style={{ color: "var(--text-secondary)" }}>
-                {(t("create.emptyDesc" as any) as string).split("{platform}")[0]}<span className="font-semibold" style={{ color: "var(--accent)" }}>{getPlatformLabel(platform)}</span>{(t("create.emptyDesc" as any) as string).split("{platform}")[1]}
+                {(t("create.emptyDesc" as any) as string).split("{platform}")[0]}<span className="font-semibold" style={{ color: "var(--accent)" }}>{getPlatformDisplayLabel(platform, t)}</span>{(t("create.emptyDesc" as any) as string).split("{platform}")[1]}
               </p>
               <p className="text-[11px] mb-8" style={{ color: "var(--text-tertiary)" }}>{t("create.emptySubtext" as any)}</p>
               <div className="flex flex-wrap justify-center gap-3">
@@ -471,7 +484,7 @@ Requirements:
                     <div className="px-4 py-2 flex items-center justify-between" style={{ borderBottom: "1px solid var(--border)" }}>
                       <span className="text-[11px] font-medium flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
                         {PLATFORMS.find((p) => p.id === (msg.platform || platform))?.icon}
-                        <span>{getPlatformLabel(msg.platform || platform)}</span>
+                        <span>{getPlatformDisplayLabel(msg.platform || platform, t)}</span>
                       </span>
                       <span className="text-[10px] font-medium" style={{ color: "var(--text-tertiary)" }}>{lang === "zh" ? t("create.langToggle.zh" as any) : t("create.langToggle.en" as any)}</span>
                     </div>
@@ -546,7 +559,7 @@ Requirements:
                     <div className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: "var(--accent)", animationDelay: "300ms" }} />
                   </div>
                   <span className="text-[12px]" style={{ color: "var(--text-secondary)" }}>
-                    {loadingType === "copy" ? (t("create.generating" as any) as string).replace("{platform}", getPlatformLabel(platform)) : loadingType === "visual" ? t("create.generatingCover" as any) : loadingType === "image" ? t("create.generatingImage" as any) : t("create.processing" as any)}
+                    {loadingType === "copy" ? (t("create.generating" as any) as string).replace("{platform}", getPlatformDisplayLabel(platform, t)) : loadingType === "visual" ? t("create.generatingCover" as any) : loadingType === "image" ? t("create.generatingImage" as any) : t("create.processing" as any)}
                   </span>
                 </div>
               </div>
@@ -647,7 +660,7 @@ Requirements:
                       <div className="flex-1 min-w-0">
                         <div className="text-[13px] font-medium truncate" style={{ color: "var(--text)" }}>{item.topic || t("create.drafts.untitled" as any)}</div>
                         <div className="text-[11px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>
-                          {getPlatformLabel(item.platform)} · {item.language === "en" ? t("create.langToggle.en" as any) : t("create.langToggle.zh" as any)}
+                          {getPlatformDisplayLabel(item.platform, t)} · {item.language === "en" ? t("create.langToggle.en" as any) : t("create.langToggle.zh" as any)}
                         </div>
                       </div>
                       <button onClick={(e) => { e.stopPropagation(); deleteDraft(item.id); }} className="p-1.5 rounded-lg transition-colors opacity-0 group-hover:opacity-100" style={{ color: "var(--text-tertiary)" }}>
