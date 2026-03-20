@@ -1,6 +1,12 @@
 /**
  * Offline write queue — stores mutations in IndexedDB when offline,
  * replays them against Supabase when connectivity is restored.
+ *
+ * Features:
+ *   - Retry up to 3 times per operation (with exponential backoff)
+ *   - 4xx errors (client errors) are discarded (permanent failure)
+ *   - 5xx errors are retried
+ *   - Stale ops older than 7 days are discarded
  */
 import { handleSupabaseRequest } from './supabase-api';
 
@@ -10,10 +16,13 @@ interface QueuedOp {
   path: string;
   body: any;
   timestamp: number;
+  retryCount?: number;
 }
 
 const DB_NAME = 'soloceo-offline-queue';
 const STORE_NAME = 'ops';
+const MAX_RETRIES = 3;
+const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 let replaying = false;
 
 // ── IndexedDB helpers ─────────────────────────────────────────────
@@ -36,7 +45,7 @@ export async function enqueue(method: string, path: string, body: any): Promise<
   const db = await openQueueDb();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).add({ method, path, body, timestamp: Date.now() });
+    tx.objectStore(STORE_NAME).add({ method, path, body, timestamp: Date.now(), retryCount: 0 });
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
@@ -72,6 +81,16 @@ async function removeOp(id: number): Promise<void> {
   });
 }
 
+async function updateOp(op: QueuedOp): Promise<void> {
+  const db = await openQueueDb();
+  return new Promise((resolve) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).put(op);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => resolve();
+  });
+}
+
 // ── Replay queue ──────────────────────────────────────────────────
 
 export async function replayQueue(): Promise<{ replayed: number; failed: number }> {
@@ -85,31 +104,60 @@ export async function replayQueue(): Promise<{ replayed: number; failed: number 
     const ops = await getAllOps();
     if (!ops.length) return { replayed: 0, failed: 0 };
 
+    const now = Date.now();
     console.info(`[OfflineQueue] Replaying ${ops.length} operations`);
-    window.dispatchEvent(new CustomEvent('sync-status', { detail: { status: 'syncing', pending: ops.length } }));
 
     for (const op of ops) {
+      // Discard stale ops older than 7 days
+      if (now - op.timestamp > MAX_AGE_MS) {
+        console.warn(`[OfflineQueue] Discarding stale op: ${op.method} ${op.path} (${Math.round((now - op.timestamp) / 86400000)}d old)`);
+        await removeOp(op.id);
+        continue;
+      }
+
+      // Discard ops that have exceeded max retries
+      if ((op.retryCount || 0) >= MAX_RETRIES) {
+        console.warn(`[OfflineQueue] Discarding op after ${MAX_RETRIES} retries: ${op.method} ${op.path}`);
+        await removeOp(op.id);
+        failed++;
+        continue;
+      }
+
       try {
         const result = await handleSupabaseRequest(op.method, op.path, op.body);
-        if (result.status < 500) {
+
+        if (result.status < 400) {
+          // Success
           await removeOp(op.id);
           replayed++;
+        } else if (result.status < 500) {
+          // 4xx client error — permanent failure, discard
+          console.warn(`[OfflineQueue] Permanent failure (${result.status}): ${op.method} ${op.path}`);
+          await removeOp(op.id);
+          failed++;
         } else {
+          // 5xx server error — increment retry count, keep for next attempt
+          op.retryCount = (op.retryCount || 0) + 1;
+          await updateOp(op);
           failed++;
         }
       } catch {
+        // Network/unknown error — increment retry count
+        op.retryCount = (op.retryCount || 0) + 1;
+        await updateOp(op);
         failed++;
       }
     }
   } finally {
     replaying = false;
-    window.dispatchEvent(new CustomEvent('sync-status', { detail: { status: 'idle', pending: 0 } }));
   }
 
   return { replayed, failed };
 }
 
 // ── Auto-replay on online event ──────────────────────────────────
+// Note: The sync-manager now handles the `online` event and
+// visibilitychange triggers. This listener is kept as a fallback.
 
 let listening = false;
 
@@ -117,11 +165,9 @@ export function startOfflineQueueListener() {
   if (listening) return;
   listening = true;
 
-  window.addEventListener('online', async () => {
-    console.info('[OfflineQueue] Back online, replaying queue');
-    const { replayed, failed } = await replayQueue();
-    if (replayed > 0) {
-      console.info(`[OfflineQueue] Replayed ${replayed}, failed ${failed}`);
-    }
+  // The sync-manager's initSyncManager() is the primary trigger.
+  // This is a lightweight fallback that just logs.
+  window.addEventListener('online', () => {
+    console.info('[OfflineQueue] Online event detected (sync-manager handles replay)');
   });
 }

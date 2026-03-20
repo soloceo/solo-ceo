@@ -8,7 +8,8 @@
  */
 import { handleSupabaseRequest } from './supabase-api';
 import { initDb, handleApiRequest } from './api';
-import { enqueue, startOfflineQueueListener, replayQueue } from './offline-queue';
+import { enqueue, startOfflineQueueListener } from './offline-queue';
+import { initSyncManager } from './sync-manager';
 import { supabase } from './supabase-client';
 
 let installed = false;
@@ -111,13 +112,14 @@ export async function installSupabaseInterceptor(): Promise<void> {
   // Always init local sql.js DB for offline support
   await initDb();
 
-  // Start listening for online events to replay queued ops
+  // Start listening for online events (lightweight fallback)
   startOfflineQueueListener();
 
-  // Try replaying any pending offline ops
-  if (isOnline() && isAuthenticated()) {
-    replayQueue().catch(() => {});
-  }
+  // Initialize the sync manager — handles:
+  //   - Replay on auth ready (cold start)
+  //   - Replay on online event
+  //   - Replay + pull on visibilitychange (app returns from background)
+  initSyncManager();
 
   const orig = window.fetch.bind(window);
 

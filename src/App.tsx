@@ -26,6 +26,7 @@ import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import LoginPage from "./auth/LoginPage";
 import { startRealtime, stopRealtime } from "./db/realtime";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { CheckCircle2, AlertTriangle, Info } from "lucide-react";
 
 /* ── Lazy page imports ─────────────────────────────────────────── */
 const HomePage          = lazy(() => import("./components/Home"));
@@ -593,10 +594,51 @@ const SyncIndicator = React.memo(function SyncIndicator({
   );
 });
 
+/* ── Sync Toast ────────────────────────────────────────────────── */
+function SyncToast() {
+  const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { message, type } = (e as CustomEvent).detail || {};
+      if (message) {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 3500);
+      }
+    };
+    window.addEventListener("sync-toast", handler);
+    return () => window.removeEventListener("sync-toast", handler);
+  }, []);
+
+  if (!toast) return null;
+
+  const icon = toast.type === "success"
+    ? <CheckCircle2 size={14} style={{ color: "var(--success, #22c55e)" }} />
+    : toast.type === "warning"
+    ? <AlertTriangle size={14} style={{ color: "var(--warning, #f59e0b)" }} />
+    : <Info size={14} style={{ color: "var(--accent)" }} />;
+
+  return (
+    <div
+      className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-medium shadow-lg"
+      style={{
+        background: "var(--surface)",
+        border: "1px solid var(--border)",
+        color: "var(--text)",
+        animation: "fadeInDown 0.25s ease-out",
+      }}
+    >
+      {icon}
+      {toast.message}
+    </div>
+  );
+}
+
 function WrappedApp() {
   return (
     <LanguageProvider>
       <AuthProvider>
+        <SyncToast />
         <App />
       </AuthProvider>
     </LanguageProvider>
