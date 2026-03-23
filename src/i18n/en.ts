@@ -18,8 +18,14 @@ const en: typeof zh = {
 
   /* ── Home — Protocol & Breakthrough ── */
   "home.protocol.title": "Daily Protocol",
+  "home.protocol.allDone": "Protocol complete — keep the momentum!",
   "home.breakthrough.title": "Breakthrough Progress",
   "home.breakthrough.overall": "{done}/{total} completed",
+  "home.principle.title": "Today's Principle",
+  "home.principle.progress": "{done}/{total}",
+  "home.principle.viewAll": "View All",
+  "home.principle.collapse": "Collapse",
+  "home.focus.allDoneEmoji": "All tasks cleared — great job!",
 
   /* ── Work segments ── */
   "work.seg.tasks": "Tasks",

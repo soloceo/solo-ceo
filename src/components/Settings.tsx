@@ -1,7 +1,5 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Key, Save, Check, ExternalLink, Play, Loader2, AlertCircle, Upload, Trash2, Moon, Sun, Globe, LogOut, Cloud, CloudOff, Lock, Mail } from 'lucide-react';
-
-const KnowledgeModule = lazy(() => import("./KnowledgeModule"));
 import { GoogleGenAI } from '@google/genai';
 import { useT, type Lang } from '../i18n/context';
 import { useAuth } from '../auth/AuthProvider';
@@ -583,14 +581,6 @@ export default function Settings() {
               <input type="password" value={imageApiKey} onChange={(e) => setImageApiKey(e.target.value)} placeholder={t("settings.imageGen.apiKeyPlaceholder" as any)} className="input-base w-full px-3 py-2 text-[13px]" />
             </FL>
           </div>
-        </section>
-
-        {/* ── Knowledge Library ── */}
-        <section>
-          <SectionLabel>{t("settings.knowledgeLibrary" as any)}</SectionLabel>
-          <Suspense fallback={<div className="flex justify-center py-8"><Loader2 className="animate-spin" size={18} style={{ color: "var(--text-tertiary)" }} /></div>}>
-            <KnowledgeModule />
-          </Suspense>
         </section>
 
         {/* ── Save button ── */}

@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { CheckSquare, Square, RotateCcw } from "lucide-react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { CheckSquare, Square, RotateCcw, Flame } from "lucide-react";
 import { useT } from "../i18n/context";
 import { PROTOCOL_STEPS } from "../data/evolution-protocol";
 
 /**
- * Compact DailyProtocol for embedding in Home dashboard.
- * Self-contained: loads + persists its own state from /api/settings.
+ * Compact DailyProtocol for Home dashboard.
+ * Self-contained: loads + persists state from /api/settings.
+ * Includes streak tracking + completion celebration.
  */
 export default function DailyProtocol() {
   const { t, lang } = useT();
@@ -15,7 +16,16 @@ export default function DailyProtocol() {
   const [protocol, setProtocol] = useState<{ date: string; checks: boolean[] }>({
     date: "", checks: [false, false, false, false, false],
   });
+  const [streak, setStreak] = useState<{ count: number; lastDate: string }>({ count: 0, lastDate: "" });
   const [loaded, setLoaded] = useState(false);
+  const [justCompleted, setJustCompleted] = useState(false);
+
+  // Yesterday's date for streak calculation
+  const yesterday = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().split("T")[0];
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -26,13 +36,47 @@ export default function DailyProtocol() {
           const p = JSON.parse(data.evolution_protocol);
           if (p.date === today) setProtocol(p);
         }
+        if (data.protocol_streak) {
+          const s = JSON.parse(data.protocol_streak);
+          // If last completed was yesterday (or today), streak is alive
+          if (s.lastDate === today || s.lastDate === yesterday) {
+            setStreak(s);
+          } else {
+            setStreak({ count: 0, lastDate: "" });
+          }
+        }
       } catch {}
       setLoaded(true);
     })();
-  }, [today]);
+  }, [today, yesterday]);
 
   const persist = useCallback(async (next: { date: string; checks: boolean[] }) => {
     setProtocol(next);
+
+    // Check if just completed 5/5
+    const allDone = next.checks.every(Boolean);
+    if (allDone && !protocol.checks.every(Boolean)) {
+      setJustCompleted(true);
+      setTimeout(() => setJustCompleted(false), 3000);
+
+      // Update streak
+      const newStreak = {
+        count: (streak.lastDate === yesterday || streak.lastDate === today) ? streak.count + 1 : 1,
+        lastDate: today,
+      };
+      // Only increment if not already counted today
+      if (streak.lastDate !== today) {
+        setStreak(newStreak);
+        try {
+          await fetch("/api/settings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ protocol_streak: JSON.stringify(newStreak) }),
+          });
+        } catch {}
+      }
+    }
+
     try {
       await fetch("/api/settings", {
         method: "POST",
@@ -40,13 +84,14 @@ export default function DailyProtocol() {
         body: JSON.stringify({ evolution_protocol: JSON.stringify(next) }),
       });
     } catch {}
-  }, []);
+  }, [protocol.checks, streak, today, yesterday]);
 
   if (!loaded) return null;
 
   const checks = protocol.checks;
   const done = checks.filter(Boolean).length;
   const pct = Math.round((done / 5) * 100);
+  const allDone = done === 5;
 
   const toggle = (idx: number) => {
     const next = [...checks];
@@ -59,9 +104,16 @@ export default function DailyProtocol() {
   return (
     <section>
       <div className="flex items-center justify-between mb-2">
-        <h3 className="section-label">{t("home.protocol.title" as any)}</h3>
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-medium tabular-nums" style={{ color: done === 5 ? "var(--success)" : "var(--text-tertiary)" }}>
+          <h3 className="section-label">{t("home.protocol.title" as any)}</h3>
+          {streak.count > 1 && (
+            <span className="flex items-center gap-0.5 text-[11px] font-bold" style={{ color: "var(--warning)" }}>
+              <Flame size={12} /> {streak.count}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-medium tabular-nums" style={{ color: allDone ? "var(--success)" : "var(--text-tertiary)" }}>
             {done}/5
           </span>
           {done > 0 && (
@@ -76,9 +128,16 @@ export default function DailyProtocol() {
       <div className="w-full h-1.5 rounded-full overflow-hidden mb-3" style={{ background: "var(--surface-alt)" }}>
         <div
           className="h-full rounded-full transition-all duration-300"
-          style={{ width: `${pct}%`, background: done === 5 ? "var(--success)" : "var(--accent)" }}
+          style={{ width: `${pct}%`, background: allDone ? "var(--success)" : "var(--accent)" }}
         />
       </div>
+
+      {/* celebration */}
+      {justCompleted && (
+        <div className="mb-3 py-2.5 px-4 rounded-xl text-center text-[13px] font-semibold celebrate-bounce" style={{ background: "var(--success-light)", color: "var(--success)" }}>
+          {t("home.protocol.allDone" as any)}
+        </div>
+      )}
 
       {/* compact step list */}
       <div className="card overflow-hidden">

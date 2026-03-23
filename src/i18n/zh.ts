@@ -16,8 +16,14 @@ const zh = {
 
   /* ── Home — Protocol & Breakthrough ── */
   "home.protocol.title": "每日协议",
+  "home.protocol.allDone": "今日协议已完成，保持节奏！",
   "home.breakthrough.title": "突围进度",
   "home.breakthrough.overall": "{done}/{total} 已完成",
+  "home.principle.title": "今日原则",
+  "home.principle.progress": "{done}/{total}",
+  "home.principle.viewAll": "查看全部",
+  "home.principle.collapse": "收起",
+  "home.focus.allDoneEmoji": "今日任务已清空，干得漂亮！",
 
   /* ── Work segments ── */
   "work.seg.tasks": "任务",

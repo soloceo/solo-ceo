@@ -10,6 +10,7 @@ import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh";
 
 const DailyProtocol = lazy(() => import("./DailyProtocol"));
 const BreakthroughProgress = lazy(() => import("./BreakthroughProgress"));
+const TodayPrinciple = lazy(() => import("./TodayPrinciple"));
 
 /* ── Types ──────────────────────────────────────────────────────── */
 type FocusItem = {
@@ -229,20 +230,23 @@ export default function Home() {
           const leadsTrend = data.prevLeadsCount != null ? pctChange(data.leadsCount, data.prevLeadsCount) : null;
           const tasksTrend = data.prevActiveTasks != null ? pctChange(data.activeTasks, data.prevActiveTasks) : null;
           return (
-            <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <section className="grid grid-cols-2 gap-3">
               <StatCard label={t("home.kpi.mrr" as any)} value={loading ? "—" : `$${Number(data.mrr || 0).toLocaleString()}`} icon={<TrendingUp size={14} />} color="var(--success)" trend={mrrTrend} />
               <StatCard label={t("home.kpi.activeClients" as any)} value={loading ? "—" : String(data.clientsCount || 0)} icon={<Users size={14} />} color="var(--accent)" trend={clientsTrend} />
               <StatCard label={t("home.kpi.leads" as any)} value={loading ? "—" : String(data.leadsCount || 0)} icon={<Briefcase size={14} />} color="var(--warning)" trend={leadsTrend} />
-              <StatCard label={t("home.kpi.inProgress" as any)} value={loading ? "—" : String(data.activeTasks || 0)} icon={<CheckSquare size={14} />} color="var(--danger)" trend={tasksTrend} />
+              <StatCard label={t("home.kpi.inProgress" as any)} value={loading ? "—" : String(data.activeTasks || 0)} icon={<CheckSquare size={14} />} color="var(--accent)" trend={tasksTrend} />
             </section>
           );
         })()}
 
         {/* ── Daily Protocol + Breakthrough Progress ── */}
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-5 md:grid-cols-2">
           <Suspense fallback={null}><DailyProtocol /></Suspense>
           <Suspense fallback={null}><BreakthroughProgress /></Suspense>
         </div>
+
+        {/* ── Today's Principle ── */}
+        <Suspense fallback={null}><TodayPrinciple /></Suspense>
 
         {/* ── Inline form ── */}
         {showForm && (
@@ -283,7 +287,7 @@ export default function Home() {
         {/* ── Focus cards ── */}
         <section>
           <h3 className="section-label mb-3">{t("home.focus.title" as any)}</h3>
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2">
             {pending.map(item => (
               <FocusCard
                 key={item.key}
@@ -294,8 +298,11 @@ export default function Home() {
               />
             ))}
             {!loading && !pending.length && (
-              <div className="col-span-full card-flat py-8 text-center text-[13px]" style={{ color: "var(--text-tertiary)", borderStyle: "dashed" }}>
-                {t("home.focus.allDone" as any)}
+              <div className="col-span-full card py-8 text-center celebrate-bounce" style={{ background: "var(--success-light)" }}>
+                <div className="text-[20px] mb-1">&#10024;</div>
+                <div className="text-[13px] font-semibold" style={{ color: "var(--success)" }}>
+                  {t("home.focus.allDoneEmoji" as any)}
+                </div>
               </div>
             )}
           </div>
