@@ -12,7 +12,25 @@ const zh = {
   "nav.plans": "定价方案",
   "nav.create": "内容创作",
   "nav.more": "更多功能",
-  "nav.settings": "系统设置",
+  "nav.settings": "设置",
+
+  /* ── Home — Protocol & Breakthrough ── */
+  "home.protocol.title": "每日协议",
+  "home.breakthrough.title": "突围进度",
+  "home.breakthrough.overall": "{done}/{total} 已完成",
+
+  /* ── Work segments ── */
+  "work.seg.tasks": "任务",
+  "work.seg.content": "内容创作",
+
+  /* ── Pipeline — Sales Tools ── */
+  "pipeline.salesTools": "销售工具",
+  "pipeline.emailTemplates": "邮件模板",
+  "pipeline.scripts": "话术锦囊",
+
+  /* ── Settings — Knowledge ── */
+  "settings.knowledgeLibrary": "知识库",
+  "settings.knowledge.progress": "已掌握 {done}/{total}",
 
   /* ── Common ── */
   "common.save": "保存",
@@ -656,6 +674,38 @@ const zh = {
   "settings.cloudSync.connected": "已连接 Supabase 云端",
   "settings.cloudSync.offline": "离线模式 — 恢复网络后自动同步",
   "settings.cloudSync.pending": "待同步操作：{count} 条",
+
+  /* ── Breakthrough 突围计划 ── */
+  "nav.breakthrough": "突围计划",
+  "breakthrough.title": "突围计划",
+  "breakthrough.seg.tasks": "任务追踪",
+  "breakthrough.seg.emails": "邮件武器库",
+  "breakthrough.seg.scripts": "话术锦囊",
+  "breakthrough.resetPhase": "重置阶段",
+  "breakthrough.resetConfirm": "确定清空本阶段所有勾选？",
+  "breakthrough.progress": "{done}/{total} 已完成",
+  "breakthrough.freq.daily": "每日",
+  "breakthrough.freq.weekly": "每周",
+  "breakthrough.freq.once": "一次性",
+  "breakthrough.copySubject": "复制标题",
+  "breakthrough.copyBody": "复制正文",
+  "breakthrough.copied": "已复制到剪贴板",
+  "breakthrough.pricingRef": "订阅制报价参考",
+
+  /* ── Evolution 个人进化 ── */
+  "nav.evolution": "个人进化",
+  "evolution.title": "个人进化系统",
+  "evolution.seg.knowledge": "知识模块",
+  "evolution.seg.protocol": "每日协议",
+  "evolution.mastered": "已掌握",
+  "evolution.markMastered": "标记掌握",
+  "evolution.unmark": "取消掌握",
+  "evolution.checkQuestions": "每日检验",
+  "evolution.antiPatterns": "反面模式",
+  "evolution.categoryProgress": "{done}/{total} 已掌握",
+  "evolution.protocolProgress": "今日协议",
+  "evolution.resetProtocol": "重置",
+  "evolution.allDone": "今日协议已全部完成！",
 } as const;
 
 export default zh;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from "react";
 import { useT } from "../i18n/context";
 import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh";
 import { useIsMobile } from "../hooks/useIsMobile";
@@ -9,8 +9,10 @@ import {
   UserPlus, LayoutGrid, AlignJustify, ChevronDown,
   Search, Filter, PlayCircle, PauseCircle, Layers, PanelRightClose, Phone,
   DollarSign, CircleCheck, Clock, AlertCircle, ChevronUp, Download,
-  FolderOpen, ExternalLink,
+  FolderOpen, ExternalLink, Briefcase,
 } from "lucide-react";
+
+const SalesToolsPanel = lazy(() => import("./SalesTools"));
 import { GoogleGenAI } from "@google/genai";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -56,20 +58,34 @@ type Segment = "leads" | "clients";
 export default function Pipeline() {
   const { t } = useT();
   const [segment, setSegment] = useState<Segment>("leads");
+  const [salesToolsOpen, setSalesToolsOpen] = useState(false);
 
   return (
     <div className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col px-4 py-3 md:px-6 md:py-4 lg:px-8 lg:py-5 relative">
       <header className="flex items-center justify-between mb-4">
         <h1 className="page-title">{t("pipeline.pageTitle" as any)}</h1>
-        <div className="segment-switcher">
-          {(["leads", "clients"] as const).map(s => (
-            <button key={s} onClick={() => setSegment(s)} data-active={segment === s}>
-              {s === "leads" ? t("pipeline.leads" as any) : t("pipeline.clients" as any)}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSalesToolsOpen(true)}
+            className="btn-ghost flex items-center gap-1.5 text-[12px] font-medium"
+            style={{ color: "var(--accent)" }}
+          >
+            <Briefcase size={14} />
+            <span className="hidden sm:inline">{t("pipeline.salesTools" as any)}</span>
+          </button>
+          <div className="segment-switcher">
+            {(["leads", "clients"] as const).map(s => (
+              <button key={s} onClick={() => setSegment(s)} data-active={segment === s}>
+                {s === "leads" ? t("pipeline.leads" as any) : t("pipeline.clients" as any)}
+              </button>
+            ))}
+          </div>
         </div>
       </header>
       {segment === "leads" ? <LeadsView /> : <ClientsView />}
+      <Suspense fallback={null}>
+        <SalesToolsPanel open={salesToolsOpen} onClose={() => setSalesToolsOpen(false)} />
+      </Suspense>
     </div>
   );
 }

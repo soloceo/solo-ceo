@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import {
   TrendingUp, Users, Briefcase, CheckSquare,
   CircleDollarSign, FolderCog, RotateCcw,
@@ -7,6 +7,9 @@ import {
 } from "lucide-react";
 import { useT } from "../i18n/context";
 import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh";
+
+const DailyProtocol = lazy(() => import("./DailyProtocol"));
+const BreakthroughProgress = lazy(() => import("./BreakthroughProgress"));
 
 /* ── Types ──────────────────────────────────────────────────────── */
 type FocusItem = {
@@ -234,6 +237,12 @@ export default function Home() {
             </section>
           );
         })()}
+
+        {/* ── Daily Protocol + Breakthrough Progress ── */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <Suspense fallback={null}><DailyProtocol /></Suspense>
+          <Suspense fallback={null}><BreakthroughProgress /></Suspense>
+        </div>
 
         {/* ── Inline form ── */}
         {showForm && (

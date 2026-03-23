@@ -16,6 +16,24 @@ const en: typeof zh = {
   "nav.more": "More",
   "nav.settings": "Settings",
 
+  /* ── Home — Protocol & Breakthrough ── */
+  "home.protocol.title": "Daily Protocol",
+  "home.breakthrough.title": "Breakthrough Progress",
+  "home.breakthrough.overall": "{done}/{total} completed",
+
+  /* ── Work segments ── */
+  "work.seg.tasks": "Tasks",
+  "work.seg.content": "Create",
+
+  /* ── Pipeline — Sales Tools ── */
+  "pipeline.salesTools": "Sales Tools",
+  "pipeline.emailTemplates": "Email Templates",
+  "pipeline.scripts": "Scripts",
+
+  /* ── Settings — Knowledge ── */
+  "settings.knowledgeLibrary": "Knowledge Library",
+  "settings.knowledge.progress": "{done}/{total} mastered",
+
   /* ── Common ── */
   "common.save": "Save",
   "common.cancel": "Cancel",
@@ -658,6 +676,38 @@ const en: typeof zh = {
   "settings.cloudSync.connected": "Connected to Supabase cloud",
   "settings.cloudSync.offline": "Offline mode — will sync when back online",
   "settings.cloudSync.pending": "Pending operations: {count}",
+
+  /* ── Breakthrough ── */
+  "nav.breakthrough": "Breakthrough",
+  "breakthrough.title": "Breakthrough",
+  "breakthrough.seg.tasks": "Task Tracker",
+  "breakthrough.seg.emails": "Email Arsenal",
+  "breakthrough.seg.scripts": "Script Vault",
+  "breakthrough.resetPhase": "Reset Phase",
+  "breakthrough.resetConfirm": "Clear all checks for this phase?",
+  "breakthrough.progress": "{done}/{total} completed",
+  "breakthrough.freq.daily": "Daily",
+  "breakthrough.freq.weekly": "Weekly",
+  "breakthrough.freq.once": "Once",
+  "breakthrough.copySubject": "Copy Subject",
+  "breakthrough.copyBody": "Copy Body",
+  "breakthrough.copied": "Copied to clipboard",
+  "breakthrough.pricingRef": "Subscription Pricing Reference",
+
+  /* ── Evolution ── */
+  "nav.evolution": "Evolution",
+  "evolution.title": "Evolution OS",
+  "evolution.seg.knowledge": "Knowledge",
+  "evolution.seg.protocol": "Daily Protocol",
+  "evolution.mastered": "Mastered",
+  "evolution.markMastered": "Mark Mastered",
+  "evolution.unmark": "Unmark",
+  "evolution.checkQuestions": "Daily Checks",
+  "evolution.antiPatterns": "Anti-Patterns",
+  "evolution.categoryProgress": "{done}/{total} mastered",
+  "evolution.protocolProgress": "Daily Protocol",
+  "evolution.resetProtocol": "Reset",
+  "evolution.allDone": "All daily protocols completed!",
 } as const;
 
 export default en;

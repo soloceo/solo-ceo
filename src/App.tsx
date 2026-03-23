@@ -3,12 +3,8 @@ import { motion, AnimatePresence } from "motion/react";
 import {
   Home as HomeIcon,
   ClipboardList,
-  UserSearch,
   Users,
   Wallet,
-  Layers,
-  Sparkles,
-  MoreHorizontal,
   Loader2,
   Moon,
   Sun,
@@ -19,7 +15,6 @@ import {
   RefreshCw,
   Settings as SettingsIcon,
   LogOut,
-  ChevronRight,
 } from "lucide-react";
 import { LanguageProvider, useT } from "./i18n/context";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
@@ -31,16 +26,12 @@ import { CheckCircle2, AlertTriangle, Info } from "lucide-react";
 /* ── Lazy page imports ─────────────────────────────────────────── */
 const HomePage          = lazy(() => import("./components/Home"));
 const WorkPage          = lazy(() => import("./components/Work"));
-const LeadsPage         = lazy(() => import("./components/LeadsPage"));
-const ClientsPage       = lazy(() => import("./components/ClientsPage"));
-
+const PipelinePage      = lazy(() => import("./components/Pipeline"));
 const FinancePage       = lazy(() => import("./components/Finance"));
-const PlansPage         = lazy(() => import("./components/Plans"));
-const CreatePage        = lazy(() => import("./components/Create"));
 const SettingsPage      = lazy(() => import("./components/Settings"));
 
 /* ── Tab definitions ───────────────────────────────────────────── */
-type TabId = "home" | "work" | "leads" | "clients" | "finance" | "plans" | "create";
+type TabId = "home" | "work" | "clients" | "finance" | "settings";
 
 interface TabDef {
   id: TabId;
@@ -50,20 +41,12 @@ interface TabDef {
 }
 
 const TABS: TabDef[] = [
-  { id: "home",         labelKey: "nav.home",         icon: <HomeIcon size={18} />,      component: HomePage },
-  { id: "work",         labelKey: "nav.work",         icon: <ClipboardList size={18} />,  component: WorkPage },
-  { id: "leads",        labelKey: "nav.leads",        icon: <UserSearch size={18} />,     component: LeadsPage },
-  { id: "clients",      labelKey: "nav.clients",      icon: <Users size={18} />,          component: ClientsPage },
-
-  { id: "finance",      labelKey: "nav.finance",      icon: <Wallet size={18} />,         component: FinancePage },
-  { id: "plans",        labelKey: "nav.plans",        icon: <Layers size={18} />,         component: PlansPage },
-  { id: "create",       labelKey: "nav.create",       icon: <Sparkles size={18} />,       component: CreatePage },
+  { id: "home",     labelKey: "nav.home",     icon: <HomeIcon size={18} />,        component: HomePage },
+  { id: "work",     labelKey: "nav.work",     icon: <ClipboardList size={18} />,    component: WorkPage },
+  { id: "clients",  labelKey: "nav.clients",  icon: <Users size={18} />,            component: PipelinePage },
+  { id: "finance",  labelKey: "nav.finance",  icon: <Wallet size={18} />,           component: FinancePage },
+  { id: "settings", labelKey: "nav.settings", icon: <SettingsIcon size={18} />,     component: SettingsPage },
 ];
-
-/* Primary tabs shown in bottom nav; rest go into "More" menu */
-const PRIMARY_TABS = TABS.slice(0, 4);   // home, work, leads, clients
-const MORE_TABS    = TABS.slice(4);       // finance, plans, create
-const MORE_TAB_IDS = new Set(MORE_TABS.map(t => t.id));
 
 const TAB_MAP = Object.fromEntries(TABS.map(t => [t.id, t]));
 
@@ -75,9 +58,7 @@ const LOADING = (
 
 /* ── Content renderer ──────────────────────────────────────────── */
 const Content = React.memo(({ activeTab }: { activeTab: string }) => {
-  const Page = activeTab === "settings"
-    ? SettingsPage
-    : (TAB_MAP[activeTab]?.component ?? HomePage);
+  const Page = TAB_MAP[activeTab]?.component ?? HomePage;
   return (
     <ErrorBoundary key={activeTab}>
       <Suspense fallback={LOADING}>
@@ -93,7 +74,6 @@ function App() {
   const [activeTab, setActiveTab] = useState<string>("home");
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [hideMobileNav, setHideMobileNav] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
 
   // Start / stop realtime based on auth state
   React.useEffect(() => {
@@ -180,7 +160,6 @@ function App() {
 
   const handleTabChange = React.useCallback((tab: string) => {
     setActiveTab(tab);
-    setMoreOpen(false);
   }, []);
 
   // Sync operator profile + mobile nav visibility
@@ -205,9 +184,8 @@ function App() {
   }, []);
 
   const { t } = useT();
-  const isSettings = activeTab === "settings";
   const currentTab = TAB_MAP[activeTab];
-  const pageTitle = isSettings ? t("nav.settings" as any) : (currentTab ? t(currentTab.labelKey as any) : t("nav.home" as any));
+  const pageTitle = currentTab ? t(currentTab.labelKey as any) : t("nav.home" as any);
 
   // Auth gate: show loading or login page
   // But NEVER block the app if offline — allow local-only usage
@@ -286,7 +264,7 @@ function App() {
               onClick={() => setAvatarMenu(p => !p)}
               className="flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors w-full"
               style={{
-                background: avatarMenu || isSettings ? "var(--surface-alt)" : "transparent",
+                background: avatarMenu ? "var(--surface-alt)" : "transparent",
               }}
               aria-label="Settings"
             >
@@ -313,12 +291,6 @@ function App() {
                   <div className="text-[13px] font-semibold truncate" style={{ color: "var(--text)" }}>{operatorDisplayName}</div>
                   {user?.email && <div className="text-[11px] truncate" style={{ color: "var(--text-tertiary)" }}>{user.email}</div>}
                 </div>
-                <button onClick={() => { setAvatarMenu(false); handleTabChange("settings"); }} className="flex items-center gap-2.5 w-full px-4 py-2.5 text-[13px] transition-colors hover:bg-[var(--surface-alt)]" style={{ color: "var(--text)" }}>
-                  <SettingsIcon size={14} style={{ color: "var(--text-secondary)" }} />
-                  {t("settings.title" as any)}
-                  <ChevronRight size={12} className="ml-auto" style={{ color: "var(--text-tertiary)" }} />
-                </button>
-                <div className="border-t" style={{ borderColor: "var(--border)" }} />
                 <button onClick={() => { setAvatarMenu(false); signOut(); }} className="flex items-center gap-2.5 w-full px-4 py-2.5 text-[13px] transition-colors hover:bg-[var(--surface-alt)]" style={{ color: "var(--danger)" }}>
                   <LogOut size={14} />
                   {t("auth.logoutBtn" as any)}
@@ -376,12 +348,6 @@ function App() {
                     <div className="text-[13px] font-semibold truncate" style={{ color: "var(--text)" }}>{operatorDisplayName}</div>
                     {user?.email && <div className="text-[11px] truncate" style={{ color: "var(--text-tertiary)" }}>{user.email}</div>}
                   </div>
-                  <button onClick={() => { setAvatarMenu(false); handleTabChange("settings"); }} className="flex items-center gap-2.5 w-full px-4 py-2.5 text-[13px] transition-colors" style={{ color: "var(--text)" }}>
-                    <SettingsIcon size={14} style={{ color: "var(--text-secondary)" }} />
-                    {t("settings.title" as any)}
-                    <ChevronRight size={12} className="ml-auto" style={{ color: "var(--text-tertiary)" }} />
-                  </button>
-                  <div className="border-t" style={{ borderColor: "var(--border)" }} />
                   <button onClick={() => { setAvatarMenu(false); signOut(); }} className="flex items-center gap-2.5 w-full px-4 py-2.5 text-[13px] transition-colors" style={{ color: "var(--danger)" }}>
                     <LogOut size={14} />
                     {t("auth.logoutBtn" as any)}
@@ -409,10 +375,10 @@ function App() {
           </AnimatePresence>
         </main>
 
-        {/* ═══════════ Mobile Bottom Navigation — in normal flow ═══════════ */}
+        {/* ═══════════ Mobile Bottom Navigation ═══════════ */}
         {!hideMobileNav && (
           <nav
-            className="lg:hidden shrink-0 relative"
+            className="lg:hidden shrink-0"
             style={{
               paddingBottom: "max(env(safe-area-inset-bottom), 4px)",
               background: "var(--bg)",
@@ -421,53 +387,8 @@ function App() {
               WebkitAppRegion: "no-drag",
             } as React.CSSProperties}
           >
-            {/* "More" popover menu */}
-            <AnimatePresence>
-              {moreOpen && (
-                <>
-                  <motion.div
-                    className="fixed inset-0 z-40"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15 }}
-                    onClick={() => setMoreOpen(false)}
-                  />
-                  <motion.div
-                    className="absolute right-3 bottom-full mb-2 z-50 rounded-xl py-1.5 min-w-[160px]"
-                    style={{
-                      background: "var(--surface)",
-                      boxShadow: "0 8px 30px rgba(0,0,0,.12), 0 2px 8px rgba(0,0,0,.08)",
-                      border: "1px solid var(--border)",
-                    }}
-                    initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                    transition={{ duration: 0.15, ease: [0.25, 1, 0.5, 1] }}
-                  >
-                    {MORE_TABS.map(tab => (
-                      <button
-                        key={tab.id}
-                        onClick={() => handleTabChange(tab.id)}
-                        className="flex w-full items-center gap-3 px-4 py-2.5 text-[14px] font-medium transition-colors"
-                        style={{
-                          color: activeTab === tab.id ? "var(--accent)" : "var(--text)",
-                          background: activeTab === tab.id ? "var(--surface-alt)" : "transparent",
-                        }}
-                      >
-                        <span style={{ color: activeTab === tab.id ? "var(--accent)" : "var(--text-tertiary)" }}>
-                          {tab.icon}
-                        </span>
-                        {t(tab.labelKey as any)}
-                      </button>
-                    ))}
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
-
             <div className="flex items-center justify-around px-2 pt-1.5 pb-1">
-              {PRIMARY_TABS.map(tab => (
+              {TABS.map(tab => (
                 <MobileNavItem
                   key={tab.id}
                   id={tab.id}
@@ -477,14 +398,6 @@ function App() {
                   onClick={handleTabChange}
                 />
               ))}
-              {/* "More" button */}
-              <MobileNavItem
-                id="__more__"
-                icon={<MoreHorizontal size={18} />}
-                label={t("nav.more" as any)}
-                active={moreOpen || MORE_TAB_IDS.has(activeTab as TabId)}
-                onClick={() => setMoreOpen(p => !p)}
-              />
             </div>
           </nav>
         )}
