@@ -21,7 +21,7 @@ export default defineConfig(({mode}) => {
           name: '一人CEO · Solo CEO',
           short_name: 'Solo CEO',
           description: 'All-in-one management tool for solo entrepreneurs',
-          theme_color: '#1B3A5C',
+          theme_color: '#F2C94C',
           background_color: '#FAF8F5',
           display: 'standalone',
           start_url: './',
