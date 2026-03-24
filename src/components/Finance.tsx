@@ -202,14 +202,14 @@ export default function Finance() {
       if (tx.status === "待收款 (应收)") { receivable += amt + tax; continue; }
       if (tx.status === "待支付 (应付)") { payable += amt + tax; continue; }
 
-      // 收入/支出用税前额（你的真实收入）
-      if (isIncome) { totalIncome += amt; }
-      else { totalExpense += amt; }
-      totalTax += tax;
+      // 收入用税前额（税是代收，不是你的收入）
+      // 支出用含税额（税是你实际掏的钱）
+      if (isIncome) { totalIncome += amt; totalTax += tax; }
+      else { totalExpense += amt + tax; }
 
       if ((tx.date || "").startsWith(thisMonth)) {
         if (isIncome) monthIncome += amt;
-        else monthExpense += amt;
+        else monthExpense += amt + tax;
       }
     }
 
