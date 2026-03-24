@@ -11,6 +11,28 @@ const config: CapacitorConfig = {
     contentInset: 'never',
     backgroundColor: '#F7F6F3',
   },
+  android: {
+    backgroundColor: '#F7F6F3',
+  },
+  plugins: {
+    StatusBar: {
+      style: 'DARK',
+      backgroundColor: '#1B3A5C',
+    },
+    Keyboard: {
+      resize: 'body',
+      resizeOnFullScreen: true,
+    },
+    SplashScreen: {
+      launchShowDuration: 1500,
+      launchAutoHide: true,
+      backgroundColor: '#F7F6F3',
+      showSpinner: false,
+      androidScaleType: 'CENTER_CROP',
+      splashFullScreen: true,
+      splashImmersive: true,
+    },
+  },
 };
 
 export default config;

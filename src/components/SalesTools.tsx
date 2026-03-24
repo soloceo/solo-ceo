@@ -69,7 +69,7 @@ export default function SalesToolsPanel({ open, onClose }: { open: boolean; onCl
           {seg === "emails" && <EmailArsenal L={L} t={t} showToast={showToast} />}
           {seg === "scripts" && <ScriptVault L={L} t={t} showToast={showToast} />}
           {seg === "ai" && (
-            <Suspense fallback={<div className="flex justify-center py-12"><Loader2 className="animate-spin" size={20} style={{ color: "var(--text-tertiary)" }} /></div>}>
+            <Suspense fallback={<div className="flex justify-center py-12"><Loader2 className="animate-spin" style={{ color: "var(--accent)" }} /></div>}>
               <CreatePage />
             </Suspense>
           )}

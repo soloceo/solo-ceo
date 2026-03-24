@@ -6,7 +6,7 @@ import { useToast } from "../hooks/useToast";
 import { createPortal } from "react-dom";
 import {
   Plus, Mail, Sparkles, Loader2, X, Check, Edit2, Trash2,
-  UserPlus, LayoutGrid, AlignJustify, ChevronDown,
+  UserPlus, LayoutGrid, AlignJustify, ChevronDown, GripVertical,
   Search, Filter, PlayCircle, PauseCircle, Layers, PanelRightClose, Phone,
   DollarSign, CircleCheck, Clock, AlertCircle, ChevronUp, Download,
   FolderOpen, ExternalLink, Briefcase,
@@ -242,7 +242,7 @@ export function LeadsView() {
       })()}
 
       {loading ? (
-        <div className="flex flex-1 items-center justify-center"><Loader2 size={24} className="animate-spin" style={{ color: "var(--text-tertiary)" }} /></div>
+        <div className="flex flex-1 items-center justify-center"><Loader2 className="animate-spin" style={{ color: "var(--accent)" }} /></div>
       ) : viewMode === "vertical" ? (
         <div className="flex-1 overflow-x-auto overflow-y-hidden ios-scroll pb-4 -mx-4 px-4 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8">
           <div className="flex h-full gap-3 min-w-max">
@@ -850,7 +850,7 @@ export function ClientsView() {
 
                         {/* Milestone list */}
                         {msLoading ? (
-                          <div className="flex justify-center py-4"><Loader2 size={16} className="animate-spin" style={{ color: "var(--text-tertiary)" }} /></div>
+                          <div className="flex justify-center py-4"><Loader2 className="animate-spin" style={{ color: "var(--accent)" }} /></div>
                         ) : milestones.length === 0 && !showAddMs ? (
                           <div className="text-center py-4 text-[12px]" style={{ color: "var(--text-tertiary)" }}>{t("pipeline.milestones.noPlan" as any)}</div>
                         ) : (
@@ -1130,7 +1130,8 @@ function LeadCard({ lead, provided, snapshot, onEdit, onDelete }: any) {
       onClick={() => onEdit(lead)}
       className={`group card-interactive cursor-pointer p-3 ${snapshot.isDragging ? "rotate-[2deg] scale-[1.02] !shadow-lg z-[9999]" : ""}`}>
       <div className="flex items-start justify-between gap-2 mb-1">
-        <div className="min-w-0">
+        <GripVertical size={12} className="shrink-0 mt-0.5 lg:hidden" style={{ color: "var(--text-tertiary)", opacity: 0.5 }} />
+        <div className="min-w-0 flex-1">
           <h4 className="text-[13px] font-medium truncate" style={{ color: "var(--text)" }}>{lead.name}</h4>
           <p className="text-[11px] truncate mt-0.5" style={{ color: "var(--text-tertiary)" }}>{lead.industry}</p>
         </div>

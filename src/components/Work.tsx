@@ -221,7 +221,7 @@ export default function Work() {
       {/* Board */}
       {isLoading ? (
         <div className="flex flex-1 items-center justify-center">
-          <Loader2 size={24} className="animate-spin" style={{ color: "var(--text-tertiary)" }} />
+          <Loader2 className="animate-spin" style={{ color: "var(--accent)" }} />
         </div>
       ) : viewMode === "vertical" ? (
         <div className="flex-1 overflow-x-auto overflow-y-hidden ios-scroll pb-4 -mx-4 px-4 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8">
@@ -485,6 +485,7 @@ function TaskCard({ task, provided, snapshot, onEdit, onDelete }: any) {
       className={`group card-interactive cursor-pointer p-3 ${snapshot.isDragging ? "rotate-[2deg] scale-[1.02] !shadow-lg z-[9999]" : ""}`}
     >
       <div className="flex items-center gap-2 mb-1">
+        <GripVertical size={12} className="shrink-0 lg:hidden" style={{ color: "var(--text-tertiary)", opacity: 0.5 }} />
         <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: prioColor }} />
         <h4 className="text-[13px] font-medium truncate" style={{ color: "var(--text)" }}>{task.title}</h4>
       </div>

@@ -52,7 +52,7 @@ const TAB_MAP = Object.fromEntries(TABS.map(t => [t.id, t]));
 
 const LOADING = (
   <div className="flex h-full items-center justify-center" role="status" aria-label="Loading">
-    <Loader2 className="h-5 w-5 animate-spin" style={{ color: "var(--text-tertiary)" }} />
+    <Loader2 className="h-5 w-5 animate-spin" style={{ color: "var(--accent)" }} />
   </div>
 );
 
