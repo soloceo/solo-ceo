@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Zap } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useT } from "../i18n/context";
-import { PHASES, DAILY_REMINDERS } from "../data/breakthrough-tasks";
+import { PHASES } from "../data/breakthrough-tasks";
 
 /**
  * Compact Breakthrough progress card for embedding in Home dashboard.
@@ -23,11 +22,6 @@ export default function BreakthroughProgress() {
       } catch {}
       setLoaded(true);
     })();
-  }, []);
-
-  const reminder = useMemo(() => {
-    const dayIdx = new Date().getDate() % DAILY_REMINDERS.length;
-    return DAILY_REMINDERS[dayIdx];
   }, []);
 
   if (!loaded) return null;
@@ -81,13 +75,6 @@ export default function BreakthroughProgress() {
           ))}
         </div>
 
-        {/* Daily reminder */}
-        <div className="flex items-start gap-2 pt-2" style={{ borderTop: "1px solid var(--border)" }}>
-          <Zap size={13} className="shrink-0 mt-0.5" style={{ color: "var(--accent)" }} />
-          <p className="text-[12px] leading-relaxed" style={{ color: "var(--accent)" }}>
-            {L(reminder)}
-          </p>
-        </div>
       </div>
     </section>
   );
