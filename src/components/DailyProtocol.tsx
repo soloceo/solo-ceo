@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { CheckSquare, Square, RotateCcw, Flame } from "lucide-react";
 import { useT } from "../i18n/context";
 import { PROTOCOL_STEPS } from "../data/evolution-protocol";
+import { useAppSettings, invalidateSettingsCache } from "../hooks/useAppSettings";
 
 /**
  * Compact DailyProtocol for Home dashboard.
- * Self-contained: loads + persists state from /api/settings.
+ * Uses shared settings cache to avoid duplicate API calls.
  * Includes streak tracking + completion celebration.
  */
 export default function DailyProtocol() {
@@ -17,76 +18,57 @@ export default function DailyProtocol() {
     date: "", checks: [false, false, false, false, false],
   });
   const [streak, setStreak] = useState<{ count: number; lastDate: string }>({ count: 0, lastDate: "" });
-  const [loaded, setLoaded] = useState(false);
+  const [inited, setInited] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);
 
-  // Yesterday's date for streak calculation
   const yesterday = useMemo(() => {
     const d = new Date();
     d.setDate(d.getDate() - 1);
     return d.toISOString().split("T")[0];
   }, []);
 
-  useEffect(() => {
-    (async () => {
+  const { settings, loaded, save } = useAppSettings();
+
+  // Initialize from shared cache (runs once)
+  if (loaded && !inited) {
+    if (settings?.evolution_protocol) {
       try {
-        const res = await fetch("/api/settings");
-        const data = await res.json();
-        if (data.evolution_protocol) {
-          const p = JSON.parse(data.evolution_protocol);
-          if (p.date === today) setProtocol(p);
-        }
-        if (data.protocol_streak) {
-          const s = JSON.parse(data.protocol_streak);
-          // If last completed was yesterday (or today), streak is alive
-          if (s.lastDate === today || s.lastDate === yesterday) {
-            setStreak(s);
-          } else {
-            setStreak({ count: 0, lastDate: "" });
-          }
-        }
+        const p = JSON.parse(settings.evolution_protocol);
+        if (p.date === today) setProtocol(p);
       } catch {}
-      setLoaded(true);
-    })();
-  }, [today, yesterday]);
+    }
+    if (settings?.protocol_streak) {
+      try {
+        const s = JSON.parse(settings.protocol_streak);
+        if (s.lastDate === today || s.lastDate === yesterday) setStreak(s);
+      } catch {}
+    }
+    setInited(true);
+  }
 
   const persist = useCallback(async (next: { date: string; checks: boolean[] }) => {
     setProtocol(next);
+    invalidateSettingsCache();
 
-    // Check if just completed 5/5
     const allDone = next.checks.every(Boolean);
     if (allDone && !protocol.checks.every(Boolean)) {
       setJustCompleted(true);
       setTimeout(() => setJustCompleted(false), 3000);
 
-      // Update streak
       const newStreak = {
         count: (streak.lastDate === yesterday || streak.lastDate === today) ? streak.count + 1 : 1,
         lastDate: today,
       };
-      // Only increment if not already counted today
       if (streak.lastDate !== today) {
         setStreak(newStreak);
-        try {
-          await fetch("/api/settings", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ protocol_streak: JSON.stringify(newStreak) }),
-          });
-        } catch {}
+        await save("protocol_streak", JSON.stringify(newStreak));
       }
     }
 
-    try {
-      await fetch("/api/settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ evolution_protocol: JSON.stringify(next) }),
-      });
-    } catch {}
-  }, [protocol.checks, streak, today, yesterday]);
+    await save("evolution_protocol", JSON.stringify(next));
+  }, [protocol.checks, streak, today, yesterday, save]);
 
-  if (!loaded) return null;
+  if (!inited) return null;
 
   const checks = protocol.checks;
   const done = checks.filter(Boolean).length;

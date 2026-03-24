@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useT } from "../i18n/context";
 import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh";
 import { useIsMobile } from "../hooks/useIsMobile";
@@ -76,6 +77,40 @@ function FL({ children }: { children: React.ReactNode }) {
   return <label className="section-label block mb-1">{children}</label>;
 }
 
+/* ── Virtual scrolled transaction list ── */
+function VirtualTxList({ items, t, fmtAmt, fmtAmtColor, onEdit, onDelete }: {
+  items: any[]; t: any; fmtAmt: any; fmtAmtColor: any;
+  onEdit: (tx: any) => void; onDelete: (tx: any) => void;
+}) {
+  const parentRef = useRef<HTMLDivElement>(null);
+  const rowVirtualizer = useVirtualizer({
+    count: items.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 56,
+    overscan: 10,
+  });
+
+  return (
+    <div ref={parentRef} className="flex-1 overflow-y-auto ios-scroll">
+      <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: "relative" }}>
+        {rowVirtualizer.getVirtualItems().map(vRow => {
+          const tx = items[vRow.index];
+          const isSystem = tx.source && tx.source !== 'manual';
+          return (
+            <div key={tx.id} style={{ position: "absolute", top: 0, left: 0, width: "100%", transform: `translateY(${vRow.start}px)` }}>
+              <TxRow
+                tx={tx} t={t} fmtAmt={fmtAmt} fmtAmtColor={fmtAmtColor}
+                onEdit={() => onEdit(tx)} onDelete={() => onDelete(tx)}
+                isSystem={isSystem} expanded
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    Finance — 收支统计
    ═══════════════════════════════════════════════════════════════════ */
@@ -95,14 +130,19 @@ export default function Finance() {
   const [showAll, setShowAll] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
-  /* ── Filter state ── */
-  const [filterType, setFilterType] = useState("all");
-  const [filterCategory, setFilterCategory] = useState("all");
-  const [filterStatus, setFilterStatus] = useState("all");
-  const [filterClient, setFilterClient] = useState("all");
-  const [filterDateFrom, setFilterDateFrom] = useState("");
-  const [filterDateTo, setFilterDateTo] = useState("");
-  const [filterSearch, setFilterSearch] = useState("");
+  /* ── Filter state (consolidated to reduce re-renders) ── */
+  const [filters, setFilters] = useState({
+    type: "all", category: "all", status: "all", client: "all",
+    dateFrom: "", dateTo: "", search: "",
+  });
+  const setFilter = useCallback(<K extends keyof typeof filters>(key: K, val: typeof filters[K]) => {
+    setFilters(p => ({ ...p, [key]: val }));
+  }, []);
+  // Aliases for compatibility
+  const filterType = filters.type, filterCategory = filters.category;
+  const filterStatus = filters.status, filterClient = filters.client;
+  const filterDateFrom = filters.dateFrom, filterDateTo = filters.dateTo;
+  const filterSearch = filters.search;
 
   /* ── Form state ── */
   const emptyForm = {
@@ -134,7 +174,7 @@ export default function Finance() {
     try { setClientList(await (await fetch("/api/clients")).json()); } catch {}
   }, []);
 
-  useEffect(() => { fetchFinance(); fetchClients(); }, [fetchFinance, fetchClients]);
+  useEffect(() => { Promise.all([fetchFinance(), fetchClients()]); }, [fetchFinance, fetchClients]);
   useRealtimeRefresh(['finance_transactions', 'clients', 'payment_milestones'], fetchFinance);
 
   useEffect(() => {
@@ -235,7 +275,7 @@ export default function Finance() {
         return true;
       })
       .sort((a: any, b: any) => (b.date || "").localeCompare(a.date || ""));
-  }, [transactions, filterType, filterCategory, filterStatus, filterClient, filterDateFrom, filterDateTo, filterSearch]);
+  }, [transactions, filters]);
 
   /* ── Recent transactions (top 8) ── */
   const recentTxs = useMemo(() =>
@@ -507,72 +547,61 @@ export default function Finance() {
               <div className="relative flex-1 min-w-[140px] max-w-[240px]">
                 <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: "var(--text-tertiary)" }} />
                 <input
-                  type="text" value={filterSearch} onChange={e => setFilterSearch(e.target.value)}
+                  type="text" value={filterSearch} onChange={e => setFilter("search", e.target.value)}
                   placeholder={t("finance.searchPlaceholder" as any)}
                   className="input-base w-full pl-8 pr-3 py-1.5 text-[12px]"
                 />
               </div>
-              <select value={filterType} onChange={e => setFilterType(e.target.value)} className="input-base px-2 py-1.5 text-[12px]">
+              <select value={filterType} onChange={e => setFilter("type", e.target.value)} className="input-base px-2 py-1.5 text-[12px]">
                 <option value="all">{t("money.filter.typeAll" as any)}</option>
                 <option value="income">{t("money.filter.income" as any)}</option>
                 <option value="expense">{t("money.filter.expense" as any)}</option>
               </select>
-              <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="input-base px-2 py-1.5 text-[12px]">
+              <select value={filterCategory} onChange={e => setFilter("category", e.target.value)} className="input-base px-2 py-1.5 text-[12px]">
                 <option value="all">{t("money.filter.categoryAll" as any)}</option>
                 {categories.map(c => <option key={c} value={c}>{catLabel(c, t)}</option>)}
               </select>
-              <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="input-base px-2 py-1.5 text-[12px]">
+              <select value={filterStatus} onChange={e => setFilter("status", e.target.value)} className="input-base px-2 py-1.5 text-[12px]">
                 <option value="all">{t("money.filter.statusAll" as any)}</option>
                 {statuses.map(s => <option key={s} value={s}>{stLabel(s, t)}</option>)}
               </select>
-              <select value={filterClient} onChange={e => setFilterClient(e.target.value)} className="input-base px-2 py-1.5 text-[12px]">
+              <select value={filterClient} onChange={e => setFilter("client", e.target.value)} className="input-base px-2 py-1.5 text-[12px]">
                 <option value="all">{t("money.filter.clientAll" as any)}</option>
                 {clientList.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
               </select>
-              <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} className="input-base px-2 py-1.5 text-[12px]" />
-              <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} className="input-base px-2 py-1.5 text-[12px]" />
+              <input type="date" value={filterDateFrom} onChange={e => setFilter("dateFrom", e.target.value)} className="input-base px-2 py-1.5 text-[12px]" />
+              <input type="date" value={filterDateTo} onChange={e => setFilter("dateTo", e.target.value)} className="input-base px-2 py-1.5 text-[12px]" />
               {(filterType !== "all" || filterCategory !== "all" || filterStatus !== "all" || filterClient !== "all" || filterDateFrom || filterDateTo || filterSearch) && (
                 <button
-                  onClick={() => { setFilterType("all"); setFilterCategory("all"); setFilterStatus("all"); setFilterClient("all"); setFilterDateFrom(""); setFilterDateTo(""); setFilterSearch(""); }}
+                  onClick={() => setFilters({ type: "all", category: "all", status: "all", client: "all", dateFrom: "", dateTo: "", search: "" })}
                   className="btn-ghost text-[11px]"
                 >{t("money.filter.clear" as any)}</button>
               )}
             </div>
 
-            {/* Table */}
-            <div className="flex-1 overflow-y-auto ios-scroll">
-              {/* Desktop table header */}
-              <div className="hidden md:grid grid-cols-[100px_1fr_120px_120px_120px_80px] gap-2 px-5 py-2 text-[11px] font-medium sticky top-0" style={{ color: "var(--text-tertiary)", background: "var(--bg)", borderBottom: "1px solid var(--border)" }}>
-                <span>{t("money.table.date" as any)}</span>
-                <span>{t("money.table.description" as any)}</span>
-                <span>{t("money.table.category" as any)}</span>
-                <span className="text-right">{t("money.table.amount" as any)}</span>
-                <span>{t("money.table.status" as any)}</span>
-                <span></span>
-              </div>
-              {filteredTxs.map(tx => {
-                const isSystem = tx.source && tx.source !== 'manual';
-                return (
-                  <TxRow
-                    key={tx.id}
-                    tx={tx}
-                    t={t}
-                    fmtAmt={fmtAmt}
-                    fmtAmtColor={fmtAmtColor}
-                    onEdit={() => { if (!isSystem) openPanel(tx); }}
-                    onDelete={() => { if (!isSystem) setDeleteId(tx.id); }}
-                    isSystem={isSystem}
-                    expanded
-                  />
-                );
-              })}
-              {filteredTxs.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-20 gap-2">
-                  <Receipt size={32} style={{ color: "var(--text-tertiary)" }} />
-                  <p className="text-[13px]" style={{ color: "var(--text-tertiary)" }}>{t("money.noData" as any)}</p>
-                </div>
-              )}
+            {/* Table — virtualized for 500+ rows */}
+            <div className="hidden md:grid grid-cols-[100px_1fr_120px_120px_120px_80px] gap-2 px-5 py-2 text-[11px] font-medium shrink-0" style={{ color: "var(--text-tertiary)", borderBottom: "1px solid var(--border)" }}>
+              <span>{t("money.table.date" as any)}</span>
+              <span>{t("money.table.description" as any)}</span>
+              <span>{t("money.table.category" as any)}</span>
+              <span className="text-right">{t("money.table.amount" as any)}</span>
+              <span>{t("money.table.status" as any)}</span>
+              <span></span>
             </div>
+            <VirtualTxList
+              items={filteredTxs}
+              t={t}
+              fmtAmt={fmtAmt}
+              fmtAmtColor={fmtAmtColor}
+              onEdit={(tx: any) => { if (!tx.source || tx.source === 'manual') openPanel(tx); }}
+              onDelete={(tx: any) => { if (!tx.source || tx.source === 'manual') setDeleteId(tx.id); }}
+            />
+            {filteredTxs.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-20 gap-2">
+                <Receipt size={32} style={{ color: "var(--text-tertiary)" }} />
+                <p className="text-[13px]" style={{ color: "var(--text-tertiary)" }}>{t("money.noData" as any)}</p>
+              </div>
+            )}
           </div>,
           document.body
         )}

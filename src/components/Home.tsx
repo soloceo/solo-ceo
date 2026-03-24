@@ -165,15 +165,21 @@ export default function Home() {
   };
 
   /* ── Derived ── */
-  const pending = useMemo(
-    () => data.todayFocus.filter(i => i.status !== "completed" && !skipped.includes(i.key)),
-    [data.todayFocus, skipped],
-  );
+  // Show one card per type (收入/交付/系统), pick first non-skipped non-completed
+  const pending = useMemo(() => {
+    const all = data.todayFocus.filter(i => i.status !== "completed" && !skipped.includes(i.key));
+    const seen = new Set<string>();
+    const result: typeof all = [];
+    for (const item of all) {
+      if (!seen.has(item.type)) { seen.add(item.type); result.push(item); }
+    }
+    return result;
+  }, [data.todayFocus, skipped]);
   const completed = useMemo(() => data.todayFocus.filter(i => i.status === "completed"), [data.todayFocus]);
   const pendingManual = useMemo(() => data.manualTodayEvents.filter(i => i.status !== "completed"), [data.manualTodayEvents]);
   const completedManual = useMemo(() => data.manualTodayEvents.filter(i => i.status === "completed"), [data.manualTodayEvents]);
-  const total = data.todayFocus.length;
-  const doneCount = completed.length;
+  const total = 3; // always 3 types: revenue, delivery, system
+  const doneCount = completed.length > 3 ? 3 : completed.length;
   const manualCount = pendingManual.length + completedManual.length;
   const progressPct = total ? Math.round((doneCount / total) * 100) : 0;
 
@@ -309,15 +315,19 @@ export default function Home() {
             <p className="text-[11px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>{t("home.focus.desc" as any)}</p>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
-            {pending.map(item => (
-              <FocusCard
-                key={item.key}
-                item={item}
-                saving={savingKey === item.key}
-                onComplete={() => updateStatus(item.key, "completed")}
-                onSkip={() => setSkipped(p => [...new Set([...p, item.key])])}
-              />
-            ))}
+            {pending.map(item => {
+              const sameType = data.todayFocus.filter(i => i.type === item.type && i.status !== "completed" && !skipped.includes(i.key));
+              return (
+                <FocusCard
+                  key={item.key}
+                  item={item}
+                  saving={savingKey === item.key}
+                  canSwap={sameType.length > 1}
+                  onComplete={() => updateStatus(item.key, "completed")}
+                  onSkip={() => setSkipped(p => [...new Set([...p, item.key])])}
+                />
+              );
+            })}
             {!loading && !pending.length && (
               <div className="col-span-full card py-8 text-center celebrate-bounce" style={{ background: "var(--success-light)" }}>
                 <div className="text-[20px] mb-1">&#10024;</div>
@@ -390,8 +400,8 @@ export default function Home() {
 
 /* ── Sub-components ─────────────────────────────────────────────── */
 
-function FocusCard({ item, saving, onComplete, onSkip }: {
-  item: FocusItem; saving: boolean; onComplete: () => void; onSkip: () => void;
+function FocusCard({ item, saving, canSwap = true, onComplete, onSkip }: {
+  item: FocusItem; saving: boolean; canSwap?: boolean; onComplete: () => void; onSkip: () => void;
 }) {
   const { t } = useT();
   const revenueLabel = t("home.focus.revenue" as any);
@@ -412,9 +422,11 @@ function FocusCard({ item, saving, onComplete, onSkip }: {
         <button onClick={onComplete} disabled={saving} className="text-[11px] font-medium px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50" style={{ background: "var(--accent)", color: "#fff" }}>
           <Check size={11} className="inline mr-0.5" style={{ verticalAlign: "-1px" }} /> {t("common.complete" as any)}
         </button>
-        <button onClick={onSkip} disabled={saving} className="text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-50" style={{ background: "var(--surface-alt)", color: "var(--text-secondary)" }}>
-          {t("home.focus.swap" as any)}
-        </button>
+        {canSwap && (
+          <button onClick={onSkip} disabled={saving} className="text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-50" style={{ background: "var(--surface-alt)", color: "var(--text-secondary)" }}>
+            {t("home.focus.swap" as any)}
+          </button>
+        )}
       </div>
     </article>
   );

@@ -857,8 +857,8 @@ export async function handleSupabaseRequest(
       supabase.from('activity_log').select('title, detail, created_at, entity_type, action').eq('user_id', userId).order('created_at', { ascending: false }).limit(8),
       supabase.from('today_focus_state').select('focus_key, status').eq('user_id', userId).eq('focus_date', focusDate),
       supabase.from('finance_transactions').select('id, description, status').eq('user_id', userId).eq('soft_deleted', false).like('status', '%应收%'),
-      supabase.from('leads').select('id, name, industry, needs, column').eq('user_id', userId).eq('soft_deleted', false).in('column', ['proposal', 'contacted', 'new']).order('column', { ascending: true }).limit(1),
-      supabase.from('tasks').select('id, title, client, priority, due, column').eq('user_id', userId).eq('soft_deleted', false).neq('column', 'done').order('priority', { ascending: true }).limit(1),
+      supabase.from('leads').select('id, name, industry, needs, column').eq('user_id', userId).eq('soft_deleted', false).in('column', ['proposal', 'contacted', 'new']).order('column', { ascending: true }).limit(4),
+      supabase.from('tasks').select('id, title, client, priority, due, column').eq('user_id', userId).eq('soft_deleted', false).neq('column', 'done').order('priority', { ascending: true }).limit(4),
       supabase.from('payment_milestones').select('id, label, amount, due_date, client_id, clients(name)').eq('user_id', userId).eq('status', 'pending').eq('soft_deleted', false).not('due_date', 'is', null).lt('due_date', todayDateKey()).order('due_date', { ascending: true }).limit(1),
       supabase.from('today_focus_manual').select('id, type, title, note').eq('user_id', userId).eq('focus_date', focusDate).eq('soft_deleted', false).order('id', { ascending: false }),
     ]);
@@ -892,26 +892,37 @@ export async function handleSupabaseRequest(
     }
 
     const receivables = receivablesData || [];
-    const bestLead = bestLeadArr?.[0] || null;
-    const urgentTask = urgentTaskArr?.[0] || null;
+    const leads = bestLeadArr || [];
+    const tasks = urgentTaskArr || [];
     const overdueMs = overdueMsArr?.[0] as any;
 
-    const systemTask = overdueMs
-      ? { key: `system-overdue-ms-${overdueMs.id}`, type: '系统', title: `催收逾期款：${overdueMs.clients?.name || '客户'} — ${overdueMs.label} $${Number(overdueMs.amount||0).toLocaleString()}`, reason: `该笔款项已于 ${overdueMs.due_date} 到期，需要尽快催收。`, actionHint: '去客户面板确认收款并标记已付' }
-      : receivables[0]
-      ? { key: `system-receivable-${receivables[0].id || 'r'}`, type: '系统', title: `处理应收：${receivables[0].description || '未命名账款'}`, reason: '有待收款项时，先收钱比继续堆工作更重要。', actionHint: '去财务管理跟进回款' }
-      : bestLead
-        ? { key: `system-lead-${bestLead.id || 'fallback'}`, type: '系统', title: `补齐线索信息：${bestLead.name || '未命名线索'}`, reason: '把高潜在线索信息补完整，后续跟进效率更高。', actionHint: '完善需求、来源和下一步动作' }
-        : { key: 'system-content-asset', type: '系统', title: '整理一条内容资产', reason: '没有财务阻塞时，优先沉淀长期可复用资产。', actionHint: '去内容工坊保存一条可复用内容' };
+    // Build multiple candidates per category so "swap" has replacements
+    const revenueCandidates: any[] = leads.map((l: any) => ({
+      key: `revenue-lead-${l.id}`, type: '收入',
+      title: `推进线索：${l.name || '未命名线索'}`,
+      reason: l.column === 'proposal' ? '它已经接近成交，今天推进最有机会带来收入。' : '这是当前最值得跟进的销售机会。',
+      actionHint: l.column === 'proposal' ? '发提案跟进 / 促成确认' : '发送开发信或安排跟进',
+    }));
+    if (!revenueCandidates.length) revenueCandidates.push({ key: 'revenue-fallback', type: '收入', title: '跟进一位潜在客户', reason: '今天至少推进一件直接指向收入的动作。', actionHint: '去销售看板处理最高意向线索' });
+
+    const deliveryCandidates: any[] = tasks.map((t: any) => ({
+      key: `delivery-task-${t.id}`, type: '交付',
+      title: `推进任务：${t.title || '未命名任务'}`,
+      reason: t.priority === 'High' ? '高优先级任务最容易影响客户满意度和交付节奏。' : '先推进当前最接近交付的任务。',
+      actionHint: t.client ? `关联客户：${t.client}` : '打开任务卡继续执行',
+    }));
+    if (!deliveryCandidates.length) deliveryCandidates.push({ key: 'delivery-fallback', type: '交付', title: '完成一个关键交付', reason: '每天至少推进一件真实交付，避免系统只转不产出。', actionHint: '去任务看板推进进行中任务' });
+
+    const systemCandidates: any[] = [];
+    if (overdueMs) systemCandidates.push({ key: `system-overdue-ms-${overdueMs.id}`, type: '系统', title: `催收逾期款：${overdueMs.clients?.name || '客户'} — ${overdueMs.label} $${Number(overdueMs.amount||0).toLocaleString()}`, reason: `该笔款项已于 ${overdueMs.due_date} 到期，需要尽快催收。`, actionHint: '去客户面板确认收款并标记已付' });
+    for (const r of receivables.slice(0, 2)) systemCandidates.push({ key: `system-receivable-${r.id}`, type: '系统', title: `处理应收：${r.description || '未命名账款'}`, reason: '有待收款项时，先收钱比继续堆工作更重要。', actionHint: '去财务管理跟进回款' });
+    for (const l of leads.slice(0, 2)) systemCandidates.push({ key: `system-lead-${l.id}`, type: '系统', title: `补齐线索信息：${l.name || '未命名线索'}`, reason: '把高潜在线索信息补完整，后续跟进效率更高。', actionHint: '完善需求、来源和下一步动作' });
+    if (!systemCandidates.length) systemCandidates.push({ key: 'system-content-asset', type: '系统', title: '整理一条内容资产', reason: '没有财务阻塞时，优先沉淀长期可复用资产。', actionHint: '去内容工坊保存一条可复用内容' });
 
     const autoFocus = [
-      bestLead
-        ? { key: `revenue-lead-${bestLead.id || 'fallback'}`, type: '收入', title: `推进线索：${bestLead.name || '未命名线索'}`, reason: bestLead.column === 'proposal' ? '它已经接近成交，今天推进最有机会带来收入。' : '这是当前最值得跟进的销售机会。', actionHint: bestLead.column === 'proposal' ? '发提案跟进 / 促成确认' : '发送开发信或安排跟进' }
-        : { key: 'revenue-fallback', type: '收入', title: '跟进一位潜在客户', reason: '今天至少推进一件直接指向收入的动作。', actionHint: '去销售看板处理最高意向线索' },
-      urgentTask
-        ? { key: `delivery-task-${urgentTask.id || 'fallback'}`, type: '交付', title: `推进任务：${urgentTask.title || '未命名任务'}`, reason: urgentTask.priority === 'High' ? '高优先级任务最容易影响客户满意度和交付节奏。' : '先推进当前最接近交付的任务。', actionHint: urgentTask.client ? `关联客户：${urgentTask.client}` : '打开任务卡继续执行' }
-        : { key: 'delivery-fallback', type: '交付', title: '完成一个关键交付', reason: '每天至少推进一件真实交付，避免系统只转不产出。', actionHint: '去任务看板推进进行中任务' },
-      systemTask,
+      ...revenueCandidates,
+      ...deliveryCandidates,
+      ...systemCandidates,
     ];
 
     const manualTodayEvents = (manualFocusRows || []).map((row) => ({

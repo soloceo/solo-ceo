@@ -35,13 +35,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Get initial session — with timeout + error handling for offline
     const sessionTimeout = setTimeout(() => {
-      // If getSession hasn't resolved in 5s, we're likely offline
+      // If getSession hasn't resolved in 2.5s, we're likely offline
       if (loading) {
         console.warn('[Auth] Session check timed out — entering offline mode');
         setOfflineMode(true);
         setLoading(false);
       }
-    }, 5000);
+    }, 2500);
 
     supabase.auth.getSession()
       .then(({ data: { session: s } }) => {

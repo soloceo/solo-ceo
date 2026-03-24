@@ -107,45 +107,55 @@ export async function replayQueue(): Promise<{ replayed: number; failed: number 
     const now = Date.now();
     console.info(`[OfflineQueue] Replaying ${ops.length} operations`);
 
+    // Pre-filter: discard stale and over-retried ops
+    const validOps = [];
     for (const op of ops) {
-      // Discard stale ops older than 7 days
       if (now - op.timestamp > MAX_AGE_MS) {
-        console.warn(`[OfflineQueue] Discarding stale op: ${op.method} ${op.path} (${Math.round((now - op.timestamp) / 86400000)}d old)`);
         await removeOp(op.id);
         continue;
       }
-
-      // Discard ops that have exceeded max retries
       if ((op.retryCount || 0) >= MAX_RETRIES) {
-        console.warn(`[OfflineQueue] Discarding op after ${MAX_RETRIES} retries: ${op.method} ${op.path}`);
         await removeOp(op.id);
         failed++;
         continue;
       }
+      validOps.push(op);
+    }
 
-      try {
-        const result = await handleSupabaseRequest(op.method, op.path, op.body);
+    // Replay in batches of 5 (parallel within batch, sequential across batches)
+    const BATCH_SIZE = 5;
+    for (let i = 0; i < validOps.length; i += BATCH_SIZE) {
+      const batch = validOps.slice(i, i + BATCH_SIZE);
+      const results = await Promise.allSettled(
+        batch.map(async (op) => {
+          const result = await handleSupabaseRequest(op.method, op.path, op.body);
+          return { op, result };
+        })
+      );
 
-        if (result.status < 400) {
-          // Success
-          await removeOp(op.id);
-          replayed++;
-        } else if (result.status < 500) {
-          // 4xx client error — permanent failure, discard
-          console.warn(`[OfflineQueue] Permanent failure (${result.status}): ${op.method} ${op.path}`);
-          await removeOp(op.id);
-          failed++;
+      for (const r of results) {
+        if (r.status === "fulfilled") {
+          const { op, result } = r.value;
+          if (result.status < 400) {
+            await removeOp(op.id);
+            replayed++;
+          } else if (result.status < 500) {
+            await removeOp(op.id);
+            failed++;
+          } else {
+            op.retryCount = (op.retryCount || 0) + 1;
+            await updateOp(op);
+            failed++;
+          }
         } else {
-          // 5xx server error — increment retry count, keep for next attempt
-          op.retryCount = (op.retryCount || 0) + 1;
-          await updateOp(op);
+          // Promise rejected — network error
+          const op = batch[results.indexOf(r)];
+          if (op) {
+            op.retryCount = (op.retryCount || 0) + 1;
+            await updateOp(op);
+          }
           failed++;
         }
-      } catch {
-        // Network/unknown error — increment retry count
-        op.retryCount = (op.retryCount || 0) + 1;
-        await updateOp(op);
-        failed++;
       }
     }
   } finally {

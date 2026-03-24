@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { ChevronDown, ChevronRight, Award, HelpCircle, AlertTriangle, BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useT } from "../i18n/context";
 import { KNOWLEDGE_CATEGORIES } from "../data/evolution-knowledge";
+import { useAppSettings, invalidateSettingsCache } from "../hooks/useAppSettings";
 
 /**
  * "Today's Principle" card for Home dashboard.
@@ -13,32 +14,25 @@ export default function TodayPrinciple() {
   const L = useCallback((o: { zh: string; en: string }) => o[lang] || o.en, [lang]);
 
   const [mastered, setMastered] = useState<Record<string, boolean>>({});
-  const [loaded, setLoaded] = useState(false);
+  const [inited, setInited] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [openCat, setOpenCat] = useState<string | null>(null);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch("/api/settings");
-        const data = await res.json();
-        if (data.evolution_mastered) setMastered(JSON.parse(data.evolution_mastered));
-      } catch {}
-      setLoaded(true);
-    })();
-  }, []);
+  const { settings, loaded, save } = useAppSettings();
+
+  if (loaded && !inited) {
+    if (settings?.evolution_mastered) {
+      try { setMastered(JSON.parse(settings.evolution_mastered)); } catch {}
+    }
+    setInited(true);
+  }
 
   const persistMastered = useCallback(async (next: Record<string, boolean>) => {
     setMastered(next);
-    try {
-      await fetch("/api/settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ evolution_mastered: JSON.stringify(next) }),
-      });
-    } catch {}
-  }, []);
+    invalidateSettingsCache();
+    await save("evolution_mastered", JSON.stringify(next));
+  }, [save]);
 
   // Pick today's principle — stable per day, prioritize unmastered
   const todayPrinciple = useMemo(() => {
@@ -52,7 +46,7 @@ export default function TodayPrinciple() {
   const allPrinciples = KNOWLEDGE_CATEGORIES.flatMap(c => c.principles);
   const totalMastered = allPrinciples.filter(p => mastered[p.id]).length;
 
-  if (!loaded) return null;
+  if (!inited) return null;
 
   const isMastered = mastered[todayPrinciple.id];
 

@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useCallback } from "react";
 import { useT } from "../i18n/context";
 import {
   CheckSquare, Square, RotateCcw,
 } from "lucide-react";
 import { PHASES, type Freq } from "../data/breakthrough-tasks";
+import { useAppSettings, invalidateSettingsCache } from "../hooks/useAppSettings";
 
 const freqKey = (f: Freq) =>
   f === "daily" ? "breakthrough.freq.daily" : f === "weekly" ? "breakthrough.freq.weekly" : "breakthrough.freq.once";
@@ -19,30 +20,23 @@ export default function Breakthrough() {
   const { t, lang } = useT();
   const L = useCallback((o: { zh: string; en: string }) => o[lang] || o.en, [lang]);
 
+  const { settings, loaded, save } = useAppSettings();
   const [taskChecks, setTaskChecks] = useState<Record<string, Record<string, boolean>>>({});
-  const [loaded, setLoaded] = useState(false);
+  const [inited, setInited] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch("/api/settings");
-        const data = await res.json();
-        if (data.breakthrough_tasks) setTaskChecks(JSON.parse(data.breakthrough_tasks));
-      } catch {}
-      setLoaded(true);
-    })();
-  }, []);
+  // Initialize from shared settings cache
+  if (loaded && !inited) {
+    if (settings?.breakthrough_tasks) {
+      try { setTaskChecks(JSON.parse(settings.breakthrough_tasks)); } catch {}
+    }
+    setInited(true);
+  }
 
   const persist = useCallback(async (next: Record<string, Record<string, boolean>>) => {
     setTaskChecks(next);
-    try {
-      await fetch("/api/settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ breakthrough_tasks: JSON.stringify(next) }),
-      });
-    } catch {}
-  }, []);
+    invalidateSettingsCache();
+    await save("breakthrough_tasks", JSON.stringify(next));
+  }, [save]);
 
   const [phase, setPhase] = useState(PHASES[0].id);
   const current = PHASES.find((p) => p.id === phase) || PHASES[0];
@@ -69,7 +63,7 @@ export default function Breakthrough() {
     persist({ ...taskChecks, [phase]: {} });
   };
 
-  if (!loaded) return null;
+  if (!inited) return null;
 
   return (
     <div className="space-y-3">
