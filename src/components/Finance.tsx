@@ -850,7 +850,7 @@ const TxRow = React.memo(function TxRow({ tx, t, fmtAmt, fmtAmtColor, onEdit, on
             {tax > 0 && <div className="text-[11px] tabular-nums" style={{ color: "var(--text-secondary)" }}>{taxMode === "exclusive" ? `+${t("finance.tax" as any)} $${tax.toLocaleString()}` : taxMode === "inclusive" ? `${t("finance.taxIncluded" as any)} $${tax.toLocaleString()}` : ""}</div>}
           </div>
           <span className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{stLabel(tx.status || "", t)}</span>
-          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">{actionBtns}</div>
+          <div className="flex gap-1">{actionBtns}</div>
         </div>
         {/* Mobile — swipe left to delete */}
         <SwipeAction onDelete={onDelete} disabled={isSystem}>
