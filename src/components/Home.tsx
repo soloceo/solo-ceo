@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback, lazy, Suspense } from "react";
 import {
   TrendingUp, Users, Briefcase, CheckSquare,
-  CircleDollarSign, FolderCog, RotateCcw,
+  CircleDollarSign, FolderCog,
   Check, Undo2, Plus, Pencil, Trash2, X, ChevronDown, ChevronRight,
   ArrowUpRight, ArrowDownRight,
   UserPlus, ClipboardList, Wallet,
@@ -211,20 +211,6 @@ export default function Home() {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => { setEditKey(null); setForm(emptyForm); setShowForm(p => !p); }}
-              className="btn-primary text-[13px]"
-            >
-              <Plus size={14} /> {t("home.logEvent" as any)}
-            </button>
-            <button
-              onClick={() => { setSkipped([]); try { localStorage.removeItem(skipKey); } catch {} fetchData(); }}
-              className="btn-ghost text-[13px]"
-            >
-              <RotateCcw size={13} /> {t("home.refresh" as any)}
-            </button>
-          </div>
         </header>
 
         {/* ── Quick actions (permanent) ── */}
@@ -237,6 +223,9 @@ export default function Home() {
           </button>
           <button onClick={() => goToTab("finance")} className="btn-secondary text-[12px]">
             <Wallet size={13} /> {t("home.welcome.addIncome" as any)}
+          </button>
+          <button onClick={() => { setEditKey(null); setForm(emptyForm); setShowForm(p => !p); }} className="btn-secondary text-[12px]">
+            <Plus size={13} /> {t("home.quickMemo" as any)}
           </button>
         </div>
 
