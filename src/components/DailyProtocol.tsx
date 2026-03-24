@@ -105,7 +105,10 @@ export default function DailyProtocol() {
     <section>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <h3 className="section-label">{t("home.protocol.title" as any)}</h3>
+          <div>
+            <h3 className="section-label">{t("home.protocol.title" as any)}</h3>
+            <p className="text-[11px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>{t("home.protocol.desc" as any)}</p>
+          </div>
           {streak.count > 1 && (
             <span className="flex items-center gap-0.5 text-[11px] font-bold" style={{ color: "var(--warning)" }}>
               <Flame size={12} /> {streak.count}

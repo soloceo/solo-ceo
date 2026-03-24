@@ -523,7 +523,11 @@ export default function Settings() {
 
         {/* ── API Keys ── */}
         <section>
-          <SectionLabel>{t("settings.apiKeys" as any)}</SectionLabel>
+          <SectionLabel>
+            {t("settings.apiKeys" as any)}
+            <span className="badge ml-2 text-[10px] font-normal" style={{ color: "var(--text-tertiary)", background: "var(--surface-alt)" }}>{t("settings.optional" as any)}</span>
+          </SectionLabel>
+          <p className="text-[11px] mb-2" style={{ color: "var(--text-tertiary)" }}>{t("settings.apiKeysHint" as any)}</p>
           <div className="card overflow-hidden divide-y" style={{ borderColor: 'var(--border)' }}>
             {apiKeys.map((ak) => {
               const ts = testStates[ak.key];

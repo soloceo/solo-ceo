@@ -86,7 +86,7 @@ function App() {
   }, [user]);
 
   // Operator profile — from localStorage, synced from cloud on login
-  const [operatorName, setOperatorName] = useState(() => localStorage.getItem("OPERATOR_NAME") || "Andy");
+  const [operatorName, setOperatorName] = useState(() => localStorage.getItem("OPERATOR_NAME") || "");
   const [operatorAvatar, setOperatorAvatar] = useState(() => localStorage.getItem("OPERATOR_AVATAR") || "");
 
   // Sync settings from cloud when user is logged in
@@ -160,6 +160,16 @@ function App() {
 
   const handleTabChange = React.useCallback((tab: string) => {
     setActiveTab(tab);
+  }, []);
+
+  // Listen for programmatic tab navigation from child components
+  React.useEffect(() => {
+    const handler = (e: Event) => {
+      const tab = (e as CustomEvent).detail?.tab;
+      if (tab) setActiveTab(tab);
+    };
+    window.addEventListener("navigate-tab", handler);
+    return () => window.removeEventListener("navigate-tab", handler);
   }, []);
 
   // Sync operator profile + mobile nav visibility

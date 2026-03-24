@@ -41,7 +41,10 @@ export default function BreakthroughProgress() {
 
   return (
     <section>
-      <h3 className="section-label mb-2">{t("home.breakthrough.title" as any)}</h3>
+      <div className="mb-2">
+        <h3 className="section-label">{t("home.breakthrough.title" as any)}</h3>
+        <p className="text-[11px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>{t("home.breakthrough.desc" as any)}</p>
+      </div>
 
       <div className="card p-4 space-y-3">
         {/* Overall progress */}

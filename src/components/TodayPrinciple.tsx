@@ -58,11 +58,14 @@ export default function TodayPrinciple() {
 
   return (
     <section>
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="section-label flex items-center gap-1.5">
-          <BookOpen size={11} /> {t("home.principle.title" as any)}
-        </h3>
-        <span className="text-[11px] font-medium tabular-nums" style={{ color: "var(--text-tertiary)" }}>
+      <div className="flex items-start justify-between mb-2">
+        <div>
+          <h3 className="section-label flex items-center gap-1.5">
+            <BookOpen size={11} /> {t("home.principle.title" as any)}
+          </h3>
+          <p className="text-[11px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>{t("home.principle.desc" as any)}</p>
+        </div>
+        <span className="text-[11px] font-medium tabular-nums shrink-0" style={{ color: "var(--text-tertiary)" }}>
           {t("home.principle.progress" as any, { done: totalMastered, total: allPrinciples.length })}
         </span>
       </div>
