@@ -20,10 +20,10 @@
   --text-secondary: #78716C;
   --text-tertiary: #A8A29E;
 
-  /* ── Accent (Amber Gold · 双子座 + 癸酉金) ────────────────────── */
-  --accent: #C4881D;
-  --accent-light: #FDF6EC;
-  --accent-hover: #A8720F;
+  /* ── Accent (Lemon Gold · 双子座本命调) ─────────────────────── */
+  --accent: #E8A317;
+  --accent-light: #FDF8EC;
+  --accent-hover: #D4920E;
 
   /* ── Semantic ─────────────────────────────────────────────────── */
   --success: #059669;
@@ -53,9 +53,9 @@
   --text: #FAFAF9;
   --text-secondary: #A8A29E;
   --text-tertiary: #78716C;
-  --accent: #E0A84D;
-  --accent-light: #3D2E0A;
-  --accent-hover: #C4881D;
+  --accent: #F2C94C;
+  --accent-light: #3D3210;
+  --accent-hover: #E8A317;
   --success: #34D399;
   --success-light: #064E3B;
   --warning: #FBBF24;
@@ -168,11 +168,11 @@ button:disabled {
     color: #FFFFFF;
     border-radius: 8px;
     padding: 8px 16px;
-    box-shadow: 0 1px 2px rgba(196,136,29,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+    box-shadow: 0 1px 2px rgba(232,163,23,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
   }
   .btn-primary:hover {
     background: var(--accent-hover);
-    box-shadow: 0 2px 4px rgba(196,136,29,0.35), inset 0 1px 0 rgba(255,255,255,0.1);
+    box-shadow: 0 2px 4px rgba(232,163,23,0.35), inset 0 1px 0 rgba(255,255,255,0.1);
     transform: translateY(-0.5px);
   }
   .btn-primary:active {
@@ -218,7 +218,7 @@ button:disabled {
   }
   .input-base:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(196,136,29,0.08);
+    box-shadow: 0 0 0 3px rgba(232,163,23,0.08);
   }
 
   /* ── Badges ──────────────────────────────────────────────── */
