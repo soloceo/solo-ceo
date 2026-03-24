@@ -138,13 +138,24 @@ function App() {
       if (status) setSyncStatus(status);
       if (typeof pending === "number") setPendingOps(pending);
     };
+    const onElectronNav = (e: Event) => {
+      const action = (e as CustomEvent).detail;
+      if (action === "quick-add") {
+        // Navigate to home and trigger quick action
+        setActiveTab("home");
+      } else if (["home", "work", "clients", "finance", "settings"].includes(action)) {
+        setActiveTab(action);
+      }
+    };
     window.addEventListener("online", goOnline);
     window.addEventListener("offline", goOffline);
     window.addEventListener("sync-status", onSync);
+    window.addEventListener("electron-nav", onElectronNav);
     return () => {
       window.removeEventListener("online", goOnline);
       window.removeEventListener("offline", goOffline);
       window.removeEventListener("sync-status", onSync);
+      window.removeEventListener("electron-nav", onElectronNav);
     };
   }, []);
 
@@ -332,16 +343,16 @@ function App() {
             <SyncIndicator isOnline={isOnline} syncStatus={syncStatus} pendingOps={pendingOps} compact />
             <button
               onClick={toggleDarkMode}
-              className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors"
+              className="flex h-10 w-10 items-center justify-center rounded-lg transition-colors"
               style={{ color: "var(--text-secondary)" }}
               aria-label={darkMode ? t("app.lightMode" as any) : t("app.darkMode" as any)}
             >
-              {darkMode ? <Sun size={16} /> : <Moon size={16} />}
+              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
             </button>
             <div className="relative" ref={mobileAvatarRef}>
               <button
                 onClick={() => setAvatarMenu(p => !p)}
-                className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full text-[10px] font-bold"
+                className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full text-[11px] font-bold"
                 style={{
                   background: operatorAvatar ? "transparent" : "var(--accent)",
                   color: operatorAvatar ? undefined : "#fff",
@@ -458,7 +469,7 @@ const MobileNavItem = React.memo(function MobileNavItem({
     <button
       onClick={() => (onClick as (id: string) => void)(id)}
       aria-current={active ? "page" : undefined}
-      className="relative flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 min-w-[52px] transition-colors active:scale-90"
+      className="relative flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 min-w-[52px] min-h-[44px] transition-colors active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
       style={{ color: active ? "var(--accent)" : "var(--text-tertiary)" }}
     >
       {/* Active dot indicator */}

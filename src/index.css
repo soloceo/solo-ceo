@@ -170,6 +170,11 @@ button:disabled {
 
   /* ── Buttons ─────────────────────────────────────────────── */
 
+  button, [role="button"] {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 text-sm font-semibold transition-all active:scale-[0.97];
     background: var(--accent);
@@ -264,7 +269,8 @@ button:disabled {
   }
   .segment-switcher > button {
     @apply text-sm font-medium transition-all;
-    padding: 5px 14px;
+    padding: 8px 16px;
+    min-height: 36px;
     border-radius: 6px;
     color: var(--text-secondary);
   }

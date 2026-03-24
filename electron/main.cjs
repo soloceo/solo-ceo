@@ -99,6 +99,15 @@ function createWindow() {
   });
 }
 
+// ── Navigation helper ─────────────────────────────────────────────────────────
+function sendNav(action) {
+  if (mainWindow && mainWindow.webContents) {
+    mainWindow.webContents.executeJavaScript(
+      `window.dispatchEvent(new CustomEvent("electron-nav", { detail: "${action}" }))`
+    );
+  }
+}
+
 // ── macOS menu ────────────────────────────────────────────────────────────────
 function buildMenu() {
   const template = [
@@ -126,6 +135,18 @@ function buildMenu() {
         { role: 'copy' },
         { role: 'paste' },
         { role: 'selectAll' },
+      ],
+    },
+    {
+      label: '导航',
+      submenu: [
+        { label: '今日总览', accelerator: 'CmdOrCtrl+1', click: () => sendNav('home') },
+        { label: '任务管理', accelerator: 'CmdOrCtrl+2', click: () => sendNav('work') },
+        { label: '签约客户', accelerator: 'CmdOrCtrl+3', click: () => sendNav('clients') },
+        { label: '收支统计', accelerator: 'CmdOrCtrl+4', click: () => sendNav('finance') },
+        { label: '设置', accelerator: 'CmdOrCtrl+5', click: () => sendNav('settings') },
+        { type: 'separator' },
+        { label: '新建...', accelerator: 'CmdOrCtrl+N', click: () => sendNav('quick-add') },
       ],
     },
     {

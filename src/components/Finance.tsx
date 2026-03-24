@@ -788,8 +788,8 @@ const TxRow = React.memo(function TxRow({ tx, t, fmtAmt, fmtAmtColor, onEdit, on
     <span className="p-1 rounded" style={{ color: "var(--text-tertiary)" }} title={t("finance.locked.hint" as any)}><Lock size={12} /></span>
   ) : (
     <>
-      <button onClick={onEdit} className="p-1 rounded" style={{ color: "var(--text-tertiary)" }}><Edit2 size={12} /></button>
-      <button onClick={onDelete} className="p-1 rounded" style={{ color: "var(--text-tertiary)" }}><Trash2 size={12} /></button>
+      <button onClick={onEdit} className="p-1.5 rounded" style={{ color: "var(--text-tertiary)" }} aria-label={t("common.edit" as any)}><Edit2 size={13} /></button>
+      <button onClick={onDelete} className="p-1.5 rounded" style={{ color: "var(--text-tertiary)" }} aria-label={t("common.delete" as any)}><Trash2 size={13} /></button>
     </>
   );
 
