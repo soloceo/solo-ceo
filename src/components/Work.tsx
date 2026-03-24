@@ -328,10 +328,10 @@ export default function Work() {
 
                   {/* AI chips */}
                   <div className="flex flex-wrap gap-1.5">
-                    {([["breakdown", t("work.ai.breakdown" as any), "var(--accent)"], ["mj", t("work.ai.mjPrompt" as any), "var(--warning)"], ["story", t("work.ai.brandStory" as any), "var(--success)"]] as const).map(([key, label, color]) => (
+                    {([["breakdown", t("work.ai.breakdown" as any)], ["mj", t("work.ai.mjPrompt" as any)], ["story", t("work.ai.brandStory" as any)]] as const).map(([key, label]) => (
                       <button key={key} type="button" onClick={() => generateAI(key as any)} disabled={generating !== null}
                         className="inline-flex items-center gap-1 py-1 px-3 rounded-md text-[11px] font-medium transition-all disabled:opacity-50"
-                        style={{ border: "1px solid var(--border)", color, background: "var(--surface)" }}>
+                        style={{ border: "1px solid var(--border)", color: "var(--accent)", background: "var(--surface)" }}>
                         {generating === key ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />} {label}
                       </button>
                     ))}

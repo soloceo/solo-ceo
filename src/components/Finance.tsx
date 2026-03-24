@@ -717,11 +717,8 @@ export default function Finance() {
                         key={mode}
                         type="button"
                         onClick={() => setFormData({ ...formData, taxMode: mode })}
-                        className="text-[13px] px-3 py-2 rounded-lg transition-colors"
-                        style={{
-                          background: formData.taxMode === mode ? "var(--accent)" : "var(--surface-alt)",
-                          color: formData.taxMode === mode ? "#fff" : "var(--text-secondary)",
-                        }}
+                        className="flex-1 text-[13px] py-2 rounded-lg font-medium transition-all"
+                        style={formData.taxMode === mode ? { background: "var(--accent)", color: "#fff" } : { background: "var(--surface-alt)", color: "var(--text-secondary)" }}
                       >
                         {mode === "none" ? t("money.form.taxNone" as any) : mode === "exclusive" ? t("money.form.taxExcl" as any) : t("money.form.taxIncl" as any)}
                       </button>
