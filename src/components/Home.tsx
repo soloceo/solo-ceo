@@ -4,7 +4,7 @@ import {
   CircleDollarSign, FolderCog, RotateCcw,
   Check, Undo2, Plus, Pencil, Trash2, X, ChevronDown, ChevronRight,
   ArrowUpRight, ArrowDownRight,
-  Rocket, UserPlus, ClipboardList, Wallet,
+  UserPlus, ClipboardList, Wallet,
 } from "lucide-react";
 import { useT } from "../i18n/context";
 import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh";
@@ -84,7 +84,6 @@ export default function Home() {
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
   const [showManual, setShowManual] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(false);
 
   const skipKey = `today-focus-skipped-${new Date().toISOString().split("T")[0]}`;
   const operatorName = localStorage.getItem("OPERATOR_NAME") || "";
@@ -106,10 +105,6 @@ export default function Home() {
       const s = localStorage.getItem(skipKey);
       if (s) setSkipped(JSON.parse(s));
     } catch {}
-    // Check onboarding
-    if (!localStorage.getItem("onboarding_done")) {
-      setShowWelcome(true);
-    }
   }, []);
 
   useRealtimeRefresh(['leads', 'clients', 'tasks', 'finance_transactions', 'today_focus_state', 'today_focus_manual', 'payment_milestones'], fetchData);
@@ -117,18 +112,6 @@ export default function Home() {
   useEffect(() => {
     try { localStorage.setItem(skipKey, JSON.stringify(skipped)); } catch {}
   }, [skipped]);
-
-  const dismissWelcome = useCallback(async () => {
-    setShowWelcome(false);
-    localStorage.setItem("onboarding_done", "true");
-    try {
-      await fetch("/api/settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ onboarding_done: "true" }),
-      });
-    } catch {}
-  }, []);
 
   const goToTab = useCallback((tab: string) => {
     window.dispatchEvent(new CustomEvent("navigate-tab", { detail: { tab } }));
@@ -244,36 +227,18 @@ export default function Home() {
           </div>
         </header>
 
-        {/* ── Welcome card (new users) ── */}
-        {showWelcome && (
-          <section className="card p-5 space-y-3" style={{ background: "var(--accent-light)", border: "1px solid var(--accent)" }}>
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="text-[15px] font-bold" style={{ color: "var(--accent)" }}>
-                  <Rocket size={16} className="inline mr-1.5" style={{ verticalAlign: "-2px" }} />
-                  {t("home.welcome.title" as any)}
-                </h2>
-                <p className="text-[13px] mt-1" style={{ color: "var(--text-secondary)" }}>
-                  {t("home.welcome.subtitle" as any)}
-                </p>
-              </div>
-              <button onClick={dismissWelcome} className="btn-ghost p-1 shrink-0" style={{ color: "var(--text-tertiary)" }}>
-                <X size={14} />
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button onClick={() => { goToTab("clients"); dismissWelcome(); }} className="btn-primary text-[12px]">
-                <UserPlus size={13} /> {t("home.welcome.addLead" as any)}
-              </button>
-              <button onClick={() => { goToTab("work"); dismissWelcome(); }} className="btn-secondary text-[12px]">
-                <ClipboardList size={13} /> {t("home.welcome.addTask" as any)}
-              </button>
-              <button onClick={() => { goToTab("finance"); dismissWelcome(); }} className="btn-secondary text-[12px]">
-                <Wallet size={13} /> {t("home.welcome.addIncome" as any)}
-              </button>
-            </div>
-          </section>
-        )}
+        {/* ── Quick actions (permanent) ── */}
+        <div className="flex flex-wrap gap-2">
+          <button onClick={() => goToTab("clients")} className="btn-primary text-[12px]">
+            <UserPlus size={13} /> {t("home.welcome.addLead" as any)}
+          </button>
+          <button onClick={() => goToTab("work")} className="btn-secondary text-[12px]">
+            <ClipboardList size={13} /> {t("home.welcome.addTask" as any)}
+          </button>
+          <button onClick={() => goToTab("finance")} className="btn-secondary text-[12px]">
+            <Wallet size={13} /> {t("home.welcome.addIncome" as any)}
+          </button>
+        </div>
 
         {/* ── KPI Stats ── */}
         {(() => {
