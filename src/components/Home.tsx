@@ -217,40 +217,39 @@ export default function Home() {
               <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.35)" }}>{todayStr(lang)}</span>
             </div>
           </div>
-          {/* KPI — 2 big + 3 small */}
-          <div className="px-5 pb-3">
-            <div className="flex flex-wrap items-end gap-x-4 gap-y-2 mb-2">
+          {/* KPI — Bento Grid (2026 trend) */}
+          <div className="px-5 pb-4">
+            <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
-                <div className="text-[20px] font-bold leading-none" style={{ color: "#fff" }}>{loading ? "—" : `$${animMrr.toLocaleString()}`}</div>
-                <div className="text-[11px] mt-1" style={{ color: "rgba(255,255,255,0.45)" }}>MRR</div>
+                <div className="text-[22px] font-bold leading-none tracking-tight" style={{ color: "#fff" }}>{loading ? "—" : `$${animMrr.toLocaleString()}`}</div>
+                <div className="text-[11px] mt-1.5" style={{ color: "rgba(255,255,255,0.5)" }}>MRR</div>
               </div>
               <div>
-                <div className="text-[20px] font-bold leading-none" style={{ color: "var(--accent)" }}>{loading ? "—" : `$${animYtd.toLocaleString()}`}</div>
-                <div className="text-[11px] mt-1" style={{ color: "rgba(255,255,255,0.45)" }}>{t("home.kpi.ytdRevenue" as any)}</div>
+                <div className="text-[22px] font-bold leading-none tracking-tight" style={{ color: "var(--accent)" }}>{loading ? "—" : `$${animYtd.toLocaleString()}`}</div>
+                <div className="text-[11px] mt-1.5" style={{ color: "rgba(255,255,255,0.5)" }}>{t("home.kpi.ytdRevenue" as any)}</div>
               </div>
-              {(data.todayIncome || 0) > 0 && (
-                <div>
-                  <div className="text-[20px] font-bold leading-none" style={{ color: "#4ade80" }}>{loading ? "—" : `+$${animToday.toLocaleString()}`}</div>
-                  <div className="text-[11px] mt-1" style={{ color: "rgba(255,255,255,0.45)" }}>{t("home.kpi.todayIncome" as any)}</div>
+            </div>
+            {(data.todayIncome || 0) > 0 && (
+              <div className="mb-3 rounded-lg px-3 py-2" style={{ background: "rgba(74,222,128,0.12)" }}>
+                <span className="text-[14px] font-bold" style={{ color: "#4ade80" }}>+${animToday.toLocaleString()}</span>
+                <span className="text-[11px] ml-2" style={{ color: "rgba(255,255,255,0.5)" }}>{t("home.kpi.todayIncome" as any)}</span>
+              </div>
+            )}
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { label: t("home.kpi.activeClients" as any), value: loading ? "—" : String(data.clientsCount || 0) },
+                { label: t("home.kpi.leads" as any), value: loading ? "—" : String(data.leadsCount || 0) },
+                { label: t("home.kpi.inProgress" as any), value: loading ? "—" : String(data.activeTasks || 0) },
+              ].map(kpi => (
+                <div key={kpi.label} className="rounded-lg px-3 py-2.5 text-center" style={{ background: "rgba(255,255,255,0.08)" }}>
+                  <div className="text-[16px] font-bold leading-none" style={{ color: "#fff" }}>{kpi.value}</div>
+                  <div className="text-[10px] mt-1" style={{ color: "rgba(255,255,255,0.45)" }}>{kpi.label}</div>
                 </div>
-              )}
-              <div className="flex-1 min-w-[24px]" />
-              <div className="flex gap-4">
-                {[
-                  { label: t("home.kpi.activeClients" as any), value: loading ? "—" : String(data.clientsCount || 0) },
-                  { label: t("home.kpi.leads" as any), value: loading ? "—" : String(data.leadsCount || 0) },
-                  { label: t("home.kpi.inProgress" as any), value: loading ? "—" : String(data.activeTasks || 0) },
-                ].map(kpi => (
-                  <div key={kpi.label} className="text-center">
-                    <div className="text-[15px] font-bold leading-none" style={{ color: "#fff" }}>{kpi.value}</div>
-                    <div className="text-[11px] mt-1" style={{ color: "rgba(255,255,255,0.4)" }}>{kpi.label}</div>
-                  </div>
-                ))}
-              </div>
+              ))}
             </div>
           </div>
           {/* Quick actions — frosted glass bar */}
-          <div className="flex gap-1 px-4 py-3" style={{ background: "rgba(0,0,0,0.15)" }}>
+          <div className="flex gap-1 px-4 py-3" style={{ background: "rgba(0,0,0,0.12)", backdropFilter: "blur(8px) saturate(1.3)", WebkitBackdropFilter: "blur(8px) saturate(1.3)" }}>
             <button onClick={() => goToTab("clients")} className="flex-1 text-[11px] font-medium py-2 rounded-md transition-colors text-center" style={{ background: "var(--accent)", color: "#fff" }}>
               {t("home.welcome.addLead" as any)}
             </button>

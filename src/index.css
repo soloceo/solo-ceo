@@ -10,10 +10,12 @@
   --bg: #F7F6F3;
   --surface: #FFFFFF;
   --surface-alt: #F0EFEC;
+  --surface-raised: #FFFFFF;
 
   /* ── Borders ─────────────────────────────────────────────────── */
   --border: #E8E6E1;
   --border-strong: #D4D2CC;
+  --border-subtle: rgba(28, 25, 23, 0.06);
 
   /* ── Text ────────────────────────────────────────────────────── */
   --text: #1C1917;
@@ -38,11 +40,18 @@
   --danger: #DC2626;
   --danger-light: #FEF2F2;
 
-  /* ── Elevation (warm-toned shadows) ──────────────────────────── */
-  --shadow-xs: 0 1px 2px rgba(28,25,23,0.04);
-  --shadow-sm: 0 1px 3px rgba(28,25,23,0.06), 0 1px 2px rgba(28,25,23,0.04);
-  --shadow-md: 0 4px 8px -2px rgba(28,25,23,0.08), 0 2px 4px -2px rgba(28,25,23,0.04);
-  --shadow-lg: 0 12px 24px -4px rgba(28,25,23,0.10), 0 4px 8px -2px rgba(28,25,23,0.04);
+  /* ── Glass (2026 Liquid Glass trend) ───────────────────────── */
+  --glass-bg: rgba(255, 255, 255, 0.6);
+  --glass-bg-subtle: rgba(255, 255, 255, 0.35);
+  --glass-border: rgba(28, 25, 23, 0.06);
+  --glass-blur: 12px;
+
+  /* ── Elevation (dual-layer warm shadows) ───────────────────── */
+  --shadow-xs: 0 1px 2px rgba(28, 25, 23, 0.03);
+  --shadow-sm: 0 1px 2px rgba(28, 25, 23, 0.04), 0 2px 6px rgba(28, 25, 23, 0.03);
+  --shadow-md: 0 2px 4px rgba(28, 25, 23, 0.04), 0 6px 16px -2px rgba(28, 25, 23, 0.06);
+  --shadow-lg: 0 4px 8px rgba(28, 25, 23, 0.04), 0 16px 32px -4px rgba(28, 25, 23, 0.08);
+  --shadow-glass: 0 2px 8px rgba(28, 25, 23, 0.04), 0 8px 24px -4px rgba(28, 25, 23, 0.06);
 
   --shadow: var(--shadow-sm);
 
@@ -50,11 +59,14 @@
 }
 
 .dark {
-  --bg: #0C0A09;
-  --surface: #1C1917;
-  --surface-alt: #292524;
-  --border: #292524;
-  --border-strong: #44403C;
+  /* ── OLED-optimized grey hierarchy ──────────────────────────── */
+  --bg: #0A0908;
+  --surface: #161412;
+  --surface-alt: #1E1C19;
+  --surface-raised: #262320;
+  --border: #242220;
+  --border-strong: #3A3733;
+  --border-subtle: rgba(255, 255, 255, 0.04);
   --text: #FAFAF9;
   --text-secondary: #A8A29E;
   --text-tertiary: #78716C;
@@ -70,10 +82,17 @@
   --warning-light: #451A03;
   --danger: #F87171;
   --danger-light: #450A0A;
-  --shadow-xs: 0 1px 2px rgba(0,0,0,0.12);
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.16), 0 1px 2px rgba(0,0,0,0.12);
-  --shadow-md: 0 4px 8px -2px rgba(0,0,0,0.24), 0 2px 4px -2px rgba(0,0,0,0.12);
-  --shadow-lg: 0 12px 24px -4px rgba(0,0,0,0.32), 0 4px 8px -2px rgba(0,0,0,0.16);
+  /* ── Glass ──────────────────────────────────────────────────── */
+  --glass-bg: rgba(28, 25, 23, 0.55);
+  --glass-bg-subtle: rgba(28, 25, 23, 0.35);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-blur: 12px;
+  /* ── Dark shadows (deeper) ─────────────────────────────────── */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.16);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.12);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.2), 0 6px 16px -2px rgba(0, 0, 0, 0.24);
+  --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.2), 0 16px 32px -4px rgba(0, 0, 0, 0.32);
+  --shadow-glass: 0 2px 8px rgba(0, 0, 0, 0.16), 0 8px 24px -4px rgba(0, 0, 0, 0.24);
   --shadow: var(--shadow-sm);
   color-scheme: dark;
 }
@@ -129,9 +148,9 @@ body {
 }
 
 .skeleton-bone {
-  background: linear-gradient(90deg, var(--surface-alt) 25%, var(--border) 50%, var(--surface-alt) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
+  background: linear-gradient(105deg, var(--surface-alt) 30%, var(--border-subtle, var(--border)) 50%, var(--surface-alt) 70%);
+  background-size: 250% 100%;
+  animation: shimmer 2s ease-in-out infinite;
 }
 .animate-skeleton-in {
   animation: skeleton-in 0.3s ease-out 0.3s both;
@@ -139,8 +158,8 @@ body {
 
 /* ── Staggered list entrance ─────────────────────────────── */
 @keyframes list-item-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 .stagger-in > * {
   animation: list-item-in 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -157,15 +176,15 @@ body {
 
 /* ── Modal backdrop ──────────────────────────────────────── */
 .modal-backdrop {
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px) saturate(1.2);
+  -webkit-backdrop-filter: blur(8px) saturate(1.2);
 }
 
-.text-display  { font-size: 20px; line-height: 1.3; font-weight: 700; }
-.text-title    { font-size: 16px; line-height: 1.4; font-weight: 600; }
-.text-heading  { font-size: 15px; line-height: 1.4; font-weight: 600; }
-.text-body     { font-size: 13px; line-height: 1.6; font-weight: 400; }
+.text-display  { font-size: clamp(20px, 4vw, 24px); line-height: 1.25; font-weight: 700; letter-spacing: -0.02em; }
+.text-title    { font-size: clamp(16px, 3vw, 18px); line-height: 1.35; font-weight: 600; letter-spacing: -0.015em; }
+.text-heading  { font-size: 15px; line-height: 1.4; font-weight: 600; letter-spacing: -0.01em; }
+.text-body     { font-size: 14px; line-height: 1.6; font-weight: 400; }
 .text-caption  { font-size: 11px; line-height: 1.4; font-weight: 500; }
 .text-micro    { font-size: 10px; line-height: 1.3; font-weight: 500; }
 
@@ -202,28 +221,28 @@ button:disabled {
 
   .card {
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
     box-shadow: var(--shadow-sm);
   }
 
   .card-flat {
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
   }
 
   .card-elevated {
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
     box-shadow: var(--shadow-md);
   }
 
   .card-interactive {
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
     box-shadow: var(--shadow-sm);
     transition: box-shadow 0.15s cubic-bezier(0.22, 1, 0.36, 1),
                 transform 0.15s cubic-bezier(0.22, 1, 0.36, 1),
@@ -337,8 +356,8 @@ button:disabled {
   }
   .input-base:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(232,163,23,0.1);
-    background: var(--bg);
+    box-shadow: 0 0 0 3px rgba(232, 163, 23, 0.08);
+    background: var(--surface);
   }
 
   /* ── Badges ──────────────────────────────────────────────── */
@@ -391,11 +410,11 @@ button:disabled {
   /* ── Stat card ───────────────────────────────────────────── */
 
   .stat-card {
-    @apply flex flex-col gap-1;
+    @apply flex flex-col gap-1.5;
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px;
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    padding: 20px;
     box-shadow: var(--shadow-xs);
   }
 
@@ -459,10 +478,11 @@ button:disabled {
     background: rgba(0,0,0,0.4);
   }
   .mobile-sheet-content {
-    @apply w-full overflow-hidden shadow-2xl;
-    background: var(--bg);
+    @apply w-full overflow-hidden;
+    background: var(--surface-raised, var(--bg));
     max-height: 95vh;
-    border-radius: 20px 20px 0 0;
+    border-radius: 24px 24px 0 0;
+    box-shadow: var(--shadow-lg);
   }
   @media (min-width: 768px) {
     .mobile-sheet-content {
@@ -503,13 +523,43 @@ button:disabled {
     @apply fixed top-0 right-0 h-full z-40 flex flex-col overflow-hidden;
     width: 100%;
     max-width: 480px;
-    background: var(--surface);
-    border-left: 1px solid var(--border);
+    background: var(--surface-raised, var(--surface));
+    border-left: 1px solid var(--border-subtle);
     box-shadow: var(--shadow-lg);
   }
 
   .touch-target {
     @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+
+  /* ── Glass cards (2026 Liquid Glass) ─────────────────────── */
+
+  .card-glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    box-shadow: var(--shadow-glass);
+  }
+
+  .card-glass-subtle {
+    background: var(--glass-bg-subtle);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+  }
+
+  /* ── Press feedback utility ────────────────────────────────── */
+
+  .press-feedback {
+    transition: transform 0.1s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform;
+  }
+  .press-feedback:active {
+    transform: scale(0.96);
+    transition-duration: 0.06s;
   }
 
   /* ── Section label ───────────────────────────────────────── */

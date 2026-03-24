@@ -397,10 +397,10 @@ function App() {
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ type: "spring", damping: 28, stiffness: 280, mass: 0.8 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ type: "spring", damping: 30, stiffness: 320, mass: 0.7 }}
               className="h-full overflow-y-auto"
               style={{ overscrollBehavior: "contain" }}
             >
@@ -415,7 +415,10 @@ function App() {
             className="lg:hidden shrink-0"
             style={{
               paddingBottom: "max(env(safe-area-inset-bottom), 4px)",
-              background: "var(--bg)",
+              background: "var(--glass-bg, var(--bg))",
+              backdropFilter: "blur(16px) saturate(1.4)",
+              WebkitBackdropFilter: "blur(16px) saturate(1.4)",
+              borderTop: "1px solid var(--glass-border, var(--border))",
               touchAction: "none",
               overscrollBehavior: "none",
               WebkitAppRegion: "no-drag",
@@ -570,9 +573,12 @@ function SyncToast() {
     <div
       className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-2 px-4 py-3 rounded-xl text-[13px] font-medium shadow-lg"
       style={{
-        background: "var(--surface)",
-        border: "1px solid var(--border)",
+        background: "var(--glass-bg, var(--surface))",
+        backdropFilter: "blur(16px) saturate(1.3)",
+        WebkitBackdropFilter: "blur(16px) saturate(1.3)",
+        border: "1px solid var(--glass-border, var(--border))",
         color: "var(--text)",
+        boxShadow: "var(--shadow-lg)",
         animation: "fadeInDown 0.25s ease-out",
       }}
     >
