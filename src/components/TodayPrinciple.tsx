@@ -244,9 +244,9 @@ export default function TodayPrinciple() {
 
                           {/* Expanded detail */}
                           {isExpanded && (
-                            <div className="px-4 pb-5 space-y-4">
+                            <div className="px-4 pt-3 pb-5 space-y-4" style={{ borderTop: "1px solid var(--border)" }}>
                               {/* Core idea — highlighted card */}
-                              <div className="p-4 rounded-xl" style={{ background: "var(--accent-light)", borderLeft: "3px solid var(--accent)" }}>
+                              <div className="p-4 rounded-xl" style={{ background: "var(--surface-alt)", borderLeft: "3px solid var(--accent)" }}>
                                 <p className="text-[13px] leading-relaxed font-medium" style={{ color: "var(--text)" }}>{L(pr.core)}</p>
                               </div>
 
