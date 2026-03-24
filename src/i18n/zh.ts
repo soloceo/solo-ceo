@@ -51,7 +51,9 @@ const zh = {
   "pipeline.aiContent": "AI 文案",
   "pipeline.salesTools": "销售工具",
   "pipeline.emailTemplates": "邮件模板",
+  "pipeline.emailsHint": "4 套开发信模板，中英双语，点击展开后一键复制",
   "pipeline.scripts": "话术锦囊",
+  "pipeline.scriptsHint": "6 个常见场景应对话术，中英双语，附定价参考",
 
   /* ── Settings — Knowledge ── */
   "settings.knowledgeLibrary": "知识库",

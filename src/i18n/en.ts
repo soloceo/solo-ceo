@@ -52,8 +52,10 @@ const en: typeof zh = {
   "pipeline.clients.payManualHint": "Check, cash, or transfer — confirm each month",
   "pipeline.aiContent": "AI Content",
   "pipeline.salesTools": "Sales Tools",
-  "pipeline.emailTemplates": "Email Templates",
+  "pipeline.emailTemplates": "Emails",
+  "pipeline.emailsHint": "4 outreach templates in Chinese + English. Click to expand, one-click copy.",
   "pipeline.scripts": "Scripts",
+  "pipeline.scriptsHint": "6 common objection-handling scripts in both languages, with pricing reference.",
 
   /* ── Settings — Knowledge ── */
   "settings.knowledgeLibrary": "Knowledge Library",
