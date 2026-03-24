@@ -116,10 +116,6 @@ input, textarea, select { cursor: text; }
 [draggable="true"] { cursor: grab; }
 [draggable="true"]:active { cursor: grabbing; }
 
-html, body {
-  overflow-x: hidden;
-  max-width: 100vw;
-}
 @media (max-width: 1023px) {
   html, body {
     position: fixed;
@@ -469,8 +465,8 @@ button:disabled {
   }
 
   .mobile-page {
-    overscroll-behavior: contain;
-    overflow-x: hidden;
+    /* No overflow properties here — they create implicit scroll containers
+       that trap wheel events on desktop. Parent motion.div handles scrolling. */
   }
 
   /* ── Modals / Sheets ─────────────────────────────────────── */
