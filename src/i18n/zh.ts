@@ -713,6 +713,12 @@ const zh = {
 
   /* ── Cloud Sync ── */
   "settings.accountSecurity": "账号安全",
+  "settings.planManager": "套餐管理",
+  "settings.noPlans": "暂无套餐，点击右上角添加",
+  "settings.planName": "套餐名称",
+  "settings.planPrice": "月费 ($)",
+  "settings.planSpeed": "交付速度",
+  "settings.planFeatures": "功能列表（每行一条）",
   "settings.cloudSync": "云同步",
   "settings.cloudSync.status": "同步状态",
   "settings.cloudSync.connected": "已连接 Supabase 云端",

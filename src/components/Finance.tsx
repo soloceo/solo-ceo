@@ -38,6 +38,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Lock,
+  ChevronRight,
 } from "lucide-react";
 
 /* ── Helpers ────────────────────────────────────────────────────── */
@@ -869,7 +870,7 @@ const TxRow = React.memo(function TxRow({ tx, t, fmtAmt, fmtAmtColor, onEdit, on
               {tax > 0 && <div className="text-[11px] tabular-nums" style={{ color: "var(--text-secondary)" }}>{taxMode === "exclusive" ? `+${t("finance.tax" as any)} $${tax.toLocaleString()}` : taxMode === "inclusive" ? `${t("finance.taxIncluded" as any)} $${tax.toLocaleString()}` : ""}</div>}
               <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{stLabel(tx.status || "", t)}</div>
             </div>
-            {isSystem && <span className="p-1" style={{ color: "var(--text-secondary)" }}><Lock size={16} /></span>}
+            {isSystem ? <span className="p-1" style={{ color: "var(--text-secondary)" }}><Lock size={16} /></span> : <span className="p-1" style={{ color: "var(--text-secondary)", opacity: 0.4 }}><ChevronRight size={16} /></span>}
           </div>
         </SwipeAction>
       </>

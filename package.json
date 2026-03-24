@@ -2,7 +2,7 @@
   "name": "solo-ceo",
   "productName": "一人CEO",
   "private": true,
-  "version": "1.0.27",
+  "version": "1.0.28",
   "type": "module",
   "main": "electron-dist/main.cjs",
   "scripts": {

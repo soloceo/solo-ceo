@@ -715,6 +715,12 @@ const en: typeof zh = {
 
   /* ── Cloud Sync ── */
   "settings.accountSecurity": "Account Security",
+  "settings.planManager": "Plan Manager",
+  "settings.noPlans": "No plans yet. Click + to add.",
+  "settings.planName": "Plan name",
+  "settings.planPrice": "Monthly ($)",
+  "settings.planSpeed": "Delivery speed",
+  "settings.planFeatures": "Features (one per line)",
   "settings.cloudSync": "Cloud Sync",
   "settings.cloudSync.status": "Sync Status",
   "settings.cloudSync.connected": "Connected to Supabase cloud",
