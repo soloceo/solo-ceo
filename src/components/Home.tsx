@@ -273,14 +273,28 @@ export default function Home() {
                 <button onClick={resetForm} className="btn-ghost p-1"><X size={14} /></button>
               </div>
               <form onSubmit={saveManual} className="space-y-3">
-                <label className="flex flex-col gap-1">
+                <div className="space-y-1.5">
                   <span className="section-label">{t("home.form.type" as any)}</span>
-                  <select value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value }))} className="input-base px-3 py-2 text-[13px]">
-                    <option value={t("home.form.type.revenue" as any)}>{t("home.form.type.revenue" as any)}</option>
-                    <option value={t("home.form.type.delivery" as any)}>{t("home.form.type.delivery" as any)}</option>
-                    <option value={t("home.form.type.system" as any)}>{t("home.form.type.system" as any)}</option>
-                  </select>
-                </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {([
+                      { key: "revenue", emoji: "💰", label: t("home.form.type.revenue" as any), hint: t("home.form.typeHint.revenue" as any) },
+                      { key: "delivery", emoji: "📦", label: t("home.form.type.delivery" as any), hint: t("home.form.typeHint.delivery" as any) },
+                      { key: "system", emoji: "⚙️", label: t("home.form.type.system" as any), hint: t("home.form.typeHint.system" as any) },
+                    ]).map(opt => (
+                      <button
+                        key={opt.key}
+                        type="button"
+                        onClick={() => setForm(p => ({ ...p, type: opt.label }))}
+                        className="card p-2.5 text-left transition-colors"
+                        style={form.type === opt.label ? { borderColor: "var(--accent)", background: "var(--accent-light)" } : {}}
+                      >
+                        <div className="text-[14px] mb-0.5">{opt.emoji}</div>
+                        <div className="text-[12px] font-semibold" style={{ color: form.type === opt.label ? "var(--accent)" : "var(--text)" }}>{opt.label}</div>
+                        <div className="text-[10px] leading-tight mt-0.5" style={{ color: "var(--text-tertiary)" }}>{opt.hint}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <label className="flex flex-col gap-1">
                   <span className="section-label">{t("home.form.title" as any)}</span>
                   <input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder={t("home.form.titlePlaceholder" as any)} className="input-base px-3 py-2 text-[13px]" autoFocus />
@@ -303,7 +317,10 @@ export default function Home() {
 
         {/* ── Focus cards ── */}
         <section>
-          <h3 className="section-label mb-3">{t("home.focus.title" as any)}</h3>
+          <div className="mb-3">
+            <h3 className="section-label">{t("home.focus.title" as any)}</h3>
+            <p className="text-[11px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>{t("home.focus.desc" as any)}</p>
+          </div>
           <div className="grid gap-3 md:grid-cols-2">
             {pending.map(item => (
               <FocusCard
