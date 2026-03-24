@@ -11,7 +11,7 @@ const zh = {
   /* ── Home — Protocol & Breakthrough ── */
   "home.welcome.title": "欢迎使用 Solo CEO！",
   "home.welcome.subtitle": "从这里开始你的一人创业之旅",
-  "home.welcome.addLead": "添加线索",
+  "home.welcome.addLead": "开发客户",
   "home.welcome.addTask": "创建任务",
   "home.welcome.addIncome": "记录收入",
   "home.quickMemo": "快速备忘",

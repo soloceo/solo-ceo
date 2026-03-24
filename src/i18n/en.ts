@@ -13,7 +13,7 @@ const en: typeof zh = {
   /* ── Home — Protocol & Breakthrough ── */
   "home.welcome.title": "Welcome to Solo CEO!",
   "home.welcome.subtitle": "Start your solo entrepreneurship journey here",
-  "home.welcome.addLead": "Add Lead",
+  "home.welcome.addLead": "Find Client",
   "home.welcome.addTask": "Create Task",
   "home.welcome.addIncome": "Log Income",
   "home.quickMemo": "Quick Memo",

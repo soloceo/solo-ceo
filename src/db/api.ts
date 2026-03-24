@@ -277,6 +277,9 @@ function initSchema(db: Database) {
     `ALTER TABLE finance_transactions ADD COLUMN tax_amount REAL DEFAULT 0`,
     `ALTER TABLE finance_transactions ADD COLUMN client_id INTEGER`,
     `ALTER TABLE finance_transactions ADD COLUMN client_name TEXT`,
+    `ALTER TABLE finance_transactions ADD COLUMN source TEXT DEFAULT 'manual'`,
+    `ALTER TABLE finance_transactions ADD COLUMN source_id INTEGER`,
+    `ALTER TABLE clients ADD COLUMN payment_method TEXT DEFAULT 'auto'`,
     `CREATE TABLE IF NOT EXISTS payment_milestones (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       client_id INTEGER NOT NULL,
@@ -410,111 +413,8 @@ export async function initDb(): Promise<void> {
 // ── Finance helpers ────────────────────────────────────────────────────────
 
 function getFinanceRows(db: Database): any[] {
-  syncClientSubscriptionLedger(db);
-  const transactions = all(db, 'SELECT * FROM finance_transactions');
-  const ledgerRows = all(
-    db,
-    `SELECT id, client_id, client_name, plan_tier, amount, ledger_month
-     FROM client_subscription_ledger
-     ORDER BY ledger_month DESC, id DESC`
-  );
-
-  // Dedup: find which client+month combos already have real finance records
-  const realSubKeys = new Set(
-    transactions.filter((t: any) => t.client_id && t.date)
-      .map((t: any) => `${t.client_id}-${String(t.date).substring(0, 7)}`)
-  );
-  // Get tax settings for subscription clients
-  const subClientIds = [...new Set(ledgerRows.map((r: any) => r.client_id))];
-  const subClientTax: Record<number, { tax_mode: string; tax_rate: number }> = {};
-  if (subClientIds.length > 0) {
-    const taxRows = all(db, `SELECT id, tax_mode, tax_rate FROM clients WHERE id IN (${subClientIds.join(',')})`);
-    (taxRows as any[]).forEach(c => { subClientTax[c.id] = { tax_mode: c.tax_mode || 'none', tax_rate: Number(c.tax_rate || 0) }; });
-  }
-
-  const subscriptionRows = ledgerRows
-    .filter((row: any) => !realSubKeys.has(`${row.client_id}-${row.ledger_month}`))
-    .map((row: any) => {
-      const amt = Number(row.amount || 0);
-      const ct = subClientTax[row.client_id] || { tax_mode: 'none', tax_rate: 0 };
-      const ta = ct.tax_mode === 'exclusive' ? Math.round(amt * ct.tax_rate / 100 * 100) / 100
-               : ct.tax_mode === 'inclusive' ? Math.round(amt * ct.tax_rate / (100 + ct.tax_rate) * 100) / 100 : 0;
-      return {
-        id: `client-sub-${row.id}`,
-        type: 'income',
-        amount: amt,
-        category: '订阅收入',
-        description: `${row.client_name || '未命名客户'} · ${row.plan_tier || '订阅'} · ${row.ledger_month}`,
-        date: `${row.ledger_month}-01`,
-        status: '已完成',
-        source: 'client_subscription',
-        client_id: row.client_id,
-        client_name: row.client_name || '',
-        tax_mode: ct.tax_mode,
-        tax_rate: ct.tax_rate,
-        tax_amount: ta,
-      };
-    });
-
-  // Project milestones — pending ones as virtual receivable rows
-  const pendingMs = all(db, `SELECT m.id, m.client_id, m.label, m.amount, m.due_date, m.status,
-    COALESCE(c.company_name, c.name, '') as client_display_name,
-    COALESCE(c.tax_mode, 'none') as client_tax_mode,
-    COALESCE(c.tax_rate, 0) as client_tax_rate
-    FROM payment_milestones m LEFT JOIN clients c ON c.id = m.client_id
-    WHERE m.soft_deleted = 0 AND m.status = 'pending' AND (m.finance_tx_id IS NULL OR m.finance_tx_id = 0)`);
-  const projectRows = pendingMs.map((ms: any) => {
-    const amt = Number(ms.amount || 0);
-    const tm = ms.client_tax_mode || 'none';
-    const tr = Number(ms.client_tax_rate || 0);
-    const ta = tm === 'exclusive' ? Math.round(amt * tr / 100 * 100) / 100
-             : tm === 'inclusive' ? Math.round(amt * tr / (100 + tr) * 100) / 100 : 0;
-    return {
-      id: `ms-pending-${ms.id}`,
-      type: 'income',
-      amount: amt,
-      category: '项目收入',
-      description: `${ms.client_display_name || '未命名客户'} · ${ms.label || '项目付款'}`,
-      date: ms.due_date || '',
-      status: '待收款 (应收)',
-      source: 'client_project',
-      client_id: ms.client_id,
-      client_name: ms.client_display_name || '',
-      tax_mode: tm, tax_rate: tr, tax_amount: ta,
-    };
-  });
-
-  // Project clients WITHOUT milestones → show project_fee as whole receivable
-  const projectClients = all(db, `SELECT id, name, company_name, project_fee, project_end_date, tax_mode, tax_rate
-    FROM clients WHERE billing_type = 'project' AND soft_deleted = 0 AND status = 'Active'`);
-  const clientsWithMs = new Set(all(db, 'SELECT DISTINCT client_id FROM payment_milestones WHERE soft_deleted = 0').map((r: any) => r.client_id));
-  const projectFeeRows = (projectClients as any[])
-    .filter((c: any) => !clientsWithMs.has(c.id) && Number(c.project_fee || 0) > 0)
-    .filter((c: any) => !realSubKeys.has(`${c.id}-${String(c.project_end_date || '').substring(0, 7)}`))
-    .map((c: any) => {
-      const fee = Number(c.project_fee || 0);
-      const tm = c.tax_mode || 'none';
-      const tr = Number(c.tax_rate || 0);
-      const ta = tm === 'exclusive' ? Math.round(fee * tr / 100 * 100) / 100
-               : tm === 'inclusive' ? Math.round(fee * tr / (100 + tr) * 100) / 100 : 0;
-      return {
-        id: `proj-fee-${c.id}`,
-        type: 'income',
-        amount: fee,
-        category: '项目收入',
-        description: `${c.company_name || c.name} · 项目总费`,
-        date: c.project_end_date || '',
-        status: '待收款 (应收)',
-        source: 'client_project',
-        client_id: c.id,
-        client_name: c.company_name || c.name,
-        tax_mode: tm, tax_rate: tr, tax_amount: ta,
-      };
-    });
-
-  return [...subscriptionRows, ...projectRows, ...projectFeeRows, ...transactions].sort(
-    (a: any, b: any) => String(b.date || '').localeCompare(String(a.date || ''))
-  );
+  // Single table query — matches online supabase-api.ts behavior
+  return all(db, 'SELECT * FROM finance_transactions ORDER BY date DESC, id DESC');
 }
 
 // ── Route handler ──────────────────────────────────────────────────────────
@@ -872,31 +772,28 @@ export async function handleApiRequest(
     return ok({ id: res.lastInsertRowid });
   }
 
-  const financeMatch = path.match(/^\/api\/finance\/(\d+|client-sub-[\w-]+|ms-pending-\d+|proj-fee-\d+)$/);
+  const financeMatch = path.match(/^\/api\/finance\/(\d+)$/);
   if (financeMatch) {
-    const id = financeMatch[1];
-    if (String(id).startsWith('client-sub-')) {
-      return err(400, '订阅流水由客户状态自动生成，请在客户管理中编辑');
-    }
-    if (String(id).startsWith('ms-pending-')) {
-      return err(400, '项目里程碑待收款，请在客户管理中确认收款');
-    }
-    if (String(id).startsWith('proj-fee-')) {
-      return err(400, '项目总费待收款，请在客户管理中编辑');
-    }
+    const id = Number(financeMatch[1]);
+    // Check source — only manual transactions can be edited/deleted
+    const txRow = get(db, 'SELECT source, description FROM finance_transactions WHERE id=?', [id]) as any;
+    if (!txRow) return err(404, 'Transaction not found');
+    const src = txRow.source || 'manual';
+    if (src === 'subscription') return err(400, '订阅流水由客户状态自动生成，请在客户管理中编辑');
+    if (src === 'milestone') return err(400, '此交易由里程碑自动生成，请前往签约客户中修改');
+    if (src === 'project_fee') return err(400, '项目总费待收款，请在客户管理中编辑');
+
     if (method === 'PUT') {
       const { type, amount, category, description, date, status, tax_mode, tax_rate, tax_amount, client_id, client_name } = body;
       run(db, `UPDATE finance_transactions SET type=?,amount=?,category=?,description=?,date=?,status=?,tax_mode=?,tax_rate=?,tax_amount=?,client_id=?,client_name=? WHERE id=?`,
         [type||'income', amount||0, category||'', description||'', date||'', status||'已完成', tax_mode||'none', tax_rate||0, tax_amount||0, client_id||null, client_name||'', id]);
-      logActivity(db, 'finance', 'updated', `更新交易：${description||'未命名交易'}`,
-        `${type==='income'?'+':'-'}$${Number(amount||0).toLocaleString()} · ${category||'未分类'}`, id);
+      logActivity(db, 'finance', 'updated', `更新交易：${description||'未命名交易'}`, '', id);
       await saveDb();
       return ok({ success: true });
     }
     if (method === 'DELETE') {
-      const prev = get(db, 'SELECT description FROM finance_transactions WHERE id=?', [id]) as any;
       run(db, 'DELETE FROM finance_transactions WHERE id=?', [id]);
-      logActivity(db, 'finance', 'deleted', `删除交易：${prev?.description||'未命名交易'}`, '', id);
+      logActivity(db, 'finance', 'deleted', `删除交易：${txRow.description||'未命名交易'}`, '', id);
       await saveDb();
       return ok({ success: true });
     }
