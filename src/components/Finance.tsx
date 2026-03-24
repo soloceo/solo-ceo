@@ -393,14 +393,14 @@ export default function Finance() {
   /* ── Loading ── */
   if (isLoading) {
     return (
-      <div className="mobile-page max-w-[1680px] mx-auto min-h-full flex items-center justify-center">
+      <div className="mobile-page max-w-[960px] mx-auto min-h-full flex items-center justify-center">
         <Loader2 size={24} className="animate-spin" style={{ color: "var(--accent)" }} />
       </div>
     );
   }
 
   return (
-    <div className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col px-4 py-3 md:px-6 md:py-4 lg:px-8 lg:py-5 relative">
+    <div className="mobile-page max-w-[960px] mx-auto min-h-full flex flex-col px-4 py-3 md:px-6 md:py-4 lg:px-8 lg:py-5 relative">
       <Toast message={toast} />
 
       {/* Header */}

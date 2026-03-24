@@ -567,7 +567,7 @@ export function ClientsView() {
   const padBot = vItems.length > 0 ? rowV.getTotalSize() - vItems[vItems.length - 1].end : 0;
 
   return (
-    <>
+    <div className="max-w-[960px] mx-auto">
       {toast && <Toast msg={toast} />}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
@@ -1075,7 +1075,7 @@ export function ClientsView() {
           </>
         )}
       </AnimatePresence>
-    </>
+    </div>
   );
 }
 
