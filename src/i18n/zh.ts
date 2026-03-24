@@ -2,16 +2,10 @@ const zh = {
   /* ── Nav ── */
   "nav.home": "今日总览",
   "nav.work": "任务管理",
-  "nav.pipeline": "客户管理",
-  "nav.people": "客户管理",
-  "nav.money": "收支流水",
   "nav.leads": "销售线索",
   "nav.clients": "签约客户",
-  "nav.transactions": "收支流水",
   "nav.finance": "收支统计",
   "nav.plans": "定价方案",
-  "nav.create": "内容创作",
-  "nav.more": "更多功能",
   "nav.settings": "设置",
 
   /* ── Home — Protocol & Breakthrough ── */
@@ -709,7 +703,6 @@ const zh = {
   "settings.cloudSync.pending": "待同步操作：{count} 条",
 
   /* ── Breakthrough 突围计划 ── */
-  "nav.breakthrough": "突围计划",
   "breakthrough.title": "突围计划",
   "breakthrough.seg.tasks": "任务追踪",
   "breakthrough.seg.emails": "邮件武器库",
@@ -726,7 +719,6 @@ const zh = {
   "breakthrough.pricingRef": "订阅制报价参考",
 
   /* ── Evolution 个人进化 ── */
-  "nav.evolution": "个人进化",
   "evolution.title": "个人进化系统",
   "evolution.seg.knowledge": "知识模块",
   "evolution.seg.protocol": "每日协议",

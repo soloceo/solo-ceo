@@ -4,16 +4,10 @@ const en: typeof zh = {
   /* ── Nav ── */
   "nav.home": "Today",
   "nav.work": "Tasks",
-  "nav.pipeline": "Clients",
-  "nav.people": "Clients",
-  "nav.money": "Money",
   "nav.leads": "Leads",
   "nav.clients": "Signed",
-  "nav.transactions": "Money",
   "nav.finance": "Finance",
   "nav.plans": "Pricing",
-  "nav.create": "Create",
-  "nav.more": "More",
   "nav.settings": "Settings",
 
   /* ── Home — Protocol & Breakthrough ── */
@@ -711,7 +705,6 @@ const en: typeof zh = {
   "settings.cloudSync.pending": "Pending operations: {count}",
 
   /* ── Breakthrough ── */
-  "nav.breakthrough": "Breakthrough",
   "breakthrough.title": "Breakthrough",
   "breakthrough.seg.tasks": "Task Tracker",
   "breakthrough.seg.emails": "Email Arsenal",
@@ -728,7 +721,6 @@ const en: typeof zh = {
   "breakthrough.pricingRef": "Subscription Pricing Reference",
 
   /* ── Evolution ── */
-  "nav.evolution": "Evolution",
   "evolution.title": "Evolution OS",
   "evolution.seg.knowledge": "Knowledge",
   "evolution.seg.protocol": "Daily Protocol",
