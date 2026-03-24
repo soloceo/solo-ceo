@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback, lazy, Suspense } from "react";
 import { createPortal } from "react-dom";
 import {
-  TrendingUp, Users, Briefcase, CheckSquare,
-  CircleDollarSign, FolderCog,
+  CircleDollarSign, FolderCog, CheckSquare,
   Check, Undo2, Plus, Pencil, Trash2, X, ChevronDown, ChevronRight,
   ArrowUpRight, ArrowDownRight,
   UserPlus, ClipboardList, Wallet,
@@ -11,7 +10,7 @@ import { useT } from "../i18n/context";
 import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh";
 
 const DailyProtocol = lazy(() => import("./DailyProtocol"));
-const BreakthroughProgress = lazy(() => import("./BreakthroughProgress"));
+const BreakthroughFull = lazy(() => import("./Breakthrough"));
 const TodayPrinciple = lazy(() => import("./TodayPrinciple"));
 
 /* ── Types ──────────────────────────────────────────────────────── */
@@ -25,8 +24,6 @@ type FocusItem = {
   isManual?: boolean;
 };
 
-type MrrPoint = { name: string; mrr: number };
-
 type DashboardData = {
   todayFocus: FocusItem[];
   manualTodayEvents: FocusItem[];
@@ -34,10 +31,6 @@ type DashboardData = {
   mrr: number;
   activeTasks: number;
   leadsCount: number;
-  mrrSeries?: MrrPoint[];
-  prevClientsCount?: number;
-  prevLeadsCount?: number;
-  prevActiveTasks?: number;
 };
 
 type ManualForm = { type: string; title: string; note: string };
@@ -60,12 +53,6 @@ function todayStr(lang: string) {
 
 const manualIdFromKey = (k: string) => k.replace("manual-", "");
 
-function pctChange(curr: number, prev: number): number | null {
-  if (prev === 0 && curr === 0) return null;
-  if (prev === 0) return curr > 0 ? 100 : null;
-  return Math.round(((curr - prev) / prev) * 100);
-}
-
 /* ── Component ──────────────────────────────────────────────────── */
 export default function Home() {
   const { t, lang } = useT();
@@ -83,8 +70,6 @@ export default function Home() {
   const [form, setForm] = useState<ManualForm>(emptyForm);
   const [editKey, setEditKey] = useState<string | null>(null);
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
-  const [showCompleted, setShowCompleted] = useState(false);
-  const [showManual, setShowManual] = useState(false);
 
   const skipKey = `today-focus-skipped-${new Date().toISOString().split("T")[0]}`;
   const operatorName = localStorage.getItem("OPERATOR_NAME") || "";
@@ -192,70 +177,57 @@ export default function Home() {
   const manualCount = pendingManual.length + completedManual.length;
   const progressPct = total ? Math.round((doneCount / total) * 100) : 0;
 
+  /* ── Accordion state ── */
+  const [openSection, setOpenSection] = useState<string | null>(null);
+  const toggleSection = useCallback((id: string) => setOpenSection(p => p === id ? null : id), []);
+
   /* ── Render ───────────────────────────────────────────────────── */
   return (
     <div className="mobile-page page-wrap">
-      <div className="space-y-6">
-        {/* ── Hero greeting card (blue gradient) ── */}
-        <header className="rounded-2xl px-5 py-5 md:py-6" style={{ background: "linear-gradient(135deg, var(--brand-blue-deep) 0%, var(--brand-blue) 100%)" }}>
-          <div className="flex items-center justify-between">
+      <div className="space-y-5">
+        {/* ═══ LAYER 1: Hero card (greeting + KPI + quick actions) ═══ */}
+        <header className="rounded-2xl px-5 py-5" style={{ background: "linear-gradient(135deg, var(--brand-blue-deep) 0%, var(--brand-blue) 100%)" }}>
+          <div className="flex items-center justify-between mb-3">
             <div>
-              <p className="text-[13px] font-medium" style={{ color: "rgba(255,255,255,0.7)" }}>{greeting(t)}</p>
-              <h1 className="text-xl font-bold mt-0.5" style={{ color: "#fff" }}>
+              <p className="text-[12px] font-medium" style={{ color: "rgba(255,255,255,0.6)" }}>{greeting(t)}</p>
+              <h1 className="text-lg font-bold" style={{ color: "#fff" }}>
                 {operatorName.trim() || "Solo CEO"}
               </h1>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.2)" }}>
-                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progressPct}%`, background: "var(--accent)" }} />
-              </div>
-              <span className="text-[11px] tabular-nums font-medium" style={{ color: "rgba(255,255,255,0.7)" }}>{doneCount}/{total}</span>
-            </div>
+            <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.45)" }}>{todayStr(lang)}</span>
           </div>
-          <p className="text-[12px] mt-1" style={{ color: "rgba(255,255,255,0.5)" }}>{todayStr(lang)}</p>
+          {/* KPI row inside hero */}
+          <div className="grid grid-cols-4 gap-2 mb-4">
+            {[
+              { label: "MRR", value: loading ? "—" : `$${Number(data.mrr || 0).toLocaleString()}` },
+              { label: t("home.kpi.activeClients" as any), value: loading ? "—" : String(data.clientsCount || 0) },
+              { label: t("home.kpi.leads" as any), value: loading ? "—" : String(data.leadsCount || 0) },
+              { label: t("home.kpi.inProgress" as any), value: loading ? "—" : String(data.activeTasks || 0) },
+            ].map(kpi => (
+              <div key={kpi.label} className="text-center">
+                <div className="text-[16px] font-bold" style={{ color: "#fff" }}>{kpi.value}</div>
+                <div className="text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>{kpi.label}</div>
+              </div>
+            ))}
+          </div>
+          {/* Quick actions */}
+          <div className="flex flex-wrap gap-1.5">
+            <button onClick={() => goToTab("clients")} className="text-[11px] font-medium px-3 py-1.5 rounded-lg transition-colors" style={{ background: "var(--accent)", color: "#fff" }}>
+              <UserPlus size={11} className="inline mr-1" style={{ verticalAlign: "-1px" }} />{t("home.welcome.addLead" as any)}
+            </button>
+            <button onClick={() => goToTab("work")} className="text-[11px] font-medium px-3 py-1.5 rounded-lg transition-colors" style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}>
+              <ClipboardList size={11} className="inline mr-1" style={{ verticalAlign: "-1px" }} />{t("home.welcome.addTask" as any)}
+            </button>
+            <button onClick={() => goToTab("finance")} className="text-[11px] font-medium px-3 py-1.5 rounded-lg transition-colors" style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}>
+              <Wallet size={11} className="inline mr-1" style={{ verticalAlign: "-1px" }} />{t("home.welcome.addIncome" as any)}
+            </button>
+            <button onClick={() => { setEditKey(null); setForm(emptyForm); setShowForm(p => !p); }} className="text-[11px] font-medium px-3 py-1.5 rounded-lg transition-colors" style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}>
+              <Plus size={11} className="inline mr-1" style={{ verticalAlign: "-1px" }} />{t("home.quickMemo" as any)}
+            </button>
+          </div>
         </header>
 
-        {/* ── Quick actions (permanent) ── */}
-        <div className="flex flex-wrap gap-2">
-          <button onClick={() => goToTab("clients")} className="btn-primary text-[12px]">
-            <UserPlus size={13} /> {t("home.welcome.addLead" as any)}
-          </button>
-          <button onClick={() => goToTab("work")} className="btn-secondary text-[12px]">
-            <ClipboardList size={13} /> {t("home.welcome.addTask" as any)}
-          </button>
-          <button onClick={() => goToTab("finance")} className="btn-secondary text-[12px]">
-            <Wallet size={13} /> {t("home.welcome.addIncome" as any)}
-          </button>
-          <button onClick={() => { setEditKey(null); setForm(emptyForm); setShowForm(p => !p); }} className="btn-secondary text-[12px]">
-            <Plus size={13} /> {t("home.quickMemo" as any)}
-          </button>
-        </div>
-
-        {/* ── KPI Stats ── */}
-        {(() => {
-          const s = data.mrrSeries;
-          const mrrTrend = s && s.length >= 2 ? pctChange(s[s.length - 1].mrr, s[s.length - 2].mrr) : null;
-          const clientsTrend = data.prevClientsCount != null ? pctChange(data.clientsCount, data.prevClientsCount) : null;
-          const leadsTrend = data.prevLeadsCount != null ? pctChange(data.leadsCount, data.prevLeadsCount) : null;
-          const tasksTrend = data.prevActiveTasks != null ? pctChange(data.activeTasks, data.prevActiveTasks) : null;
-          return (
-            <section className="grid grid-cols-2 gap-3">
-              <StatCard label={t("home.kpi.mrr" as any)} value={loading ? "—" : `$${Number(data.mrr || 0).toLocaleString()}`} icon={<TrendingUp size={14} />} color="var(--success)" trend={mrrTrend} />
-              <StatCard label={t("home.kpi.activeClients" as any)} value={loading ? "—" : String(data.clientsCount || 0)} icon={<Users size={14} />} color="var(--accent)" trend={clientsTrend} />
-              <StatCard label={t("home.kpi.leads" as any)} value={loading ? "—" : String(data.leadsCount || 0)} icon={<Briefcase size={14} />} color="var(--warning)" trend={leadsTrend} />
-              <StatCard label={t("home.kpi.inProgress" as any)} value={loading ? "—" : String(data.activeTasks || 0)} icon={<CheckSquare size={14} />} color="var(--accent)" trend={tasksTrend} />
-            </section>
-          );
-        })()}
-
-        {/* ── Daily Protocol + Breakthrough Progress ── */}
-        <div className="grid gap-5 md:grid-cols-2">
-          <Suspense fallback={null}><DailyProtocol /></Suspense>
-          <Suspense fallback={null}><BreakthroughProgress /></Suspense>
-        </div>
-
-        {/* ── Today's Principle ── */}
-        <Suspense fallback={null}><TodayPrinciple /></Suspense>
+        {/* ═══ LAYER 2: Today's Focus (main content area) ═══ */}
 
         {/* ── Memo modal (portal) ── */}
         {showForm && createPortal(
@@ -342,78 +314,66 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ── Completed accordion ── */}
-        <Accordion
-          label={t("home.completed.title" as any, { count: completed.length })}
-          open={showCompleted}
-          toggle={() => setShowCompleted(p => !p)}
-        >
-          {!completed.length && <EmptyHint text={t("home.completed.empty" as any)} />}
-          <div className="card overflow-hidden">
-            {completed.map((item, i) => (
-              <CompletedRow key={item.key} item={item} saving={savingKey === item.key} onUndo={() => updateStatus(item.key, "pending")} last={i === completed.length - 1} />
-            ))}
-          </div>
-        </Accordion>
+        {/* ═══ LAYER 3: Expandable sections (accordions) ═══ */}
+        <div className="space-y-1">
+          {/* Daily Protocol */}
+          <Accordion label={t("home.protocol.title" as any)} badge={`${([] as boolean[]).length}/5`} open={openSection === "protocol"} toggle={() => toggleSection("protocol")}>
+            <Suspense fallback={null}><DailyProtocol /></Suspense>
+          </Accordion>
 
-        {/* ── Manual events accordion ── */}
-        <Accordion
-          label={t("home.events.title" as any, { count: manualCount })}
-          open={showManual}
-          toggle={() => setShowManual(p => !p)}
-        >
-          {!manualCount && <EmptyHint text={t("home.events.empty" as any)} />}
-          {(manualCount > 0) && (
+          {/* Breakthrough Plan — full task tracker */}
+          <Accordion label={t("home.breakthrough.title" as any)} open={openSection === "breakthrough"} toggle={() => toggleSection("breakthrough")}>
+            <Suspense fallback={null}><BreakthroughFull /></Suspense>
+          </Accordion>
+
+          {/* Today's Principle */}
+          <Accordion label={t("home.principle.title" as any)} open={openSection === "principle"} toggle={() => toggleSection("principle")}>
+            <Suspense fallback={null}><TodayPrinciple /></Suspense>
+          </Accordion>
+
+          {/* Completed focus */}
+          <Accordion label={t("home.completed.title" as any, { count: completed.length })} open={openSection === "completed"} toggle={() => toggleSection("completed")}>
+            {!completed.length && <EmptyHint text={t("home.completed.empty" as any)} />}
             <div className="card overflow-hidden">
-              {pendingManual.map((item, i) => (
-                <ManualRow
-                  key={item.key} item={item}
-                  saving={savingKey === item.key} deleting={deletingKey === item.key}
-                  onComplete={() => updateStatus(item.key, "completed")}
-                  onEdit={() => startEdit(item)} onDelete={() => deleteManual(item)}
-                  last={i === pendingManual.length - 1 && !completedManual.length}
-                />
-              ))}
-              {completedManual.map((item, i) => (
-                <ManualRow
-                  key={item.key} item={item} done
-                  saving={savingKey === item.key} deleting={deletingKey === item.key}
-                  onComplete={() => updateStatus(item.key, "pending")}
-                  onDelete={() => deleteManual(item)}
-                  last={i === completedManual.length - 1}
-                />
+              {completed.map((item, i) => (
+                <CompletedRow key={item.key} item={item} saving={savingKey === item.key} onUndo={() => updateStatus(item.key, "pending")} last={i === completed.length - 1} />
               ))}
             </div>
-          )}
-        </Accordion>
+          </Accordion>
+
+          {/* Manual events */}
+          <Accordion label={t("home.events.title" as any, { count: manualCount })} open={openSection === "events"} toggle={() => toggleSection("events")}>
+            {!manualCount && <EmptyHint text={t("home.events.empty" as any)} />}
+            {(manualCount > 0) && (
+              <div className="card overflow-hidden">
+                {pendingManual.map((item, i) => (
+                  <ManualRow
+                    key={item.key} item={item}
+                    saving={savingKey === item.key} deleting={deletingKey === item.key}
+                    onComplete={() => updateStatus(item.key, "completed")}
+                    onEdit={() => startEdit(item)} onDelete={() => deleteManual(item)}
+                    last={i === pendingManual.length - 1 && !completedManual.length}
+                  />
+                ))}
+                {completedManual.map((item, i) => (
+                  <ManualRow
+                    key={item.key} item={item} done
+                    saving={savingKey === item.key} deleting={deletingKey === item.key}
+                    onComplete={() => updateStatus(item.key, "pending")}
+                    onDelete={() => deleteManual(item)}
+                    last={i === completedManual.length - 1}
+                  />
+                ))}
+              </div>
+            )}
+          </Accordion>
+        </div>
       </div>
     </div>
   );
 }
 
 /* ── Sub-components ─────────────────────────────────────────────── */
-
-function StatCard({ label, value, icon, color, trend }: { label: string; value: string; icon: React.ReactNode; color: string; trend?: number | null }) {
-  return (
-    <div className="stat-card">
-      <div className="flex items-center gap-2 mb-1">
-        <div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: `color-mix(in srgb, ${color} 12%, transparent)` }}>
-          <span style={{ color }}>{icon}</span>
-        </div>
-        <span className="text-[11px] font-medium" style={{ color: "var(--text-tertiary)" }}>{label}</span>
-      </div>
-      <div className="flex items-baseline gap-1.5">
-        <span className="text-xl font-semibold tracking-tight tabular-nums" style={{ color: "var(--text)" }}>{value}</span>
-        {trend != null && trend !== 0 && (
-          <span className="flex items-center gap-0.5 text-[10px] font-medium" style={{ color: trend > 0 ? "var(--success)" : "var(--danger)" }}>
-            {trend > 0 ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
-            {Math.abs(trend)}%
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
 
 function FocusCard({ item, saving, onComplete, onSkip }: {
   item: FocusItem; saving: boolean; onComplete: () => void; onSkip: () => void;
@@ -452,16 +412,17 @@ function FocusCard({ item, saving, onComplete, onSkip }: {
   );
 }
 
-function Accordion({ label, open, toggle, children }: { label: string; open: boolean; toggle: () => void; children: React.ReactNode }) {
+function Accordion({ label, badge, open, toggle, children }: { label: string; badge?: string; open: boolean; toggle: () => void; children: React.ReactNode }) {
   return (
-    <section>
-      <button onClick={toggle} className="flex items-center gap-1.5 mb-2 group">
+    <section className="card overflow-hidden">
+      <button onClick={toggle} className="flex items-center gap-2 w-full px-4 py-3 transition-colors" style={{ background: open ? "var(--surface-alt)" : undefined }}>
         <span style={{ color: "var(--text-tertiary)" }}>
           {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
         </span>
-        <span className="text-[12px] font-medium" style={{ color: "var(--text-tertiary)" }}>{label}</span>
+        <span className="flex-1 text-left text-[13px] font-medium" style={{ color: "var(--text)" }}>{label}</span>
+        {badge && <span className="text-[11px] tabular-nums" style={{ color: "var(--text-tertiary)" }}>{badge}</span>}
       </button>
-      {open && children}
+      {open && <div className="px-4 pb-4 pt-2">{children}</div>}
     </section>
   );
 }
