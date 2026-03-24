@@ -39,6 +39,7 @@ const zh = {
   "finance.source.milestone": "里程碑",
   "finance.source.project": "项目",
   "finance.tax": "税",
+  "finance.taxIncluded": "含税",
   "finance.totalTax": "代收税款",
   "pipeline.clients.paymentMethod": "收款方式",
   "pipeline.clients.payAuto": "自动扣款",

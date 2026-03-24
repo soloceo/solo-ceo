@@ -41,6 +41,7 @@ const en: typeof zh = {
   "finance.source.milestone": "Milestone",
   "finance.source.project": "Project",
   "finance.tax": "Tax",
+  "finance.taxIncluded": "incl. tax",
   "finance.totalTax": "Tax Collected",
   "pipeline.clients.paymentMethod": "Payment Method",
   "pipeline.clients.payAuto": "Auto-billing",

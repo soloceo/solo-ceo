@@ -1091,10 +1091,18 @@ export function ClientsView() {
                           <div key={tx.id} className="rounded-lg p-3 space-y-1" style={{ background: "var(--surface-alt)", border: "1px solid var(--border)" }}>
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2 min-w-0 flex-1">
-                                <span className="text-[13px] font-semibold shrink-0" style={{ color: tx.type === "income" ? "var(--success)" : "var(--text)" }}>
-                                  {tx.type === "income" ? "+" : "-"}${Math.abs(tx.amount).toLocaleString()}
-                                </span>
-                                {Number(tx.tax_amount || 0) > 0 && <span className="text-[11px] shrink-0" style={{ color: "var(--text-secondary)" }}>+{t("finance.tax" as any)} ${Number(tx.tax_amount).toLocaleString()}</span>}
+                                {(() => {
+                                  const txAmt = Math.abs(Number(tx.amount || 0));
+                                  const txTax = Math.abs(Number(tx.tax_amount || 0));
+                                  const isInc = tx.type === "income";
+                                  const displayAmt = isInc ? txAmt : txAmt + txTax;
+                                  return (<>
+                                    <span className="text-[13px] font-semibold shrink-0" style={{ color: isInc ? "var(--success)" : "var(--text)" }}>
+                                      {isInc ? "+" : "-"}${displayAmt.toLocaleString()}
+                                    </span>
+                                    {txTax > 0 && <span className="text-[11px] shrink-0" style={{ color: "var(--text-secondary)" }}>{isInc ? `+${t("finance.tax" as any)} $${txTax.toLocaleString()}` : `${t("finance.taxIncluded" as any)} $${txTax.toLocaleString()}`}</span>}
+                                  </>);
+                                })()}
                                 <span className="text-[13px] font-medium truncate" style={{ color: "var(--text)" }}>{tx.description || tx.desc}</span>
                               </div>
                               {(!tx.source || tx.source === "manual") && (
