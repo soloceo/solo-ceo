@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useT } from "../i18n/context";
 import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh";
+import SwipeAction from "./SwipeAction";
 import { useIsMobile } from "../hooks/useIsMobile";
 import { useToast } from "../hooks/useToast";
 import { Toast } from "./Money";
@@ -808,24 +809,26 @@ const TxRow = React.memo(function TxRow({ tx, t, fmtAmt, fmtAmtColor, onEdit, on
           <span className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{stLabel(tx.status || "", t)}</span>
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">{actionBtns}</div>
         </div>
-        {/* Mobile */}
-        <div className="flex md:hidden items-center gap-3 px-4 py-2.5 border-b" style={{ borderColor: "var(--border)" }}>
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: isIncome ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)" }}>
-            {isIncome ? <ArrowUpRight size={14} style={{ color: "var(--success, #22c55e)" }} /> : <ArrowDownRight size={14} style={{ color: "var(--danger, #ef4444)" }} />}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[13px] font-medium truncate" style={{ color: "var(--text)" }}>{tx.description || tx.desc || tx.client_name || catLabel(tx.category || "", t)}</span>
-              {sourceBadge && <span className="badge text-[9px] shrink-0">{sourceBadge}</span>}
+        {/* Mobile — swipe left to delete */}
+        <SwipeAction onDelete={onDelete} disabled={isSystem}>
+          <div className="flex md:hidden items-center gap-3 px-4 py-2.5 border-b" style={{ borderColor: "var(--border)" }} onClick={isSystem ? undefined : onEdit}>
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: isIncome ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)" }}>
+              {isIncome ? <ArrowUpRight size={14} style={{ color: "var(--success, #22c55e)" }} /> : <ArrowDownRight size={14} style={{ color: "var(--danger, #ef4444)" }} />}
             </div>
-            <div className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>{tx.date || "—"} · {catLabel(tx.category || "", t)}</div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[13px] font-medium truncate" style={{ color: "var(--text)" }}>{tx.description || tx.desc || tx.client_name || catLabel(tx.category || "", t)}</span>
+                {sourceBadge && <span className="badge text-[9px] shrink-0">{sourceBadge}</span>}
+              </div>
+              <div className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>{tx.date || "—"} · {catLabel(tx.category || "", t)}</div>
+            </div>
+            <div className="text-right shrink-0">
+              <div className="text-[13px] font-semibold tabular-nums" style={{ color: fmtAmtColor(amt) }}>{fmtAmt(amt)}</div>
+              <div className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>{stLabel(tx.status || "", t)}</div>
+            </div>
+            {isSystem && <span className="p-1" style={{ color: "var(--text-tertiary)" }}><Lock size={12} /></span>}
           </div>
-          <div className="text-right shrink-0">
-            <div className="text-[13px] font-semibold tabular-nums" style={{ color: fmtAmtColor(amt) }}>{fmtAmt(amt)}</div>
-            <div className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>{stLabel(tx.status || "", t)}</div>
-          </div>
-          <div className="flex gap-0.5 shrink-0">{actionBtns}</div>
-        </div>
+        </SwipeAction>
       </>
     );
   }

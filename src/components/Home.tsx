@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback, lazy, Suspense } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef, lazy, Suspense } from "react";
 import { createPortal } from "react-dom";
 import {
   Check, Undo2, Plus, Pencil, Trash2, X, ChevronDown, ChevronRight,
@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useT } from "../i18n/context";
 import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh";
+import { usePullToRefresh } from "../hooks/usePullToRefresh";
 
 const DailyProtocol = lazy(() => import("./DailyProtocol"));
 const BreakthroughFull = lazy(() => import("./Breakthrough"));
@@ -94,6 +95,10 @@ export default function Home() {
   }, []);
 
   useRealtimeRefresh(['leads', 'clients', 'tasks', 'finance_transactions', 'today_focus_state', 'today_focus_manual', 'payment_milestones'], fetchData);
+
+  // Pull-to-refresh (mobile)
+  const scrollRef = useRef<HTMLDivElement>(null);
+  usePullToRefresh(scrollRef, fetchData);
 
   useEffect(() => {
     try { localStorage.setItem(skipKey, JSON.stringify(skipped)); } catch {}
@@ -189,7 +194,7 @@ export default function Home() {
 
   /* ── Render ───────────────────────────────────────────────────── */
   return (
-    <div className="mobile-page page-wrap">
+    <div ref={scrollRef} className="mobile-page page-wrap">
       <div className="space-y-5">
         {/* ═══ LAYER 1: Hero card (greeting + KPI + quick actions) ═══ */}
         <header className="rounded-2xl overflow-hidden" style={{ background: "linear-gradient(135deg, var(--brand-blue-deep) 0%, var(--brand-blue) 100%)" }}>
