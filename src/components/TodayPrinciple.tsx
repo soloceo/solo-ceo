@@ -243,7 +243,15 @@ export default function TodayPrinciple() {
                           </button>
 
                           {/* Expanded detail */}
+                          <AnimatePresence>
                           {isExpanded && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                              className="overflow-hidden"
+                            >
                             <div className="px-4 pt-3 pb-5 space-y-4" style={{ borderTop: "1px solid var(--border)" }}>
                               {/* Core idea — highlighted card */}
                               <div className="p-4 rounded-xl" style={{ background: "var(--surface-alt)", borderLeft: "3px solid var(--accent)" }}>
@@ -316,7 +324,9 @@ export default function TodayPrinciple() {
                                 </div>
                               </div>
                             </div>
+                            </motion.div>
                           )}
+                          </AnimatePresence>
                         </div>
                       );
                     })}
