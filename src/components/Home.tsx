@@ -196,22 +196,23 @@ export default function Home() {
   return (
     <div className="mobile-page page-wrap">
       <div className="space-y-6">
-        {/* ── Greeting row ── */}
-        <header className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div className="min-w-0">
-            <h1 className="text-lg font-semibold" style={{ color: "var(--text)" }}>
-              {greeting(t)}{operatorName.trim() ? `，${operatorName.trim()}` : ""}
-            </h1>
-            <div className="flex items-center gap-2.5 mt-0.5">
-              <span className="text-[13px]" style={{ color: "var(--text-tertiary)" }}>{todayStr(lang)}</span>
-              <div className="flex items-center gap-1.5">
-                <div className="w-16 h-1 rounded-full overflow-hidden" style={{ background: "var(--border)" }}>
-                  <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progressPct}%`, background: "var(--accent)" }} />
-                </div>
-                <span className="text-[11px] tabular-nums font-medium" style={{ color: "var(--text-tertiary)" }}>{doneCount}/{total}</span>
+        {/* ── Hero greeting card (blue gradient) ── */}
+        <header className="rounded-2xl px-5 py-5 md:py-6" style={{ background: "linear-gradient(135deg, var(--brand-blue-deep) 0%, var(--brand-blue) 100%)" }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[13px] font-medium" style={{ color: "rgba(255,255,255,0.7)" }}>{greeting(t)}</p>
+              <h1 className="text-xl font-bold mt-0.5" style={{ color: "#fff" }}>
+                {operatorName.trim() || "Solo CEO"}
+              </h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.2)" }}>
+                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progressPct}%`, background: "var(--accent)" }} />
               </div>
+              <span className="text-[11px] tabular-nums font-medium" style={{ color: "rgba(255,255,255,0.7)" }}>{doneCount}/{total}</span>
             </div>
           </div>
+          <p className="text-[12px] mt-1" style={{ color: "rgba(255,255,255,0.5)" }}>{todayStr(lang)}</p>
         </header>
 
         {/* ── Quick actions (permanent) ── */}

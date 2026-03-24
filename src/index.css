@@ -25,6 +25,11 @@
   --accent-light: #FDF8EC;
   --accent-hover: #D4920E;
 
+  /* ── Brand Blue (大面积氛围色) ──────────────────────────────── */
+  --brand-blue: #4A86C8;
+  --brand-blue-deep: #1B3A5C;
+  --brand-blue-light: #EAF1F9;
+
   /* ── Semantic ─────────────────────────────────────────────────── */
   --success: #059669;
   --success-light: #ECFDF5;
@@ -56,6 +61,9 @@
   --accent: #F2C94C;
   --accent-light: #3D3210;
   --accent-hover: #E8A317;
+  --brand-blue: #6BA3D6;
+  --brand-blue-deep: #1E3F63;
+  --brand-blue-light: #1A2A3D;
   --success: #34D399;
   --success-light: #064E3B;
   --warning: #FBBF24;
