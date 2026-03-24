@@ -218,10 +218,11 @@ function App() {
     >
       {/* ═══════════ Desktop Sidebar ═══════════ */}
       <aside
-        className="hidden lg:flex flex-col shrink-0 transition-[width] duration-200 ease-out"
+        className="hidden lg:flex flex-col shrink-0 border-r transition-[width] duration-200 ease-out"
         style={{
           width: sidebarExpanded ? 192 : 56,
-          background: "var(--brand-blue-deep)",
+          borderColor: "var(--border)",
+          background: "var(--bg)",
           WebkitAppRegion: "no-drag",
         } as React.CSSProperties}
       >
@@ -232,7 +233,7 @@ function App() {
         <button
           onClick={() => setSidebarExpanded(p => !p)}
           className="mx-auto mb-3 flex h-7 w-7 items-center justify-center rounded-md transition-opacity hover:opacity-80"
-          style={{ color: "rgba(255,255,255,0.4)" }}
+          style={{ color: "var(--text-tertiary)" }}
           aria-label={sidebarExpanded ? t("app.collapseSidebar" as any) : t("app.expandSidebar" as any)}
         >
           {sidebarExpanded ? <PanelLeftClose size={15} /> : <PanelLeft size={15} />}
@@ -259,7 +260,7 @@ function App() {
           <div className={`flex items-center ${sidebarExpanded ? "px-2 py-1.5" : "justify-center py-1.5"}`}>
             <SyncIndicator isOnline={isOnline} syncStatus={syncStatus} pendingOps={pendingOps} compact={!sidebarExpanded} />
             {sidebarExpanded && (
-              <span className="ml-1.5 text-[11px] truncate" style={{ color: "rgba(255,255,255,0.45)" }}>
+              <span className="ml-1.5 text-[11px] truncate" style={{ color: "var(--text-tertiary)" }}>
                 {syncStatus === "syncing"
                   ? (pendingOps > 0 ? `${t("settings.sync.syncing" as any)}` : t("settings.sync.syncing" as any))
                   : !isOnline
@@ -273,7 +274,7 @@ function App() {
               onClick={() => setAvatarMenu(p => !p)}
               className="flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors w-full"
               style={{
-                background: avatarMenu ? "rgba(255,255,255,0.1)" : "transparent",
+                background: avatarMenu ? "var(--surface-alt)" : "transparent",
               }}
               aria-label="Settings"
             >
@@ -289,7 +290,7 @@ function App() {
                   : operatorInitial}
               </div>
               {sidebarExpanded && (
-                <span className="text-[13px] font-medium truncate" style={{ color: "rgba(255,255,255,0.85)" }}>
+                <span className="text-[13px] font-medium truncate" style={{ color: "var(--text)" }}>
                   {operatorDisplayName}
                 </span>
               )}
@@ -427,8 +428,9 @@ const SidebarItem = React.memo(function SidebarItem({
       aria-current={active ? "page" : undefined}
       className="relative flex items-center gap-2.5 rounded-lg px-2 py-[7px] text-[13px] font-medium transition-colors"
       style={{
-        background: active ? "rgba(255,255,255,0.12)" : "transparent",
-        color: active ? "#fff" : "rgba(255,255,255,0.55)",
+        background: active ? "var(--surface)" : "transparent",
+        color: active ? "var(--text)" : "var(--text-secondary)",
+        boxShadow: active ? "var(--shadow-xs)" : "none",
       }}
     >
       {/* Left accent bar */}
@@ -440,7 +442,7 @@ const SidebarItem = React.memo(function SidebarItem({
           transition={{ type: "spring", damping: 28, stiffness: 320 }}
         />
       )}
-      <span className="shrink-0" style={{ color: active ? "var(--accent)" : "rgba(255,255,255,0.45)" }}>{icon}</span>
+      <span className="shrink-0" style={{ color: active ? "var(--accent)" : "var(--text-tertiary)" }}>{icon}</span>
       {expanded && <span className="whitespace-nowrap">{label}</span>}
     </button>
   );
