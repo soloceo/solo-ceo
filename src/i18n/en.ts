@@ -730,6 +730,8 @@ const en: typeof zh = {
   "evolution.unmark": "Unmark",
   "evolution.checkQuestions": "Daily Checks",
   "evolution.antiPatterns": "Anti-Patterns",
+  "evolution.explanation": "Deep Dive",
+  "evolution.actionSteps": "Action Steps",
   "evolution.categoryProgress": "{done}/{total} mastered",
   "evolution.protocolProgress": "Daily Protocol",
   "evolution.resetProtocol": "Reset",

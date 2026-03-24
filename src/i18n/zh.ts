@@ -728,6 +728,8 @@ const zh = {
   "evolution.unmark": "取消掌握",
   "evolution.checkQuestions": "每日检验",
   "evolution.antiPatterns": "反面模式",
+  "evolution.explanation": "深度解读",
+  "evolution.actionSteps": "行动指南",
   "evolution.categoryProgress": "{done}/{total} 已掌握",
   "evolution.protocolProgress": "今日协议",
   "evolution.resetProtocol": "重置",

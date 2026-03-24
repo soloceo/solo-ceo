@@ -18,6 +18,7 @@ export default function TodayPrinciple() {
   const [expanded, setExpanded] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [openCat, setOpenCat] = useState<string | null>(null);
+  const [expandedPr, setExpandedPr] = useState<string | null>(null);
 
   const { settings, loaded, save } = useAppSettings();
 
@@ -178,24 +179,98 @@ export default function TodayPrinciple() {
                       </span>
                       {isOpen ? <ChevronDown size={16} style={{ color: "var(--text-secondary)" }} /> : <ChevronRight size={16} style={{ color: "var(--text-secondary)" }} />}
                     </button>
-                    {isOpen && cat.principles.map(pr => (
-                      <div key={pr.id} className="flex items-center gap-2 px-4 py-3" style={{ borderTop: "1px solid var(--border)" }}>
-                        <span className="flex-1 text-[13px] min-w-0 truncate">{L(pr.name)}</span>
-                        <button
-                          onClick={() => {
-                            const next = { ...mastered };
-                            if (mastered[pr.id]) delete next[pr.id]; else next[pr.id] = true;
-                            persistMastered(next);
-                          }}
-                          className="badge shrink-0 cursor-pointer text-[11px]"
-                          style={mastered[pr.id]
-                            ? { background: "var(--success)", color: "#fff", border: "none" }
-                            : { background: "var(--surface-alt)", color: "var(--text-secondary)" }}
-                        >
-                          {mastered[pr.id] ? <><Award size={16} /> {t("evolution.mastered" as any)}</> : t("evolution.markMastered" as any)}
-                        </button>
-                      </div>
-                    ))}
+                    {isOpen && cat.principles.map(pr => {
+                      const isExpanded = expandedPr === pr.id;
+                      return (
+                        <div key={pr.id} style={{ borderTop: "1px solid var(--border)" }}>
+                          {/* Principle header — clickable */}
+                          <button
+                            onClick={() => setExpandedPr(isExpanded ? null : pr.id)}
+                            className="w-full flex items-center gap-2 px-4 py-3 text-left transition-colors"
+                            style={{ background: isExpanded ? "var(--surface-alt)" : undefined }}
+                          >
+                            <span className="flex-1 text-[13px] font-medium min-w-0">{L(pr.name)}</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const next = { ...mastered };
+                                if (mastered[pr.id]) delete next[pr.id]; else next[pr.id] = true;
+                                persistMastered(next);
+                              }}
+                              className="badge shrink-0 cursor-pointer text-[11px]"
+                              style={mastered[pr.id]
+                                ? { background: "var(--success)", color: "#fff", border: "none" }
+                                : { background: "var(--surface-alt)", color: "var(--text-secondary)" }}
+                            >
+                              {mastered[pr.id] ? <><Award size={16} /> {t("evolution.mastered" as any)}</> : t("evolution.markMastered" as any)}
+                            </button>
+                            {isExpanded ? <ChevronDown size={16} style={{ color: "var(--text-secondary)" }} /> : <ChevronRight size={16} style={{ color: "var(--text-secondary)" }} />}
+                          </button>
+
+                          {/* Expanded detail */}
+                          {isExpanded && (
+                            <div className="px-4 pb-4 space-y-3">
+                              {/* Core idea */}
+                              <div className="p-3 rounded-lg" style={{ background: "var(--surface-alt)" }}>
+                                <p className="text-[13px] leading-relaxed" style={{ color: "var(--text)" }}>{L(pr.core)}</p>
+                              </div>
+
+                              {/* Deep explanation */}
+                              {pr.explanation && (
+                                <div>
+                                  <div className="section-label flex items-center gap-1 mb-1">
+                                    <BookOpen size={16} /> {t("evolution.explanation" as any)}
+                                  </div>
+                                  <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{L(pr.explanation)}</p>
+                                </div>
+                              )}
+
+                              {/* Action steps */}
+                              {pr.actionSteps && pr.actionSteps.length > 0 && (
+                                <div>
+                                  <div className="section-label flex items-center gap-1 mb-1" style={{ color: "var(--accent)" }}>
+                                    <ChevronRight size={16} /> {t("evolution.actionSteps" as any)}
+                                  </div>
+                                  <ol className="space-y-1 list-decimal list-inside">
+                                    {pr.actionSteps.map((s: any, i: number) => (
+                                      <li key={i} className="text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{L(s)}</li>
+                                    ))}
+                                  </ol>
+                                </div>
+                              )}
+
+                              {/* Daily checks */}
+                              <div>
+                                <div className="section-label flex items-center gap-1 mb-1">
+                                  <HelpCircle size={16} /> {t("evolution.checkQuestions" as any)}
+                                </div>
+                                <ul className="space-y-1">
+                                  {pr.checks.map((c: any, i: number) => (
+                                    <li key={i} className="text-[13px] flex items-start gap-2" style={{ color: "var(--text-secondary)" }}>
+                                      <span style={{ color: "var(--accent)" }}>?</span> {L(c)}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+
+                              {/* Anti-patterns */}
+                              <div>
+                                <div className="section-label flex items-center gap-1 mb-1" style={{ color: "var(--danger)" }}>
+                                  <AlertTriangle size={16} /> {t("evolution.antiPatterns" as any)}
+                                </div>
+                                <ul className="space-y-1">
+                                  {pr.antiPatterns.map((a: any, i: number) => (
+                                    <li key={i} className="text-[13px] flex items-start gap-2" style={{ color: "var(--text-secondary)" }}>
+                                      <span style={{ color: "var(--danger)" }}>✗</span> {L(a)}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 );
               })}
