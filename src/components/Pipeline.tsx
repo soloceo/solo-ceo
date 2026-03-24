@@ -62,9 +62,9 @@ export default function Pipeline() {
 
   return (
     <div className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col px-4 py-3 md:px-6 md:py-4 lg:px-8 lg:py-5 relative">
-      <header className="flex items-center justify-between mb-4">
-        <h1 className="page-title">{t("pipeline.pageTitle" as any)}</h1>
-        <div className="flex items-center gap-2">
+      <header className="mb-4">
+        <div className="flex items-center justify-between mb-3">
+          <h1 className="page-title">{t("pipeline.pageTitle" as any)}</h1>
           <button
             onClick={() => setSalesToolsOpen(true)}
             className="btn-ghost flex items-center gap-1.5 text-[13px] font-medium"
@@ -73,13 +73,13 @@ export default function Pipeline() {
             <Briefcase size={16} />
             <span className="hidden sm:inline">{t("pipeline.salesTools" as any)}</span>
           </button>
-          <div className="segment-switcher">
-            {(["leads", "clients"] as const).map(s => (
-              <button key={s} onClick={() => setSegment(s)} data-active={segment === s}>
-                {s === "leads" ? t("pipeline.leads" as any) : t("pipeline.clients" as any)}
-              </button>
-            ))}
-          </div>
+        </div>
+        <div className="segment-switcher">
+          {(["leads", "clients"] as const).map(s => (
+            <button key={s} onClick={() => setSegment(s)} data-active={segment === s}>
+              {s === "leads" ? t("pipeline.leads" as any) : t("pipeline.clients" as any)}
+            </button>
+          ))}
         </div>
       </header>
       {segment === "leads" ? <LeadsView /> : <ClientsView />}
@@ -577,13 +577,19 @@ export function ClientsView() {
         <div className="stat-card"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: "color-mix(in srgb, var(--success) 12%, transparent)" }}><CircleCheck size={16} style={{ color: "var(--success)" }} /></div><span className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>{t("pipeline.clients.totalReceived" as any)}</span></div><span className="text-xl font-semibold tabular-nums" style={{ color: "var(--success)" }}>${totalReceived.toLocaleString()}</span></div>
       </div>
 
-      <div className="flex flex-col md:flex-row md:items-center gap-3 mb-4">
-        <div className="relative flex-1 md:max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={16} style={{ color: "var(--text-secondary)" }} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t("pipeline.clients.search" as any)} className="input-base w-full pl-9 pr-3 py-2 text-[13px]" />
+      <div className="space-y-3 mb-4">
+        {/* Search + Actions row */}
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={16} style={{ color: "var(--text-secondary)" }} />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t("pipeline.clients.search" as any)} className="input-base w-full pl-9 pr-3 py-2 text-[13px]" />
+          </div>
+          <button onClick={exportClientsCSV} className="btn-ghost text-[13px] shrink-0" style={{ border: "1px solid var(--border)" }}><Download size={16} /> CSV</button>
+          <button onClick={() => openPanel()} className="btn-primary text-[13px] shrink-0"><Plus size={16} /> {t("pipeline.addClient" as any)}</button>
         </div>
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <Filter size={16} style={{ color: "var(--text-secondary)" }} />
+        {/* Filters row */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <Filter size={16} className="shrink-0" style={{ color: "var(--text-secondary)" }} />
           <select value={filterSt} onChange={e => setFilterSt(e.target.value)} className="input-base px-2 py-2 text-[13px]">
             <option value="All">{t("common.all" as any)}</option><option value="Active">{t("common.active" as any)}</option><option value="Paused">{t("common.paused" as any)}</option>
           </select>
@@ -599,9 +605,6 @@ export function ClientsView() {
             </select>
           )}
         </div>
-        <div className="flex-1" />
-        <button onClick={exportClientsCSV} className="btn-ghost text-[13px]" style={{ border: "1px solid var(--border)" }}><Download size={16} /> CSV</button>
-        <button onClick={() => openPanel()} className="btn-primary text-[13px]"><Plus size={16} /> {t("pipeline.addClient" as any)}</button>
       </div>
 
       {/* Mobile cards */}
