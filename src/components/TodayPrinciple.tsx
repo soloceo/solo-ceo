@@ -92,37 +92,72 @@ export default function TodayPrinciple() {
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="px-4 pb-4 space-y-3" style={{ borderTop: "1px solid var(--border)" }}>
-                {/* check questions */}
-                <div className="pt-3">
-                  <div className="section-label flex items-center gap-1 mb-1.5">
-                    <HelpCircle size={16} /> {t("evolution.checkQuestions" as any)}
+              <div className="px-4 pb-5 space-y-4" style={{ borderTop: "1px solid var(--border)" }}>
+                {/* Deep explanation */}
+                {todayPrinciple.explanation && (
+                  <div className="space-y-2 pt-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)" }}>
+                        <BookOpen size={16} style={{ color: "var(--accent)" }} />
+                      </div>
+                      <span className="text-[13px] font-semibold">{t("evolution.explanation" as any)}</span>
+                    </div>
+                    <p className="text-[13px] leading-[1.8]" style={{ color: "var(--text-secondary)" }}>{L(todayPrinciple.explanation)}</p>
                   </div>
-                  <ul className="space-y-1">
-                    {todayPrinciple.checks.map((c, i) => (
-                      <li key={i} className="text-[13px] flex items-start gap-1.5" style={{ color: "var(--text-secondary)" }}>
-                        <span style={{ color: "var(--accent)" }}>?</span> {L(c)}
-                      </li>
-                    ))}
-                  </ul>
+                )}
+
+                {/* Action steps */}
+                {todayPrinciple.actionSteps && todayPrinciple.actionSteps.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: "color-mix(in srgb, var(--success) 12%, transparent)" }}>
+                        <Check size={16} style={{ color: "var(--success)" }} />
+                      </div>
+                      <span className="text-[13px] font-semibold" style={{ color: "var(--success)" }}>{t("evolution.actionSteps" as any)}</span>
+                    </div>
+                    <div className="space-y-2">
+                      {todayPrinciple.actionSteps.map((s, i) => (
+                        <div key={i} className="flex items-start gap-3 p-3 rounded-lg" style={{ background: "var(--surface-alt)" }}>
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold" style={{ background: "var(--success)", color: "#fff" }}>{i + 1}</span>
+                          <p className="text-[13px] leading-relaxed" style={{ color: "var(--text)" }}>{L(s)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Two-column: checks + anti-patterns */}
+                <div className="grid md:grid-cols-2 gap-3">
+                  <div className="p-3 rounded-xl" style={{ background: "var(--surface-alt)" }}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <HelpCircle size={16} style={{ color: "var(--accent)" }} />
+                      <span className="text-[11px] font-semibold">{t("evolution.checkQuestions" as any)}</span>
+                    </div>
+                    <ul className="space-y-2">
+                      {todayPrinciple.checks.map((c, i) => (
+                        <li key={i} className="text-[13px] flex items-start gap-2 leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                          <span className="shrink-0 mt-0.5" style={{ color: "var(--accent)" }}>&#10148;</span> {L(c)}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="p-3 rounded-xl" style={{ background: "color-mix(in srgb, var(--danger) 4%, transparent)" }}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertTriangle size={16} style={{ color: "var(--danger)" }} />
+                      <span className="text-[11px] font-semibold" style={{ color: "var(--danger)" }}>{t("evolution.antiPatterns" as any)}</span>
+                    </div>
+                    <ul className="space-y-2">
+                      {todayPrinciple.antiPatterns.map((a, i) => (
+                        <li key={i} className="text-[13px] flex items-start gap-2 leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                          <span className="shrink-0 mt-0.5" style={{ color: "var(--danger)" }}>&#10006;</span> {L(a)}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
 
-                {/* anti-patterns */}
-                <div>
-                  <div className="section-label flex items-center gap-1 mb-1.5" style={{ color: "var(--danger)" }}>
-                    <AlertTriangle size={16} /> {t("evolution.antiPatterns" as any)}
-                  </div>
-                  <ul className="space-y-1">
-                    {todayPrinciple.antiPatterns.map((a, i) => (
-                      <li key={i} className="text-[13px] flex items-start gap-1.5" style={{ color: "var(--text-secondary)" }}>
-                        <span style={{ color: "var(--danger)" }}>✗</span> {L(a)}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* mastery toggle */}
-                <div className="flex items-center justify-between pt-2" style={{ borderTop: "1px solid var(--border)" }}>
+                {/* mastery toggle + collapse */}
+                <div className="flex items-center justify-between pt-3" style={{ borderTop: "1px solid var(--border)" }}>
                   <button
                     onClick={() => {
                       const next = { ...mastered };
