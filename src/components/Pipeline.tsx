@@ -905,7 +905,7 @@ export function ClientsView() {
                     </FL>
                     <div className="border-t" style={{ borderColor: "var(--border)" }} />
                     <span className="section-label">{t("pipeline.clients.projectTimeline" as any)}</span>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <FL label={t("pipeline.clients.projectStart" as any)}><input type="date" value={form.subscription_start_date} onChange={e => setForm(p => ({ ...p, subscription_start_date: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
                       <FL label={t("pipeline.clients.projectEnd" as any)}><input type="date" value={form.project_end_date} onChange={e => setForm(p => ({ ...p, project_end_date: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
                     </div>
@@ -1140,7 +1140,7 @@ export function ClientsView() {
                               <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>{editTxId ? t("common.edit" as any) : t("pipeline.tx.add" as any)}</span>
                               <button onClick={() => { setShowTxForm(false); setEditTxId(null); setTxForm(emptyTx); }} className="btn-ghost p-0.5"><X size={16} /></button>
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               <FL label={t("pipeline.tx.date" as any)}><input type="date" value={txForm.date} onChange={e => setTxForm(p => ({ ...p, date: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
                               <FL label={t("pipeline.tx.category" as any)}><select value={txForm.category} onChange={e => setTxForm(p => ({ ...p, category: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]">{TX_CATEGORIES.map(c => <option key={c} value={c}>{catLabel(c, t)}</option>)}</select></FL>
                             </div>

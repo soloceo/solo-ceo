@@ -666,7 +666,7 @@ export default function Finance() {
 
               {/* Form */}
               <form id="finance-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto overflow-x-hidden p-5 space-y-4 ios-scroll">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <FL>{t("money.form.date" as any)}</FL>
                     <input type="date" required value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} className="input-base w-full px-3 py-2 text-[13px]" />

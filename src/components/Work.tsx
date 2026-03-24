@@ -293,7 +293,7 @@ export default function Work() {
                     <FL label={t("work.form.title" as any)}>
                       <input required value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder={t("work.form.titlePlaceholder" as any)} className="input-base w-full px-3 py-2 text-[13px]" />
                     </FL>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <FL label={t("work.form.client" as any)}>
                         <select value={form.client} onChange={e => setForm(p => ({ ...p, client: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]">
                           <option value="">{t("work.form.clientNone" as any)}</option>

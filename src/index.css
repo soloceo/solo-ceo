@@ -328,6 +328,19 @@ button:disabled {
   textarea.input-base {
     min-height: 80px;
   }
+  /* Date inputs: prevent overflow on mobile (Chinese locale shows "2026年3月19日") */
+  input[type="date"].input-base {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  @media (max-width: 767px) {
+    input[type="date"].input-base {
+      font-size: 12px;
+      padding-left: 8px;
+      padding-right: 4px;
+    }
+  }
   .input-base:hover {
     border-color: var(--border-strong);
   }
