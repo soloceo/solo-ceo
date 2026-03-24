@@ -593,13 +593,26 @@ export default function Settings() {
         </button>
 
         {/* ── Version info ── */}
-        <div className="text-center py-4 space-y-1">
+        <div className="text-center py-4 space-y-2">
           <div className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
             {t("auth.title" as any)} v{__APP_VERSION__}
           </div>
-          <div className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-            {t("settings.version.checkUpdate" as any)}
-          </div>
+          <button
+            onClick={async () => {
+              if ('serviceWorker' in navigator) {
+                const reg = await navigator.serviceWorker.getRegistration();
+                if (reg) {
+                  await reg.update();
+                  if (reg.waiting) { reg.waiting.postMessage({ type: 'SKIP_WAITING' }); }
+                }
+              }
+              window.location.reload();
+            }}
+            className="btn-ghost text-[11px] px-3 py-1.5 rounded-md mx-auto"
+            style={{ color: 'var(--accent)' }}
+          >
+            {t("settings.version.forceUpdate" as any)}
+          </button>
         </div>
 
         {/* Bottom spacer for mobile */}
