@@ -188,6 +188,27 @@ function App() {
     return () => window.removeEventListener("navigate-tab", handler);
   }, []);
 
+  // Desktop keyboard shortcuts: 1-5 to switch tabs, D to toggle dark mode
+  React.useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      // Skip if user is typing in an input/textarea/contenteditable
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if ((e.target as HTMLElement)?.isContentEditable) return;
+
+      const TAB_KEYS: Record<string, TabId> = {
+        "1": "home", "2": "work", "3": "clients", "4": "finance", "5": "settings",
+      };
+
+      if (TAB_KEYS[e.key]) {
+        e.preventDefault();
+        setActiveTab(TAB_KEYS[e.key]);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
   // Sync operator profile + mobile nav visibility
   React.useEffect(() => {
     const syncProfile = () => {
@@ -270,8 +291,18 @@ function App() {
           ))}
         </nav>
 
-        {/* Bottom area: sync status + settings avatar */}
+        {/* Bottom area: dark mode + sync status + settings avatar */}
         <div className="mt-auto flex flex-col gap-1 px-2 pb-3">
+          {/* Dark mode toggle */}
+          <button
+            onClick={toggleDarkMode}
+            className={`flex items-center gap-2.5 rounded-lg px-2 py-[7px] text-[13px] font-medium transition-colors hover:bg-[var(--surface-alt)] ${sidebarExpanded ? "" : "justify-center"}`}
+            style={{ color: "var(--text-secondary)" }}
+            aria-label={darkMode ? t("app.lightMode" as any) : t("app.darkMode" as any)}
+          >
+            {darkMode ? <Sun size={15} /> : <Moon size={15} />}
+            {sidebarExpanded && <span>{darkMode ? t("app.lightMode" as any) : t("app.darkMode" as any)}</span>}
+          </button>
           {/* Sync status */}
           <div className={`flex items-center ${sidebarExpanded ? "px-2 py-2" : "justify-center py-2"}`}>
             <SyncIndicator isOnline={isOnline} syncStatus={syncStatus} pendingOps={pendingOps} compact={!sidebarExpanded} />
