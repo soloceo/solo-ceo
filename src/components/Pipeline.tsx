@@ -567,7 +567,7 @@ export function ClientsView() {
   const padBot = vItems.length > 0 ? rowV.getTotalSize() - vItems[vItems.length - 1].end : 0;
 
   return (
-    <div className="max-w-[960px] mx-auto">
+    <div>
       {toast && <Toast msg={toast} />}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
@@ -636,14 +636,14 @@ export function ClientsView() {
 
       {/* Desktop table */}
       <div ref={parentRef} className="hidden md:block card flex-1 overflow-auto min-h-[400px]">
-        <table className="w-full text-left min-w-[860px]">
+        <table className="w-full text-left min-w-[960px]">
           <thead className="sticky top-0 z-10" style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
             <tr className="section-label">
-              <th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.name" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.contact" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.type" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.plan" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.status" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.expectedActual" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.taxSetting" as any)}</th><th className="px-4 py-3 text-right font-semibold">{t("pipeline.clients.table.actions" as any)}</th>
+              <th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.name" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.contact" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.type" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.plan" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.status" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.table.expectedActual" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.startDate" as any)}</th><th className="px-4 py-3 font-semibold">{t("pipeline.clients.taxSetting" as any)}</th><th className="px-4 py-3 text-right font-semibold">{t("pipeline.clients.table.actions" as any)}</th>
             </tr>
           </thead>
           <tbody className="text-[13px]">
-            {padTop > 0 && <tr><td style={{ height: padTop, padding: 0 }} colSpan={8} /></tr>}
+            {padTop > 0 && <tr><td style={{ height: padTop, padding: 0 }} colSpan={9} /></tr>}
             {vItems.map(vr => {
               const c = filtered[vr.index];
               const plan = c.plan_tier === "Basic" ? t("pipeline.convert.planBasic" as any) : c.plan_tier === "Pro" ? t("pipeline.convert.planPro" as any) : c.plan_tier === "Enterprise" ? t("pipeline.convert.planEnterprise" as any) : (c.plan_tier || c.plan);
@@ -663,12 +663,13 @@ export function ClientsView() {
                     {(() => { const cReceived = finTxs.filter((tx: any) => tx.type === "income" && (tx.status || "已完成") === "已完成" && tx.client_id === c.id).reduce((s: number, tx: any) => s + Number(tx.amount || 0), 0); return cReceived > 0 ? <div className="text-[11px]" style={{ color: "var(--success)" }}>{t("pipeline.clients.received" as any)} ${cReceived.toLocaleString()}</div> : null; })()}
                     {c.billing_type === "subscription" && <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>${Number(c.mrr || 0).toLocaleString()}{t("pipeline.clients.perMonth" as any)}</div>}
                   </td>
+                  <td className="px-4 py-3 text-[13px]" style={{ color: "var(--text-secondary)" }}>{c.subscription_start_date || c.joined_at?.split("T")[0] || "—"}</td>
                   <td className="px-4 py-3">{c.tax_mode && c.tax_mode !== "none" ? <span className="badge" style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)" }}>{c.tax_mode === "exclusive" ? t("money.form.taxExclBtn" as any) : t("money.form.taxIncl" as any)} {c.tax_rate}%</span> : <span style={{ color: "var(--text-secondary)" }}>—</span>}</td>
                   <td className="px-4 py-3 text-right"><button onClick={e => { e.stopPropagation(); openPanel(c); }} className="btn-ghost text-[11px] opacity-0 group-hover:opacity-100"><Edit2 size={16} /> {t("common.edit" as any)}</button></td>
                 </tr>
               );
             })}
-            {padBot > 0 && <tr><td style={{ height: padBot, padding: 0 }} colSpan={8} /></tr>}
+            {padBot > 0 && <tr><td style={{ height: padBot, padding: 0 }} colSpan={9} /></tr>}
           </tbody>
         </table>
         {!filtered.length && <div className="p-8 text-center text-[13px]" style={{ color: "var(--text-secondary)" }}>{t("pipeline.clients.noMatch" as any)}</div>}

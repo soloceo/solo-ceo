@@ -277,6 +277,7 @@ const zh = {
   "pipeline.clients.drivePlaceholder": "粘贴 Google Drive 文件夹链接...",
   "pipeline.clients.openDrive": "打开 Google Drive",
   "pipeline.clients.taxSetting": "税务设置",
+  "pipeline.clients.startDate": "开始日期",
   "pipeline.clients.projectTimeline": "项目周期",
   "pipeline.clients.projectStart": "开始日期",
   "pipeline.clients.projectEnd": "结束日期",

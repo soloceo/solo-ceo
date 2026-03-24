@@ -279,6 +279,7 @@ const en: typeof zh = {
   "pipeline.clients.drivePlaceholder": "Paste Google Drive folder URL...",
   "pipeline.clients.openDrive": "Open Google Drive",
   "pipeline.clients.taxSetting": "Tax Setting",
+  "pipeline.clients.startDate": "Start Date",
   "pipeline.clients.projectTimeline": "Project Timeline",
   "pipeline.clients.projectStart": "Start Date",
   "pipeline.clients.projectEnd": "End Date",
