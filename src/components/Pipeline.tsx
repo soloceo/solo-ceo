@@ -277,7 +277,7 @@ export function LeadsView() {
                 </div>
                 <button onClick={() => setShowPanel(false)} className="btn-ghost p-1">{isMobile ? <X size={16} /> : <PanelRightClose size={16} />}</button>
               </div>
-              <div className="flex-1 overflow-y-auto ios-scroll p-5 space-y-3">
+              <div className="flex-1 overflow-y-auto overflow-x-hidden ios-scroll p-5 space-y-3">
                 <div className="space-y-3">
                   <FL label={t("pipeline.form.name" as any)}><input required value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
                   <div className="grid grid-cols-2 gap-3">
@@ -729,7 +729,7 @@ export function ClientsView() {
                 </div>
                 <button onClick={() => setShowPanel(false)} className="btn-ghost p-1">{isMobile ? <X size={16} /> : <PanelRightClose size={16} />}</button>
               </div>
-              <div className="flex-1 overflow-y-auto ios-scroll p-5 space-y-3">
+              <div className="flex-1 overflow-y-auto overflow-x-hidden ios-scroll p-5 space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <FL label={t("pipeline.clients.companyName" as any)}><input required value={form.company_name} onChange={e => setForm(p => ({ ...p, company_name: e.target.value, name: e.target.value || p.contact_name }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
                   <FL label={t("pipeline.clients.contactName" as any)}><input value={form.contact_name} onChange={e => setForm(p => ({ ...p, contact_name: e.target.value, name: p.company_name || e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>

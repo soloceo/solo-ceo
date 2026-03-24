@@ -665,7 +665,7 @@ export default function Finance() {
               </div>
 
               {/* Form */}
-              <form id="finance-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-4 ios-scroll">
+              <form id="finance-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto overflow-x-hidden p-5 space-y-4 ios-scroll">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <FL>{t("money.form.date" as any)}</FL>

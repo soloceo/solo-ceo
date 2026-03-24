@@ -286,7 +286,7 @@ export default function Work() {
               </div>
 
               {/* Panel body */}
-              <div className="flex-1 overflow-y-auto ios-scroll">
+              <div className="flex-1 overflow-y-auto overflow-x-hidden ios-scroll">
                 <div className="p-5 space-y-3">
                   {/* Core fields */}
                   <div className="space-y-3">
