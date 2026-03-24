@@ -1073,8 +1073,8 @@ export function ClientsView() {
                     {clientTxs.length > 0 && (() => {
                       const received = clientTxs.filter((tx: any) => tx.type === "income" && (tx.status || "已完成") === "已完成").reduce((s: number, tx: any) => s + Number(tx.amount || 0), 0);
                       const receivedTax = clientTxs.filter((tx: any) => tx.type === "income" && (tx.status || "已完成") === "已完成").reduce((s: number, tx: any) => s + Number(tx.tax_amount || 0), 0);
-                      const pending = clientTxs.filter((tx: any) => (tx.status || "").includes("应收")).reduce((s: number, tx: any) => s + Number(tx.amount || 0) + Number(tx.tax_amount || 0), 0);
-                      const expense = clientTxs.filter((tx: any) => tx.type === "expense" && (tx.status || "已完成") === "已完成").reduce((s: number, tx: any) => s + Number(tx.amount || 0), 0);
+                      const pending = clientTxs.filter((tx: any) => (tx.status || "").includes("应收")).reduce((s: number, tx: any) => { const a = Number(tx.amount || 0); const t2 = Number(tx.tax_amount || 0); return s + ((tx.tax_mode || 'none') === 'exclusive' ? a + t2 : a); }, 0);
+                      const expense = clientTxs.filter((tx: any) => tx.type === "expense" && (tx.status || "已完成") === "已完成").reduce((s: number, tx: any) => { const a = Number(tx.amount || 0); const t2 = Number(tx.tax_amount || 0); return s + ((tx.tax_mode || 'none') === 'exclusive' ? a + t2 : a); }, 0);
                       return (
                         <div className="flex items-center gap-3 text-[11px] font-medium">
                           <span style={{ color: "var(--success)" }}>{t("pipeline.tx.received" as any)} ${received.toLocaleString()}{receivedTax > 0 ? ` (+${t("finance.tax" as any)} $${receivedTax.toLocaleString()})` : ""}</span>
@@ -1095,12 +1095,14 @@ export function ClientsView() {
                                   const txAmt = Math.abs(Number(tx.amount || 0));
                                   const txTax = Math.abs(Number(tx.tax_amount || 0));
                                   const isInc = tx.type === "income";
-                                  const displayAmt = isInc ? txAmt : txAmt + txTax;
+                                  const txMode = tx.tax_mode || 'none';
+                                  // Exclusive expense: add tax; Inclusive expense: amount already has tax
+                                  const displayAmt = isInc ? txAmt : (txMode === 'exclusive' ? txAmt + txTax : txAmt);
                                   return (<>
                                     <span className="text-[13px] font-semibold shrink-0" style={{ color: isInc ? "var(--success)" : "var(--text)" }}>
                                       {isInc ? "+" : "-"}${displayAmt.toLocaleString()}
                                     </span>
-                                    {txTax > 0 && <span className="text-[11px] shrink-0" style={{ color: "var(--text-secondary)" }}>{isInc ? `+${t("finance.tax" as any)} $${txTax.toLocaleString()}` : `${t("finance.taxIncluded" as any)} $${txTax.toLocaleString()}`}</span>}
+                                    {txTax > 0 && <span className="text-[11px] shrink-0" style={{ color: "var(--text-secondary)" }}>{txMode === "exclusive" ? `+${t("finance.tax" as any)} $${txTax.toLocaleString()}` : txMode === "inclusive" ? `${t("finance.taxIncluded" as any)} $${txTax.toLocaleString()}` : ""}</span>}
                                   </>);
                                 })()}
                                 <span className="text-[13px] font-medium truncate" style={{ color: "var(--text)" }}>{tx.description || tx.desc}</span>

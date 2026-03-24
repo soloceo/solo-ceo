@@ -197,19 +197,22 @@ export default function Finance() {
       const amt = Math.abs(Number(tx.amount || 0));
       const tax = Math.abs(Number(tx.tax_amount || 0));
       const isIncome = tx.type === "income" || Number(tx.amount || 0) > 0;
+      const txMode = tx.tax_mode || 'none';
 
-      // 应收/应付用含税额（客户实际要付的）
-      if (tx.status === "待收款 (应收)") { receivable += amt + tax; continue; }
-      if (tx.status === "待支付 (应付)") { payable += amt + tax; continue; }
+      // Expense actual cost: exclusive adds tax, inclusive already contains tax
+      const expenseTotal = txMode === 'exclusive' ? amt + tax : amt;
 
-      // 收入用税前额（税是代收，不是你的收入）
-      // 支出用含税额（税是你实际掏的钱）
+      // 应收/应付：exclusive 加税，inclusive 已含税
+      if (tx.status === "待收款 (应收)") { receivable += (txMode === 'exclusive' ? amt + tax : amt); continue; }
+      if (tx.status === "待支付 (应付)") { payable += expenseTotal; continue; }
+
+      // 收入用税前额（税是代收）；支出用实际花费
       if (isIncome) { totalIncome += amt; totalTax += tax; }
-      else { totalExpense += amt + tax; }
+      else { totalExpense += expenseTotal; }
 
       if ((tx.date || "").startsWith(thisMonth)) {
         if (isIncome) monthIncome += amt;
-        else monthExpense += amt + tax;
+        else monthExpense += expenseTotal;
       }
     }
 
@@ -803,8 +806,15 @@ const TxRow = React.memo(function TxRow({ tx, t, fmtAmt, fmtAmtColor, onEdit, on
   const rawAmt = Number(tx.amount || 0);
   const tax = Math.abs(Number(tx.tax_amount || 0));
   const isIncome = tx.type === "income" || rawAmt > 0;
-  // Display: income shows pre-tax, expense shows total (incl tax)
-  const amt = isIncome ? rawAmt : (rawAmt < 0 ? rawAmt - tax : rawAmt + tax);
+  const taxMode = tx.tax_mode || 'none';
+  // Display logic:
+  // - Income: always show pre-tax (amount), tax is collected for gov
+  // - Expense exclusive: show amount + tax (total cash out)
+  // - Expense inclusive: show amount as-is (tax already included)
+  // - Expense none: show amount as-is
+  const amt = isIncome ? rawAmt
+    : taxMode === 'exclusive' ? (rawAmt < 0 ? rawAmt - tax : rawAmt + tax)
+    : rawAmt;
   const src = tx.source || 'manual';
   const sourceBadge = src === "subscription"
     ? t("finance.source.subscription" as any)
@@ -836,7 +846,7 @@ const TxRow = React.memo(function TxRow({ tx, t, fmtAmt, fmtAmtColor, onEdit, on
           <span className="text-[13px]" style={{ color: "var(--text-secondary)" }}>{catLabel(tx.category || "", t)}</span>
           <div className="text-right">
             <span className="text-[13px] font-semibold tabular-nums" style={{ color: fmtAmtColor(amt) }}>{fmtAmt(amt)}</span>
-            {tax > 0 && <div className="text-[11px] tabular-nums" style={{ color: "var(--text-secondary)" }}>{isIncome ? `+${t("finance.tax" as any)} $${tax.toLocaleString()}` : `${t("finance.taxIncluded" as any)} $${tax.toLocaleString()}`}</div>}
+            {tax > 0 && <div className="text-[11px] tabular-nums" style={{ color: "var(--text-secondary)" }}>{taxMode === "exclusive" ? `+${t("finance.tax" as any)} $${tax.toLocaleString()}` : taxMode === "inclusive" ? `${t("finance.taxIncluded" as any)} $${tax.toLocaleString()}` : ""}</div>}
           </div>
           <span className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{stLabel(tx.status || "", t)}</span>
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">{actionBtns}</div>
@@ -856,7 +866,7 @@ const TxRow = React.memo(function TxRow({ tx, t, fmtAmt, fmtAmtColor, onEdit, on
             </div>
             <div className="text-right shrink-0">
               <div className="text-[13px] font-semibold tabular-nums" style={{ color: fmtAmtColor(amt) }}>{fmtAmt(amt)}</div>
-              {tax > 0 && <div className="text-[11px] tabular-nums" style={{ color: "var(--text-secondary)" }}>{isIncome ? `+${t("finance.tax" as any)} $${tax.toLocaleString()}` : `${t("finance.taxIncluded" as any)} $${tax.toLocaleString()}`}</div>}
+              {tax > 0 && <div className="text-[11px] tabular-nums" style={{ color: "var(--text-secondary)" }}>{taxMode === "exclusive" ? `+${t("finance.tax" as any)} $${tax.toLocaleString()}` : taxMode === "inclusive" ? `${t("finance.taxIncluded" as any)} $${tax.toLocaleString()}` : ""}</div>}
               <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{stLabel(tx.status || "", t)}</div>
             </div>
             {isSystem && <span className="p-1" style={{ color: "var(--text-secondary)" }}><Lock size={16} /></span>}
