@@ -77,6 +77,7 @@ CREATE TABLE clients (
   tax_mode                TEXT DEFAULT 'none',
   tax_rate                DOUBLE PRECISION DEFAULT 0,
   drive_folder_url        TEXT DEFAULT '',
+  payment_method          TEXT DEFAULT 'auto',
   created_at              TIMESTAMPTZ DEFAULT now(),
   updated_at              TIMESTAMPTZ DEFAULT now(),
   soft_deleted            BOOLEAN DEFAULT FALSE
@@ -135,6 +136,8 @@ CREATE TABLE finance_transactions (
   tax_amount  DOUBLE PRECISION DEFAULT 0,
   client_id   BIGINT,
   client_name TEXT DEFAULT '',
+  source      TEXT DEFAULT 'manual',
+  source_id   BIGINT,
   created_at  TIMESTAMPTZ DEFAULT now(),
   updated_at  TIMESTAMPTZ DEFAULT now(),
   soft_deleted BOOLEAN DEFAULT FALSE
@@ -143,6 +146,7 @@ CREATE TABLE finance_transactions (
 CREATE INDEX idx_finance_user_active ON finance_transactions (user_id, soft_deleted);
 CREATE INDEX idx_finance_date ON finance_transactions (date);
 CREATE INDEX idx_finance_status ON finance_transactions (status);
+CREATE INDEX idx_finance_source ON finance_transactions (user_id, source, source_id, date) WHERE soft_deleted = FALSE;
 
 -- ── 付款里程碑 ──
 CREATE TABLE payment_milestones (
