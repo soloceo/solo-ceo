@@ -280,7 +280,7 @@ export function LeadsView() {
               <div className="flex-1 overflow-y-auto overflow-x-hidden ios-scroll p-5 space-y-3">
                 <div className="space-y-3">
                   <FL label={t("pipeline.form.name" as any)}><input required value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <FL label={t("pipeline.form.industry" as any)}><input value={form.industry} onChange={e => setForm(p => ({ ...p, industry: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
                     <FL label={t("pipeline.form.source" as any)}>
                       <input list="source-presets" value={form.source} onChange={e => setForm(p => ({ ...p, source: e.target.value }))} placeholder={t("pipeline.form.sourcePlaceholder" as any)} className="input-base w-full px-3 py-2 text-[13px]" />
@@ -360,7 +360,7 @@ export function LeadsView() {
               <button onClick={() => setShowConvert(false)} className="btn-ghost p-1"><X size={16} /></button>
             </div>
             <FL label={t("pipeline.convert.plan" as any)}><select value={convertForm.plan_tier} onChange={e => { const v = e.target.value; const p = plans.find((x: any) => x.name === v); setConvertForm(prev => ({ ...prev, plan_tier: v, mrr: p ? String(p.price) : prev.mrr })); }} className="input-base w-full px-3 py-2 text-[13px]"><option value="">{t("pipeline.convert.planSelect" as any)}</option>{plans.map((p: any) => <option key={p.id} value={p.name}>{p.name}</option>)}</select></FL>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <FL label={t("common.status" as any)}><select value={convertForm.status} onChange={e => setConvertForm(p => ({ ...p, status: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]"><option value="Active">{t("common.active" as any)}</option><option value="Paused">{t("common.paused" as any)}</option></select></FL>
               <FL label={t("pipeline.convert.mrr" as any)}><input type="number" min="0" value={convertForm.mrr} onChange={e => setConvertForm(p => ({ ...p, mrr: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
             </div>
@@ -730,11 +730,11 @@ export function ClientsView() {
                 <button onClick={() => setShowPanel(false)} className="btn-ghost p-1">{isMobile ? <X size={16} /> : <PanelRightClose size={16} />}</button>
               </div>
               <div className="flex-1 overflow-y-auto overflow-x-hidden ios-scroll p-5 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <FL label={t("pipeline.clients.companyName" as any)}><input required value={form.company_name} onChange={e => setForm(p => ({ ...p, company_name: e.target.value, name: e.target.value || p.contact_name }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
                   <FL label={t("pipeline.clients.contactName" as any)}><input value={form.contact_name} onChange={e => setForm(p => ({ ...p, contact_name: e.target.value, name: p.company_name || e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <FL label={t("pipeline.clients.contactEmail" as any)}><input type="email" value={form.contact_email} onChange={e => setForm(p => ({ ...p, contact_email: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
                   <FL label={t("pipeline.clients.contactPhone" as any)}><input type="tel" value={form.contact_phone} onChange={e => setForm(p => ({ ...p, contact_phone: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
                 </div>
@@ -791,7 +791,7 @@ export function ClientsView() {
                 </FL>
                 {form.billing_type === "subscription" ? (
                   <>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <FL label={t("pipeline.convert.plan" as any)}><select value={form.plan} onChange={e => { const v = e.target.value; const p = plans.find((x: any) => x.name === v); setForm(prev => ({ ...prev, plan: v, mrr: p ? String(p.price) : prev.mrr })); }} className="input-base w-full px-3 py-2 text-[13px]"><option value="">{t("pipeline.convert.planSelect" as any)}</option>{plans.map((p: any) => <option key={p.id} value={p.name}>{p.name}</option>)}</select></FL>
                       <FL label={t("common.status" as any)}><select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]"><option value="Active">{t("common.active" as any)}</option><option value="Paused">{t("common.paused" as any)}</option></select></FL>
                     </div>
@@ -875,7 +875,7 @@ export function ClientsView() {
                   </>
                 ) : (
                   <>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <FL label={t("pipeline.clients.projectFee" as any)}><input type="number" required min="0" value={form.project_fee} onChange={e => setForm(p => ({ ...p, project_fee: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
                       <FL label={t("common.status" as any)}><select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]"><option value="Active">{t("common.active" as any)}</option><option value="Paused">{t("common.paused" as any)}</option></select></FL>
                     </div>
@@ -1009,7 +1009,7 @@ export function ClientsView() {
                                   </div>
                                 )}
                                 <FL label={t("pipeline.milestones.label" as any)}><input value={msForm.label} onChange={e => setMsForm(p => ({ ...p, label: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" placeholder={t("pipeline.milestones.presets.deposit" as any)} /></FL>
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                   <FL label={t("pipeline.milestones.amount" as any)}><input type="number" min="0" value={msForm.amount} onChange={e => { const amt = e.target.value; const fee = Number(form.project_fee) || 1; setMsForm(p => ({ ...p, amount: amt, percentage: fee > 0 ? String(Math.round(Number(amt) / fee * 100)) : p.percentage })); }} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
                                   <FL label={t("pipeline.milestones.percentage" as any)}><input type="number" min="0" max="100" value={msForm.percentage} onChange={e => { const pct = e.target.value; const fee = Number(form.project_fee) || 0; setMsForm(p => ({ ...p, percentage: pct, amount: fee > 0 ? String(Math.round(fee * Number(pct) / 100)) : p.amount })); }} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
                                 </div>
@@ -1145,7 +1145,7 @@ export function ClientsView() {
                               <FL label={t("pipeline.tx.category" as any)}><select value={txForm.category} onChange={e => setTxForm(p => ({ ...p, category: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]">{TX_CATEGORIES.map(c => <option key={c} value={c}>{catLabel(c, t)}</option>)}</select></FL>
                             </div>
                             <FL label={t("pipeline.tx.description" as any)}><input value={txForm.desc} onChange={e => setTxForm(p => ({ ...p, desc: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               <FL label={t("pipeline.tx.amount" as any)}>
                                 <div className="relative">
                                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px]" style={{ color: "var(--text-secondary)" }}>$</span>

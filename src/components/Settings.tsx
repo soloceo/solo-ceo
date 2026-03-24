@@ -183,7 +183,7 @@ function PlanManager({ showToast }: { showToast: (msg: string) => void }) {
         <div className="card p-4 mt-3 space-y-3">
           <div className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>{editing === "new" ? t("common.add" as any) : t("common.edit" as any)}</div>
           <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder={t("settings.planName" as any)} className="input-base w-full px-3 py-2 text-[13px]" />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input value={form.price} onChange={e => setForm(p => ({ ...p, price: e.target.value }))} placeholder={t("settings.planPrice" as any)} type="number" className="input-base w-full px-3 py-2 text-[13px]" />
             <input value={form.deliverySpeed} onChange={e => setForm(p => ({ ...p, deliverySpeed: e.target.value }))} placeholder={t("settings.planSpeed" as any)} className="input-base w-full px-3 py-2 text-[13px]" />
           </div>

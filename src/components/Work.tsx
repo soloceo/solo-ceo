@@ -304,7 +304,7 @@ export default function Work() {
                         <input type="date" value={form.due} onChange={e => setForm(p => ({ ...p, due: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" />
                       </FL>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <FL label={t("work.form.priority" as any)}>
                         <select value={form.priority} onChange={e => setForm(p => ({ ...p, priority: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]">
                           <option value="High">{t("work.filter.high" as any)}</option><option value="Medium">{t("work.filter.medium" as any)}</option><option value="Low">{t("work.filter.low" as any)}</option>

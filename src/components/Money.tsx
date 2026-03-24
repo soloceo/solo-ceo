@@ -244,7 +244,7 @@ export function PlansView({ showToast }: { showToast: (m: string) => void }) {
 
               <form id="plan-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-4 ios-scroll">
                 <div><FL>{t("money.plans.form.name" as any)}</FL><input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder={t("money.plans.form.namePlaceholder" as any)} className="input-base w-full px-3 py-2 text-[13px]" /></div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <FL>{t("money.plans.form.price" as any)}</FL>
                     <div className="relative">
