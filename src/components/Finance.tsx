@@ -135,7 +135,7 @@ export default function Finance() {
   }, []);
 
   useEffect(() => { fetchFinance(); fetchClients(); }, [fetchFinance, fetchClients]);
-  useRealtimeRefresh(['finance_transactions', 'clients', 'payment_milestones', 'client_subscription_ledger'], fetchFinance);
+  useRealtimeRefresh(['finance_transactions', 'clients', 'payment_milestones'], fetchFinance);
 
   useEffect(() => {
     const anyOpen = isMobile && (showPanel || showAll);

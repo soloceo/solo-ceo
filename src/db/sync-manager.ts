@@ -14,7 +14,6 @@ const SYNC_TABLES = [
   'leads', 'clients', 'tasks', 'plans',
   'finance_transactions', 'payment_milestones',
   'content_drafts', 'today_focus_state', 'today_focus_manual',
-  'client_subscription_ledger',
 ] as const;
 
 let syncing = false;
