@@ -77,7 +77,7 @@ function calcTax(amount: number, mode: string, rate: number): number {
 async function syncClientSubscriptionLedger(userId: string) {
   const { data: clients } = await supabase
     .from('clients')
-    .select('id, name, plan_tier, mrr, status, joined_at, subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from, tax_mode, tax_rate')
+    .select('id, name, plan_tier, mrr, status, joined_at, subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from, tax_mode, tax_rate, payment_method')
     .eq('user_id', userId)
     .eq('soft_deleted', false)
     .gt('mrr', 0);
@@ -118,7 +118,7 @@ async function syncClientSubscriptionLedger(userId: string) {
           category: '订阅收入',
           description: `${client.name || '未命名客户'} · ${client.plan_tier || '订阅'} · ${lm}`,
           date: `${lm}-01`,
-          status: '已完成',
+          status: client.payment_method === 'manual' ? '待收款 (应收)' : '已完成',
           client_id: client.id,
           client_name: client.name || '未命名客户',
           tax_mode: tm,
@@ -308,7 +308,7 @@ export async function handleSupabaseRequest(
   if (path === '/api/clients' && method === 'POST') {
     const { name, industry, plan_tier, status, brand_context, mrr,
             subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from,
-            company_name, contact_name, contact_email, contact_phone, billing_type, project_fee, project_end_date, tax_mode, tax_rate, drive_folder_url } = body;
+            company_name, contact_name, contact_email, contact_phone, billing_type, project_fee, project_end_date, tax_mode, tax_rate, drive_folder_url, payment_method } = body;
     const np = normalizePlanTier(plan_tier || '');
     const { data, error: e } = await supabase
       .from('clients')
@@ -325,6 +325,7 @@ export async function handleSupabaseRequest(
         project_end_date: project_end_date || '',
         tax_mode: tax_mode || 'none', tax_rate: tax_rate || 0,
         drive_folder_url: drive_folder_url || '',
+        payment_method: payment_method || 'auto',
       })
       .select('id')
       .single();
@@ -340,7 +341,7 @@ export async function handleSupabaseRequest(
     if (method === 'PUT') {
       const { name, industry, plan_tier, status, brand_context, mrr,
               subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from,
-              company_name, contact_name, contact_email, contact_phone, billing_type, project_fee, project_end_date, tax_mode, tax_rate, drive_folder_url } = body;
+              company_name, contact_name, contact_email, contact_phone, billing_type, project_fee, project_end_date, tax_mode, tax_rate, drive_folder_url, payment_method } = body;
       const np = normalizePlanTier(plan_tier || '');
       const { error: e } = await supabase
         .from('clients')
