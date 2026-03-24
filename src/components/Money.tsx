@@ -40,7 +40,7 @@ export function Toast({ message }: { message: string }) {
   if (!message) return null;
   return (
     <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 px-5 py-2.5 rounded-xl shadow-lg z-[9999] flex items-center gap-2 text-[13px] font-medium" style={{ background: "var(--text)", color: "var(--bg)" }}>
-      <Check size={14} style={{ color: "var(--success)" }} /> {message}
+      <Check size={16} style={{ color: "var(--success)" }} /> {message}
     </div>
   );
 }
@@ -145,9 +145,9 @@ export function PlansView({ showToast }: { showToast: (m: string) => void }) {
     <div className="flex flex-col gap-4 flex-1 min-h-0">
       {/* Action bar */}
       <div className="flex flex-wrap gap-2">
-        <button onClick={generateAI} className="btn-ghost text-[13px] gap-1.5"><Sparkles size={14} /> {t("money.plans.aiAnalysis" as any)}</button>
+        <button onClick={generateAI} className="btn-ghost text-[13px] gap-1.5"><Sparkles size={16} /> {t("money.plans.aiAnalysis" as any)}</button>
         <div className="flex-1" />
-        <button onClick={() => openPanel()} className="btn-primary text-[13px]"><Plus size={14} /> {t("money.plans.new" as any)}</button>
+        <button onClick={() => openPanel()} className="btn-primary text-[13px]"><Plus size={16} /> {t("money.plans.new" as any)}</button>
       </div>
 
       {/* Plan cards */}
@@ -159,8 +159,8 @@ export function PlansView({ showToast }: { showToast: (m: string) => void }) {
         ) : plans.map((plan) => (
           <div key={plan.id} className="card-interactive p-5 flex flex-col group relative">
             <div className="absolute top-4 right-4 flex gap-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-              <button onClick={() => openPanel(plan)} className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors" style={{ background: "var(--surface-alt)", color: "var(--text-secondary)" }}><Edit2 size={13} /></button>
-              <button onClick={() => setDeleteId(plan.id)} className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors" style={{ background: "var(--surface-alt)", color: "var(--text-secondary)" }}><Trash2 size={13} /></button>
+              <button onClick={() => openPanel(plan)} className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors" style={{ background: "var(--surface-alt)", color: "var(--text-secondary)" }}><Edit2 size={16} /></button>
+              <button onClick={() => setDeleteId(plan.id)} className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors" style={{ background: "var(--surface-alt)", color: "var(--text-secondary)" }}><Trash2 size={16} /></button>
             </div>
 
             <h3 className="text-[15px] font-semibold mb-1" style={{ color: "var(--text)" }}>{plan.name}</h3>
@@ -170,13 +170,13 @@ export function PlansView({ showToast }: { showToast: (m: string) => void }) {
             </div>
 
             <div className="flex flex-wrap items-center gap-2 pb-3 mb-3 border-b" style={{ borderColor: "var(--border)" }}>
-              <span className="badge gap-1"><Users size={11} style={{ color: "var(--accent)" }} />{t("money.plans.clients" as any).replace("{count}", String(Number(plan.clients || 0)))}</span>
-              <span className="badge gap-1"><Clock size={11} style={{ color: "var(--warning)" }} />{plan.deliverySpeed}</span>
+              <span className="badge gap-1"><Users size={16} style={{ color: "var(--accent)" }} />{t("money.plans.clients" as any).replace("{count}", String(Number(plan.clients || 0)))}</span>
+              <span className="badge gap-1"><Clock size={16} style={{ color: "var(--warning)" }} />{plan.deliverySpeed}</span>
             </div>
 
             <button
               onClick={() => { navigator.clipboard.writeText(`${plan.name}｜$${plan.price}${t("money.plans.perMonth" as any)}｜${plan.deliverySpeed}｜${plan.features.join("、")}`); showToast(t("money.plans.copiedMsg" as any).replace("{name}", plan.name)); }}
-              className="btn-ghost w-full mb-3 text-[12px]"
+              className="btn-ghost w-full mb-3 text-[13px]"
             >
               {t("money.plans.copySummary" as any)}
             </button>
@@ -185,7 +185,7 @@ export function PlansView({ showToast }: { showToast: (m: string) => void }) {
             <ul className="space-y-1.5 flex-1">
               {plan.features.map((f: string, i: number) => (
                 <li key={i} className="flex items-start gap-2 text-[13px]" style={{ color: "var(--text-secondary)" }}>
-                  <Check size={13} className="shrink-0 mt-0.5" style={{ color: "var(--accent)" }} />
+                  <Check size={16} className="shrink-0 mt-0.5" style={{ color: "var(--accent)" }} />
                   <span>{f}</span>
                 </li>
               ))}
@@ -238,7 +238,7 @@ export function PlansView({ showToast }: { showToast: (m: string) => void }) {
                   </div>
                 </div>
                 <button onClick={() => setShowPanel(false)} className="p-1.5 rounded-lg" style={{ color: "var(--text-secondary)" }}>
-                  {isMobile ? <X size={18} /> : <PanelRightClose size={18} />}
+                  {isMobile ? <X size={20} /> : <PanelRightClose size={20} />}
                 </button>
               </div>
 
@@ -248,7 +248,7 @@ export function PlansView({ showToast }: { showToast: (m: string) => void }) {
                   <div>
                     <FL>{t("money.plans.form.price" as any)}</FL>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px]" style={{ color: "var(--text-tertiary)" }}>$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px]" style={{ color: "var(--text-secondary)" }}>$</span>
                       <input type="number" required min="0" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} placeholder="2500" className="input-base w-full pl-7 pr-3 py-2 text-[13px]" />
                     </div>
                   </div>
@@ -274,7 +274,7 @@ export function PlansView({ showToast }: { showToast: (m: string) => void }) {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: "var(--accent-light)", color: "var(--accent)" }}><Sparkles size={16} /></div>
               <div><h3 className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>{t("money.plans.ai.title" as any)}</h3><p className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{t("money.plans.ai.desc" as any)}</p></div>
             </div>
-            <button onClick={() => setIsAIOpen(false)} className="p-1.5 rounded-lg" style={{ color: "var(--text-secondary)" }}><X size={18} /></button>
+            <button onClick={() => setIsAIOpen(false)} className="p-1.5 rounded-lg" style={{ color: "var(--text-secondary)" }}><X size={20} /></button>
           </div>
           <div className="flex-1 overflow-y-auto p-5">
             {loadingAI ? (

@@ -53,7 +53,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
             <h3 className="text-base font-semibold mb-1" style={{ color: "var(--text-primary)" }}>
               {getLabel("页面加载出错", "Page Load Error")}
             </h3>
-            <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
               {this.state.error?.message || getLabel("发生了未知错误", "An unknown error occurred")}
             </p>
           </div>
@@ -61,7 +61,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
             onClick={this.handleRetry}
             className="btn-primary flex items-center gap-2 px-4 py-2 rounded-lg text-sm"
           >
-            <RefreshCw size={14} />
+            <RefreshCw size={16} />
             {getLabel("重新加载", "Reload")}
           </button>
         </div>

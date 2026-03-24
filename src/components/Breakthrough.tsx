@@ -10,7 +10,7 @@ const freqKey = (f: Freq) =>
   f === "daily" ? "breakthrough.freq.daily" : f === "weekly" ? "breakthrough.freq.weekly" : "breakthrough.freq.once";
 
 const freqColor = (f: Freq) =>
-  f === "daily" ? "var(--accent)" : f === "weekly" ? "var(--warning)" : "var(--text-tertiary)";
+  f === "daily" ? "var(--accent)" : f === "weekly" ? "var(--warning)" : "var(--text-secondary)";
 
 /**
  * Breakthrough task tracker — phase switcher + task checklist.
@@ -69,7 +69,7 @@ export default function Breakthrough() {
     <div className="space-y-3">
       {/* Overall progress */}
       <div className="flex items-center justify-between">
-        <span className="text-[12px] font-medium" style={{ color: "var(--text-secondary)" }}>
+        <span className="text-[13px] font-medium" style={{ color: "var(--text-secondary)" }}>
           {t("home.breakthrough.overall" as any, { done: totalDone, total: totalTasks })}
         </span>
         <span className="text-[11px] font-bold tabular-nums" style={{ color: overallPct === 100 ? "var(--success)" : "var(--accent)" }}>
@@ -91,11 +91,11 @@ export default function Breakthrough() {
 
       {/* Phase progress + reset */}
       <div className="flex items-center justify-between">
-        <span className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>
+        <span className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
           {t("breakthrough.progress" as any, { done, total: current.tasks.length })}
         </span>
-        <button onClick={reset} className="btn-ghost text-[11px] p-0.5" style={{ color: "var(--text-tertiary)" }}>
-          <RotateCcw size={11} />
+        <button onClick={reset} className="btn-ghost text-[11px] p-0.5" style={{ color: "var(--text-secondary)" }}>
+          <RotateCcw size={16} />
         </button>
       </div>
 
@@ -104,7 +104,7 @@ export default function Breakthrough() {
         <span className="text-sm shrink-0">{current.strategy.emoji}</span>
         <div>
           <div className="font-semibold text-[11px]">{L(current.strategy.title)}</div>
-          <p className="text-[10px] leading-relaxed mt-0.5" style={{ color: "var(--text-tertiary)" }}>{L(current.strategy.content)}</p>
+          <p className="text-[11px] leading-relaxed mt-0.5" style={{ color: "var(--text-secondary)" }}>{L(current.strategy.content)}</p>
         </div>
       </div>
 
@@ -118,10 +118,10 @@ export default function Breakthrough() {
                 ? <CheckSquare size={16} className="shrink-0" style={{ color: "var(--accent)" }} />
                 : <Square size={16} className="shrink-0" style={{ color: "var(--border-strong)" }} />
               }
-              <span className={`flex-1 text-[12px] leading-snug ${checked ? "line-through" : ""}`} style={checked ? { color: "var(--text-tertiary)" } : {}}>
+              <span className={`flex-1 text-[13px] leading-snug ${checked ? "line-through" : ""}`} style={checked ? { color: "var(--text-secondary)" } : {}}>
                 {L(tk.title)}
               </span>
-              <span className="badge shrink-0 text-[9px]" style={{ color: freqColor(tk.freq), background: "transparent", border: `1px solid ${freqColor(tk.freq)}` }}>
+              <span className="badge shrink-0 text-[11px]" style={{ color: freqColor(tk.freq), background: "transparent", border: `1px solid ${freqColor(tk.freq)}` }}>
                 {t(freqKey(tk.freq) as any)}
               </span>
             </button>

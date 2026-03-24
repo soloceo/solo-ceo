@@ -15,9 +15,9 @@ const CreatePage = lazy(() => import("./Create"));
 type Seg = "emails" | "scripts" | "ai";
 
 const SEG_CONFIG: { id: Seg; icon: React.ReactNode; labelKey: string }[] = [
-  { id: "emails", icon: <Mail size={13} />, labelKey: "pipeline.emailTemplates" },
-  { id: "scripts", icon: <MessageSquare size={13} />, labelKey: "pipeline.scripts" },
-  { id: "ai", icon: <Sparkles size={13} />, labelKey: "pipeline.aiContent" },
+  { id: "emails", icon: <Mail size={16} />, labelKey: "pipeline.emailTemplates" },
+  { id: "scripts", icon: <MessageSquare size={16} />, labelKey: "pipeline.scripts" },
+  { id: "ai", icon: <Sparkles size={16} />, labelKey: "pipeline.aiContent" },
 ];
 
 export default function SalesToolsPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -53,7 +53,7 @@ export default function SalesToolsPanel({ open, onClose }: { open: boolean; onCl
             <button
               key={s.id}
               onClick={() => setSeg(s.id)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all"
               style={seg === s.id
                 ? { background: "var(--accent)", color: "#fff" }
                 : { background: "var(--surface-alt)", color: "var(--text-secondary)" }
@@ -94,12 +94,12 @@ function BilingualBlock({ zh, en, showToast, t, type = "body" }: {
     return (
       <div className="space-y-1.5">
         <div className="flex items-center gap-1.5">
-          <div className="flex-1 text-[12px] px-3 py-1.5 rounded-lg font-medium" style={{ background: "var(--surface-alt)" }}>{zh}</div>
-          <CopyBtn text={zh} showToast={showToast} t={t} size={12} />
+          <div className="flex-1 text-[13px] px-3 py-1.5 rounded-lg font-medium" style={{ background: "var(--surface-alt)" }}>{zh}</div>
+          <CopyBtn text={zh} showToast={showToast} t={t} size={16} />
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="flex-1 text-[12px] px-3 py-1.5 rounded-lg" style={{ background: "var(--surface-alt)", color: "var(--text-secondary)" }}>{en}</div>
-          <CopyBtn text={en} showToast={showToast} t={t} size={12} />
+          <div className="flex-1 text-[13px] px-3 py-1.5 rounded-lg" style={{ background: "var(--surface-alt)", color: "var(--text-secondary)" }}>{en}</div>
+          <CopyBtn text={en} showToast={showToast} t={t} size={16} />
         </div>
       </div>
     );
@@ -107,12 +107,12 @@ function BilingualBlock({ zh, en, showToast, t, type = "body" }: {
   return (
     <div className="space-y-2">
       <div className="relative">
-        <div className="flex items-center gap-1 mb-1"><span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>中文</span></div>
+        <div className="flex items-center gap-1 mb-1"><span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>中文</span></div>
         <pre className="text-[11px] leading-relaxed px-3 py-2.5 rounded-lg whitespace-pre-wrap" style={{ background: "var(--surface-alt)", color: "var(--text-secondary)" }}>{zh}</pre>
         <div className="absolute top-6 right-1.5"><CopyBtn text={zh} showToast={showToast} t={t} /></div>
       </div>
       <div className="relative">
-        <div className="flex items-center gap-1 mb-1"><span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>EN</span></div>
+        <div className="flex items-center gap-1 mb-1"><span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>EN</span></div>
         <pre className="text-[11px] leading-relaxed px-3 py-2.5 rounded-lg whitespace-pre-wrap" style={{ background: "var(--surface-alt)", color: "var(--text-secondary)" }}>{en}</pre>
         <div className="absolute top-6 right-1.5"><CopyBtn text={en} showToast={showToast} t={t} /></div>
       </div>
@@ -126,7 +126,7 @@ function EmailArsenal({ L, t, showToast }: { L: (o: { zh: string; en: string }) 
 
   return (
     <div className="py-3">
-      <p className="px-5 text-[11px] mb-3" style={{ color: "var(--text-tertiary)" }}>{t("pipeline.emailsHint" as any)}</p>
+      <p className="px-5 text-[11px] mb-3" style={{ color: "var(--text-secondary)" }}>{t("pipeline.emailsHint" as any)}</p>
       {EMAIL_TEMPLATES.map((tpl) => {
         const isOpen = expandedId === tpl.id;
         return (
@@ -136,9 +136,9 @@ function EmailArsenal({ L, t, showToast }: { L: (o: { zh: string; en: string }) 
               className="w-full flex items-center gap-2.5 px-5 py-3 text-left transition-colors"
               style={{ background: isOpen ? "var(--surface-alt)" : undefined }}
             >
-              {isOpen ? <ChevronDown size={12} style={{ color: "var(--text-tertiary)" }} /> : <ChevronRight size={12} style={{ color: "var(--text-tertiary)" }} />}
+              {isOpen ? <ChevronDown size={16} style={{ color: "var(--text-secondary)" }} /> : <ChevronRight size={16} style={{ color: "var(--text-secondary)" }} />}
               <span className="flex-1 font-semibold text-[13px]">{L(tpl.label)}</span>
-              <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>中/EN</span>
+              <span className="text-[11px]" style={{ color: "var(--text-secondary)" }}>中/EN</span>
             </button>
             <AnimatePresence>
               {isOpen && (
@@ -165,7 +165,7 @@ function ScriptVault({ L, t, showToast }: { L: (o: { zh: string; en: string }) =
 
   return (
     <div className="py-3">
-      <p className="px-5 text-[11px] mb-3" style={{ color: "var(--text-tertiary)" }}>{t("pipeline.scriptsHint" as any)}</p>
+      <p className="px-5 text-[11px] mb-3" style={{ color: "var(--text-secondary)" }}>{t("pipeline.scriptsHint" as any)}</p>
 
       {/* Scenarios */}
       {SCRIPT_SCENARIOS.map((sc) => (
@@ -175,9 +175,9 @@ function ScriptVault({ L, t, showToast }: { L: (o: { zh: string; en: string }) =
             className="w-full flex items-center gap-2.5 px-5 py-3 text-left transition-colors"
             style={{ background: open === sc.id ? "var(--surface-alt)" : undefined }}
           >
-            {open === sc.id ? <ChevronDown size={12} style={{ color: "var(--text-tertiary)" }} /> : <ChevronRight size={12} style={{ color: "var(--text-tertiary)" }} />}
+            {open === sc.id ? <ChevronDown size={16} style={{ color: "var(--text-secondary)" }} /> : <ChevronRight size={16} style={{ color: "var(--text-secondary)" }} />}
             <span className="flex-1 font-medium text-[13px]">{L(sc.title)}</span>
-            <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>中/EN</span>
+            <span className="text-[11px]" style={{ color: "var(--text-secondary)" }}>中/EN</span>
           </button>
           <AnimatePresence>
             {open === sc.id && (
@@ -194,19 +194,19 @@ function ScriptVault({ L, t, showToast }: { L: (o: { zh: string; en: string }) =
       {/* Pricing reference — compact */}
       <div className="px-5 pt-5 pb-8 space-y-4">
         <div className="section-label flex items-center gap-1.5">
-          <DollarSign size={11} /> {t("breakthrough.pricingRef" as any)}
+          <DollarSign size={16} /> {t("breakthrough.pricingRef" as any)}
         </div>
         <div className="grid grid-cols-2 gap-2">
           {PRICING_TIERS.map((tier) => (
             <div key={tier.id} className="card p-3 space-y-1" style={tier.tag ? { borderColor: "var(--accent)", borderWidth: 2 } : {}}>
               <div className="flex items-center justify-between">
-                <span className="font-bold text-[12px]">{L(tier.name)}</span>
-                {tier.tag && <span className="text-[9px] font-bold" style={{ color: "var(--accent)" }}>{L(tier.tag)}</span>}
+                <span className="font-bold text-[13px]">{L(tier.name)}</span>
+                {tier.tag && <span className="text-[11px] font-bold" style={{ color: "var(--accent)" }}>{L(tier.tag)}</span>}
               </div>
               <div className="text-[16px] font-bold" style={{ color: "var(--accent)" }}>{tier.price}</div>
               <ul className="space-y-0.5">
                 {tier.features.slice(0, 3).map((f, i) => (
-                  <li key={i} className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>✓ {L(f)}</li>
+                  <li key={i} className="text-[11px]" style={{ color: "var(--text-secondary)" }}>✓ {L(f)}</li>
                 ))}
               </ul>
             </div>
@@ -218,7 +218,7 @@ function ScriptVault({ L, t, showToast }: { L: (o: { zh: string; en: string }) =
           {PRICING_STAGES.map((s) => (
             <div key={s.id} className="card p-3 min-w-[140px] shrink-0 space-y-1">
               <div className="font-semibold text-[11px]">{L(s.stage)}</div>
-              <div className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>{L(s.period)}</div>
+              <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{L(s.period)}</div>
               <div className="text-[13px] font-bold" style={{ color: "var(--success)" }}>{L(s.target)}</div>
             </div>
           ))}

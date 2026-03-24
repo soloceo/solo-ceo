@@ -89,21 +89,21 @@ export default function DailyProtocol() {
         <div className="flex items-center gap-2">
           <div>
             <h3 className="section-label">{t("home.protocol.title" as any)}</h3>
-            <p className="text-[11px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>{t("home.protocol.desc" as any)}</p>
+            <p className="text-[11px] mt-0.5" style={{ color: "var(--text-secondary)" }}>{t("home.protocol.desc" as any)}</p>
           </div>
           {streak.count > 1 && (
             <span className="flex items-center gap-0.5 text-[11px] font-bold" style={{ color: "var(--warning)" }}>
-              <Flame size={12} /> {streak.count}
+              <Flame size={16} /> {streak.count}
             </span>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-medium tabular-nums" style={{ color: allDone ? "var(--success)" : "var(--text-tertiary)" }}>
+          <span className="text-[11px] font-medium tabular-nums" style={{ color: allDone ? "var(--success)" : "var(--text-secondary)" }}>
             {done}/5
           </span>
           {done > 0 && (
-            <button onClick={reset} className="btn-ghost text-[11px] p-0.5" style={{ color: "var(--text-tertiary)" }}>
-              <RotateCcw size={11} />
+            <button onClick={reset} className="btn-ghost text-[11px] p-0.5" style={{ color: "var(--text-secondary)" }}>
+              <RotateCcw size={16} />
             </button>
           )}
         </div>
@@ -142,7 +142,7 @@ export default function DailyProtocol() {
               )}
               <div className="flex-1 min-w-0 flex items-center gap-2">
                 <span className="badge shrink-0" style={{ color: "var(--accent)", fontSize: 10 }}>{L(step.time)}</span>
-                <span className={`text-[13px] truncate ${checked ? "line-through" : ""}`} style={checked ? { color: "var(--text-tertiary)" } : {}}>
+                <span className={`text-[13px] truncate ${checked ? "line-through" : ""}`} style={checked ? { color: "var(--text-secondary)" } : {}}>
                   {L(step.title)}
                 </span>
               </div>

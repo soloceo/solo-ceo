@@ -208,23 +208,23 @@ export default function Home() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[11px] font-medium" style={{ color: "rgba(255,255,255,0.55)" }}>{greeting(t)}</p>
-                <h1 className="text-[17px] font-bold mt-0.5" style={{ color: "#fff" }}>
+                <h1 className="text-[16px] font-bold mt-0.5" style={{ color: "#fff" }}>
                   {operatorName.trim() || "Solo CEO"}
                 </h1>
               </div>
-              <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.35)" }}>{todayStr(lang)}</span>
+              <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.35)" }}>{todayStr(lang)}</span>
             </div>
           </div>
           {/* KPI — 2 big + 3 small */}
           <div className="px-5 pb-3">
             <div className="flex items-end gap-4 mb-2">
               <div>
-                <div className="text-[22px] font-bold leading-none" style={{ color: "#fff" }}>{loading ? "—" : `$${animMrr.toLocaleString()}`}</div>
-                <div className="text-[10px] mt-1" style={{ color: "rgba(255,255,255,0.45)" }}>MRR</div>
+                <div className="text-[20px] font-bold leading-none" style={{ color: "#fff" }}>{loading ? "—" : `$${animMrr.toLocaleString()}`}</div>
+                <div className="text-[11px] mt-1" style={{ color: "rgba(255,255,255,0.45)" }}>MRR</div>
               </div>
               <div>
-                <div className="text-[22px] font-bold leading-none" style={{ color: "var(--accent)" }}>{loading ? "—" : `$${animYtd.toLocaleString()}`}</div>
-                <div className="text-[10px] mt-1" style={{ color: "rgba(255,255,255,0.45)" }}>{t("home.kpi.ytdRevenue" as any)}</div>
+                <div className="text-[20px] font-bold leading-none" style={{ color: "var(--accent)" }}>{loading ? "—" : `$${animYtd.toLocaleString()}`}</div>
+                <div className="text-[11px] mt-1" style={{ color: "rgba(255,255,255,0.45)" }}>{t("home.kpi.ytdRevenue" as any)}</div>
               </div>
               <div className="flex-1" />
               <div className="flex gap-4">
@@ -235,7 +235,7 @@ export default function Home() {
                 ].map(kpi => (
                   <div key={kpi.label} className="text-center">
                     <div className="text-[15px] font-bold leading-none" style={{ color: "#fff" }}>{kpi.value}</div>
-                    <div className="text-[9px] mt-1" style={{ color: "rgba(255,255,255,0.4)" }}>{kpi.label}</div>
+                    <div className="text-[11px] mt-1" style={{ color: "rgba(255,255,255,0.4)" }}>{kpi.label}</div>
                   </div>
                 ))}
               </div>
@@ -243,16 +243,16 @@ export default function Home() {
           </div>
           {/* Quick actions — frosted glass bar */}
           <div className="flex gap-1 px-4 py-2.5" style={{ background: "rgba(0,0,0,0.15)" }}>
-            <button onClick={() => goToTab("clients")} className="flex-1 text-[10px] font-medium py-1.5 rounded-md transition-colors text-center" style={{ background: "var(--accent)", color: "#fff" }}>
+            <button onClick={() => goToTab("clients")} className="flex-1 text-[11px] font-medium py-1.5 rounded-md transition-colors text-center" style={{ background: "var(--accent)", color: "#fff" }}>
               {t("home.welcome.addLead" as any)}
             </button>
-            <button onClick={() => goToTab("work")} className="flex-1 text-[10px] font-medium py-1.5 rounded-md transition-colors text-center" style={{ background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)" }}>
+            <button onClick={() => goToTab("work")} className="flex-1 text-[11px] font-medium py-1.5 rounded-md transition-colors text-center" style={{ background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)" }}>
               {t("home.welcome.addTask" as any)}
             </button>
-            <button onClick={() => goToTab("finance")} className="flex-1 text-[10px] font-medium py-1.5 rounded-md transition-colors text-center" style={{ background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)" }}>
+            <button onClick={() => goToTab("finance")} className="flex-1 text-[11px] font-medium py-1.5 rounded-md transition-colors text-center" style={{ background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)" }}>
               {t("home.welcome.addIncome" as any)}
             </button>
-            <button onClick={() => { setEditKey(null); setForm(emptyForm); setShowForm(p => !p); }} className="flex-1 text-[10px] font-medium py-1.5 rounded-md transition-colors text-center" style={{ background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)" }}>
+            <button onClick={() => { setEditKey(null); setForm(emptyForm); setShowForm(p => !p); }} className="flex-1 text-[11px] font-medium py-1.5 rounded-md transition-colors text-center" style={{ background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)" }}>
               {t("home.quickMemo" as any)}
             </button>
           </div>
@@ -270,10 +270,10 @@ export default function Home() {
               onClick={e => e.stopPropagation()}
             >
               <div className="flex items-center justify-between">
-                <h3 className="text-[14px] font-semibold" style={{ color: "var(--text)" }}>
+                <h3 className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>
                   {editKey ? t("home.form.editEvent" as any) : t("home.quickMemo" as any)}
                 </h3>
-                <button onClick={resetForm} className="btn-ghost p-1"><X size={14} /></button>
+                <button onClick={resetForm} className="btn-ghost p-1"><X size={16} /></button>
               </div>
               <form onSubmit={saveManual} className="space-y-3">
                 <div className="space-y-1.5">
@@ -291,9 +291,9 @@ export default function Home() {
                         className="card p-2.5 text-left transition-colors"
                         style={form.type === opt.label ? { borderColor: "var(--accent)", background: "var(--accent-light)" } : {}}
                       >
-                        <div className="text-[14px] mb-0.5">{opt.emoji}</div>
-                        <div className="text-[12px] font-semibold" style={{ color: form.type === opt.label ? "var(--accent)" : "var(--text)" }}>{opt.label}</div>
-                        <div className="text-[10px] leading-tight mt-0.5" style={{ color: "var(--text-tertiary)" }}>{opt.hint}</div>
+                        <div className="text-[13px] mb-0.5">{opt.emoji}</div>
+                        <div className="text-[13px] font-semibold" style={{ color: form.type === opt.label ? "var(--accent)" : "var(--text)" }}>{opt.label}</div>
+                        <div className="text-[11px] leading-tight mt-0.5" style={{ color: "var(--text-secondary)" }}>{opt.hint}</div>
                       </button>
                     ))}
                   </div>
@@ -322,7 +322,7 @@ export default function Home() {
         <section>
           <div className="mb-3">
             <h3 className="section-label">{t("home.focus.title" as any)}</h3>
-            <p className="text-[11px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>{t("home.focus.desc" as any)}</p>
+            <p className="text-[11px] mt-0.5" style={{ color: "var(--text-secondary)" }}>{t("home.focus.desc" as any)}</p>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             {pending.map(item => {
@@ -424,13 +424,13 @@ function FocusCard({ item, saving, canSwap = true, onComplete, onSkip }: {
   return (
     <article className="card p-4 flex flex-col justify-between gap-2.5" style={isRevenue ? { borderLeft: "3px solid var(--success)" } : isDelivery ? { borderLeft: "3px solid var(--warning)" } : { borderLeft: "3px solid var(--accent)" }}>
       <div>
-        <span className="badge text-[10px] mb-1.5 inline-block" style={{ background: badgeBg, color: badgeColor }}>{item.type}</span>
+        <span className="badge text-[11px] mb-1.5 inline-block" style={{ background: badgeBg, color: badgeColor }}>{item.type}</span>
         <h4 className="text-[13px] font-semibold leading-snug" style={{ color: "var(--text)" }}>{item.title}</h4>
-        <p className="text-[11px] mt-0.5 line-clamp-2" style={{ color: "var(--text-tertiary)" }}>{item.reason}</p>
+        <p className="text-[11px] mt-0.5 line-clamp-2" style={{ color: "var(--text-secondary)" }}>{item.reason}</p>
       </div>
       <div className="flex items-center gap-1.5">
         <button onClick={onComplete} disabled={saving} className="text-[11px] font-medium px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50" style={{ background: "var(--accent)", color: "#fff" }}>
-          <Check size={11} className="inline mr-0.5" style={{ verticalAlign: "-1px" }} /> {t("common.complete" as any)}
+          <Check size={16} className="inline mr-0.5" style={{ verticalAlign: "-1px" }} /> {t("common.complete" as any)}
         </button>
         {canSwap && (
           <button onClick={onSkip} disabled={saving} className="text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-50" style={{ background: "var(--surface-alt)", color: "var(--text-secondary)" }}>
@@ -446,11 +446,11 @@ function Accordion({ label, badge, open, toggle, children }: { label: string; ba
   return (
     <section className="card overflow-hidden">
       <button onClick={toggle} className="flex items-center gap-2 w-full px-4 py-3 transition-colors" style={{ background: open ? "var(--surface-alt)" : undefined }}>
-        <span style={{ color: "var(--text-tertiary)" }}>
-          {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+        <span style={{ color: "var(--text-secondary)" }}>
+          {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </span>
         <span className="flex-1 text-left text-[13px] font-medium" style={{ color: "var(--text)" }}>{label}</span>
-        {badge && <span className="text-[11px] tabular-nums" style={{ color: "var(--text-tertiary)" }}>{badge}</span>}
+        {badge && <span className="text-[11px] tabular-nums" style={{ color: "var(--text-secondary)" }}>{badge}</span>}
       </button>
       {open && <div className="px-4 pb-4 pt-2">{children}</div>}
     </section>
@@ -462,11 +462,11 @@ function CompletedRow({ item, saving, onUndo, last }: { item: FocusItem; saving:
   return (
     <div className="list-item" style={last ? { borderBottom: "none" } : undefined}>
       <div className="flex-1 min-w-0">
-        <span className="text-[10px] font-medium block" style={{ color: "var(--text-tertiary)" }}>{item.type}</span>
+        <span className="text-[11px] font-medium block" style={{ color: "var(--text-secondary)" }}>{item.type}</span>
         <p className="text-[13px] line-through truncate" style={{ color: "var(--text-secondary)" }}>{item.title}</p>
       </div>
       <button onClick={onUndo} disabled={saving} className="btn-ghost text-[11px] shrink-0 disabled:opacity-50">
-        <Undo2 size={11} /> {t("common.undo" as any)}
+        <Undo2 size={16} /> {t("common.undo" as any)}
       </button>
     </div>
   );
@@ -481,7 +481,7 @@ function ManualRow({ item, done, saving, deleting, onComplete, onEdit, onDelete,
   return (
     <div className="list-item flex-col !items-start !gap-1.5" style={last ? { borderBottom: "none" } : undefined}>
       <div>
-        <span className="text-[10px] font-medium" style={{ color: done ? "var(--success)" : "var(--text-tertiary)" }}>
+        <span className="text-[11px] font-medium" style={{ color: done ? "var(--success)" : "var(--text-secondary)" }}>
           {item.type} · {done ? t("common.completed" as any) : t("home.events.record" as any)}
         </span>
         <p className={`text-[13px] font-medium ${done ? "line-through" : ""}`} style={{ color: done ? "var(--text-secondary)" : "var(--text)" }}>
@@ -492,15 +492,15 @@ function ManualRow({ item, done, saving, deleting, onComplete, onEdit, onDelete,
       <div className="flex gap-1.5">
         <button onClick={onComplete} disabled={disabled} className={`text-[11px] font-medium px-2 py-0.5 rounded-md transition-colors disabled:opacity-50 ${done ? "" : "text-white"}`}
           style={done ? { border: "1px solid var(--border-strong)", color: "var(--text-secondary)" } : { background: "var(--accent)", color: "#fff" }}>
-          {done ? <><Undo2 size={10} className="inline mr-0.5" />{t("common.undo" as any)}</> : <><Check size={10} className="inline mr-0.5" />{t("common.complete" as any)}</>}
+          {done ? <><Undo2 size={16} className="inline mr-0.5" />{t("common.undo" as any)}</> : <><Check size={16} className="inline mr-0.5" />{t("common.complete" as any)}</>}
         </button>
         {onEdit && !done && (
           <button onClick={onEdit} disabled={disabled} className="text-[11px] font-medium px-2 py-0.5 rounded-md border transition-colors disabled:opacity-50" style={{ borderColor: "var(--border-strong)", color: "var(--text-secondary)" }}>
-            <Pencil size={10} className="inline mr-0.5" />{t("common.edit" as any)}
+            <Pencil size={16} className="inline mr-0.5" />{t("common.edit" as any)}
           </button>
         )}
         <button onClick={onDelete} disabled={disabled} className="text-[11px] font-medium px-2 py-0.5 rounded-md transition-colors disabled:opacity-50" style={{ background: "var(--danger-light)", color: "var(--danger)" }}>
-          <Trash2 size={10} className="inline mr-0.5" />{t("common.delete" as any)}
+          <Trash2 size={16} className="inline mr-0.5" />{t("common.delete" as any)}
         </button>
       </div>
     </div>
@@ -509,7 +509,7 @@ function ManualRow({ item, done, saving, deleting, onComplete, onEdit, onDelete,
 
 function EmptyHint({ text }: { text: string }) {
   return (
-    <div className="py-6 text-center text-[12px]" style={{ color: "var(--text-tertiary)" }}>
+    <div className="py-6 text-center text-[13px]" style={{ color: "var(--text-secondary)" }}>
       {text}
     </div>
   );

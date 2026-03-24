@@ -13,7 +13,7 @@ function Toast({ message }: { message: string }) {
   if (!message) return null;
   return (
     <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 px-5 py-2.5 rounded-lg z-[9999] flex items-center gap-2 text-[13px] font-medium" style={{ background: 'var(--text)', color: 'var(--bg)', boxShadow: 'var(--shadow-md)' }}>
-      <Check size={14} style={{ color: 'var(--success)' }} /> {message}
+      <Check size={16} style={{ color: 'var(--success)' }} /> {message}
     </div>
   );
 }
@@ -22,7 +22,7 @@ function StatusMsg({ status, message }: { status: 'success' | 'error'; message: 
   const isOk = status === 'success';
   return (
     <div className="p-3 rounded-lg text-[11px] flex items-start gap-2" style={{ background: isOk ? 'var(--success-light)' : 'var(--danger-light)', color: isOk ? 'var(--success)' : 'var(--danger)' }}>
-      {isOk ? <Check size={12} className="mt-0.5 shrink-0" /> : <AlertCircle size={12} className="mt-0.5 shrink-0" />}
+      {isOk ? <Check size={16} className="mt-0.5 shrink-0" /> : <AlertCircle size={16} className="mt-0.5 shrink-0" />}
       <span>{message}</span>
     </div>
   );
@@ -97,14 +97,14 @@ function AccountSecurity({ showToast }: { showToast: (msg: string) => void }) {
         {/* Change Password */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <Lock size={14} style={{ color: 'var(--text-secondary)' }} />
+            <Lock size={16} style={{ color: 'var(--text-secondary)' }} />
             <span className="text-[13px] font-medium" style={{ color: 'var(--text)' }}>{t("auth.changePassword" as any)}</span>
           </div>
           <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder={t("auth.newPassword" as any)} className="input-base w-full px-3 py-2 text-[13px]" autoComplete="new-password" />
           <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder={t("auth.confirmNewPassword" as any)} className="input-base w-full px-3 py-2 text-[13px]" autoComplete="new-password" />
           {pwMsg && <StatusMsg status={pwMsg.status} message={pwMsg.message} />}
-          <button onClick={handleChangePassword} disabled={pwLoading} className="btn-primary text-[12px] px-4 py-2 disabled:opacity-50">
-            {pwLoading ? <Loader2 size={12} className="animate-spin" /> : null}
+          <button onClick={handleChangePassword} disabled={pwLoading} className="btn-primary text-[13px] px-4 py-2 disabled:opacity-50">
+            {pwLoading ? <Loader2 size={16} className="animate-spin" /> : null}
             {t("auth.changePassword" as any)}
           </button>
         </div>
@@ -114,14 +114,14 @@ function AccountSecurity({ showToast }: { showToast: (msg: string) => void }) {
         {/* Change Email */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <Mail size={14} style={{ color: 'var(--text-secondary)' }} />
+            <Mail size={16} style={{ color: 'var(--text-secondary)' }} />
             <span className="text-[13px] font-medium" style={{ color: 'var(--text)' }}>{t("auth.changeEmail" as any)}</span>
           </div>
           <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder={t("auth.newEmail" as any)} className="input-base w-full px-3 py-2 text-[13px]" autoComplete="email" />
-          <div className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{t("auth.changeEmailHint" as any)}</div>
+          <div className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>{t("auth.changeEmailHint" as any)}</div>
           {emailMsg && <StatusMsg status={emailMsg.status} message={emailMsg.message} />}
-          <button onClick={handleChangeEmail} disabled={emailLoading} className="btn-primary text-[12px] px-4 py-2 disabled:opacity-50">
-            {emailLoading ? <Loader2 size={12} className="animate-spin" /> : null}
+          <button onClick={handleChangeEmail} disabled={emailLoading} className="btn-primary text-[13px] px-4 py-2 disabled:opacity-50">
+            {emailLoading ? <Loader2 size={16} className="animate-spin" /> : null}
             {t("auth.changeEmail" as any)}
           </button>
         </div>
@@ -371,7 +371,7 @@ export default function Settings() {
                   <div className="text-[13px] font-medium truncate" style={{ color: 'var(--text)' }}>
                     {user.email}
                   </div>
-                  <div className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                  <div className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
                     {t("auth.loggedInAs" as any, { email: user.email || '' })}
                   </div>
                 </div>
@@ -381,12 +381,12 @@ export default function Settings() {
             {/* Sync status */}
             <div className="flex items-center gap-3 rounded-lg p-3" style={{ background: 'var(--surface-alt)' }}>
               {isOnline ? (
-                <Cloud size={18} style={{ color: 'var(--success)' }} />
+                <Cloud size={20} style={{ color: 'var(--success)' }} />
               ) : (
-                <CloudOff size={18} style={{ color: 'var(--warning)' }} />
+                <CloudOff size={20} style={{ color: 'var(--warning)' }} />
               )}
               <div className="flex-1">
-                <div className="text-[12px] font-medium" style={{ color: 'var(--text)' }}>
+                <div className="text-[13px] font-medium" style={{ color: 'var(--text)' }}>
                   {isOnline
                     ? t("settings.cloudSync.connected" as any)
                     : t("settings.cloudSync.offline" as any)}
@@ -405,7 +405,7 @@ export default function Settings() {
               className="flex items-center gap-2 text-[13px] font-medium px-4 py-2.5 rounded-lg w-full justify-center transition-colors"
               style={{ border: '1px solid var(--border)', color: 'var(--danger)' }}
             >
-              <LogOut size={14} />
+              <LogOut size={16} />
               {t("auth.logoutBtn" as any)}
             </button>
           </div>
@@ -434,12 +434,12 @@ export default function Settings() {
                 />
                 <div className="flex items-center gap-2 mt-2">
                   <label className="btn-ghost text-[11px] cursor-pointer px-2.5 py-1.5 rounded-md" style={{ border: '1px solid var(--border)' }}>
-                    <Upload size={12} /> {t("settings.uploadAvatar" as any)}
+                    <Upload size={16} /> {t("settings.uploadAvatar" as any)}
                     <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
                   </label>
                   {operatorAvatar && (
                     <button type="button" onClick={clearAvatar} className="btn-ghost text-[11px] px-2.5 py-1.5 rounded-md" style={{ color: 'var(--danger)' }}>
-                      <Trash2 size={12} /> {t("settings.removeAvatar" as any)}
+                      <Trash2 size={16} /> {t("settings.removeAvatar" as any)}
                     </button>
                   )}
                 </div>
@@ -456,11 +456,11 @@ export default function Settings() {
             <button onClick={toggleDarkMode} className="list-item w-full flex items-center justify-between px-5 py-3.5 text-left">
               <div className="flex items-center gap-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: 'var(--accent)' }}>
-                  {darkMode ? <Moon size={15} /> : <Sun size={15} />}
+                  {darkMode ? <Moon size={16} /> : <Sun size={16} />}
                 </div>
                 <div>
                   <div className="text-[13px] font-medium" style={{ color: 'var(--text)' }}>{t("settings.darkMode" as any)}</div>
-                  <div className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{darkMode ? t("settings.darkModeOn" as any) : t("settings.darkModeOff" as any)}</div>
+                  <div className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>{darkMode ? t("settings.darkModeOn" as any) : t("settings.darkModeOff" as any)}</div>
                 </div>
               </div>
               <div className="relative w-10 h-6 rounded-full transition-colors" style={{ background: darkMode ? 'var(--accent)' : 'var(--border-strong)' }}>
@@ -472,7 +472,7 @@ export default function Settings() {
             <div className="list-item flex items-center justify-between px-5 py-3.5" style={{ borderTop: '1px solid var(--border)' }}>
               <div className="flex items-center gap-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: 'var(--accent)' }}>
-                  <Globe size={15} />
+                  <Globe size={16} />
                 </div>
                 <div className="text-[13px] font-medium" style={{ color: 'var(--text)' }}>{t("settings.language" as any)}</div>
               </div>
@@ -481,7 +481,7 @@ export default function Settings() {
                   <button
                     key={l}
                     onClick={() => setLang(l)}
-                    className="px-3 py-1.5 text-[12px] font-medium transition-colors"
+                    className="px-3 py-1.5 text-[13px] font-medium transition-colors"
                     style={{
                       background: lang === l ? 'var(--accent)' : 'transparent',
                       color: lang === l ? '#fff' : 'var(--text-secondary)',
@@ -499,7 +499,7 @@ export default function Settings() {
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg text-[13px] font-bold" style={{ background: 'color-mix(in srgb, var(--success) 12%, transparent)', color: 'var(--success)' }}>$</div>
                 <div className="text-[13px] font-medium" style={{ color: 'var(--text)' }}>{t("settings.currency" as any)}</div>
               </div>
-              <select value={currency} onChange={e => setCurrency(e.target.value)} className="input-base px-2 py-1.5 text-[12px]">
+              <select value={currency} onChange={e => setCurrency(e.target.value)} className="input-base px-2 py-1.5 text-[13px]">
                 {[['USD', '$ USD'], ['CNY', '¥ CNY'], ['EUR', '€ EUR'], ['GBP', '£ GBP'], ['JPY', '¥ JPY'], ['CAD', '$ CAD'], ['AUD', '$ AUD'], ['HKD', '$ HKD'], ['TWD', '$ TWD'], ['SGD', '$ SGD']].map(([v, l]) => (
                   <option key={v} value={v}>{l}</option>
                 ))}
@@ -512,7 +512,7 @@ export default function Settings() {
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: 'var(--accent)' }}>🌐</div>
                 <div className="text-[13px] font-medium" style={{ color: 'var(--text)' }}>{t("settings.timezone" as any)}</div>
               </div>
-              <select value={timezone} onChange={e => setTimezone(e.target.value)} className="input-base px-2 py-1.5 text-[12px] max-w-[200px]">
+              <select value={timezone} onChange={e => setTimezone(e.target.value)} className="input-base px-2 py-1.5 text-[13px] max-w-[200px]">
                 {['Asia/Shanghai', 'Asia/Tokyo', 'Asia/Hong_Kong', 'Asia/Taipei', 'Asia/Singapore', 'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'America/Toronto', 'America/Vancouver', 'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Australia/Sydney', 'Pacific/Auckland'].map(tz => (
                   <option key={tz} value={tz}>{tz.replace(/_/g, ' ')}</option>
                 ))}
@@ -525,9 +525,9 @@ export default function Settings() {
         <section>
           <SectionLabel>
             {t("settings.apiKeys" as any)}
-            <span className="badge ml-2 text-[10px] font-normal" style={{ color: "var(--text-tertiary)", background: "var(--surface-alt)" }}>{t("settings.optional" as any)}</span>
+            <span className="badge ml-2 text-[11px] font-normal" style={{ color: "var(--text-secondary)", background: "var(--surface-alt)" }}>{t("settings.optional" as any)}</span>
           </SectionLabel>
-          <p className="text-[11px] mb-2" style={{ color: "var(--text-tertiary)" }}>{t("settings.apiKeysHint" as any)}</p>
+          <p className="text-[11px] mb-2" style={{ color: "var(--text-secondary)" }}>{t("settings.apiKeysHint" as any)}</p>
           <div className="card overflow-hidden divide-y" style={{ borderColor: 'var(--border)' }}>
             {apiKeys.map((ak) => {
               const ts = testStates[ak.key];
@@ -535,13 +535,13 @@ export default function Settings() {
                 <div key={ak.key} className="p-4 space-y-3">
                   <div className="flex items-center gap-2">
                     <span className="text-[13px] font-medium" style={{ color: 'var(--text)' }}>{ak.label}</span>
-                    {ak.badge && <span className="badge text-[10px]" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>{ak.badge}</span>}
+                    {ak.badge && <span className="badge text-[11px]" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>{ak.badge}</span>}
                     <div className="flex-1" />
                     <a href={ak.linkUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] font-medium" style={{ color: 'var(--accent)' }}>
-                      <ExternalLink size={10} /> {ak.linkLabel}
+                      <ExternalLink size={16} /> {ak.linkLabel}
                     </a>
                   </div>
-                  <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{ak.desc}</p>
+                  <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>{ak.desc}</p>
                   <div className="flex items-center gap-2">
                     <input
                       type="password"
@@ -555,7 +555,7 @@ export default function Settings() {
                       disabled={ts.status === 'testing'}
                       className="btn-primary text-[11px] px-3 py-2 shrink-0 disabled:opacity-50"
                     >
-                      {ts.status === 'testing' ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />}
+                      {ts.status === 'testing' ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
                       {t("common.test" as any)}
                     </button>
                   </div>
@@ -589,15 +589,15 @@ export default function Settings() {
 
         {/* ── Save button ── */}
         <button onClick={handleSave} className="btn-primary text-[13px] w-full md:w-auto">
-          <Save size={14} /> {t("settings.saveBtn" as any)}
+          <Save size={16} /> {t("settings.saveBtn" as any)}
         </button>
 
         {/* ── Version info ── */}
         <div className="text-center py-4 space-y-1">
-          <div className="text-[12px] font-medium" style={{ color: 'var(--text-tertiary)' }}>
+          <div className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
             {t("auth.title" as any)} v{__APP_VERSION__}
           </div>
-          <div className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+          <div className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
             {t("settings.version.checkUpdate" as any)}
           </div>
         </div>

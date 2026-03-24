@@ -249,7 +249,7 @@ function App() {
         <button
           onClick={() => setSidebarExpanded(p => !p)}
           className="mx-auto mb-3 flex h-7 w-7 items-center justify-center rounded-md transition-opacity hover:opacity-80"
-          style={{ color: "var(--text-tertiary)" }}
+          style={{ color: "var(--text-secondary)" }}
           aria-label={sidebarExpanded ? t("app.collapseSidebar" as any) : t("app.expandSidebar" as any)}
         >
           {sidebarExpanded ? <PanelLeftClose size={15} /> : <PanelLeft size={15} />}
@@ -276,7 +276,7 @@ function App() {
           <div className={`flex items-center ${sidebarExpanded ? "px-2 py-1.5" : "justify-center py-1.5"}`}>
             <SyncIndicator isOnline={isOnline} syncStatus={syncStatus} pendingOps={pendingOps} compact={!sidebarExpanded} />
             {sidebarExpanded && (
-              <span className="ml-1.5 text-[11px] truncate" style={{ color: "var(--text-tertiary)" }}>
+              <span className="ml-1.5 text-[11px] truncate" style={{ color: "var(--text-secondary)" }}>
                 {syncStatus === "syncing"
                   ? (pendingOps > 0 ? `${t("settings.sync.syncing" as any)}` : t("settings.sync.syncing" as any))
                   : !isOnline
@@ -315,7 +315,7 @@ function App() {
               <div className="absolute bottom-full left-0 mb-2 w-56 rounded-xl overflow-hidden z-50" style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "var(--shadow-lg)" }}>
                 <div className="px-4 py-3 border-b" style={{ borderColor: "var(--border)" }}>
                   <div className="text-[13px] font-semibold truncate" style={{ color: "var(--text)" }}>{operatorDisplayName}</div>
-                  {user?.email && <div className="text-[11px] truncate" style={{ color: "var(--text-tertiary)" }}>{user.email}</div>}
+                  {user?.email && <div className="text-[11px] truncate" style={{ color: "var(--text-secondary)" }}>{user.email}</div>}
                 </div>
                 <button onClick={() => { setAvatarMenu(false); signOut(); }} className="flex items-center gap-2.5 w-full px-4 py-2.5 text-[13px] transition-colors hover:bg-[var(--surface-alt)]" style={{ color: "var(--danger)" }}>
                   <LogOut size={14} />
@@ -372,7 +372,7 @@ function App() {
                 <div className="absolute top-full right-0 mt-2 w-56 rounded-xl overflow-hidden z-50" style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "var(--shadow-lg)" }}>
                   <div className="px-4 py-3 border-b" style={{ borderColor: "var(--border)" }}>
                     <div className="text-[13px] font-semibold truncate" style={{ color: "var(--text)" }}>{operatorDisplayName}</div>
-                    {user?.email && <div className="text-[11px] truncate" style={{ color: "var(--text-tertiary)" }}>{user.email}</div>}
+                    {user?.email && <div className="text-[11px] truncate" style={{ color: "var(--text-secondary)" }}>{user.email}</div>}
                   </div>
                   <button onClick={() => { setAvatarMenu(false); signOut(); }} className="flex items-center gap-2.5 w-full px-4 py-2.5 text-[13px] transition-colors" style={{ color: "var(--danger)" }}>
                     <LogOut size={14} />
@@ -458,7 +458,7 @@ const SidebarItem = React.memo(function SidebarItem({
           transition={{ type: "spring", damping: 28, stiffness: 320 }}
         />
       )}
-      <span className="shrink-0" style={{ color: active ? "var(--accent)" : "var(--text-tertiary)" }}>{icon}</span>
+      <span className="shrink-0" style={{ color: active ? "var(--accent)" : "var(--text-secondary)" }}>{icon}</span>
       {expanded && <span className="whitespace-nowrap">{label}</span>}
     </button>
   );
@@ -475,7 +475,7 @@ const MobileNavItem = React.memo(function MobileNavItem({
       onClick={() => (onClick as (id: string) => void)(id)}
       aria-current={active ? "page" : undefined}
       className="relative flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 min-w-[52px] min-h-[44px] transition-colors active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
-      style={{ color: active ? "var(--accent)" : "var(--text-tertiary)" }}
+      style={{ color: active ? "var(--accent)" : "var(--text-secondary)" }}
     >
       {/* Active dot indicator */}
       {active && id !== "__more__" && (

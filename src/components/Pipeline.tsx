@@ -45,7 +45,7 @@ const TX_CATEGORIES = ["收入", "软件支出", "外包支出", "应收", "应�
 const TX_STATUSES = ["已完成", "待收款 (应收)", "待支付 (应付)"];
 
 const LEAD_COL_IDS = [
-  { id: "new", color: "var(--text-tertiary)" },
+  { id: "new", color: "var(--text-secondary)" },
   { id: "contacted", color: "var(--accent)" },
   { id: "proposal", color: "var(--warning)" },
   { id: "won", color: "var(--success)" },
@@ -67,10 +67,10 @@ export default function Pipeline() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setSalesToolsOpen(true)}
-            className="btn-ghost flex items-center gap-1.5 text-[12px] font-medium"
+            className="btn-ghost flex items-center gap-1.5 text-[13px] font-medium"
             style={{ color: "var(--accent)" }}
           >
-            <Briefcase size={14} />
+            <Briefcase size={16} />
             <span className="hidden sm:inline">{t("pipeline.salesTools" as any)}</span>
           </button>
           <div className="segment-switcher">
@@ -195,15 +195,15 @@ export function LeadsView() {
 
       <div className="flex flex-wrap gap-2 items-center mb-4">
         <div className="segment-switcher">
-          {([["vertical", <LayoutGrid size={13} key="v" />], ["horizontal", <AlignJustify size={13} key="h" />]] as const).map(([m, icon]) => (
+          {([["vertical", <LayoutGrid size={16} key="v" />], ["horizontal", <AlignJustify size={16} key="h" />]] as const).map(([m, icon]) => (
             <button key={m} onClick={() => { setViewMode(m as any); localStorage.setItem("sales_view_mode", m as string); }} data-active={viewMode === m}>{icon}</button>
           ))}
         </div>
         <button onClick={() => setShowFunnel(f => !f)} className={`btn-ghost text-[13px] gap-1 ${showFunnel ? "ring-1" : ""}`} style={showFunnel ? { color: "var(--accent)", borderColor: "var(--accent)" } : undefined}>
-          <ChevronDown size={13} style={{ transform: showFunnel ? "rotate(180deg)" : undefined, transition: "transform 0.2s" }} /> {t("pipeline.funnel.title" as any)}
+          <ChevronDown size={16} style={{ transform: showFunnel ? "rotate(180deg)" : undefined, transition: "transform 0.2s" }} /> {t("pipeline.funnel.title" as any)}
         </button>
         <div className="flex-1" />
-        <button onClick={() => openPanel(null, "new")} className="btn-primary text-[13px]"><Plus size={13} /> {t("pipeline.addLead" as any)}</button>
+        <button onClick={() => openPanel(null, "new")} className="btn-primary text-[13px]"><Plus size={16} /> {t("pipeline.addLead" as any)}</button>
       </div>
 
       {/* Funnel chart */}
@@ -220,7 +220,7 @@ export function LeadsView() {
                 const maxW = 100 - i * 12;
                 return (
                   <div key={col.id} className="flex items-center gap-3" style={{ paddingLeft: `${i * 6}%`, paddingRight: `${i * 6}%` }}>
-                    <div className="flex-1 rounded-md h-8 flex items-center justify-between px-3 text-[12px] font-medium transition-all" style={{ background: `color-mix(in srgb, ${col.color} 15%, transparent)`, color: col.color, maxWidth: `${maxW}%` }}>
+                    <div className="flex-1 rounded-md h-8 flex items-center justify-between px-3 text-[13px] font-medium transition-all" style={{ background: `color-mix(in srgb, ${col.color} 15%, transparent)`, color: col.color, maxWidth: `${maxW}%` }}>
                       <span>{col.title}</span>
                       <span className="tabular-nums">{count} ({pct}%)</span>
                     </div>
@@ -272,7 +272,7 @@ export function LeadsView() {
             >
               <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: "var(--border)" }}>
                 <div className="flex items-center gap-2.5">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-md" style={{ background: "var(--accent-light)", color: "var(--accent)" }}>{editId ? <Edit2 size={14} /> : <Plus size={14} />}</div>
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md" style={{ background: "var(--accent-light)", color: "var(--accent)" }}>{editId ? <Edit2 size={16} /> : <Plus size={16} />}</div>
                   <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>{editId ? t("pipeline.panel.editLead" as any) : t("pipeline.panel.newLead" as any)}</span>
                 </div>
                 <button onClick={() => setShowPanel(false)} className="btn-ghost p-1">{isMobile ? <X size={16} /> : <PanelRightClose size={16} />}</button>
@@ -311,7 +311,7 @@ export function LeadsView() {
                   </FL>
                 </div>
                 <button type="button" onClick={generateOutreach} disabled={generating} className="btn-primary w-full text-[13px] disabled:opacity-50">
-                  {generating ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />} {generating ? t("pipeline.ai.generating" as any) : t("pipeline.ai.generate" as any)}
+                  {generating ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />} {generating ? t("pipeline.ai.generating" as any) : t("pipeline.ai.generate" as any)}
                 </button>
                 <FL label={t("pipeline.form.draftLabel" as any)}>
                   <textarea value={form.aiDraft} onChange={e => setForm(p => ({ ...p, aiDraft: e.target.value }))} placeholder={t("pipeline.form.draftPlaceholder" as any)} className="input-base w-full h-32 px-3 py-2 text-[13px] resize-none" />
@@ -320,8 +320,8 @@ export function LeadsView() {
               </div>
               <div className="flex items-center justify-between px-5 py-3 border-t pb-safe" style={{ borderColor: "var(--border)" }}>
                 <div className="flex gap-2">
-                  {editId && <button type="button" onClick={() => setDeleteId(editId)} className="btn-ghost text-[12px]" style={{ color: "var(--danger)" }}><Trash2 size={13} /> {t("common.delete" as any)}</button>}
-                  {editId && <button type="button" onClick={() => { setConvertForm({ plan_tier: "", status: "Active", mrr: "", subscription_start_date: new Date().toISOString().split("T")[0] }); setShowConvert(true); }} className="btn-ghost text-[12px]" style={{ color: "var(--success)" }}><UserPlus size={13} /> {t("pipeline.convert.btn" as any)}</button>}
+                  {editId && <button type="button" onClick={() => setDeleteId(editId)} className="btn-ghost text-[13px]" style={{ color: "var(--danger)" }}><Trash2 size={16} /> {t("common.delete" as any)}</button>}
+                  {editId && <button type="button" onClick={() => { setConvertForm({ plan_tier: "", status: "Active", mrr: "", subscription_start_date: new Date().toISOString().split("T")[0] }); setShowConvert(true); }} className="btn-ghost text-[13px]" style={{ color: "var(--success)" }}><UserPlus size={16} /> {t("pipeline.convert.btn" as any)}</button>}
                 </div>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setShowPanel(false)} className="btn-secondary text-[13px]">{t("common.cancel" as any)}</button>
@@ -353,7 +353,7 @@ export function LeadsView() {
           <div className="card-elevated w-full max-w-md p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-[15px] font-semibold flex items-center gap-2" style={{ color: "var(--text)" }}><UserPlus size={16} style={{ color: "var(--success)" }} /> {t("pipeline.convert.title" as any)}</h3>
-              <button onClick={() => setShowConvert(false)} className="btn-ghost p-1"><X size={14} /></button>
+              <button onClick={() => setShowConvert(false)} className="btn-ghost p-1"><X size={16} /></button>
             </div>
             <FL label={t("pipeline.convert.plan" as any)}><select value={convertForm.plan_tier} onChange={e => { const v = e.target.value; const p = plans.find((x: any) => x.name === v); setConvertForm(prev => ({ ...prev, plan_tier: v, mrr: p ? String(p.price) : prev.mrr })); }} className="input-base w-full px-3 py-2 text-[13px]"><option value="">{t("pipeline.convert.planSelect" as any)}</option>{plans.map((p: any) => <option key={p.id} value={p.name}>{p.name}</option>)}</select></FL>
             <div className="grid grid-cols-2 gap-3">
@@ -364,7 +364,7 @@ export function LeadsView() {
             <div className="flex justify-end gap-2 pt-2">
               <button onClick={() => setShowConvert(false)} className="btn-secondary text-[13px]">{t("common.cancel" as any)}</button>
               <button onClick={convertLead} disabled={converting} className="text-[13px] font-semibold px-4 py-2 rounded-lg text-white flex items-center gap-1.5 disabled:opacity-50" style={{ background: "var(--success)" }}>
-                {converting ? <Loader2 size={13} className="animate-spin" /> : <UserPlus size={13} />} {t("common.confirm" as any)}
+                {converting ? <Loader2 size={16} className="animate-spin" /> : <UserPlus size={16} />} {t("common.confirm" as any)}
               </button>
             </div>
           </div>
@@ -571,19 +571,19 @@ export function ClientsView() {
       {toast && <Toast msg={toast} />}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-        <div className="stat-card"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: "color-mix(in srgb, var(--success) 12%, transparent)" }}><PlayCircle size={13} style={{ color: "var(--success)" }} /></div><span className="text-[11px] font-medium" style={{ color: "var(--text-tertiary)" }}>{t("common.active" as any)}</span></div><span className="text-xl font-semibold tabular-nums" style={{ color: "var(--text)" }}>{activeN}</span></div>
-        <div className="stat-card"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: "color-mix(in srgb, var(--warning) 12%, transparent)" }}><PauseCircle size={13} style={{ color: "var(--warning)" }} /></div><span className="text-[11px] font-medium" style={{ color: "var(--text-tertiary)" }}>{t("common.paused" as any)}</span></div><span className="text-xl font-semibold tabular-nums" style={{ color: "var(--text)" }}>{pausedN}</span></div>
-        <div className="stat-card"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)" }}><Layers size={13} style={{ color: "var(--accent)" }} /></div><span className="text-[11px] font-medium" style={{ color: "var(--text-tertiary)" }}>{t("pipeline.clients.contractTotal" as any)}</span></div><span className="text-xl font-semibold tabular-nums" style={{ color: "var(--text)" }}>${contractTotal.toLocaleString()}</span></div>
-        <div className="stat-card"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: "color-mix(in srgb, var(--success) 12%, transparent)" }}><CircleCheck size={13} style={{ color: "var(--success)" }} /></div><span className="text-[11px] font-medium" style={{ color: "var(--text-tertiary)" }}>{t("pipeline.clients.totalReceived" as any)}</span></div><span className="text-xl font-semibold tabular-nums" style={{ color: "var(--success)" }}>${totalReceived.toLocaleString()}</span></div>
+        <div className="stat-card"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: "color-mix(in srgb, var(--success) 12%, transparent)" }}><PlayCircle size={16} style={{ color: "var(--success)" }} /></div><span className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>{t("common.active" as any)}</span></div><span className="text-xl font-semibold tabular-nums" style={{ color: "var(--text)" }}>{activeN}</span></div>
+        <div className="stat-card"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: "color-mix(in srgb, var(--warning) 12%, transparent)" }}><PauseCircle size={16} style={{ color: "var(--warning)" }} /></div><span className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>{t("common.paused" as any)}</span></div><span className="text-xl font-semibold tabular-nums" style={{ color: "var(--text)" }}>{pausedN}</span></div>
+        <div className="stat-card"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)" }}><Layers size={16} style={{ color: "var(--accent)" }} /></div><span className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>{t("pipeline.clients.contractTotal" as any)}</span></div><span className="text-xl font-semibold tabular-nums" style={{ color: "var(--text)" }}>${contractTotal.toLocaleString()}</span></div>
+        <div className="stat-card"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: "color-mix(in srgb, var(--success) 12%, transparent)" }}><CircleCheck size={16} style={{ color: "var(--success)" }} /></div><span className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>{t("pipeline.clients.totalReceived" as any)}</span></div><span className="text-xl font-semibold tabular-nums" style={{ color: "var(--success)" }}>${totalReceived.toLocaleString()}</span></div>
       </div>
 
       <div className="flex flex-col md:flex-row md:items-center gap-3 mb-4">
         <div className="relative flex-1 md:max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={14} style={{ color: "var(--text-tertiary)" }} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={16} style={{ color: "var(--text-secondary)" }} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t("pipeline.clients.search" as any)} className="input-base w-full pl-9 pr-3 py-2 text-[13px]" />
         </div>
         <div className="flex items-center gap-1.5 flex-wrap">
-          <Filter size={13} style={{ color: "var(--text-tertiary)" }} />
+          <Filter size={16} style={{ color: "var(--text-secondary)" }} />
           <select value={filterSt} onChange={e => setFilterSt(e.target.value)} className="input-base px-2 py-1.5 text-[13px]">
             <option value="All">{t("common.all" as any)}</option><option value="Active">{t("common.active" as any)}</option><option value="Paused">{t("common.paused" as any)}</option>
           </select>
@@ -600,13 +600,13 @@ export function ClientsView() {
           )}
         </div>
         <div className="flex-1" />
-        <button onClick={exportClientsCSV} className="btn-ghost text-[13px]" style={{ border: "1px solid var(--border)" }}><Download size={13} /> CSV</button>
-        <button onClick={() => openPanel()} className="btn-primary text-[13px]"><Plus size={13} /> {t("pipeline.addClient" as any)}</button>
+        <button onClick={exportClientsCSV} className="btn-ghost text-[13px]" style={{ border: "1px solid var(--border)" }}><Download size={16} /> CSV</button>
+        <button onClick={() => openPanel()} className="btn-primary text-[13px]"><Plus size={16} /> {t("pipeline.addClient" as any)}</button>
       </div>
 
       {/* Mobile cards */}
       <div className="md:hidden space-y-2 flex-1 overflow-y-auto ios-scroll pb-4">
-        {!filtered.length && <div className="py-10 text-center text-[13px]" style={{ color: "var(--text-tertiary)" }}>{t("pipeline.clients.noMatch" as any)}</div>}
+        {!filtered.length && <div className="py-10 text-center text-[13px]" style={{ color: "var(--text-secondary)" }}>{t("pipeline.clients.noMatch" as any)}</div>}
         {filtered.map(c => {
           const plan = c.plan_tier === "Basic" ? t("pipeline.convert.planBasic" as any) : c.plan_tier === "Pro" ? t("pipeline.convert.planPro" as any) : c.plan_tier === "Enterprise" ? t("pipeline.convert.planEnterprise" as any) : (c.plan_tier || c.plan);
           return (
@@ -617,7 +617,7 @@ export function ClientsView() {
                   <span className="badge" style={c.status === "Active" ? { background: "var(--success-light)", color: "var(--success)" } : { background: "var(--warning-light)", color: "var(--warning)" }}>{c.status === "Active" ? t("common.active" as any) : t("common.paused" as any)}</span>
                 </div>
                 {c.contact_name && <div className="text-[11px] mt-0.5 truncate" style={{ color: "var(--text-secondary)" }}>{c.contact_name}{c.contact_phone ? ` · ${c.contact_phone}` : ""}</div>}
-                <div className="text-[11px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>
+                <div className="text-[11px] mt-0.5" style={{ color: "var(--text-secondary)" }}>
                   {c.billing_type === "project"
                     ? <>{t("pipeline.clients.billingProject" as any)} · {t("pipeline.clients.contract" as any)} <strong style={{ color: "var(--text)" }}>${Number(c.project_fee || 0).toLocaleString()}</strong></>
                     : <>{plan} · <strong style={{ color: "var(--text)" }}>${Number(c.mrr || 0).toLocaleString()}</strong>{t("pipeline.clients.perMonth" as any)}</>
@@ -650,26 +650,26 @@ export function ClientsView() {
                 <tr key={c.id} data-index={vr.index} ref={rowV.measureElement} className="group border-b transition-colors cursor-pointer" style={{ borderColor: "var(--border)" }}
                   onClick={() => openPanel(c)}
                   onMouseEnter={e => (e.currentTarget.style.background = "var(--surface-alt)")} onMouseLeave={e => (e.currentTarget.style.background = "")}>
-                  <td className="px-4 py-3"><div className="flex items-center gap-2.5"><div className="flex h-7 w-7 items-center justify-center rounded-md text-[10px] font-bold" style={{ background: "var(--accent-light)", color: "var(--accent)" }}>{displayInitial}</div><span className="font-medium" style={{ color: "var(--text)" }}>{displayName}</span></div></td>
-                  <td className="px-4 py-3"><div className="min-w-0">{c.contact_name && <span className="text-[13px] block truncate" style={{ color: "var(--text)" }}>{c.contact_name}</span>}{c.contact_email && <span className="text-[11px] block truncate" style={{ color: "var(--text-tertiary)" }}>{c.contact_email}</span>}</div></td>
+                  <td className="px-4 py-3"><div className="flex items-center gap-2.5"><div className="flex h-7 w-7 items-center justify-center rounded-md text-[11px] font-bold" style={{ background: "var(--accent-light)", color: "var(--accent)" }}>{displayInitial}</div><span className="font-medium" style={{ color: "var(--text)" }}>{displayName}</span></div></td>
+                  <td className="px-4 py-3"><div className="min-w-0">{c.contact_name && <span className="text-[13px] block truncate" style={{ color: "var(--text)" }}>{c.contact_name}</span>}{c.contact_email && <span className="text-[11px] block truncate" style={{ color: "var(--text-secondary)" }}>{c.contact_email}</span>}</div></td>
                   <td className="px-4 py-3"><span className="badge" style={c.billing_type === "project" ? { background: "color-mix(in srgb, var(--warning) 12%, transparent)", color: "var(--warning)" } : { background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)" }}>{c.billing_type === "project" ? t("pipeline.clients.billingProject" as any) : t("pipeline.clients.billingSubscription" as any)}</span></td>
                   <td className="px-4 py-3"><span className="badge">{c.billing_type === "project" ? "—" : plan}</span></td>
                   <td className="px-4 py-3"><span className="badge" style={c.status === "Active" ? { background: "var(--success-light)", color: "var(--success)" } : { background: "var(--warning-light)", color: "var(--warning)" }}>{c.status}</span></td>
                   <td className="px-4 py-3 font-medium tabular-nums" style={{ color: "var(--text)" }}>
                     <div>${c.billing_type === "project" ? Number(c.project_fee || 0).toLocaleString() : Number(c.lifetimeRevenue || 0).toLocaleString()}</div>
-                    {(() => { const cReceived = finTxs.filter((tx: any) => tx.type === "income" && (tx.status || "已完成") === "已完成" && tx.client_id === c.id).reduce((s: number, tx: any) => s + Number(tx.amount || 0), 0); return cReceived > 0 ? <div className="text-[10px]" style={{ color: "var(--success)" }}>{t("pipeline.clients.received" as any)} ${cReceived.toLocaleString()}</div> : null; })()}
-                    {c.billing_type === "subscription" && <div className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>${Number(c.mrr || 0).toLocaleString()}{t("pipeline.clients.perMonth" as any)}</div>}
+                    {(() => { const cReceived = finTxs.filter((tx: any) => tx.type === "income" && (tx.status || "已完成") === "已完成" && tx.client_id === c.id).reduce((s: number, tx: any) => s + Number(tx.amount || 0), 0); return cReceived > 0 ? <div className="text-[11px]" style={{ color: "var(--success)" }}>{t("pipeline.clients.received" as any)} ${cReceived.toLocaleString()}</div> : null; })()}
+                    {c.billing_type === "subscription" && <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>${Number(c.mrr || 0).toLocaleString()}{t("pipeline.clients.perMonth" as any)}</div>}
                   </td>
-                  <td className="px-4 py-3">{c.tax_mode && c.tax_mode !== "none" ? <span className="badge" style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)" }}>{c.tax_mode === "exclusive" ? t("money.form.taxExclBtn" as any) : t("money.form.taxIncl" as any)} {c.tax_rate}%</span> : <span style={{ color: "var(--text-tertiary)" }}>—</span>}</td>
+                  <td className="px-4 py-3">{c.tax_mode && c.tax_mode !== "none" ? <span className="badge" style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)" }}>{c.tax_mode === "exclusive" ? t("money.form.taxExclBtn" as any) : t("money.form.taxIncl" as any)} {c.tax_rate}%</span> : <span style={{ color: "var(--text-secondary)" }}>—</span>}</td>
                   <td className="px-4 py-3" style={{ color: "var(--text-secondary)" }}>{c.joined_at ? c.joined_at.split(" ")[0] : ""}</td>
-                  <td className="px-4 py-3 text-right"><button onClick={e => { e.stopPropagation(); openPanel(c); }} className="btn-ghost text-[11px] opacity-0 group-hover:opacity-100"><Edit2 size={11} /> {t("common.edit" as any)}</button></td>
+                  <td className="px-4 py-3 text-right"><button onClick={e => { e.stopPropagation(); openPanel(c); }} className="btn-ghost text-[11px] opacity-0 group-hover:opacity-100"><Edit2 size={16} /> {t("common.edit" as any)}</button></td>
                 </tr>
               );
             })}
             {padBot > 0 && <tr><td style={{ height: padBot, padding: 0 }} colSpan={9} /></tr>}
           </tbody>
         </table>
-        {!filtered.length && <div className="p-8 text-center text-[13px]" style={{ color: "var(--text-tertiary)" }}>{t("pipeline.clients.noMatch" as any)}</div>}
+        {!filtered.length && <div className="p-8 text-center text-[13px]" style={{ color: "var(--text-secondary)" }}>{t("pipeline.clients.noMatch" as any)}</div>}
       </div>
 
       {/* ═══ Client Side Panel ═══ */}
@@ -687,7 +687,7 @@ export function ClientsView() {
             >
               <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: "var(--border)" }}>
                 <div className="flex items-center gap-2.5">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-md" style={{ background: "var(--accent-light)", color: "var(--accent)" }}><UserPlus size={14} /></div>
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md" style={{ background: "var(--accent-light)", color: "var(--accent)" }}><UserPlus size={16} /></div>
                   <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>{editId ? t("pipeline.panel.editClient" as any) : t("pipeline.panel.newClient" as any)}</span>
                 </div>
                 <button onClick={() => setShowPanel(false)} className="btn-ghost p-1">{isMobile ? <X size={16} /> : <PanelRightClose size={16} />}</button>
@@ -705,12 +705,12 @@ export function ClientsView() {
                 <FL label={t("pipeline.clients.driveFolder" as any)}>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
-                      <FolderOpen size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-tertiary)" }} />
+                      <FolderOpen size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-secondary)" }} />
                       <input value={form.drive_folder_url} onChange={e => setForm(p => ({ ...p, drive_folder_url: e.target.value }))} placeholder={t("pipeline.clients.drivePlaceholder" as any)} className="input-base w-full pl-9 pr-3 py-2 text-[13px]" />
                     </div>
                     {form.drive_folder_url && (
                       <button type="button" onClick={() => window.open(form.drive_folder_url, '_blank')} className="btn-ghost flex items-center gap-1 px-2.5 shrink-0 text-[11px] font-medium" style={{ color: "var(--accent)" }}>
-                        <ExternalLink size={12} /> {t("pipeline.clients.openDrive" as any)}
+                        <ExternalLink size={16} /> {t("pipeline.clients.openDrive" as any)}
                       </button>
                     )}
                   </div>
@@ -743,8 +743,8 @@ export function ClientsView() {
                           <button key={val} type="button" onClick={() => setForm(p => ({ ...p, payment_method: val as any }))}
                             className="flex-1 card p-2.5 text-left transition-colors"
                             style={form.payment_method === val ? { borderColor: "var(--accent)", background: "var(--accent-light)" } : {}}>
-                            <div className="text-[12px] font-semibold" style={{ color: form.payment_method === val ? "var(--accent)" : "var(--text)" }}>{label}</div>
-                            <div className="text-[10px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>{hint}</div>
+                            <div className="text-[13px] font-semibold" style={{ color: form.payment_method === val ? "var(--accent)" : "var(--text)" }}>{label}</div>
+                            <div className="text-[11px] mt-0.5" style={{ color: "var(--text-secondary)" }}>{hint}</div>
                           </button>
                         ))}
                       </div>
@@ -754,7 +754,7 @@ export function ClientsView() {
                       <div className="flex gap-2 mb-2">
                         {([["none", t("money.form.taxNone" as any)], ["exclusive", t("money.form.taxExclBtn" as any)], ["inclusive", t("money.form.taxIncl" as any)]] as [string, string][]).map(([mode, label]) => (
                           <button key={mode} type="button" onClick={() => setForm(p => ({ ...p, tax_mode: mode as any }))}
-                            className="flex-1 py-1.5 rounded-lg text-[12px] font-medium transition-all"
+                            className="flex-1 py-1.5 rounded-lg text-[13px] font-medium transition-all"
                             style={form.tax_mode === mode ? { background: "var(--text)", color: "var(--bg)" } : { background: "var(--surface-alt)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
                             {label}
                           </button>
@@ -793,7 +793,7 @@ export function ClientsView() {
                       <div className="flex gap-2 mb-2">
                         {([["none", t("money.form.taxNone" as any)], ["exclusive", t("money.form.taxExclBtn" as any)], ["inclusive", t("money.form.taxIncl" as any)]] as [string, string][]).map(([mode, label]) => (
                           <button key={mode} type="button" onClick={() => setForm(p => ({ ...p, tax_mode: mode as any }))}
-                            className="flex-1 py-1.5 rounded-lg text-[12px] font-medium transition-all"
+                            className="flex-1 py-1.5 rounded-lg text-[13px] font-medium transition-all"
                             style={form.tax_mode === mode ? { background: "var(--text)", color: "var(--bg)" } : { background: "var(--surface-alt)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
                             {label}
                           </button>
@@ -824,8 +824,8 @@ export function ClientsView() {
                       <>
                         <div className="border-t" style={{ borderColor: "var(--border)" }} />
                         <div className="flex items-center justify-between">
-                          <span className="section-label flex items-center gap-1.5"><DollarSign size={13} /> {t("pipeline.milestones.title" as any)}</span>
-                          <button onClick={() => { setShowAddMs(true); setEditMsId(null); setMsForm(emptyMs); }} className="btn-ghost text-[11px] flex items-center gap-1" style={{ color: "var(--accent)" }}><Plus size={12} /> {t("pipeline.milestones.add" as any)}</button>
+                          <span className="section-label flex items-center gap-1.5"><DollarSign size={16} /> {t("pipeline.milestones.title" as any)}</span>
+                          <button onClick={() => { setShowAddMs(true); setEditMsId(null); setMsForm(emptyMs); }} className="btn-ghost text-[11px] flex items-center gap-1" style={{ color: "var(--accent)" }}><Plus size={16} /> {t("pipeline.milestones.add" as any)}</button>
                         </div>
 
                         {/* Progress bar */}
@@ -852,16 +852,16 @@ export function ClientsView() {
                         {msLoading ? (
                           <div className="flex justify-center py-4"><Loader2 className="animate-spin" style={{ color: "var(--accent)" }} /></div>
                         ) : milestones.length === 0 && !showAddMs ? (
-                          <div className="text-center py-4 text-[12px]" style={{ color: "var(--text-tertiary)" }}>{t("pipeline.milestones.noPlan" as any)}</div>
+                          <div className="text-center py-4 text-[13px]" style={{ color: "var(--text-secondary)" }}>{t("pipeline.milestones.noPlan" as any)}</div>
                         ) : (
                           <div className="space-y-2">
                             {milestones.map((ms: any) => (
                               <div key={ms.id} className="rounded-lg p-3 space-y-2" style={{ background: "var(--surface-alt)", border: "1px solid var(--border)" }}>
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-2">
-                                    {ms.status === "paid" ? <CircleCheck size={14} style={{ color: "var(--success)" }} /> : ms.status === "overdue" ? <AlertCircle size={14} style={{ color: "var(--danger)" }} /> : <Clock size={14} style={{ color: "var(--text-tertiary)" }} />}
+                                    {ms.status === "paid" ? <CircleCheck size={16} style={{ color: "var(--success)" }} /> : ms.status === "overdue" ? <AlertCircle size={16} style={{ color: "var(--danger)" }} /> : <Clock size={16} style={{ color: "var(--text-secondary)" }} />}
                                     <span className="text-[13px] font-medium" style={{ color: "var(--text)" }}>{ms.label}</span>
-                                    <span className="badge text-[10px]" style={
+                                    <span className="badge text-[11px]" style={
                                       ms.status === "paid" ? { background: "var(--success-light)", color: "var(--success)" }
                                       : ms.status === "overdue" ? { background: "color-mix(in srgb, var(--danger) 12%, transparent)", color: "var(--danger)" }
                                       : { background: "color-mix(in srgb, var(--warning) 12%, transparent)", color: "var(--warning)" }
@@ -869,7 +869,7 @@ export function ClientsView() {
                                   </div>
                                   <span className="text-[13px] font-semibold tabular-nums" style={{ color: "var(--text)" }}>${Number(ms.amount || 0).toLocaleString()}</span>
                                 </div>
-                                <div className="flex items-center gap-3 text-[11px]" style={{ color: "var(--text-tertiary)" }}>
+                                <div className="flex items-center gap-3 text-[11px]" style={{ color: "var(--text-secondary)" }}>
                                   {ms.percentage > 0 && <span>{ms.percentage}%</span>}
                                   {ms.due_date && <span>{t("pipeline.milestones.dueDate" as any)}: {ms.due_date}</span>}
                                   {ms.paid_date && <span>{t("pipeline.milestones.paidDate" as any)}: {ms.paid_date}</span>}
@@ -879,10 +879,10 @@ export function ClientsView() {
                                 {ms.status !== "paid" && (
                                   <div className="flex items-center gap-2 pt-1">
                                     <button onClick={() => { setMarkPaidId(ms.id); setMarkPaidMethod("bank_transfer"); }} className="text-[11px] font-medium px-2.5 py-1 rounded-md flex items-center gap-1" style={{ background: "var(--success-light)", color: "var(--success)" }}>
-                                      <CircleCheck size={11} /> {t("pipeline.milestones.markPaid" as any)}
+                                      <CircleCheck size={16} /> {t("pipeline.milestones.markPaid" as any)}
                                     </button>
-                                    <button onClick={() => { setEditMsId(ms.id); setMsForm({ label: ms.label, amount: String(ms.amount), percentage: String(ms.percentage || ""), due_date: ms.due_date || "", note: ms.note || "" }); setShowAddMs(true); }} className="btn-ghost text-[11px] p-1"><Edit2 size={11} /></button>
-                                    <button onClick={() => deleteMilestone(ms.id)} className="btn-ghost text-[11px] p-1" style={{ color: "var(--danger)" }}><Trash2 size={11} /></button>
+                                    <button onClick={() => { setEditMsId(ms.id); setMsForm({ label: ms.label, amount: String(ms.amount), percentage: String(ms.percentage || ""), due_date: ms.due_date || "", note: ms.note || "" }); setShowAddMs(true); }} className="btn-ghost text-[11px] p-1"><Edit2 size={16} /></button>
+                                    <button onClick={() => deleteMilestone(ms.id)} className="btn-ghost text-[11px] p-1" style={{ color: "var(--danger)" }}><Trash2 size={16} /></button>
                                   </div>
                                 )}
                               </div>
@@ -896,14 +896,14 @@ export function ClientsView() {
                             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
                               <div className="rounded-lg p-3 space-y-3" style={{ background: "var(--surface-alt)", border: "1px solid var(--accent)", borderStyle: "dashed" }}>
                                 <div className="flex items-center justify-between">
-                                  <span className="text-[12px] font-semibold" style={{ color: "var(--text)" }}>{editMsId ? t("common.edit" as any) : t("pipeline.milestones.add" as any)}</span>
-                                  <button onClick={() => { setShowAddMs(false); setEditMsId(null); setMsForm(emptyMs); }} className="btn-ghost p-0.5"><X size={13} /></button>
+                                  <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>{editMsId ? t("common.edit" as any) : t("pipeline.milestones.add" as any)}</span>
+                                  <button onClick={() => { setShowAddMs(false); setEditMsId(null); setMsForm(emptyMs); }} className="btn-ghost p-0.5"><X size={16} /></button>
                                 </div>
                                 {/* Preset buttons */}
                                 {!editMsId && (
                                   <div className="flex gap-1.5">
                                     {(["deposit", "midway", "final"] as const).map(p => (
-                                      <button key={p} onClick={() => applyPreset(p)} className="text-[10px] font-medium px-2 py-1 rounded-md transition-colors" style={{ background: "color-mix(in srgb, var(--accent) 10%, transparent)", color: "var(--accent)" }}>
+                                      <button key={p} onClick={() => applyPreset(p)} className="text-[11px] font-medium px-2 py-1 rounded-md transition-colors" style={{ background: "color-mix(in srgb, var(--accent) 10%, transparent)", color: "var(--accent)" }}>
                                         {t(`pipeline.milestones.presets.${p}` as any)}
                                       </button>
                                     ))}
@@ -917,8 +917,8 @@ export function ClientsView() {
                                 <FL label={t("pipeline.milestones.dueDate" as any)}><input type="date" value={msForm.due_date} onChange={e => setMsForm(p => ({ ...p, due_date: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
                                 <FL label={t("pipeline.milestones.note" as any)}><input value={msForm.note} onChange={e => setMsForm(p => ({ ...p, note: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
                                 <div className="flex justify-end gap-2">
-                                  <button onClick={() => { setShowAddMs(false); setEditMsId(null); setMsForm(emptyMs); }} className="btn-secondary text-[12px]">{t("common.cancel" as any)}</button>
-                                  <button onClick={saveMilestone} disabled={!msForm.label || !msForm.amount} className="btn-primary text-[12px]">{t("common.save" as any)}</button>
+                                  <button onClick={() => { setShowAddMs(false); setEditMsId(null); setMsForm(emptyMs); }} className="btn-secondary text-[13px]">{t("common.cancel" as any)}</button>
+                                  <button onClick={saveMilestone} disabled={!msForm.label || !msForm.amount} className="btn-primary text-[13px]">{t("common.save" as any)}</button>
                                 </div>
                               </div>
                             </motion.div>
@@ -928,16 +928,16 @@ export function ClientsView() {
                         {/* Mark Paid confirmation modal */}
                         {markPaidId && (
                           <div className="rounded-lg p-3 space-y-3" style={{ background: "color-mix(in srgb, var(--success) 6%, var(--surface))", border: "1px solid var(--success)" }}>
-                            <div className="text-[12px] font-medium" style={{ color: "var(--text)" }}>{t("pipeline.milestones.markPaidConfirm" as any)}</div>
+                            <div className="text-[13px] font-medium" style={{ color: "var(--text)" }}>{t("pipeline.milestones.markPaidConfirm" as any)}</div>
                             <FL label={t("pipeline.milestones.paymentMethod" as any)}>
                               <select value={markPaidMethod} onChange={e => setMarkPaidMethod(e.target.value)} className="input-base w-full px-3 py-2 text-[13px]">
                                 {PAYMENT_METHODS.map(m => <option key={m} value={m}>{t(`pipeline.milestones.method.${m}` as any)}</option>)}
                               </select>
                             </FL>
                             <div className="flex justify-end gap-2">
-                              <button onClick={() => setMarkPaidId(null)} className="btn-secondary text-[12px]">{t("common.cancel" as any)}</button>
-                              <button onClick={confirmMarkPaid} className="text-[12px] font-semibold px-3 py-1.5 rounded-lg text-white" style={{ background: "var(--success)" }}>
-                                <Check size={12} className="inline mr-1" />{t("pipeline.milestones.markPaid" as any)}
+                              <button onClick={() => setMarkPaidId(null)} className="btn-secondary text-[13px]">{t("common.cancel" as any)}</button>
+                              <button onClick={confirmMarkPaid} className="text-[13px] font-semibold px-3 py-1.5 rounded-lg text-white" style={{ background: "var(--success)" }}>
+                                <Check size={16} className="inline mr-1" />{t("pipeline.milestones.markPaid" as any)}
                               </button>
                             </div>
                           </div>
@@ -952,8 +952,8 @@ export function ClientsView() {
                   <>
                     <div className="border-t" style={{ borderColor: "var(--border)" }} />
                     <div className="flex items-center justify-between">
-                      <span className="section-label flex items-center gap-1.5"><DollarSign size={13} /> {t("pipeline.tx.title" as any)}</span>
-                      <button onClick={() => { setShowTxForm(true); setEditTxId(null); setTxForm({ ...emptyTx, taxMode: (form.tax_mode || "none") as any, taxRate: form.tax_rate || "" }); }} className="btn-ghost text-[11px] flex items-center gap-1" style={{ color: "var(--accent)" }}><Plus size={12} /> {t("pipeline.tx.add" as any)}</button>
+                      <span className="section-label flex items-center gap-1.5"><DollarSign size={16} /> {t("pipeline.tx.title" as any)}</span>
+                      <button onClick={() => { setShowTxForm(true); setEditTxId(null); setTxForm({ ...emptyTx, taxMode: (form.tax_mode || "none") as any, taxRate: form.tax_rate || "" }); }} className="btn-ghost text-[11px] flex items-center gap-1" style={{ color: "var(--accent)" }}><Plus size={16} /> {t("pipeline.tx.add" as any)}</button>
                     </div>
 
                     {/* Summary bar */}
@@ -977,33 +977,33 @@ export function ClientsView() {
                           <div key={tx.id} className="rounded-lg p-3 space-y-1" style={{ background: "var(--surface-alt)", border: "1px solid var(--border)" }}>
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2 min-w-0 flex-1">
-                                <span className="text-[12px] font-semibold shrink-0" style={{ color: tx.type === "income" ? "var(--success)" : "var(--text)" }}>
+                                <span className="text-[13px] font-semibold shrink-0" style={{ color: tx.type === "income" ? "var(--success)" : "var(--text)" }}>
                                   {tx.type === "income" ? "+" : "-"}${Math.abs(tx.amount).toLocaleString()}
                                 </span>
-                                <span className="text-[12px] font-medium truncate" style={{ color: "var(--text)" }}>{tx.description || tx.desc}</span>
+                                <span className="text-[13px] font-medium truncate" style={{ color: "var(--text)" }}>{tx.description || tx.desc}</span>
                               </div>
                               {!tx.source && (
                                 <div className="flex items-center gap-1 shrink-0">
-                                  <button onClick={() => { setEditTxId(tx.id); setTxForm({ date: tx.date, desc: tx.description || tx.desc, category: tx.category, amount: String(Math.abs(tx.amount)), status: tx.status || "已完成", taxMode: tx.tax_mode || "none", taxRate: tx.tax_rate ? String(tx.tax_rate) : "" }); setShowTxForm(true); }} className="btn-ghost p-1"><Edit2 size={11} /></button>
-                                  <button onClick={() => deleteTx(tx.id)} className="btn-ghost p-1" style={{ color: "var(--danger)" }}><Trash2 size={11} /></button>
+                                  <button onClick={() => { setEditTxId(tx.id); setTxForm({ date: tx.date, desc: tx.description || tx.desc, category: tx.category, amount: String(Math.abs(tx.amount)), status: tx.status || "已完成", taxMode: tx.tax_mode || "none", taxRate: tx.tax_rate ? String(tx.tax_rate) : "" }); setShowTxForm(true); }} className="btn-ghost p-1"><Edit2 size={16} /></button>
+                                  <button onClick={() => deleteTx(tx.id)} className="btn-ghost p-1" style={{ color: "var(--danger)" }}><Trash2 size={16} /></button>
                                 </div>
                               )}
                             </div>
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>{tx.date}</span>
-                              <span className="badge text-[9px]">{catLabel(tx.category, t)}</span>
-                              <span className="badge text-[9px]" style={{
+                              <span className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{tx.date}</span>
+                              <span className="badge text-[11px]">{catLabel(tx.category, t)}</span>
+                              <span className="badge text-[11px]" style={{
                                 background: (tx.status || "已完成") === "已完成" ? "var(--success-light)" : (tx.status || "").includes("应收") ? "var(--warning-light)" : "var(--danger-light)",
                                 color: (tx.status || "已完成") === "已完成" ? "var(--success)" : (tx.status || "").includes("应收") ? "var(--warning)" : "var(--danger)",
                               }}>{stLabel(tx.status || "已完成", t)}</span>
-                              {tx.source === "client_subscription" && <span className="badge text-[9px]" style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)" }}>{t("money.badge.subscription" as any)}</span>}
-                              {tx.source === "client_project" && <span className="badge text-[9px]" style={{ background: "color-mix(in srgb, var(--warning) 12%, transparent)", color: "var(--warning)" }}>{t("money.badge.project" as any)}</span>}
+                              {tx.source === "client_subscription" && <span className="badge text-[11px]" style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)" }}>{t("money.badge.subscription" as any)}</span>}
+                              {tx.source === "client_project" && <span className="badge text-[11px]" style={{ background: "color-mix(in srgb, var(--warning) 12%, transparent)", color: "var(--warning)" }}>{t("money.badge.project" as any)}</span>}
                             </div>
                           </div>
                         ))}
                       </div>
                     ) : !showTxForm && (
-                      <div className="text-center py-3 text-[12px]" style={{ color: "var(--text-tertiary)" }}>{t("pipeline.tx.empty" as any)}</div>
+                      <div className="text-center py-3 text-[13px]" style={{ color: "var(--text-secondary)" }}>{t("pipeline.tx.empty" as any)}</div>
                     )}
 
                     {/* Add/Edit transaction form */}
@@ -1012,8 +1012,8 @@ export function ClientsView() {
                         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
                           <div className="rounded-lg p-3 space-y-3" style={{ background: "var(--surface-alt)", border: "1px solid var(--accent)", borderStyle: "dashed" }}>
                             <div className="flex items-center justify-between">
-                              <span className="text-[12px] font-semibold" style={{ color: "var(--text)" }}>{editTxId ? t("common.edit" as any) : t("pipeline.tx.add" as any)}</span>
-                              <button onClick={() => { setShowTxForm(false); setEditTxId(null); setTxForm(emptyTx); }} className="btn-ghost p-0.5"><X size={13} /></button>
+                              <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>{editTxId ? t("common.edit" as any) : t("pipeline.tx.add" as any)}</span>
+                              <button onClick={() => { setShowTxForm(false); setEditTxId(null); setTxForm(emptyTx); }} className="btn-ghost p-0.5"><X size={16} /></button>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                               <FL label={t("pipeline.tx.date" as any)}><input type="date" value={txForm.date} onChange={e => setTxForm(p => ({ ...p, date: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
@@ -1023,7 +1023,7 @@ export function ClientsView() {
                             <div className="grid grid-cols-2 gap-3">
                               <FL label={t("pipeline.tx.amount" as any)}>
                                 <div className="relative">
-                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px]" style={{ color: "var(--text-tertiary)" }}>$</span>
+                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px]" style={{ color: "var(--text-secondary)" }}>$</span>
                                   <input type="number" min="0" step="0.01" value={txForm.amount} onChange={e => setTxForm(p => ({ ...p, amount: e.target.value }))} className="input-base w-full pl-7 pr-3 py-2 text-[13px]" />
                                 </div>
                               </FL>
@@ -1034,7 +1034,7 @@ export function ClientsView() {
                               <div className="flex gap-2 mb-2">
                                 {([["none", t("money.form.taxNone" as any)], ["exclusive", t("money.form.taxExclBtn" as any)], ["inclusive", t("money.form.taxIncl" as any)]] as [string, string][]).map(([mode, label]) => (
                                   <button key={mode} type="button" onClick={() => setTxForm(p => ({ ...p, taxMode: mode as any }))}
-                                    className="flex-1 py-1.5 rounded-lg text-[12px] font-medium transition-all"
+                                    className="flex-1 py-1.5 rounded-lg text-[13px] font-medium transition-all"
                                     style={txForm.taxMode === mode ? { background: "var(--text)", color: "var(--bg)" } : { background: "var(--surface-alt)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
                                     {label}
                                   </button>
@@ -1054,8 +1054,8 @@ export function ClientsView() {
                               )}
                             </FL>
                             <div className="flex justify-end gap-2">
-                              <button onClick={() => { setShowTxForm(false); setEditTxId(null); setTxForm(emptyTx); }} className="btn-secondary text-[12px]">{t("common.cancel" as any)}</button>
-                              <button onClick={saveTx} disabled={!txForm.desc || !txForm.amount} className="btn-primary text-[12px]">{t("common.save" as any)}</button>
+                              <button onClick={() => { setShowTxForm(false); setEditTxId(null); setTxForm(emptyTx); }} className="btn-secondary text-[13px]">{t("common.cancel" as any)}</button>
+                              <button onClick={saveTx} disabled={!txForm.desc || !txForm.amount} className="btn-primary text-[13px]">{t("common.save" as any)}</button>
                             </div>
                           </div>
                         </motion.div>
@@ -1065,7 +1065,7 @@ export function ClientsView() {
                 )}
               </div>
               <div className="flex items-center justify-between px-5 py-3 border-t pb-safe" style={{ borderColor: "var(--border)" }}>
-                {editId ? <button type="button" onClick={() => deleteClient(editId)} className="btn-ghost text-[12px]" style={{ color: "var(--danger)" }}><Trash2 size={13} /> {t("common.delete" as any)}</button> : <div />}
+                {editId ? <button type="button" onClick={() => deleteClient(editId)} className="btn-ghost text-[13px]" style={{ color: "var(--danger)" }}><Trash2 size={16} /> {t("common.delete" as any)}</button> : <div />}
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setShowPanel(false)} className="btn-secondary text-[13px]">{t("common.cancel" as any)}</button>
                   <button type="button" onClick={saveClient} className="btn-primary text-[13px]">{editId ? t("common.save" as any) : t("common.create" as any)}</button>
@@ -1081,7 +1081,7 @@ export function ClientsView() {
 
 /* ── Shared sub-components ──────────────────────────────────────── */
 function Toast({ msg }: { msg: string }) {
-  return <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 px-4 py-2 rounded-lg z-[9999] flex items-center gap-2 text-[13px] font-medium" style={{ background: "var(--text)", color: "var(--bg)", boxShadow: "var(--shadow-lg)" }}><Check size={14} style={{ color: "var(--success)" }} /> {msg}</div>;
+  return <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 px-4 py-2 rounded-lg z-[9999] flex items-center gap-2 text-[13px] font-medium" style={{ background: "var(--text)", color: "var(--bg)", boxShadow: "var(--shadow-lg)" }}><Check size={16} style={{ color: "var(--success)" }} /> {msg}</div>;
 }
 
 function FL({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
@@ -1096,9 +1096,9 @@ function LeadColumn({ col, items, onAdd, onEdit, onDelete, emptyText }: { col: {
         <div className="flex items-center gap-2">
           <div className="w-2.5 h-2.5 rounded-sm" style={{ background: col.color }} />
           <h3 className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>{col.title}</h3>
-          <span className="text-[11px] font-medium tabular-nums" style={{ color: "var(--text-tertiary)" }}>{items.length}</span>
+          <span className="text-[11px] font-medium tabular-nums" style={{ color: "var(--text-secondary)" }}>{items.length}</span>
         </div>
-        <button onClick={onAdd} className="btn-ghost p-0.5"><Plus size={13} /></button>
+        <button onClick={onAdd} className="btn-ghost p-0.5"><Plus size={16} /></button>
       </div>
       <Droppable droppableId={col.id}>
         {(provided, snapshot) => (
@@ -1106,7 +1106,7 @@ function LeadColumn({ col, items, onAdd, onEdit, onDelete, emptyText }: { col: {
             className="flex flex-col flex-1 min-h-0 rounded-xl overflow-hidden"
             style={{ background: snapshot.isDraggingOver ? "var(--accent-light)" : "var(--surface-alt)", borderTop: `2px solid ${col.color}`, transition: "background 0.15s" }}>
             <div className="flex-1 overflow-y-auto p-1.5 space-y-1 ios-scroll">
-              {!items.length && <div className="py-8 text-center text-[11px]" style={{ color: "var(--text-tertiary)" }}>{emptyText}</div>}
+              {!items.length && <div className="py-8 text-center text-[11px]" style={{ color: "var(--text-secondary)" }}>{emptyText}</div>}
               {items.map((lead: any, i: number) => (
                 // @ts-expect-error React 19 type issue
                 <Draggable key={lead.id.toString()} draggableId={lead.id.toString()} index={i}>
@@ -1130,17 +1130,17 @@ function LeadCard({ lead, provided, snapshot, onEdit, onDelete }: any) {
       onClick={() => onEdit(lead)}
       className={`group card-interactive cursor-pointer p-3 ${snapshot.isDragging ? "rotate-[2deg] scale-[1.02] !shadow-lg z-[9999]" : ""}`}>
       <div className="flex items-start justify-between gap-2 mb-1">
-        <GripVertical size={12} className="shrink-0 mt-0.5 lg:hidden" style={{ color: "var(--text-tertiary)", opacity: 0.5 }} />
+        <GripVertical size={16} className="shrink-0 mt-0.5 lg:hidden" style={{ color: "var(--text-secondary)", opacity: 0.5 }} />
         <div className="min-w-0 flex-1">
           <h4 className="text-[13px] font-medium truncate" style={{ color: "var(--text)" }}>{lead.name}</h4>
-          <p className="text-[11px] truncate mt-0.5" style={{ color: "var(--text-tertiary)" }}>{lead.industry}</p>
+          <p className="text-[11px] truncate mt-0.5" style={{ color: "var(--text-secondary)" }}>{lead.industry}</p>
         </div>
         {lead.source && <span className="badge">{lead.source}</span>}
       </div>
       <p className="text-[11px] line-clamp-2 mb-1.5" style={{ color: "var(--text-secondary)" }}>{lead.needs}</p>
       <div className="flex items-center justify-between">
-        <span className="badge" style={hasDraft ? { background: "var(--success-light)", color: "var(--success)" } : undefined}><Mail size={9} /> {hasDraft ? "Draft" : "—"}</span>
-        <button onClick={e => { e.stopPropagation(); onDelete(lead.id); }} className="p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "var(--text-tertiary)" }}><Trash2 size={11} /></button>
+        <span className="badge" style={hasDraft ? { background: "var(--success-light)", color: "var(--success)" } : undefined}><Mail size={16} /> {hasDraft ? "Draft" : "—"}</span>
+        <button onClick={e => { e.stopPropagation(); onDelete(lead.id); }} className="p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "var(--text-secondary)" }}><Trash2 size={16} /></button>
       </div>
     </div>
   );
@@ -1155,18 +1155,18 @@ function LeadSwimlane({ leads, columns, onAdd, onEdit, onDelete, onMove, emptyTe
         return (
           <div key={col.id} className="card overflow-hidden">
             <div className="flex items-center justify-between px-4 py-2 border-b" style={{ borderColor: "var(--border)", borderTop: `2px solid ${col.color}` }}>
-              <div className="flex items-center gap-2"><h3 className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>{col.title}</h3><span className="text-[11px] font-medium tabular-nums" style={{ color: "var(--text-tertiary)" }}>{items.length}</span></div>
-              <button onClick={() => onAdd(null, col.id)} className="btn-ghost p-0.5"><Plus size={13} /></button>
+              <div className="flex items-center gap-2"><h3 className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>{col.title}</h3><span className="text-[11px] font-medium tabular-nums" style={{ color: "var(--text-secondary)" }}>{items.length}</span></div>
+              <button onClick={() => onAdd(null, col.id)} className="btn-ghost p-0.5"><Plus size={16} /></button>
             </div>
-            {!items.length ? <div className="px-4 py-4 text-[12px] text-center" style={{ color: "var(--text-tertiary)" }}>{emptyText}</div> : (
+            {!items.length ? <div className="px-4 py-4 text-[13px] text-center" style={{ color: "var(--text-secondary)" }}>{emptyText}</div> : (
               <div className="overflow-x-auto ios-scroll"><div className="flex gap-2 p-2.5 min-w-max">
                 {items.map((lead: any) => (
                   <div key={lead.id} onClick={() => onEdit(lead, col.id)} className="w-[200px] shrink-0 cursor-pointer card-interactive p-3 group">
                     <h4 className="text-[13px] font-medium truncate mb-1" style={{ color: "var(--text)" }}>{lead.name}</h4>
-                    <p className="text-[11px] truncate mb-1" style={{ color: "var(--text-tertiary)" }}>{lead.industry}</p>
+                    <p className="text-[11px] truncate mb-1" style={{ color: "var(--text-secondary)" }}>{lead.industry}</p>
                     <div className="flex items-center justify-between mt-2 pt-2 border-t" style={{ borderColor: "var(--border)" }} onClick={e => e.stopPropagation()}>
-                      <select value={col.id} onChange={e => onMove(lead.id, e.target.value)} className="appearance-none text-[10px] font-medium pl-2 pr-4 py-0.5 rounded-md cursor-pointer input-base">{columns.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}</select>
-                      <button onClick={() => onDelete(lead.id)} className="p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "var(--text-tertiary)" }}><Trash2 size={11} /></button>
+                      <select value={col.id} onChange={e => onMove(lead.id, e.target.value)} className="appearance-none text-[11px] font-medium pl-2 pr-4 py-0.5 rounded-md cursor-pointer input-base">{columns.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}</select>
+                      <button onClick={() => onDelete(lead.id)} className="p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "var(--text-secondary)" }}><Trash2 size={16} /></button>
                     </div>
                   </div>
                 ))}

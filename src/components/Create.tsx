@@ -94,7 +94,7 @@ const renderFormattedContent = (content: string, platform: string, subjectLabel?
           const subjectText = trimmed.replace(/^(主题|Subject)\s*[:：]\s*/i, "");
           return (
             <div key={i} className="rounded-lg px-3 py-2" style={{ background: "var(--accent-light)" }}>
-              <div className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--accent)" }}>{subjectLabel || (platform === "cold_email" ? "Subject" : "主题行")}</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--accent)" }}>{subjectLabel || (platform === "cold_email" ? "Subject" : "主题行")}</div>
               <div className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>{subjectText}</div>
             </div>
           );
@@ -110,7 +110,7 @@ const renderFormattedContent = (content: string, platform: string, subjectLabel?
             <ul key={i} className="space-y-1 pl-1">
               {lines.map((line, j) => (
                 <li key={j} className="flex gap-2 text-[13px] leading-relaxed">
-                  <span className="shrink-0 mt-0.5" style={{ color: "var(--text-tertiary)" }}>{/^\d/.test(line.trim()) ? line.trim().match(/^\d+[.、]/)?.[0] : "•"}</span>
+                  <span className="shrink-0 mt-0.5" style={{ color: "var(--text-secondary)" }}>{/^\d/.test(line.trim()) ? line.trim().match(/^\d+[.、]/)?.[0] : "•"}</span>
                   <span>{formatInline(line.trim().replace(/^[•\-]\s+/, "").replace(/^\d+[.、]\s*/, ""))}</span>
                 </li>
               ))}
@@ -136,16 +136,16 @@ interface ChatMessage {
 }
 
 const PLATFORMS = [
-  { id: "x", icon: <span className="font-bold text-[12px] leading-none">𝕏</span>, labelKey: "create.platform.twitter" },
-  { id: "linkedin", icon: <Linkedin size={13} />, labelKey: "create.platform.linkedin" },
-  { id: "newsletter", icon: <Mail size={13} />, labelKey: "create.platform.newsletter" },
-  { id: "cold_email", icon: <Megaphone size={13} />, labelKey: "create.platform.coldEmail" },
-  { id: "instagram", icon: <Instagram size={13} />, labelKey: "create.platform.instagram" },
-  { id: "wechat", icon: <MessageSquare size={13} />, labelKey: "create.platform.wechat" },
-  { id: "xiaohongshu", icon: <BookOpen size={13} />, labelKey: "create.platform.xiaohongshu" },
-  { id: "blog", icon: <FileText size={13} />, labelKey: "create.platform.blog" },
-  { id: "tiktok", icon: <Music size={13} />, labelKey: "create.platform.tiktok" },
-  { id: "youtube_shorts", icon: <Youtube size={13} />, labelKey: "create.platform.youtubeShorts" },
+  { id: "x", icon: <span className="font-bold text-[13px] leading-none">𝕏</span>, labelKey: "create.platform.twitter" },
+  { id: "linkedin", icon: <Linkedin size={16} />, labelKey: "create.platform.linkedin" },
+  { id: "newsletter", icon: <Mail size={16} />, labelKey: "create.platform.newsletter" },
+  { id: "cold_email", icon: <Megaphone size={16} />, labelKey: "create.platform.coldEmail" },
+  { id: "instagram", icon: <Instagram size={16} />, labelKey: "create.platform.instagram" },
+  { id: "wechat", icon: <MessageSquare size={16} />, labelKey: "create.platform.wechat" },
+  { id: "xiaohongshu", icon: <BookOpen size={16} />, labelKey: "create.platform.xiaohongshu" },
+  { id: "blog", icon: <FileText size={16} />, labelKey: "create.platform.blog" },
+  { id: "tiktok", icon: <Music size={16} />, labelKey: "create.platform.tiktok" },
+  { id: "youtube_shorts", icon: <Youtube size={16} />, labelKey: "create.platform.youtubeShorts" },
 ];
 
 /* ── Prompt builders ─────────────────────────────────────────────── */
@@ -398,7 +398,7 @@ Requirements:
       {/* Toast */}
       {toast && (
         <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 px-5 py-2.5 rounded-lg z-[9999] flex items-center gap-2" style={{ background: "var(--text)", color: "var(--bg)", boxShadow: "var(--shadow-md)" }}>
-          <Check size={14} className="text-emerald-400" />
+          <Check size={16} className="text-emerald-400" />
           <span className="text-[13px] font-medium">{toast}</span>
         </div>
       )}
@@ -410,8 +410,8 @@ Requirements:
           <h2 className="text-xl font-semibold tracking-tight" style={{ color: "var(--text)" }}>{t("create.pageTitle" as any)}</h2>
           <div className="flex items-center gap-2">
             <button onClick={() => setShowDrafts(!showDrafts)} className="btn-ghost text-[11px] px-2.5 py-1.5 rounded-md gap-1.5" style={showDrafts ? { background: "var(--accent-light)", color: "var(--accent)" } : {}}>
-              <Save size={12} /> {t("create.drafts" as any)}
-              {savedDrafts.length > 0 && <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5" style={{ background: "var(--accent)", color: "#fff" }}>{savedDrafts.length}</span>}
+              <Save size={16} /> {t("create.drafts" as any)}
+              {savedDrafts.length > 0 && <span className="text-[11px] font-bold rounded-full px-1.5 py-0.5" style={{ background: "var(--accent)", color: "#fff" }}>{savedDrafts.length}</span>}
             </button>
           </div>
         </div>
@@ -422,7 +422,7 @@ Requirements:
             <button
               key={p.id}
               onClick={() => setPlatform(p.id)}
-              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-[6px] rounded-lg text-[12px] font-medium transition-all active:scale-95"
+              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-[6px] rounded-lg text-[13px] font-medium transition-all active:scale-95"
               style={platform === p.id
                 ? { background: "var(--surface)", color: "var(--text)", boxShadow: "var(--shadow-xs)", border: "1px solid var(--border)" }
                 : { color: "var(--text-secondary)" }}
@@ -432,8 +432,8 @@ Requirements:
           ))}
           {/* Mobile extras */}
           <div className="shrink-0 w-px h-4 mx-1 md:hidden" style={{ background: "var(--border)" }} />
-          <button onClick={() => setShowDrafts(!showDrafts)} className="shrink-0 inline-flex items-center gap-1.5 px-3 py-[6px] rounded-lg text-[12px] font-medium md:hidden" style={showDrafts ? { color: "var(--accent)" } : { color: "var(--text-secondary)" }}>
-            <Save size={12} /> {t("create.drafts" as any)}
+          <button onClick={() => setShowDrafts(!showDrafts)} className="shrink-0 inline-flex items-center gap-1.5 px-3 py-[6px] rounded-lg text-[13px] font-medium md:hidden" style={showDrafts ? { color: "var(--accent)" } : { color: "var(--text-secondary)" }}>
+            <Save size={16} /> {t("create.drafts" as any)}
           </button>
         </div>
       </div>
@@ -449,20 +449,20 @@ Requirements:
                   <PenTool size={28} className="text-white" />
                 </div>
                 <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center" style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)" }}>
-                  <Sparkles size={12} style={{ color: "var(--accent)" }} />
+                  <Sparkles size={16} style={{ color: "var(--accent)" }} />
                 </div>
               </div>
               <h3 className="text-xl font-semibold mb-2" style={{ color: "var(--text)" }}>{t("create.emptyTitle" as any)}</h3>
               <p className="text-[13px] max-w-md leading-relaxed mb-1" style={{ color: "var(--text-secondary)" }}>
                 {(t("create.emptyDesc" as any) as string).split("{platform}")[0]}<span className="font-semibold" style={{ color: "var(--accent)" }}>{getPlatformDisplayLabel(platform, t)}</span>{(t("create.emptyDesc" as any) as string).split("{platform}")[1]}
               </p>
-              <p className="text-[11px] mb-8" style={{ color: "var(--text-tertiary)" }}>{t("create.emptySubtext" as any)}</p>
+              <p className="text-[11px] mb-8" style={{ color: "var(--text-secondary)" }}>{t("create.emptySubtext" as any)}</p>
               <div className="flex flex-wrap justify-center gap-3">
                 <button onClick={() => textareaRef.current?.focus()} className="btn-primary gap-2 text-[13px]">
-                  <Sparkles size={14} /> {t("create.emptyBtn1" as any)}
+                  <Sparkles size={16} /> {t("create.emptyBtn1" as any)}
                 </button>
                 <button onClick={() => handleSend(true)} className="btn-ghost gap-2 text-[13px]" style={{ border: "1px solid var(--border)" }}>
-                  <TrendingUp size={14} /> {t("create.emptyBtn2" as any)}
+                  <TrendingUp size={16} /> {t("create.emptyBtn2" as any)}
                 </button>
               </div>
             </div>
@@ -485,18 +485,18 @@ Requirements:
                         {PLATFORMS.find((p) => p.id === (msg.platform || platform))?.icon}
                         <span>{getPlatformDisplayLabel(msg.platform || platform, t)}</span>
                       </span>
-                      <span className="text-[10px] font-medium" style={{ color: "var(--text-tertiary)" }}>{lang === "zh" ? t("create.langToggle.zh" as any) : t("create.langToggle.en" as any)}</span>
+                      <span className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>{lang === "zh" ? t("create.langToggle.zh" as any) : t("create.langToggle.en" as any)}</span>
                     </div>
                     <div className="px-4 py-3.5 max-h-[420px] overflow-y-auto" style={{ color: "var(--text)" }}>
                       {renderFormattedContent(msg.content, msg.platform || platform, t("create.subjectLine" as any))}
                     </div>
                     <div className="px-3 py-2 flex flex-wrap items-center gap-0.5" style={{ borderTop: "1px solid var(--border)" }}>
-                      <MsgBtn icon={copied === msg.id ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />} label={copied === msg.id ? t("create.copied" as any) : t("create.copy" as any)} onClick={() => clip(msg.content, msg.id)} />
-                      <MsgBtn icon={<Save size={12} />} label={t("create.saveDraft" as any)} onClick={() => saveDraft(msg.content)} />
-                      <MsgBtn icon={<ImageIcon size={12} />} label={t("create.cover" as any)} onClick={handleVisual} disabled={loading} />
-                      <MsgBtn icon={<ImageIcon size={12} />} label={t("create.image" as any)} onClick={handleImage} disabled={loading} />
+                      <MsgBtn icon={copied === msg.id ? <Check size={16} className="text-emerald-500" /> : <Copy size={16} />} label={copied === msg.id ? t("create.copied" as any) : t("create.copy" as any)} onClick={() => clip(msg.content, msg.id)} />
+                      <MsgBtn icon={<Save size={16} />} label={t("create.saveDraft" as any)} onClick={() => saveDraft(msg.content)} />
+                      <MsgBtn icon={<ImageIcon size={16} />} label={t("create.cover" as any)} onClick={handleVisual} disabled={loading} />
+                      <MsgBtn icon={<ImageIcon size={16} />} label={t("create.image" as any)} onClick={handleImage} disabled={loading} />
                       <div className="flex-1" />
-                      <MsgBtn icon={<RotateCcw size={12} />} label={t("create.regenerate" as any)} onClick={() => {
+                      <MsgBtn icon={<RotateCcw size={16} />} label={t("create.regenerate" as any)} onClick={() => {
                         const um = [...messages].reverse().find((m) => m.type === "user");
                         if (um) { setInputText(um.content); handleSend(); }
                       }} disabled={loading} />
@@ -508,14 +508,14 @@ Requirements:
                   <div className="card rounded-2xl rounded-bl-sm overflow-hidden">
                     <div className="px-4 py-2 flex items-center gap-1.5" style={{ borderBottom: "1px solid var(--border)" }}>
                       <span className="text-[11px] font-medium flex items-center gap-1.5" style={{ color: "var(--success)" }}>
-                        <ImageIcon size={11} /> {t("create.coverTitle" as any)}
+                        <ImageIcon size={16} /> {t("create.coverTitle" as any)}
                       </span>
                     </div>
                     <div className="px-4 py-3.5 max-h-[420px] overflow-y-auto" style={{ color: "var(--text)" }}>
                       {renderFormattedContent(msg.content, msg.platform || platform, t("create.subjectLine" as any))}
                     </div>
                     <div className="px-3 py-2 flex gap-0.5" style={{ borderTop: "1px solid var(--border)" }}>
-                      <MsgBtn icon={copied === msg.id ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />} label={copied === msg.id ? t("create.copied" as any) : t("create.copy" as any)} onClick={() => clip(msg.content, msg.id)} />
+                      <MsgBtn icon={copied === msg.id ? <Check size={16} className="text-emerald-500" /> : <Copy size={16} />} label={copied === msg.id ? t("create.copied" as any) : t("create.copy" as any)} onClick={() => clip(msg.content, msg.id)} />
                     </div>
                   </div>
                 </div>
@@ -524,21 +524,21 @@ Requirements:
                   <div className="card rounded-2xl rounded-bl-sm overflow-hidden">
                     <div className="px-4 py-2" style={{ borderBottom: "1px solid var(--border)" }}>
                       <span className="text-[11px] font-medium flex items-center gap-1.5" style={{ color: "var(--accent)" }}>
-                        <ImageIcon size={11} /> {t("create.aiImage" as any)}
+                        <ImageIcon size={16} /> {t("create.aiImage" as any)}
                       </span>
                     </div>
                     <div className="p-3">
                       <img src={msg.content} alt="AI generated" className="w-full max-h-[520px] object-contain rounded-lg" style={{ background: "var(--surface-alt)" }} />
                     </div>
                     <div className="px-3 py-2 flex gap-0.5" style={{ borderTop: "1px solid var(--border)" }}>
-                      <MsgBtn icon={<Download size={12} />} label={t("create.downloadImage" as any)} onClick={() => downloadImage(msg.content)} />
+                      <MsgBtn icon={<Download size={16} />} label={t("create.downloadImage" as any)} onClick={() => downloadImage(msg.content)} />
                     </div>
                   </div>
                 </div>
               ) : (
                 <div className="max-w-[90%] md:max-w-[80%]">
                   <div className="rounded-2xl rounded-bl-sm px-4 py-3 text-[13px] leading-relaxed flex items-start gap-2" style={{ background: "var(--warning-light)", color: "var(--warning)" }}>
-                    <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                    <AlertCircle size={16} className="shrink-0 mt-0.5" />
                     <span>{msg.content}</span>
                   </div>
                 </div>
@@ -557,7 +557,7 @@ Requirements:
                     <div className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: "var(--accent)", animationDelay: "150ms" }} />
                     <div className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: "var(--accent)", animationDelay: "300ms" }} />
                   </div>
-                  <span className="text-[12px]" style={{ color: "var(--text-secondary)" }}>
+                  <span className="text-[13px]" style={{ color: "var(--text-secondary)" }}>
                     {loadingType === "copy" ? (t("create.generating" as any) as string).replace("{platform}", getPlatformDisplayLabel(platform, t)) : loadingType === "visual" ? t("create.generatingCover" as any) : loadingType === "image" ? t("create.generatingImage" as any) : t("create.processing" as any)}
                   </span>
                 </div>
@@ -574,8 +574,8 @@ Requirements:
         <div className="max-w-3xl mx-auto w-full px-3 md:px-5 py-3 pb-safe space-y-2">
           {hasCopy && !loading && (
             <div className="flex gap-1.5 overflow-x-auto hide-scroll">
-              <button onClick={handleVisual} className="btn-ghost shrink-0 rounded-md px-2.5 py-1.5 text-[11px] gap-1.5" style={{ border: "1px solid var(--border)" }}><ImageIcon size={12} /> {t("create.coverSuggestion" as any)}</button>
-              <button onClick={handleImage} className="btn-ghost shrink-0 rounded-md px-2.5 py-1.5 text-[11px] gap-1.5" style={{ border: "1px solid var(--border)" }}><ImageIcon size={12} /> {t("create.genImage" as any)}</button>
+              <button onClick={handleVisual} className="btn-ghost shrink-0 rounded-md px-2.5 py-1.5 text-[11px] gap-1.5" style={{ border: "1px solid var(--border)" }}><ImageIcon size={16} /> {t("create.coverSuggestion" as any)}</button>
+              <button onClick={handleImage} className="btn-ghost shrink-0 rounded-md px-2.5 py-1.5 text-[11px] gap-1.5" style={{ border: "1px solid var(--border)" }}><ImageIcon size={16} /> {t("create.genImage" as any)}</button>
             </div>
           )}
           <div className="flex items-end gap-2 rounded-lg p-1.5 pl-3 transition-all" style={{ background: "var(--bg)", border: "1px solid var(--border)" }}>
@@ -602,9 +602,9 @@ Requirements:
                 onClick={() => handleSend()}
                 disabled={loading || !inputText.trim()}
                 className="flex h-8 w-8 items-center justify-center rounded-md transition-all active:scale-95"
-                style={inputText.trim() && !loading ? { background: "var(--accent)", color: "#fff" } : { background: "var(--border)", color: "var(--text-tertiary)" }}
+                style={inputText.trim() && !loading ? { background: "var(--accent)", color: "#fff" } : { background: "var(--border)", color: "var(--text-secondary)" }}
               >
-                {loading ? <Loader2 size={15} className="animate-spin" /> : <Send size={14} />}
+                {loading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
               </button>
             </div>
           </div>
@@ -635,14 +635,14 @@ Requirements:
               {/* Header */}
               <div className="flex items-center justify-between px-5 py-3 border-b shrink-0" style={{ borderColor: "var(--border)" }}>
                 <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: "var(--accent-light)", color: "var(--accent)" }}><Save size={15} /></div>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: "var(--accent-light)", color: "var(--accent)" }}><Save size={16} /></div>
                   <div>
                     <h3 className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>{t("create.drafts.title" as any)}</h3>
                     <p className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{(t("create.drafts.count" as any) as string).replace("{count}", String(savedDrafts.length))}</p>
                   </div>
                 </div>
                 <button onClick={() => setShowDrafts(false)} className="p-1.5 rounded-lg" style={{ color: "var(--text-secondary)" }}>
-                  {isMobile ? <X size={18} /> : <PanelRightClose size={18} />}
+                  {isMobile ? <X size={20} /> : <PanelRightClose size={20} />}
                 </button>
               </div>
 
@@ -650,20 +650,20 @@ Requirements:
               <div className="flex-1 overflow-y-auto ios-scroll">
                 {savedDrafts.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 gap-2">
-                    <Save size={24} style={{ color: "var(--text-tertiary)" }} />
-                    <p className="text-[13px]" style={{ color: "var(--text-tertiary)" }}>{t("create.drafts.empty" as any)}</p>
+                    <Save size={24} style={{ color: "var(--text-secondary)" }} />
+                    <p className="text-[13px]" style={{ color: "var(--text-secondary)" }}>{t("create.drafts.empty" as any)}</p>
                   </div>
                 ) : (
                   savedDrafts.map((item) => (
                     <div key={item.id} className="list-item px-5 py-3 flex items-center gap-3 group cursor-pointer" onClick={() => loadDraft(item)}>
                       <div className="flex-1 min-w-0">
                         <div className="text-[13px] font-medium truncate" style={{ color: "var(--text)" }}>{item.topic || t("create.drafts.untitled" as any)}</div>
-                        <div className="text-[11px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>
+                        <div className="text-[11px] mt-0.5" style={{ color: "var(--text-secondary)" }}>
                           {getPlatformDisplayLabel(item.platform, t)} · {item.language === "en" ? t("create.langToggle.en" as any) : t("create.langToggle.zh" as any)}
                         </div>
                       </div>
-                      <button onClick={(e) => { e.stopPropagation(); deleteDraft(item.id); }} className="p-1.5 rounded-lg transition-colors md:opacity-0 md:group-hover:opacity-100" style={{ color: "var(--text-tertiary)" }} aria-label={t("common.delete" as any)}>
-                        <Trash2 size={13} />
+                      <button onClick={(e) => { e.stopPropagation(); deleteDraft(item.id); }} className="p-1.5 rounded-lg transition-colors md:opacity-0 md:group-hover:opacity-100" style={{ color: "var(--text-secondary)" }} aria-label={t("common.delete" as any)}>
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   ))

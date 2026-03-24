@@ -55,11 +55,11 @@ export default function TodayPrinciple() {
       <div className="flex items-start justify-between mb-2">
         <div>
           <h3 className="section-label flex items-center gap-1.5">
-            <BookOpen size={11} /> {t("home.principle.title" as any)}
+            <BookOpen size={16} /> {t("home.principle.title" as any)}
           </h3>
-          <p className="text-[11px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>{t("home.principle.desc" as any)}</p>
+          <p className="text-[11px] mt-0.5" style={{ color: "var(--text-secondary)" }}>{t("home.principle.desc" as any)}</p>
         </div>
-        <span className="text-[11px] font-medium tabular-nums shrink-0" style={{ color: "var(--text-tertiary)" }}>
+        <span className="text-[11px] font-medium tabular-nums shrink-0" style={{ color: "var(--text-secondary)" }}>
           {t("home.principle.progress" as any, { done: totalMastered, total: allPrinciples.length })}
         </span>
       </div>
@@ -74,11 +74,11 @@ export default function TodayPrinciple() {
           <span className="text-lg shrink-0 mt-0.5">{todayPrinciple.catEmoji}</span>
           <div className="flex-1 min-w-0">
             <div className="font-semibold text-[13px] mb-0.5">{L(todayPrinciple.name)}</div>
-            <p className="text-[12px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{L(todayPrinciple.core)}</p>
+            <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{L(todayPrinciple.core)}</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {isMastered && <Award size={12} style={{ color: "var(--success)" }} />}
-            {expanded ? <ChevronDown size={13} style={{ color: "var(--text-tertiary)" }} /> : <ChevronRight size={13} style={{ color: "var(--text-tertiary)" }} />}
+            {isMastered && <Award size={16} style={{ color: "var(--success)" }} />}
+            {expanded ? <ChevronDown size={16} style={{ color: "var(--text-secondary)" }} /> : <ChevronRight size={16} style={{ color: "var(--text-secondary)" }} />}
           </div>
         </button>
 
@@ -95,11 +95,11 @@ export default function TodayPrinciple() {
                 {/* check questions */}
                 <div className="pt-3">
                   <div className="section-label flex items-center gap-1 mb-1.5">
-                    <HelpCircle size={10} /> {t("evolution.checkQuestions" as any)}
+                    <HelpCircle size={16} /> {t("evolution.checkQuestions" as any)}
                   </div>
                   <ul className="space-y-1">
                     {todayPrinciple.checks.map((c, i) => (
-                      <li key={i} className="text-[12px] flex items-start gap-1.5" style={{ color: "var(--text-secondary)" }}>
+                      <li key={i} className="text-[13px] flex items-start gap-1.5" style={{ color: "var(--text-secondary)" }}>
                         <span style={{ color: "var(--accent)" }}>?</span> {L(c)}
                       </li>
                     ))}
@@ -109,11 +109,11 @@ export default function TodayPrinciple() {
                 {/* anti-patterns */}
                 <div>
                   <div className="section-label flex items-center gap-1 mb-1.5" style={{ color: "var(--danger)" }}>
-                    <AlertTriangle size={10} /> {t("evolution.antiPatterns" as any)}
+                    <AlertTriangle size={16} /> {t("evolution.antiPatterns" as any)}
                   </div>
                   <ul className="space-y-1">
                     {todayPrinciple.antiPatterns.map((a, i) => (
-                      <li key={i} className="text-[12px] flex items-start gap-1.5" style={{ color: "var(--text-secondary)" }}>
+                      <li key={i} className="text-[13px] flex items-start gap-1.5" style={{ color: "var(--text-secondary)" }}>
                         <span style={{ color: "var(--danger)" }}>✗</span> {L(a)}
                       </li>
                     ))}
@@ -131,9 +131,9 @@ export default function TodayPrinciple() {
                     className="badge cursor-pointer transition-colors"
                     style={isMastered
                       ? { background: "var(--success)", color: "#fff", border: "none" }
-                      : { background: "var(--surface-alt)", color: "var(--text-tertiary)" }}
+                      : { background: "var(--surface-alt)", color: "var(--text-secondary)" }}
                   >
-                    {isMastered && <Award size={10} />}
+                    {isMastered && <Award size={16} />}
                     {isMastered ? t("evolution.mastered" as any) : t("evolution.markMastered" as any)}
                   </button>
                   <button
@@ -173,26 +173,26 @@ export default function TodayPrinciple() {
                     >
                       <span>{cat.emoji}</span>
                       <span className="flex-1 text-left font-semibold text-[13px]">{L(cat.name)}</span>
-                      <span className="text-[10px] font-medium" style={{ color: mc === cat.principles.length ? "var(--success)" : "var(--text-tertiary)" }}>
+                      <span className="text-[11px] font-medium" style={{ color: mc === cat.principles.length ? "var(--success)" : "var(--text-secondary)" }}>
                         {mc}/{cat.principles.length}
                       </span>
-                      {isOpen ? <ChevronDown size={13} style={{ color: "var(--text-tertiary)" }} /> : <ChevronRight size={13} style={{ color: "var(--text-tertiary)" }} />}
+                      {isOpen ? <ChevronDown size={16} style={{ color: "var(--text-secondary)" }} /> : <ChevronRight size={16} style={{ color: "var(--text-secondary)" }} />}
                     </button>
                     {isOpen && cat.principles.map(pr => (
                       <div key={pr.id} className="flex items-center gap-2 px-4 py-2.5" style={{ borderTop: "1px solid var(--border)" }}>
-                        <span className="flex-1 text-[12px] min-w-0 truncate">{L(pr.name)}</span>
+                        <span className="flex-1 text-[13px] min-w-0 truncate">{L(pr.name)}</span>
                         <button
                           onClick={() => {
                             const next = { ...mastered };
                             if (mastered[pr.id]) delete next[pr.id]; else next[pr.id] = true;
                             persistMastered(next);
                           }}
-                          className="badge shrink-0 cursor-pointer text-[10px]"
+                          className="badge shrink-0 cursor-pointer text-[11px]"
                           style={mastered[pr.id]
                             ? { background: "var(--success)", color: "#fff", border: "none" }
-                            : { background: "var(--surface-alt)", color: "var(--text-tertiary)" }}
+                            : { background: "var(--surface-alt)", color: "var(--text-secondary)" }}
                         >
-                          {mastered[pr.id] ? <><Award size={9} /> {t("evolution.mastered" as any)}</> : t("evolution.markMastered" as any)}
+                          {mastered[pr.id] ? <><Award size={16} /> {t("evolution.mastered" as any)}</> : t("evolution.markMastered" as any)}
                         </button>
                       </div>
                     ))}

@@ -30,7 +30,7 @@ export default function Work() {
   const { t, lang } = useT();
 
   const COLS = useMemo(() => [
-    { id: "todo", title: t("work.col.todo" as any), color: "var(--text-tertiary)" },
+    { id: "todo", title: t("work.col.todo" as any), color: "var(--text-secondary)" },
     { id: "inProgress", title: t("work.col.inProgress" as any), color: "var(--accent)" },
     { id: "review", title: t("work.col.review" as any), color: "var(--warning)" },
     { id: "done", title: t("work.col.done" as any), color: "var(--success)" },
@@ -190,7 +190,7 @@ export default function Work() {
       {/* Toast */}
       {toast && (
         <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 px-4 py-2 rounded-lg z-[9999] flex items-center gap-2 text-[13px] font-medium" style={{ background: "var(--text)", color: "var(--bg)", boxShadow: "var(--shadow-lg)" }}>
-          <Check size={14} style={{ color: "var(--success)" }} /> {toast}
+          <Check size={16} style={{ color: "var(--success)" }} /> {toast}
         </div>
       )}
 
@@ -199,22 +199,22 @@ export default function Work() {
         <h1 className="page-title">{t("work.pageTitle" as any)}</h1>
         <div className="flex flex-wrap gap-2 items-center">
           <div className="flex items-center gap-1.5">
-            <Filter size={13} style={{ color: "var(--text-tertiary)" }} />
+            <Filter size={16} style={{ color: "var(--text-secondary)" }} />
             <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)} className="input-base px-2 py-1 text-[13px]">
               <option value="All">{t("work.filter.all" as any)}</option>
               <option value="High">{t("work.filter.high" as any)}</option><option value="Medium">{t("work.filter.medium" as any)}</option><option value="Low">{t("work.filter.low" as any)}</option>
             </select>
           </div>
           <div className="segment-switcher">
-            {([["vertical", <LayoutGrid size={13} />, t("work.view.board" as any)], ["horizontal", <AlignJustify size={13} />, t("work.view.swimlane" as any)]] as [string, React.ReactNode, string][]).map(([mode, icon, label]) => (
+            {([["vertical", <LayoutGrid size={16} />, t("work.view.board" as any)], ["horizontal", <AlignJustify size={16} />, t("work.view.swimlane" as any)]] as [string, React.ReactNode, string][]).map(([mode, icon, label]) => (
               <button key={mode} onClick={() => { setViewMode(mode as any); localStorage.setItem("tasks_view_mode", mode as string); }}
                 data-active={viewMode === mode}>
                 {icon}
               </button>
             ))}
           </div>
-          <button onClick={() => setShowAIModal(true)} className="btn-ghost text-[13px]"><Sparkles size={13} /> {t("work.aiPlan" as any)}</button>
-          <button onClick={() => openPanel(null, "todo")} className="btn-primary text-[13px]"><Plus size={13} /> {t("work.new" as any)}</button>
+          <button onClick={() => setShowAIModal(true)} className="btn-ghost text-[13px]"><Sparkles size={16} /> {t("work.aiPlan" as any)}</button>
+          <button onClick={() => openPanel(null, "todo")} className="btn-primary text-[13px]"><Plus size={16} /> {t("work.new" as any)}</button>
         </div>
       </header>
 
@@ -274,7 +274,7 @@ export default function Work() {
               <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: "var(--border)" }}>
                 <div className="flex items-center gap-2.5">
                   <div className="flex h-7 w-7 items-center justify-center rounded-md" style={{ background: "var(--accent-light)", color: "var(--accent)" }}>
-                    {editId ? <Edit2 size={14} /> : <Plus size={14} />}
+                    {editId ? <Edit2 size={16} /> : <Plus size={16} />}
                   </div>
                   <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>
                     {editId ? t("work.panel.edit" as any) : t("work.panel.new" as any)}
@@ -332,7 +332,7 @@ export default function Work() {
                       <button key={key} type="button" onClick={() => generateAI(key as any)} disabled={generating !== null}
                         className="inline-flex items-center gap-1 py-1 px-2.5 rounded-md text-[11px] font-medium transition-all disabled:opacity-50"
                         style={{ border: "1px solid var(--border)", color, background: "var(--surface)" }}>
-                        {generating === key ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />} {label}
+                        {generating === key ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />} {label}
                       </button>
                     ))}
                   </div>
@@ -343,7 +343,7 @@ export default function Work() {
                       {([["breakdown", t("work.ai.tab.breakdown" as any)], ["mj", t("work.ai.tab.mj" as any)], ["story", t("work.ai.tab.story" as any)]] as const).map(([k, l]) => (
                         <button key={k} type="button" onClick={() => setActiveTab(k)}
                           className="px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors"
-                          style={activeTab === k ? { background: "var(--surface-alt)", color: "var(--text)" } : { color: "var(--text-tertiary)" }}>
+                          style={activeTab === k ? { background: "var(--surface-alt)", color: "var(--text)" } : { color: "var(--text-secondary)" }}>
                           {l}
                         </button>
                       ))}
@@ -364,8 +364,8 @@ export default function Work() {
               {/* Panel footer */}
               <div className="flex items-center justify-between px-5 py-3 border-t pb-safe" style={{ borderColor: "var(--border)" }}>
                 {editId ? (
-                  <button type="button" onClick={() => deleteTask(editId)} className="btn-ghost text-[12px]" style={{ color: "var(--danger)" }}>
-                    <Trash2 size={13} /> {t("common.delete" as any)}
+                  <button type="button" onClick={() => deleteTask(editId)} className="btn-ghost text-[13px]" style={{ color: "var(--danger)" }}>
+                    <Trash2 size={16} /> {t("common.delete" as any)}
                   </button>
                 ) : <div />}
                 <div className="flex gap-2">
@@ -383,7 +383,7 @@ export default function Work() {
         <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "var(--bg)", paddingTop: "env(safe-area-inset-top, 0px)" }}>
           <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: "var(--border)" }}>
             <div className="flex items-center gap-2.5">
-              <div className="flex h-7 w-7 items-center justify-center rounded-md" style={{ background: "var(--accent-light)", color: "var(--accent)" }}><Sparkles size={14} /></div>
+              <div className="flex h-7 w-7 items-center justify-center rounded-md" style={{ background: "var(--accent-light)", color: "var(--accent)" }}><Sparkles size={16} /></div>
               <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>{t("work.planner.title" as any)}</span>
             </div>
             <button onClick={() => setShowAIModal(false)} className="btn-ghost p-1"><X size={16} /></button>
@@ -404,7 +404,7 @@ export default function Work() {
                 <textarea value={requirements} onChange={e => setRequirements(e.target.value)} placeholder={t("work.planner.requirementsPlaceholder" as any)} className="input-base w-full h-28 px-3 py-2 text-[13px] resize-none" />
               </FL>
               <button onClick={generatePlan} disabled={planLoading || !requirements.trim()} className="btn-primary w-full text-[13px] disabled:opacity-50">
-                {planLoading ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+                {planLoading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
                 {planLoading ? t("work.planner.generating" as any) : t("work.planner.generate" as any)}
               </button>
             </div>
@@ -412,7 +412,7 @@ export default function Work() {
               {aiPlan ? (
                 <div className="text-[13px] leading-relaxed whitespace-pre-wrap" style={{ color: "var(--text)" }}>{aiPlan}</div>
               ) : (
-                <div className="h-full flex flex-col items-center justify-center gap-2" style={{ color: "var(--text-tertiary)" }}>
+                <div className="h-full flex flex-col items-center justify-center gap-2" style={{ color: "var(--text-secondary)" }}>
                   <Sparkles size={24} className="opacity-30" />
                   <p className="text-[13px]">{t("work.planner.hint" as any)}</p>
                 </div>
@@ -439,9 +439,9 @@ function Column({ col, items, onAdd, onEdit, onDelete, emptyText }: { col: { id:
         <div className="flex items-center gap-2">
           <div className="w-2.5 h-2.5 rounded-sm" style={{ background: col.color }} />
           <h3 className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>{col.title}</h3>
-          <span className="text-[11px] font-medium tabular-nums" style={{ color: "var(--text-tertiary)" }}>{items.length}</span>
+          <span className="text-[11px] font-medium tabular-nums" style={{ color: "var(--text-secondary)" }}>{items.length}</span>
         </div>
-        <button onClick={onAdd} className="btn-ghost p-0.5"><Plus size={13} /></button>
+        <button onClick={onAdd} className="btn-ghost p-0.5"><Plus size={16} /></button>
       </div>
       <Droppable droppableId={col.id}>
         {(provided, snapshot) => (
@@ -456,7 +456,7 @@ function Column({ col, items, onAdd, onEdit, onDelete, emptyText }: { col: { id:
             }}
           >
             <div className="flex-1 overflow-y-auto p-1.5 space-y-1 ios-scroll">
-              {!items.length && <div className="py-8 text-center text-[11px]" style={{ color: "var(--text-tertiary)" }}>{emptyText}</div>}
+              {!items.length && <div className="py-8 text-center text-[11px]" style={{ color: "var(--text-secondary)" }}>{emptyText}</div>}
               {items.map((task: any, i: number) => (
                 // @ts-expect-error React 19 type issue with Draggable
                 <Draggable key={task.id.toString()} draggableId={task.id.toString()} index={i}>
@@ -485,11 +485,11 @@ function TaskCard({ task, provided, snapshot, onEdit, onDelete }: any) {
       className={`group card-interactive cursor-pointer p-3 ${snapshot.isDragging ? "rotate-[2deg] scale-[1.02] !shadow-lg z-[9999]" : ""}`}
     >
       <div className="flex items-center gap-2 mb-1">
-        <GripVertical size={12} className="shrink-0 lg:hidden" style={{ color: "var(--text-tertiary)", opacity: 0.5 }} />
+        <GripVertical size={16} className="shrink-0 lg:hidden" style={{ color: "var(--text-secondary)", opacity: 0.5 }} />
         <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: prioColor }} />
         <h4 className="text-[13px] font-medium truncate" style={{ color: "var(--text)" }}>{task.title}</h4>
       </div>
-      {task.client && <p className="text-[11px] mb-1 pl-3.5" style={{ color: "var(--text-tertiary)" }}>{task.client}</p>}
+      {task.client && <p className="text-[11px] mb-1 pl-3.5" style={{ color: "var(--text-secondary)" }}>{task.client}</p>}
       <div className="flex items-center justify-between pl-3.5 mt-1.5">
         <div className="flex items-center gap-1">
           {task.due && (() => {
@@ -497,12 +497,12 @@ function TaskCard({ task, provided, snapshot, onEdit, onDelete }: any) {
             const isOverdue = task.due < today;
             const isToday = task.due === today;
             const dueSt = isOverdue ? { background: "var(--danger-light)", color: "var(--danger)" } : isToday ? { background: "var(--warning-light)", color: "var(--warning)" } : undefined;
-            return <span className="badge text-[10px]" style={dueSt}><Clock size={9} /> {task.due}</span>;
+            return <span className="badge text-[11px]" style={dueSt}><Clock size={16} /> {task.due}</span>;
           })()}
-          {hasAI && <span className="badge text-[10px]" style={{ background: "var(--accent-light)", color: "var(--accent)" }}><Sparkles size={9} /></span>}
+          {hasAI && <span className="badge text-[11px]" style={{ background: "var(--accent-light)", color: "var(--accent)" }}><Sparkles size={16} /></span>}
         </div>
         <div className="flex gap-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-          <button onClick={e => { e.stopPropagation(); onDelete(task.id); }} className="p-0.5 rounded" style={{ color: "var(--text-tertiary)" }} aria-label="Delete"><Trash2 size={11} /></button>
+          <button onClick={e => { e.stopPropagation(); onDelete(task.id); }} className="p-0.5 rounded" style={{ color: "var(--text-secondary)" }} aria-label="Delete"><Trash2 size={16} /></button>
         </div>
       </div>
     </div>
@@ -521,12 +521,12 @@ function SwimlaneView({ cols, tasks, filter, onAdd, onEdit, onDelete, onMove, em
             <div className="flex items-center justify-between px-4 py-2 border-b" style={{ borderColor: "var(--border)", borderTop: `2px solid ${col.color}` }}>
               <div className="flex items-center gap-2">
                 <h3 className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>{col.title}</h3>
-                <span className="text-[11px] font-medium tabular-nums" style={{ color: "var(--text-tertiary)" }}>{items.length}</span>
+                <span className="text-[11px] font-medium tabular-nums" style={{ color: "var(--text-secondary)" }}>{items.length}</span>
               </div>
-              <button onClick={() => onAdd(null, col.id)} className="btn-ghost p-0.5"><Plus size={13} /></button>
+              <button onClick={() => onAdd(null, col.id)} className="btn-ghost p-0.5"><Plus size={16} /></button>
             </div>
             {!items.length ? (
-              <div className="px-4 py-4 text-[12px] text-center" style={{ color: "var(--text-tertiary)" }}>{emptyText}</div>
+              <div className="px-4 py-4 text-[13px] text-center" style={{ color: "var(--text-secondary)" }}>{emptyText}</div>
             ) : (
               <div className="overflow-x-auto ios-scroll">
                 <div className="flex gap-2 p-2.5 min-w-max">
@@ -537,13 +537,13 @@ function SwimlaneView({ cols, tasks, filter, onAdd, onEdit, onDelete, onMove, em
                         <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: task.priority === "High" ? "var(--danger)" : task.priority === "Medium" ? "var(--warning)" : "var(--success)" }} />
                         <h4 className="text-[13px] font-medium truncate" style={{ color: "var(--text)" }}>{task.title}</h4>
                       </div>
-                      {task.client && <p className="text-[11px] truncate mb-1 pl-3" style={{ color: "var(--text-tertiary)" }}>{task.client}</p>}
+                      {task.client && <p className="text-[11px] truncate mb-1 pl-3" style={{ color: "var(--text-secondary)" }}>{task.client}</p>}
                       <div className="flex items-center justify-between mt-2 pt-2 border-t" style={{ borderColor: "var(--border)" }} onClick={e => e.stopPropagation()}>
                         <select value={col.id} onChange={e => onMove(task.id, e.target.value)}
-                          className="appearance-none text-[10px] font-medium pl-2 pr-4 py-0.5 rounded-md cursor-pointer input-base">
+                          className="appearance-none text-[11px] font-medium pl-2 pr-4 py-0.5 rounded-md cursor-pointer input-base">
                           {cols.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
                         </select>
-                        <button onClick={() => onDelete(task.id)} className="p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "var(--text-tertiary)" }}><Trash2 size={11} /></button>
+                        <button onClick={() => onDelete(task.id)} className="p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "var(--text-secondary)" }}><Trash2 size={16} /></button>
                       </div>
                     </div>
                   ))}
