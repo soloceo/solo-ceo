@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, lazy, Suspense } from "react";
+import { createPortal } from "react-dom";
 import {
   TrendingUp, Users, Briefcase, CheckSquare,
   CircleDollarSign, FolderCog,
@@ -255,40 +256,48 @@ export default function Home() {
         {/* ── Today's Principle ── */}
         <Suspense fallback={null}><TodayPrinciple /></Suspense>
 
-        {/* ── Inline form ── */}
-        {showForm && (
-          <section className="card p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>
-                {editKey ? t("home.form.editEvent" as any) : t("home.form.logEvent" as any)}
-              </h3>
-              <button onClick={resetForm} className="btn-ghost p-1">
-                <X size={14} />
-              </button>
-            </div>
-            <form onSubmit={saveManual} className="grid gap-3 md:grid-cols-3">
-              <label className="flex flex-col gap-1">
-                <span className="section-label">{t("home.form.type" as any)}</span>
-                <select value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value }))} className="input-base px-3 py-2 text-[13px]">
-                  <option value={t("home.form.type.revenue" as any)}>{t("home.form.type.revenue" as any)}</option><option value={t("home.form.type.delivery" as any)}>{t("home.form.type.delivery" as any)}</option><option value={t("home.form.type.system" as any)}>{t("home.form.type.system" as any)}</option>
-                </select>
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="section-label">{t("home.form.title" as any)}</span>
-                <input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder={t("home.form.titlePlaceholder" as any)} className="input-base px-3 py-2 text-[13px]" />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="section-label">{t("home.form.note" as any)}</span>
-                <input value={form.note} onChange={e => setForm(p => ({ ...p, note: e.target.value }))} placeholder={t("home.form.notePlaceholder" as any)} className="input-base px-3 py-2 text-[13px]" />
-              </label>
-              <div className="md:col-span-3 flex justify-end gap-2">
-                <button type="button" onClick={resetForm} className="btn-secondary text-[13px]" style={{ padding: "6px 12px" }}>{t("common.cancel" as any)}</button>
-                <button type="submit" disabled={submitting || !form.title.trim()} className="btn-primary text-[13px] disabled:opacity-50" style={{ padding: "6px 12px" }}>
-                  {editKey ? t("home.form.saveEdit" as any) : t("common.save" as any)}
-                </button>
+        {/* ── Memo modal (portal) ── */}
+        {showForm && createPortal(
+          <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]" onClick={resetForm}>
+            <div className="absolute inset-0 bg-black/30" />
+            <div
+              className="relative card p-5 w-[90vw] max-w-md space-y-3 celebrate-bounce"
+              style={{ boxShadow: "var(--shadow-lg)" }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="text-[14px] font-semibold" style={{ color: "var(--text)" }}>
+                  {editKey ? t("home.form.editEvent" as any) : t("home.quickMemo" as any)}
+                </h3>
+                <button onClick={resetForm} className="btn-ghost p-1"><X size={14} /></button>
               </div>
-            </form>
-          </section>
+              <form onSubmit={saveManual} className="space-y-3">
+                <label className="flex flex-col gap-1">
+                  <span className="section-label">{t("home.form.type" as any)}</span>
+                  <select value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value }))} className="input-base px-3 py-2 text-[13px]">
+                    <option value={t("home.form.type.revenue" as any)}>{t("home.form.type.revenue" as any)}</option>
+                    <option value={t("home.form.type.delivery" as any)}>{t("home.form.type.delivery" as any)}</option>
+                    <option value={t("home.form.type.system" as any)}>{t("home.form.type.system" as any)}</option>
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="section-label">{t("home.form.title" as any)}</span>
+                  <input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder={t("home.form.titlePlaceholder" as any)} className="input-base px-3 py-2 text-[13px]" autoFocus />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="section-label">{t("home.form.note" as any)}</span>
+                  <input value={form.note} onChange={e => setForm(p => ({ ...p, note: e.target.value }))} placeholder={t("home.form.notePlaceholder" as any)} className="input-base px-3 py-2 text-[13px]" />
+                </label>
+                <div className="flex justify-end gap-2 pt-1">
+                  <button type="button" onClick={resetForm} className="btn-secondary text-[13px]" style={{ padding: "6px 14px" }}>{t("common.cancel" as any)}</button>
+                  <button type="submit" disabled={submitting || !form.title.trim()} className="btn-primary text-[13px] disabled:opacity-50" style={{ padding: "6px 14px" }}>
+                    {editKey ? t("home.form.saveEdit" as any) : t("common.save" as any)}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body,
         )}
 
         {/* ── Focus cards ── */}
