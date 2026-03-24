@@ -1,11 +1,9 @@
-import React, { useState, useEffect, useMemo, lazy, Suspense } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import {
   Plus, Clock, Sparkles, Loader2, X, Filter, Check, Edit2, Trash2,
   LayoutGrid, AlignJustify, GripVertical, ChevronDown, PanelRightClose,
 } from "lucide-react";
-
-const CreatePage = lazy(() => import("./Create"));
 import { GoogleGenAI } from "@google/genai";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { motion, AnimatePresence } from "motion/react";
@@ -27,31 +25,8 @@ const cleanAI = (t: string) =>
 
 type TaskMap = Record<string, any[]>;
 
-/* ── Main (wrapper with segment switcher) ──────────────────────── */
+/* ── Main ───────────────────────────────────────────────────────── */
 export default function Work() {
-  const { t } = useT();
-  const [workSeg, setWorkSeg] = useState<"tasks" | "content">("tasks");
-
-  return (
-    <div className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col px-4 py-3 md:px-6 md:py-4 lg:px-8 lg:py-5 relative">
-      <header className="flex items-center justify-between mb-4">
-        <h1 className="page-title">{t("work.pageTitle" as any)}</h1>
-        <div className="segment-switcher">
-          <button data-active={workSeg === "tasks"} onClick={() => setWorkSeg("tasks")}>{t("work.seg.tasks" as any)}</button>
-          <button data-active={workSeg === "content"} onClick={() => setWorkSeg("content")}>{t("work.seg.content" as any)}</button>
-        </div>
-      </header>
-      {workSeg === "tasks" ? <TaskBoard /> : (
-        <Suspense fallback={<div className="flex items-center justify-center py-20"><Loader2 className="animate-spin" size={20} style={{ color: "var(--text-tertiary)" }} /></div>}>
-          <CreatePage />
-        </Suspense>
-      )}
-    </div>
-  );
-}
-
-/* ── Task Board ────────────────────────────────────────────────── */
-function TaskBoard() {
   const { t, lang } = useT();
 
   const COLS = useMemo(() => [
@@ -211,7 +186,7 @@ function TaskBoard() {
   const applyFilter = (items: any[]) => filterPriority === "All" ? items : items.filter((t: any) => t.priority === filterPriority);
 
   return (
-    <>
+    <div className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col px-4 py-3 md:px-6 md:py-4 lg:px-8 lg:py-5 relative">
       {/* Toast */}
       {toast && (
         <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 px-4 py-2 rounded-lg z-[9999] flex items-center gap-2 text-[13px] font-medium" style={{ background: "var(--text)", color: "var(--bg)", boxShadow: "var(--shadow-lg)" }}>
@@ -219,8 +194,9 @@ function TaskBoard() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2 items-center mb-4">
+      {/* Header */}
+      <header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4">
+        <h1 className="page-title">{t("work.pageTitle" as any)}</h1>
         <div className="flex flex-wrap gap-2 items-center">
           <div className="flex items-center gap-1.5">
             <Filter size={13} style={{ color: "var(--text-tertiary)" }} />
@@ -240,7 +216,7 @@ function TaskBoard() {
           <button onClick={() => setShowAIModal(true)} className="btn-ghost text-[13px]"><Sparkles size={13} /> {t("work.aiPlan" as any)}</button>
           <button onClick={() => openPanel(null, "todo")} className="btn-primary text-[13px]"><Plus size={13} /> {t("work.new" as any)}</button>
         </div>
-      </div>
+      </header>
 
       {/* Board */}
       {isLoading ? (
@@ -445,7 +421,7 @@ function TaskBoard() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
 

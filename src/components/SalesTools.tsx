@@ -1,19 +1,20 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, lazy, Suspense } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import {
-  X, Copy, ChevronDown, ChevronRight, DollarSign,
+  X, Copy, ChevronDown, ChevronRight, DollarSign, Loader2, Globe,
 } from "lucide-react";
 import { useT } from "../i18n/context";
 import { useToast } from "../hooks/useToast";
 import { Toast } from "./Money";
 import { EMAIL_TEMPLATES, SCRIPT_SCENARIOS, PRICING_TIERS, PRICING_STAGES } from "../data/breakthrough-templates";
 
-type Seg = "emails" | "scripts";
+const CreatePage = lazy(() => import("./Create"));
+
+type Seg = "emails" | "scripts" | "ai";
 
 /**
- * Sales tools slide-over panel — email templates + scripts/pricing.
- * Triggered from Pipeline header via a toolbar button.
+ * Sales tools slide-over panel — email templates + scripts + AI content.
  */
 export default function SalesToolsPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t, lang } = useT();
@@ -25,10 +26,7 @@ export default function SalesToolsPanel({ open, onClose }: { open: boolean; onCl
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex justify-end">
-      {/* backdrop */}
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-
-      {/* panel */}
       <motion.div
         initial={{ x: "100%" }}
         animate={{ x: 0 }}
@@ -38,28 +36,27 @@ export default function SalesToolsPanel({ open, onClose }: { open: boolean; onCl
         style={{ background: "var(--bg)", borderLeft: "1px solid var(--border)" }}
       >
         {toast && <Toast message={toast} />}
-
-        {/* header */}
         <div className="flex items-center justify-between px-5 py-3 shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
           <h2 className="text-[15px] font-semibold">{t("pipeline.salesTools" as any)}</h2>
           <button onClick={onClose} className="btn-ghost p-1.5"><X size={16} /></button>
         </div>
-
-        {/* segment switcher */}
         <div className="px-5 pt-3">
           <div className="segment-switcher">
-            {(["emails", "scripts"] as Seg[]).map((s) => (
+            {(["emails", "scripts", "ai"] as Seg[]).map((s) => (
               <button key={s} data-active={seg === s} onClick={() => setSeg(s)}>
-                {s === "emails" ? t("pipeline.emailTemplates" as any) : t("pipeline.scripts" as any)}
+                {s === "emails" ? t("pipeline.emailTemplates" as any) : s === "scripts" ? t("pipeline.scripts" as any) : t("pipeline.aiContent" as any)}
               </button>
             ))}
           </div>
         </div>
-
-        {/* content */}
         <div className="flex-1 overflow-y-auto px-5 py-4">
           {seg === "emails" && <EmailArsenal L={L} t={t} showToast={showToast} />}
           {seg === "scripts" && <ScriptVault L={L} t={t} showToast={showToast} />}
+          {seg === "ai" && (
+            <Suspense fallback={<div className="flex justify-center py-12"><Loader2 className="animate-spin" size={20} style={{ color: "var(--text-tertiary)" }} /></div>}>
+              <CreatePage />
+            </Suspense>
+          )}
         </div>
       </motion.div>
     </div>,
@@ -67,7 +64,7 @@ export default function SalesToolsPanel({ open, onClose }: { open: boolean; onCl
   );
 }
 
-/* ── Email Arsenal ── */
+/* ── Email Arsenal (bilingual: show both zh + en) ── */
 function EmailArsenal({
   L, t, showToast,
 }: {
@@ -75,36 +72,89 @@ function EmailArsenal({
   t: (k: string) => string;
   showToast: (m: string) => void;
 }) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const copyText = async (text: string) => {
     await navigator.clipboard.writeText(text);
     showToast(t("breakthrough.copied" as any));
   };
 
   return (
-    <div className="space-y-4 pb-8">
-      {EMAIL_TEMPLATES.map((tpl) => (
-        <div key={tpl.id} className="card p-4 space-y-3">
-          <h3 className="font-semibold text-[14px]">{L(tpl.label)}</h3>
-          <div>
-            <div className="section-label mb-1.5">{t("breakthrough.copySubject" as any)}</div>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 text-[13px] px-3 py-2 rounded-lg" style={{ background: "var(--surface-alt)", color: "var(--text-secondary)" }}>
-                {L(tpl.subject)}
-              </div>
-              <button onClick={() => copyText(L(tpl.subject))} className="btn-ghost p-2 shrink-0"><Copy size={14} /></button>
-            </div>
+    <div className="space-y-3 pb-8">
+      {EMAIL_TEMPLATES.map((tpl) => {
+        const isOpen = expandedId === tpl.id;
+        return (
+          <div key={tpl.id} className="card overflow-hidden">
+            {/* Header — click to expand */}
+            <button
+              onClick={() => setExpandedId(isOpen ? null : tpl.id)}
+              className="w-full flex items-center gap-2.5 px-4 py-3.5 text-left transition-colors"
+              style={{ background: isOpen ? "var(--surface-alt)" : undefined }}
+            >
+              {isOpen ? <ChevronDown size={13} style={{ color: "var(--text-tertiary)" }} /> : <ChevronRight size={13} style={{ color: "var(--text-tertiary)" }} />}
+              <span className="flex-1 font-semibold text-[13px]">{L(tpl.label)}</span>
+            </button>
+
+            {/* Expanded: show BOTH languages */}
+            <AnimatePresence>
+              {isOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <div className="px-4 pb-4 space-y-4" style={{ borderTop: "1px solid var(--border)" }}>
+                    {/* Chinese version */}
+                    <div className="pt-3">
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <Globe size={11} style={{ color: "var(--text-tertiary)" }} />
+                        <span className="section-label">中文版</span>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 text-[12px] px-3 py-1.5 rounded-lg font-medium" style={{ background: "var(--surface-alt)", color: "var(--text)" }}>
+                            {tpl.subject.zh}
+                          </div>
+                          <button onClick={() => copyText(tpl.subject.zh)} className="btn-ghost p-1.5 shrink-0"><Copy size={12} /></button>
+                        </div>
+                        <div className="relative">
+                          <pre className="text-[11px] leading-relaxed px-3 py-2.5 rounded-lg whitespace-pre-wrap" style={{ background: "var(--surface-alt)", color: "var(--text-secondary)" }}>
+                            {tpl.body.zh}
+                          </pre>
+                          <button onClick={() => copyText(tpl.body.zh)} className="btn-ghost absolute top-1.5 right-1.5 p-1"><Copy size={11} /></button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* English version */}
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <Globe size={11} style={{ color: "var(--text-tertiary)" }} />
+                        <span className="section-label">English</span>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 text-[12px] px-3 py-1.5 rounded-lg font-medium" style={{ background: "var(--surface-alt)", color: "var(--text)" }}>
+                            {tpl.subject.en}
+                          </div>
+                          <button onClick={() => copyText(tpl.subject.en)} className="btn-ghost p-1.5 shrink-0"><Copy size={12} /></button>
+                        </div>
+                        <div className="relative">
+                          <pre className="text-[11px] leading-relaxed px-3 py-2.5 rounded-lg whitespace-pre-wrap" style={{ background: "var(--surface-alt)", color: "var(--text-secondary)" }}>
+                            {tpl.body.en}
+                          </pre>
+                          <button onClick={() => copyText(tpl.body.en)} className="btn-ghost absolute top-1.5 right-1.5 p-1"><Copy size={11} /></button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-          <div>
-            <div className="section-label mb-1.5">{t("breakthrough.copyBody" as any)}</div>
-            <div className="relative">
-              <pre className="text-[12px] leading-relaxed px-3 py-3 rounded-lg whitespace-pre-wrap" style={{ background: "var(--surface-alt)", color: "var(--text-secondary)" }}>
-                {L(tpl.body)}
-              </pre>
-              <button onClick={() => copyText(L(tpl.body))} className="btn-ghost absolute top-2 right-2 p-1.5"><Copy size={13} /></button>
-            </div>
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -125,7 +175,6 @@ function ScriptVault({
 
   return (
     <div className="space-y-5 pb-8">
-      {/* scenarios accordion */}
       <div className="card overflow-hidden">
         {SCRIPT_SCENARIOS.map((sc) => (
           <div key={sc.id} style={{ borderBottom: "1px solid var(--border)" }}>
@@ -146,11 +195,19 @@ function ScriptVault({
                   transition={{ duration: 0.2 }}
                   className="overflow-hidden"
                 >
-                  <div className="px-4 pb-3 relative">
-                    <pre className="text-[12px] leading-relaxed px-3 py-3 rounded-lg whitespace-pre-wrap" style={{ background: "var(--surface-alt)", color: "var(--text-secondary)" }}>
-                      {L(sc.content)}
-                    </pre>
-                    <button onClick={() => copyText(L(sc.content))} className="btn-ghost absolute top-2 right-6 p-1.5"><Copy size={13} /></button>
+                  <div className="px-4 pb-3 space-y-2">
+                    {/* Chinese */}
+                    <div className="relative">
+                      <div className="flex items-center gap-1 mb-1"><Globe size={10} style={{ color: "var(--text-tertiary)" }} /><span className="text-[10px] font-medium" style={{ color: "var(--text-tertiary)" }}>中文</span></div>
+                      <pre className="text-[11px] leading-relaxed px-3 py-2.5 rounded-lg whitespace-pre-wrap" style={{ background: "var(--surface-alt)", color: "var(--text-secondary)" }}>{sc.content.zh}</pre>
+                      <button onClick={() => copyText(sc.content.zh)} className="btn-ghost absolute top-6 right-1.5 p-1"><Copy size={11} /></button>
+                    </div>
+                    {/* English */}
+                    <div className="relative">
+                      <div className="flex items-center gap-1 mb-1"><Globe size={10} style={{ color: "var(--text-tertiary)" }} /><span className="text-[10px] font-medium" style={{ color: "var(--text-tertiary)" }}>English</span></div>
+                      <pre className="text-[11px] leading-relaxed px-3 py-2.5 rounded-lg whitespace-pre-wrap" style={{ background: "var(--surface-alt)", color: "var(--text-secondary)" }}>{sc.content.en}</pre>
+                      <button onClick={() => copyText(sc.content.en)} className="btn-ghost absolute top-6 right-1.5 p-1"><Copy size={11} /></button>
+                    </div>
                   </div>
                 </motion.div>
               )}

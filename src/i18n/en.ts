@@ -50,6 +50,7 @@ const en: typeof zh = {
   "pipeline.clients.payAutoHint": "Client has payment on file, charged automatically",
   "pipeline.clients.payManual": "Manual Collection",
   "pipeline.clients.payManualHint": "Check, cash, or transfer — confirm each month",
+  "pipeline.aiContent": "AI Content",
   "pipeline.salesTools": "Sales Tools",
   "pipeline.emailTemplates": "Email Templates",
   "pipeline.scripts": "Scripts",

@@ -48,6 +48,7 @@ const zh = {
   "pipeline.clients.payAutoHint": "客户绑定了在线支付，每月自动扣",
   "pipeline.clients.payManual": "手动收款",
   "pipeline.clients.payManualHint": "支票、现金、转账，需要每月确认",
+  "pipeline.aiContent": "AI 文案",
   "pipeline.salesTools": "销售工具",
   "pipeline.emailTemplates": "邮件模板",
   "pipeline.scripts": "话术锦囊",
