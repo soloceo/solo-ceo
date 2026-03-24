@@ -31,6 +31,7 @@ type DashboardData = {
   mrr: number;
   activeTasks: number;
   leadsCount: number;
+  ytdRevenue?: number;
 };
 
 type ManualForm = { type: string; title: string; note: string };
@@ -197,9 +198,10 @@ export default function Home() {
             <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.45)" }}>{todayStr(lang)}</span>
           </div>
           {/* KPI row inside hero */}
-          <div className="grid grid-cols-4 gap-2 mb-4">
+          <div className="grid grid-cols-5 gap-2 mb-4">
             {[
               { label: "MRR", value: loading ? "—" : `$${Number(data.mrr || 0).toLocaleString()}` },
+              { label: t("home.kpi.ytdRevenue" as any), value: loading ? "—" : `$${Number(data.ytdRevenue || 0).toLocaleString()}` },
               { label: t("home.kpi.activeClients" as any), value: loading ? "—" : String(data.clientsCount || 0) },
               { label: t("home.kpi.leads" as any), value: loading ? "—" : String(data.leadsCount || 0) },
               { label: t("home.kpi.inProgress" as any), value: loading ? "—" : String(data.activeTasks || 0) },

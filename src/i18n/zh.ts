@@ -21,6 +21,7 @@ const zh = {
   "home.welcome.addTask": "创建任务",
   "home.welcome.addIncome": "记录收入",
   "home.quickMemo": "快速备忘",
+  "home.kpi.ytdRevenue": "总收入",
   "home.protocol.title": "每日协议",
   "home.protocol.desc": "推荐的每日 5 步工作流",
   "home.protocol.allDone": "今日协议已完成，保持节奏！",

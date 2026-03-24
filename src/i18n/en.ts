@@ -23,6 +23,7 @@ const en: typeof zh = {
   "home.welcome.addTask": "Create Task",
   "home.welcome.addIncome": "Log Income",
   "home.quickMemo": "Quick Memo",
+  "home.kpi.ytdRevenue": "Revenue",
   "home.protocol.title": "Daily Protocol",
   "home.protocol.desc": "Recommended 5-step daily workflow",
   "home.protocol.allDone": "Protocol complete — keep the momentum!",
