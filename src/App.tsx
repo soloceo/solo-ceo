@@ -51,8 +51,13 @@ const TABS: TabDef[] = [
 const TAB_MAP = Object.fromEntries(TABS.map(t => [t.id, t]));
 
 const LOADING = (
-  <div className="flex h-full items-center justify-center" role="status" aria-label="Loading">
-    <Loader2 className="h-5 w-5 animate-spin" style={{ color: "var(--accent)" }} />
+  <div className="space-y-5 p-4 animate-skeleton-in" role="status" aria-label="Loading">
+    <div className="skeleton-bone h-[180px] rounded-2xl" />
+    <div className="skeleton-bone h-4 w-24 rounded" />
+    <div className="space-y-3">
+      <div className="skeleton-bone h-[100px] rounded-xl" />
+      <div className="skeleton-bone h-[100px] rounded-xl" />
+    </div>
   </div>
 );
 
@@ -384,10 +389,10 @@ function App() {
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.15, ease: [0.25, 1, 0.5, 1] }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ type: "spring", damping: 28, stiffness: 280, mass: 0.8 }}
               className="h-full overflow-y-auto"
               style={{ overscrollBehavior: "contain" }}
             >

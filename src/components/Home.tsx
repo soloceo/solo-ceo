@@ -8,6 +8,7 @@ import {
 import { useT } from "../i18n/context";
 import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh";
 import { usePullToRefresh } from "../hooks/usePullToRefresh";
+import { useCountUp } from "../hooks/useCountUp";
 
 const DailyProtocol = lazy(() => import("./DailyProtocol"));
 const BreakthroughFull = lazy(() => import("./Breakthrough"));
@@ -192,6 +193,10 @@ export default function Home() {
   const [openSection, setOpenSection] = useState<string | null>(null);
   const toggleSection = useCallback((id: string) => setOpenSection(p => p === id ? null : id), []);
 
+  /* ── Animated KPIs ── */
+  const animMrr = useCountUp(data.mrr || 0);
+  const animYtd = useCountUp(data.ytdRevenue || 0);
+
   /* ── Render ───────────────────────────────────────────────────── */
   return (
     <div ref={scrollRef} className="mobile-page page-wrap">
@@ -214,11 +219,11 @@ export default function Home() {
           <div className="px-5 pb-3">
             <div className="flex items-end gap-4 mb-2">
               <div>
-                <div className="text-[22px] font-bold leading-none" style={{ color: "#fff" }}>{loading ? "—" : `$${Number(data.mrr || 0).toLocaleString()}`}</div>
+                <div className="text-[22px] font-bold leading-none" style={{ color: "#fff" }}>{loading ? "—" : `$${animMrr.toLocaleString()}`}</div>
                 <div className="text-[10px] mt-1" style={{ color: "rgba(255,255,255,0.45)" }}>MRR</div>
               </div>
               <div>
-                <div className="text-[22px] font-bold leading-none" style={{ color: "var(--accent)" }}>{loading ? "—" : `$${Number(data.ytdRevenue || 0).toLocaleString()}`}</div>
+                <div className="text-[22px] font-bold leading-none" style={{ color: "var(--accent)" }}>{loading ? "—" : `$${animYtd.toLocaleString()}`}</div>
                 <div className="text-[10px] mt-1" style={{ color: "rgba(255,255,255,0.45)" }}>{t("home.kpi.ytdRevenue" as any)}</div>
               </div>
               <div className="flex-1" />
