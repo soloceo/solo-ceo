@@ -12,7 +12,7 @@ import { useToast } from '../hooks/useToast';
 function Toast({ message }: { message: string }) {
   if (!message) return null;
   return (
-    <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 px-5 py-2.5 rounded-lg z-[9999] flex items-center gap-2 text-[13px] font-medium" style={{ background: 'var(--text)', color: 'var(--bg)', boxShadow: 'var(--shadow-md)' }}>
+    <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 px-5 py-3 rounded-lg z-[9999] flex items-center gap-2 text-[13px] font-medium" style={{ background: 'var(--text)', color: 'var(--bg)', boxShadow: 'var(--shadow-md)' }}>
       <Check size={16} style={{ color: 'var(--success)' }} /> {message}
     </div>
   );
@@ -402,7 +402,7 @@ export default function Settings() {
             {/* Logout button */}
             <button
               onClick={signOut}
-              className="flex items-center gap-2 text-[13px] font-medium px-4 py-2.5 rounded-lg w-full justify-center transition-colors"
+              className="flex items-center gap-2 text-[13px] font-medium px-4 py-3 rounded-lg w-full justify-center transition-colors"
               style={{ border: '1px solid var(--border)', color: 'var(--danger)' }}
             >
               <LogOut size={16} />
@@ -433,12 +433,12 @@ export default function Settings() {
                   className="input-base w-full px-3 py-2 text-[13px]"
                 />
                 <div className="flex items-center gap-2 mt-2">
-                  <label className="btn-ghost text-[11px] cursor-pointer px-2.5 py-1.5 rounded-md" style={{ border: '1px solid var(--border)' }}>
+                  <label className="btn-ghost text-[11px] cursor-pointer px-3 py-2 rounded-md" style={{ border: '1px solid var(--border)' }}>
                     <Upload size={16} /> {t("settings.uploadAvatar" as any)}
                     <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
                   </label>
                   {operatorAvatar && (
-                    <button type="button" onClick={clearAvatar} className="btn-ghost text-[11px] px-2.5 py-1.5 rounded-md" style={{ color: 'var(--danger)' }}>
+                    <button type="button" onClick={clearAvatar} className="btn-ghost text-[11px] px-3 py-2 rounded-md" style={{ color: 'var(--danger)' }}>
                       <Trash2 size={16} /> {t("settings.removeAvatar" as any)}
                     </button>
                   )}
@@ -453,7 +453,7 @@ export default function Settings() {
           <SectionLabel>{t("settings.appearance" as any)}</SectionLabel>
           <div className="card overflow-hidden">
             {/* Dark mode toggle */}
-            <button onClick={toggleDarkMode} className="list-item w-full flex items-center justify-between px-5 py-3.5 text-left">
+            <button onClick={toggleDarkMode} className="list-item w-full flex items-center justify-between px-5 py-4 text-left">
               <div className="flex items-center gap-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: 'var(--accent)' }}>
                   {darkMode ? <Moon size={16} /> : <Sun size={16} />}
@@ -469,7 +469,7 @@ export default function Settings() {
             </button>
 
             {/* Language switcher */}
-            <div className="list-item flex items-center justify-between px-5 py-3.5" style={{ borderTop: '1px solid var(--border)' }}>
+            <div className="list-item flex items-center justify-between px-5 py-4" style={{ borderTop: '1px solid var(--border)' }}>
               <div className="flex items-center gap-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: 'var(--accent)' }}>
                   <Globe size={16} />
@@ -481,7 +481,7 @@ export default function Settings() {
                   <button
                     key={l}
                     onClick={() => setLang(l)}
-                    className="px-3 py-1.5 text-[13px] font-medium transition-colors"
+                    className="px-3 py-2 text-[13px] font-medium transition-colors"
                     style={{
                       background: lang === l ? 'var(--accent)' : 'transparent',
                       color: lang === l ? '#fff' : 'var(--text-secondary)',
@@ -494,12 +494,12 @@ export default function Settings() {
             </div>
 
             {/* Currency */}
-            <div className="list-item flex items-center justify-between px-5 py-3.5" style={{ borderTop: '1px solid var(--border)' }}>
+            <div className="list-item flex items-center justify-between px-5 py-4" style={{ borderTop: '1px solid var(--border)' }}>
               <div className="flex items-center gap-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg text-[13px] font-bold" style={{ background: 'color-mix(in srgb, var(--success) 12%, transparent)', color: 'var(--success)' }}>$</div>
                 <div className="text-[13px] font-medium" style={{ color: 'var(--text)' }}>{t("settings.currency" as any)}</div>
               </div>
-              <select value={currency} onChange={e => setCurrency(e.target.value)} className="input-base px-2 py-1.5 text-[13px]">
+              <select value={currency} onChange={e => setCurrency(e.target.value)} className="input-base px-2 py-2 text-[13px]">
                 {[['USD', '$ USD'], ['CNY', '¥ CNY'], ['EUR', '€ EUR'], ['GBP', '£ GBP'], ['JPY', '¥ JPY'], ['CAD', '$ CAD'], ['AUD', '$ AUD'], ['HKD', '$ HKD'], ['TWD', '$ TWD'], ['SGD', '$ SGD']].map(([v, l]) => (
                   <option key={v} value={v}>{l}</option>
                 ))}
@@ -507,12 +507,12 @@ export default function Settings() {
             </div>
 
             {/* Timezone */}
-            <div className="list-item flex items-center justify-between px-5 py-3.5" style={{ borderTop: '1px solid var(--border)' }}>
+            <div className="list-item flex items-center justify-between px-5 py-4" style={{ borderTop: '1px solid var(--border)' }}>
               <div className="flex items-center gap-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: 'var(--accent)' }}>🌐</div>
                 <div className="text-[13px] font-medium" style={{ color: 'var(--text)' }}>{t("settings.timezone" as any)}</div>
               </div>
-              <select value={timezone} onChange={e => setTimezone(e.target.value)} className="input-base px-2 py-1.5 text-[13px] max-w-[200px]">
+              <select value={timezone} onChange={e => setTimezone(e.target.value)} className="input-base px-2 py-2 text-[13px] max-w-[200px]">
                 {['Asia/Shanghai', 'Asia/Tokyo', 'Asia/Hong_Kong', 'Asia/Taipei', 'Asia/Singapore', 'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'America/Toronto', 'America/Vancouver', 'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Australia/Sydney', 'Pacific/Auckland'].map(tz => (
                   <option key={tz} value={tz}>{tz.replace(/_/g, ' ')}</option>
                 ))}

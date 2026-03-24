@@ -39,7 +39,7 @@ const cleanAiText = (text: string) =>
 export function Toast({ message }: { message: string }) {
   if (!message) return null;
   return (
-    <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 px-5 py-2.5 rounded-xl shadow-lg z-[9999] flex items-center gap-2 text-[13px] font-medium" style={{ background: "var(--text)", color: "var(--bg)" }}>
+    <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 px-5 py-3 rounded-xl shadow-lg z-[9999] flex items-center gap-2 text-[13px] font-medium" style={{ background: "var(--text)", color: "var(--bg)" }}>
       <Check size={16} style={{ color: "var(--success)" }} /> {message}
     </div>
   );
@@ -215,7 +215,7 @@ export function PlansView({ showToast }: { showToast: (m: string) => void }) {
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="fixed inset-0 z-50"
-              style={{ background: isMobile ? "var(--bg)" : "rgba(0,0,0,0.2)" }}
+              className={isMobile ? "" : "modal-backdrop"} style={{ background: isMobile ? "var(--bg)" : undefined }}
               onClick={() => !isMobile && setShowPanel(false)}
             />
             <motion.div

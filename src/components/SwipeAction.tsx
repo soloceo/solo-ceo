@@ -68,7 +68,7 @@ export default function SwipeAction({
       >
         <button
           onClick={() => { onDelete(); close(); }}
-          className="flex flex-col items-center gap-0.5 text-white"
+          className="flex flex-col items-center gap-1 text-white"
           aria-label="Delete"
         >
           <Trash2 size={16} />

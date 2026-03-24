@@ -261,7 +261,7 @@ export function LeadsView() {
       <AnimatePresence>
         {showPanel && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="fixed inset-0 z-40" style={{ background: "rgba(0,0,0,0.3)" }} onClick={() => setShowPanel(false)} />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="fixed inset-0 z-40" className="modal-backdrop" onClick={() => setShowPanel(false)} />
             <motion.div
               initial={{ x: isMobile ? 0 : "100%", y: isMobile ? "100%" : 0 }}
               animate={{ x: 0, y: 0 }}
@@ -584,16 +584,16 @@ export function ClientsView() {
         </div>
         <div className="flex items-center gap-1.5 flex-wrap">
           <Filter size={16} style={{ color: "var(--text-secondary)" }} />
-          <select value={filterSt} onChange={e => setFilterSt(e.target.value)} className="input-base px-2 py-1.5 text-[13px]">
+          <select value={filterSt} onChange={e => setFilterSt(e.target.value)} className="input-base px-2 py-2 text-[13px]">
             <option value="All">{t("common.all" as any)}</option><option value="Active">{t("common.active" as any)}</option><option value="Paused">{t("common.paused" as any)}</option>
           </select>
-          <select value={filterBilling} onChange={e => setFilterBilling(e.target.value)} className="input-base px-2 py-1.5 text-[13px]">
+          <select value={filterBilling} onChange={e => setFilterBilling(e.target.value)} className="input-base px-2 py-2 text-[13px]">
             <option value="All">{t("pipeline.filter.billingAll" as any)}</option>
             <option value="subscription">{t("pipeline.clients.billingSubscription" as any)}</option>
             <option value="project">{t("pipeline.clients.billingProject" as any)}</option>
           </select>
           {uniquePlanTiers.length > 0 && (
-            <select value={filterPlan} onChange={e => setFilterPlan(e.target.value)} className="input-base px-2 py-1.5 text-[13px]">
+            <select value={filterPlan} onChange={e => setFilterPlan(e.target.value)} className="input-base px-2 py-2 text-[13px]">
               <option value="All">{t("pipeline.filter.planAll" as any)}</option>
               {uniquePlanTiers.map(p => <option key={p} value={p}>{p === "Basic" ? t("pipeline.convert.planBasic" as any) : p === "Pro" ? t("pipeline.convert.planPro" as any) : p === "Enterprise" ? t("pipeline.convert.planEnterprise" as any) : p}</option>)}
             </select>
@@ -676,7 +676,7 @@ export function ClientsView() {
       <AnimatePresence>
         {showPanel && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="fixed inset-0 z-40" style={{ background: "rgba(0,0,0,0.3)" }} onClick={() => setShowPanel(false)} />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="fixed inset-0 z-40" className="modal-backdrop" onClick={() => setShowPanel(false)} />
             <motion.div
               initial={{ x: isMobile ? 0 : "100%", y: isMobile ? "100%" : 0 }}
               animate={{ x: 0, y: 0 }}
@@ -709,7 +709,7 @@ export function ClientsView() {
                       <input value={form.drive_folder_url} onChange={e => setForm(p => ({ ...p, drive_folder_url: e.target.value }))} placeholder={t("pipeline.clients.drivePlaceholder" as any)} className="input-base w-full pl-9 pr-3 py-2 text-[13px]" />
                     </div>
                     {form.drive_folder_url && (
-                      <button type="button" onClick={() => window.open(form.drive_folder_url, '_blank')} className="btn-ghost flex items-center gap-1 px-2.5 shrink-0 text-[11px] font-medium" style={{ color: "var(--accent)" }}>
+                      <button type="button" onClick={() => window.open(form.drive_folder_url, '_blank')} className="btn-ghost flex items-center gap-1 px-3 shrink-0 text-[11px] font-medium" style={{ color: "var(--accent)" }}>
                         <ExternalLink size={16} /> {t("pipeline.clients.openDrive" as any)}
                       </button>
                     )}
@@ -741,7 +741,7 @@ export function ClientsView() {
                           ["manual", t("pipeline.clients.payManual" as any), t("pipeline.clients.payManualHint" as any)],
                         ] as [string, string, string][]).map(([val, label, hint]) => (
                           <button key={val} type="button" onClick={() => setForm(p => ({ ...p, payment_method: val as any }))}
-                            className="flex-1 card p-2.5 text-left transition-colors"
+                            className="flex-1 card p-3 text-left transition-colors"
                             style={form.payment_method === val ? { borderColor: "var(--accent)", background: "var(--accent-light)" } : {}}>
                             <div className="text-[13px] font-semibold" style={{ color: form.payment_method === val ? "var(--accent)" : "var(--text)" }}>{label}</div>
                             <div className="text-[11px] mt-0.5" style={{ color: "var(--text-secondary)" }}>{hint}</div>
@@ -754,7 +754,7 @@ export function ClientsView() {
                       <div className="flex gap-2 mb-2">
                         {([["none", t("money.form.taxNone" as any)], ["exclusive", t("money.form.taxExclBtn" as any)], ["inclusive", t("money.form.taxIncl" as any)]] as [string, string][]).map(([mode, label]) => (
                           <button key={mode} type="button" onClick={() => setForm(p => ({ ...p, tax_mode: mode as any }))}
-                            className="flex-1 py-1.5 rounded-lg text-[13px] font-medium transition-all"
+                            className="flex-1 py-2 rounded-lg text-[13px] font-medium transition-all"
                             style={form.tax_mode === mode ? { background: "var(--text)", color: "var(--bg)" } : { background: "var(--surface-alt)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
                             {label}
                           </button>
@@ -764,12 +764,12 @@ export function ClientsView() {
                         <div className="flex gap-2">
                           {[13, 6, 3].map(r => (
                             <button key={r} type="button" onClick={() => setForm(p => ({ ...p, tax_rate: String(r) }))}
-                              className="px-3 py-1.5 rounded-md text-[11px] font-medium transition-all"
+                              className="px-3 py-2 rounded-md text-[11px] font-medium transition-all"
                               style={Number(form.tax_rate) === r ? { background: "var(--accent-light)", color: "var(--accent)", border: "1px solid var(--accent)" } : { background: "var(--surface-alt)", color: "var(--text-secondary)" }}>
                               {r}%
                             </button>
                           ))}
-                          <input type="number" min="0" max="100" step="0.01" value={form.tax_rate} onChange={e => setForm(p => ({ ...p, tax_rate: e.target.value }))} placeholder={t("money.form.customTaxPlaceholder" as any)} className="input-base flex-1 px-3 py-1.5 text-[11px] min-w-0" />
+                          <input type="number" min="0" max="100" step="0.01" value={form.tax_rate} onChange={e => setForm(p => ({ ...p, tax_rate: e.target.value }))} placeholder={t("money.form.customTaxPlaceholder" as any)} className="input-base flex-1 px-3 py-2 text-[11px] min-w-0" />
                         </div>
                       )}
                     </FL>
@@ -793,7 +793,7 @@ export function ClientsView() {
                       <div className="flex gap-2 mb-2">
                         {([["none", t("money.form.taxNone" as any)], ["exclusive", t("money.form.taxExclBtn" as any)], ["inclusive", t("money.form.taxIncl" as any)]] as [string, string][]).map(([mode, label]) => (
                           <button key={mode} type="button" onClick={() => setForm(p => ({ ...p, tax_mode: mode as any }))}
-                            className="flex-1 py-1.5 rounded-lg text-[13px] font-medium transition-all"
+                            className="flex-1 py-2 rounded-lg text-[13px] font-medium transition-all"
                             style={form.tax_mode === mode ? { background: "var(--text)", color: "var(--bg)" } : { background: "var(--surface-alt)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
                             {label}
                           </button>
@@ -803,12 +803,12 @@ export function ClientsView() {
                         <div className="flex gap-2">
                           {[13, 6, 3].map(r => (
                             <button key={r} type="button" onClick={() => setForm(p => ({ ...p, tax_rate: String(r) }))}
-                              className="px-3 py-1.5 rounded-md text-[11px] font-medium transition-all"
+                              className="px-3 py-2 rounded-md text-[11px] font-medium transition-all"
                               style={Number(form.tax_rate) === r ? { background: "var(--accent-light)", color: "var(--accent)", border: "1px solid var(--accent)" } : { background: "var(--surface-alt)", color: "var(--text-secondary)" }}>
                               {r}%
                             </button>
                           ))}
-                          <input type="number" min="0" max="100" step="0.01" value={form.tax_rate} onChange={e => setForm(p => ({ ...p, tax_rate: e.target.value }))} placeholder={t("money.form.customTaxPlaceholder" as any)} className="input-base flex-1 px-3 py-1.5 text-[11px] min-w-0" />
+                          <input type="number" min="0" max="100" step="0.01" value={form.tax_rate} onChange={e => setForm(p => ({ ...p, tax_rate: e.target.value }))} placeholder={t("money.form.customTaxPlaceholder" as any)} className="input-base flex-1 px-3 py-2 text-[11px] min-w-0" />
                         </div>
                       )}
                     </FL>
@@ -878,7 +878,7 @@ export function ClientsView() {
                                 {ms.note && <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{ms.note}</div>}
                                 {ms.status !== "paid" && (
                                   <div className="flex items-center gap-2 pt-1">
-                                    <button onClick={() => { setMarkPaidId(ms.id); setMarkPaidMethod("bank_transfer"); }} className="text-[11px] font-medium px-2.5 py-1 rounded-md flex items-center gap-1" style={{ background: "var(--success-light)", color: "var(--success)" }}>
+                                    <button onClick={() => { setMarkPaidId(ms.id); setMarkPaidMethod("bank_transfer"); }} className="text-[11px] font-medium px-3 py-1 rounded-md flex items-center gap-1" style={{ background: "var(--success-light)", color: "var(--success)" }}>
                                       <CircleCheck size={16} /> {t("pipeline.milestones.markPaid" as any)}
                                     </button>
                                     <button onClick={() => { setEditMsId(ms.id); setMsForm({ label: ms.label, amount: String(ms.amount), percentage: String(ms.percentage || ""), due_date: ms.due_date || "", note: ms.note || "" }); setShowAddMs(true); }} className="btn-ghost text-[11px] p-1"><Edit2 size={16} /></button>
@@ -936,7 +936,7 @@ export function ClientsView() {
                             </FL>
                             <div className="flex justify-end gap-2">
                               <button onClick={() => setMarkPaidId(null)} className="btn-secondary text-[13px]">{t("common.cancel" as any)}</button>
-                              <button onClick={confirmMarkPaid} className="text-[13px] font-semibold px-3 py-1.5 rounded-lg text-white" style={{ background: "var(--success)" }}>
+                              <button onClick={confirmMarkPaid} className="text-[13px] font-semibold px-3 py-2 rounded-lg text-white" style={{ background: "var(--success)" }}>
                                 <Check size={16} className="inline mr-1" />{t("pipeline.milestones.markPaid" as any)}
                               </button>
                             </div>
@@ -1034,7 +1034,7 @@ export function ClientsView() {
                               <div className="flex gap-2 mb-2">
                                 {([["none", t("money.form.taxNone" as any)], ["exclusive", t("money.form.taxExclBtn" as any)], ["inclusive", t("money.form.taxIncl" as any)]] as [string, string][]).map(([mode, label]) => (
                                   <button key={mode} type="button" onClick={() => setTxForm(p => ({ ...p, taxMode: mode as any }))}
-                                    className="flex-1 py-1.5 rounded-lg text-[13px] font-medium transition-all"
+                                    className="flex-1 py-2 rounded-lg text-[13px] font-medium transition-all"
                                     style={txForm.taxMode === mode ? { background: "var(--text)", color: "var(--bg)" } : { background: "var(--surface-alt)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
                                     {label}
                                   </button>
@@ -1044,12 +1044,12 @@ export function ClientsView() {
                                 <div className="flex gap-2">
                                   {[13, 6, 3].map(r => (
                                     <button key={r} type="button" onClick={() => setTxForm(p => ({ ...p, taxRate: String(r) }))}
-                                      className="px-3 py-1.5 rounded-md text-[11px] font-medium transition-all"
+                                      className="px-3 py-2 rounded-md text-[11px] font-medium transition-all"
                                       style={Number(txForm.taxRate) === r ? { background: "var(--accent-light)", color: "var(--accent)", border: "1px solid var(--accent)" } : { background: "var(--surface-alt)", color: "var(--text-secondary)" }}>
                                       {r}%
                                     </button>
                                   ))}
-                                  <input type="number" min="0" max="100" step="0.01" value={txForm.taxRate} onChange={e => setTxForm(p => ({ ...p, taxRate: e.target.value }))} placeholder={t("money.form.customTaxPlaceholder" as any)} className="input-base flex-1 px-3 py-1.5 text-[11px] min-w-0" />
+                                  <input type="number" min="0" max="100" step="0.01" value={txForm.taxRate} onChange={e => setTxForm(p => ({ ...p, taxRate: e.target.value }))} placeholder={t("money.form.customTaxPlaceholder" as any)} className="input-base flex-1 px-3 py-2 text-[11px] min-w-0" />
                                 </div>
                               )}
                             </FL>
@@ -1159,7 +1159,7 @@ function LeadSwimlane({ leads, columns, onAdd, onEdit, onDelete, onMove, emptyTe
               <button onClick={() => onAdd(null, col.id)} className="btn-ghost p-0.5"><Plus size={16} /></button>
             </div>
             {!items.length ? <div className="px-4 py-4 text-[13px] text-center" style={{ color: "var(--text-secondary)" }}>{emptyText}</div> : (
-              <div className="overflow-x-auto ios-scroll"><div className="flex gap-2 p-2.5 min-w-max">
+              <div className="overflow-x-auto ios-scroll"><div className="flex gap-2 p-3 min-w-max">
                 {items.map((lead: any) => (
                   <div key={lead.id} onClick={() => onEdit(lead, col.id)} className="w-[200px] shrink-0 cursor-pointer card-interactive p-3 group">
                     <h4 className="text-[13px] font-medium truncate mb-1" style={{ color: "var(--text)" }}>{lead.name}</h4>

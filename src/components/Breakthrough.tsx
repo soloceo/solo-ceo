@@ -100,7 +100,7 @@ export default function Breakthrough() {
       </div>
 
       {/* Strategy hint */}
-      <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg" style={{ background: "var(--surface-alt)" }}>
+      <div className="flex items-start gap-2 px-3 py-3 rounded-lg" style={{ background: "var(--surface-alt)" }}>
         <span className="text-sm shrink-0">{current.strategy.emoji}</span>
         <div>
           <div className="font-semibold text-[11px]">{L(current.strategy.title)}</div>

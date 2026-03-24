@@ -92,7 +92,7 @@ export default function DailyProtocol() {
             <p className="text-[11px] mt-0.5" style={{ color: "var(--text-secondary)" }}>{t("home.protocol.desc" as any)}</p>
           </div>
           {streak.count > 1 && (
-            <span className="flex items-center gap-0.5 text-[11px] font-bold" style={{ color: "var(--warning)" }}>
+            <span className="flex items-center gap-1 text-[11px] font-bold" style={{ color: "var(--warning)" }}>
               <Flame size={16} /> {streak.count}
             </span>
           )}
@@ -119,7 +119,7 @@ export default function DailyProtocol() {
 
       {/* celebration */}
       {justCompleted && (
-        <div className="mb-3 py-2.5 px-4 rounded-xl text-center text-[13px] font-semibold celebrate-bounce" style={{ background: "var(--success-light)", color: "var(--success)" }}>
+        <div className="mb-3 py-3 px-4 rounded-xl text-center text-[13px] font-semibold celebrate-bounce" style={{ background: "var(--success-light)", color: "var(--success)" }}>
           {t("home.protocol.allDone" as any)}
         </div>
       )}

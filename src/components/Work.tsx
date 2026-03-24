@@ -250,7 +250,7 @@ export default function Work() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
               className="fixed inset-0 z-40"
-              style={{ background: "rgba(0,0,0,0.3)" }}
+              className="modal-backdrop"
               onClick={() => setShowPanel(false)}
             />
             {/* Panel */}
@@ -330,7 +330,7 @@ export default function Work() {
                   <div className="flex flex-wrap gap-1.5">
                     {([["breakdown", t("work.ai.breakdown" as any), "var(--accent)"], ["mj", t("work.ai.mjPrompt" as any), "var(--warning)"], ["story", t("work.ai.brandStory" as any), "var(--success)"]] as const).map(([key, label, color]) => (
                       <button key={key} type="button" onClick={() => generateAI(key as any)} disabled={generating !== null}
-                        className="inline-flex items-center gap-1 py-1 px-2.5 rounded-md text-[11px] font-medium transition-all disabled:opacity-50"
+                        className="inline-flex items-center gap-1 py-1 px-3 rounded-md text-[11px] font-medium transition-all disabled:opacity-50"
                         style={{ border: "1px solid var(--border)", color, background: "var(--surface)" }}>
                         {generating === key ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />} {label}
                       </button>
@@ -339,10 +339,10 @@ export default function Work() {
 
                   {/* AI output tabs */}
                   <div>
-                    <div className="flex gap-0.5 mb-2">
+                    <div className="flex gap-1 mb-2">
                       {([["breakdown", t("work.ai.tab.breakdown" as any)], ["mj", t("work.ai.tab.mj" as any)], ["story", t("work.ai.tab.story" as any)]] as const).map(([k, l]) => (
                         <button key={k} type="button" onClick={() => setActiveTab(k)}
-                          className="px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors"
+                          className="px-3 py-1 text-[11px] font-medium rounded-md transition-colors"
                           style={activeTab === k ? { background: "var(--surface-alt)", color: "var(--text)" } : { color: "var(--text-secondary)" }}>
                           {l}
                         </button>
@@ -501,7 +501,7 @@ function TaskCard({ task, provided, snapshot, onEdit, onDelete }: any) {
           })()}
           {hasAI && <span className="badge text-[11px]" style={{ background: "var(--accent-light)", color: "var(--accent)" }}><Sparkles size={16} /></span>}
         </div>
-        <div className="flex gap-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+        <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
           <button onClick={e => { e.stopPropagation(); onDelete(task.id); }} className="p-0.5 rounded" style={{ color: "var(--text-secondary)" }} aria-label="Delete"><Trash2 size={16} /></button>
         </div>
       </div>
@@ -529,7 +529,7 @@ function SwimlaneView({ cols, tasks, filter, onAdd, onEdit, onDelete, onMove, em
               <div className="px-4 py-4 text-[13px] text-center" style={{ color: "var(--text-secondary)" }}>{emptyText}</div>
             ) : (
               <div className="overflow-x-auto ios-scroll">
-                <div className="flex gap-2 p-2.5 min-w-max">
+                <div className="flex gap-2 p-3 min-w-max">
                   {items.map((task: any) => (
                     <div key={task.id} onClick={() => onEdit(task, task.column || col.id)}
                       className="w-[200px] shrink-0 cursor-pointer card-interactive p-3 group">

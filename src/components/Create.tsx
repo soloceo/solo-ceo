@@ -397,7 +397,7 @@ Requirements:
 
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 px-5 py-2.5 rounded-lg z-[9999] flex items-center gap-2" style={{ background: "var(--text)", color: "var(--bg)", boxShadow: "var(--shadow-md)" }}>
+        <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 px-5 py-3 rounded-lg z-[9999] flex items-center gap-2" style={{ background: "var(--text)", color: "var(--bg)", boxShadow: "var(--shadow-md)" }}>
           <Check size={16} className="text-emerald-400" />
           <span className="text-[13px] font-medium">{toast}</span>
         </div>
@@ -409,15 +409,15 @@ Requirements:
         <div className="hidden md:flex items-center justify-between px-6 pt-5 pb-1">
           <h2 className="text-xl font-semibold tracking-tight" style={{ color: "var(--text)" }}>{t("create.pageTitle" as any)}</h2>
           <div className="flex items-center gap-2">
-            <button onClick={() => setShowDrafts(!showDrafts)} className="btn-ghost text-[11px] px-2.5 py-1.5 rounded-md gap-1.5" style={showDrafts ? { background: "var(--accent-light)", color: "var(--accent)" } : {}}>
+            <button onClick={() => setShowDrafts(!showDrafts)} className="btn-ghost text-[11px] px-3 py-2 rounded-md gap-1.5" style={showDrafts ? { background: "var(--accent-light)", color: "var(--accent)" } : {}}>
               <Save size={16} /> {t("create.drafts" as any)}
-              {savedDrafts.length > 0 && <span className="text-[11px] font-bold rounded-full px-1.5 py-0.5" style={{ background: "var(--accent)", color: "#fff" }}>{savedDrafts.length}</span>}
+              {savedDrafts.length > 0 && <span className="text-[11px] font-bold rounded-full px-2 py-0.5" style={{ background: "var(--accent)", color: "#fff" }}>{savedDrafts.length}</span>}
             </button>
           </div>
         </div>
 
         {/* Platform selector */}
-        <div className="flex items-center gap-1 px-3 md:px-6 py-2.5 overflow-x-auto hide-scroll">
+        <div className="flex items-center gap-1 px-3 md:px-6 py-3 overflow-x-auto hide-scroll">
           {PLATFORMS.map((p) => (
             <button
               key={p.id}
@@ -487,10 +487,10 @@ Requirements:
                       </span>
                       <span className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>{lang === "zh" ? t("create.langToggle.zh" as any) : t("create.langToggle.en" as any)}</span>
                     </div>
-                    <div className="px-4 py-3.5 max-h-[420px] overflow-y-auto" style={{ color: "var(--text)" }}>
+                    <div className="px-4 py-4 max-h-[420px] overflow-y-auto" style={{ color: "var(--text)" }}>
                       {renderFormattedContent(msg.content, msg.platform || platform, t("create.subjectLine" as any))}
                     </div>
-                    <div className="px-3 py-2 flex flex-wrap items-center gap-0.5" style={{ borderTop: "1px solid var(--border)" }}>
+                    <div className="px-3 py-2 flex flex-wrap items-center gap-1" style={{ borderTop: "1px solid var(--border)" }}>
                       <MsgBtn icon={copied === msg.id ? <Check size={16} className="text-emerald-500" /> : <Copy size={16} />} label={copied === msg.id ? t("create.copied" as any) : t("create.copy" as any)} onClick={() => clip(msg.content, msg.id)} />
                       <MsgBtn icon={<Save size={16} />} label={t("create.saveDraft" as any)} onClick={() => saveDraft(msg.content)} />
                       <MsgBtn icon={<ImageIcon size={16} />} label={t("create.cover" as any)} onClick={handleVisual} disabled={loading} />
@@ -511,10 +511,10 @@ Requirements:
                         <ImageIcon size={16} /> {t("create.coverTitle" as any)}
                       </span>
                     </div>
-                    <div className="px-4 py-3.5 max-h-[420px] overflow-y-auto" style={{ color: "var(--text)" }}>
+                    <div className="px-4 py-4 max-h-[420px] overflow-y-auto" style={{ color: "var(--text)" }}>
                       {renderFormattedContent(msg.content, msg.platform || platform, t("create.subjectLine" as any))}
                     </div>
-                    <div className="px-3 py-2 flex gap-0.5" style={{ borderTop: "1px solid var(--border)" }}>
+                    <div className="px-3 py-2 flex gap-1" style={{ borderTop: "1px solid var(--border)" }}>
                       <MsgBtn icon={copied === msg.id ? <Check size={16} className="text-emerald-500" /> : <Copy size={16} />} label={copied === msg.id ? t("create.copied" as any) : t("create.copy" as any)} onClick={() => clip(msg.content, msg.id)} />
                     </div>
                   </div>
@@ -530,7 +530,7 @@ Requirements:
                     <div className="p-3">
                       <img src={msg.content} alt="AI generated" className="w-full max-h-[520px] object-contain rounded-lg" style={{ background: "var(--surface-alt)" }} />
                     </div>
-                    <div className="px-3 py-2 flex gap-0.5" style={{ borderTop: "1px solid var(--border)" }}>
+                    <div className="px-3 py-2 flex gap-1" style={{ borderTop: "1px solid var(--border)" }}>
                       <MsgBtn icon={<Download size={16} />} label={t("create.downloadImage" as any)} onClick={() => downloadImage(msg.content)} />
                     </div>
                   </div>
@@ -574,8 +574,8 @@ Requirements:
         <div className="max-w-3xl mx-auto w-full px-3 md:px-5 py-3 pb-safe space-y-2">
           {hasCopy && !loading && (
             <div className="flex gap-1.5 overflow-x-auto hide-scroll">
-              <button onClick={handleVisual} className="btn-ghost shrink-0 rounded-md px-2.5 py-1.5 text-[11px] gap-1.5" style={{ border: "1px solid var(--border)" }}><ImageIcon size={16} /> {t("create.coverSuggestion" as any)}</button>
-              <button onClick={handleImage} className="btn-ghost shrink-0 rounded-md px-2.5 py-1.5 text-[11px] gap-1.5" style={{ border: "1px solid var(--border)" }}><ImageIcon size={16} /> {t("create.genImage" as any)}</button>
+              <button onClick={handleVisual} className="btn-ghost shrink-0 rounded-md px-3 py-2 text-[11px] gap-1.5" style={{ border: "1px solid var(--border)" }}><ImageIcon size={16} /> {t("create.coverSuggestion" as any)}</button>
+              <button onClick={handleImage} className="btn-ghost shrink-0 rounded-md px-3 py-2 text-[11px] gap-1.5" style={{ border: "1px solid var(--border)" }}><ImageIcon size={16} /> {t("create.genImage" as any)}</button>
             </div>
           )}
           <div className="flex items-end gap-2 rounded-lg p-1.5 pl-3 transition-all" style={{ background: "var(--bg)", border: "1px solid var(--border)" }}>
@@ -618,7 +618,7 @@ Requirements:
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="fixed inset-0 z-50"
-              style={{ background: isMobile ? "var(--bg)" : "rgba(0,0,0,0.2)" }}
+              className={isMobile ? "" : "modal-backdrop"} style={{ background: isMobile ? "var(--bg)" : undefined }}
               onClick={() => !isMobile && setShowDrafts(false)}
             />
             <motion.div
@@ -680,7 +680,7 @@ Requirements:
 /* ── Message action button ──────────────────────────────────────── */
 function MsgBtn({ icon, label, onClick, disabled }: { icon: React.ReactNode; label: string; onClick: () => void; disabled?: boolean }) {
   return (
-    <button onClick={onClick} disabled={disabled} className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-[11px] font-medium transition-all active:scale-95 disabled:opacity-40 hover:bg-[var(--surface-alt)]" style={{ color: "var(--text-secondary)" }}>
+    <button onClick={onClick} disabled={disabled} className="inline-flex items-center gap-1 px-2 py-2 rounded-md text-[11px] font-medium transition-all active:scale-95 disabled:opacity-40 hover:bg-[var(--surface-alt)]" style={{ color: "var(--text-secondary)" }}>
       {icon} {label}
     </button>
   );

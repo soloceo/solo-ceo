@@ -242,17 +242,17 @@ export default function Home() {
             </div>
           </div>
           {/* Quick actions — frosted glass bar */}
-          <div className="flex gap-1 px-4 py-2.5" style={{ background: "rgba(0,0,0,0.15)" }}>
-            <button onClick={() => goToTab("clients")} className="flex-1 text-[11px] font-medium py-1.5 rounded-md transition-colors text-center" style={{ background: "var(--accent)", color: "#fff" }}>
+          <div className="flex gap-1 px-4 py-3" style={{ background: "rgba(0,0,0,0.15)" }}>
+            <button onClick={() => goToTab("clients")} className="flex-1 text-[11px] font-medium py-2 rounded-md transition-colors text-center" style={{ background: "var(--accent)", color: "#fff" }}>
               {t("home.welcome.addLead" as any)}
             </button>
-            <button onClick={() => goToTab("work")} className="flex-1 text-[11px] font-medium py-1.5 rounded-md transition-colors text-center" style={{ background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)" }}>
+            <button onClick={() => goToTab("work")} className="flex-1 text-[11px] font-medium py-2 rounded-md transition-colors text-center" style={{ background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)" }}>
               {t("home.welcome.addTask" as any)}
             </button>
-            <button onClick={() => goToTab("finance")} className="flex-1 text-[11px] font-medium py-1.5 rounded-md transition-colors text-center" style={{ background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)" }}>
+            <button onClick={() => goToTab("finance")} className="flex-1 text-[11px] font-medium py-2 rounded-md transition-colors text-center" style={{ background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)" }}>
               {t("home.welcome.addIncome" as any)}
             </button>
-            <button onClick={() => { setEditKey(null); setForm(emptyForm); setShowForm(p => !p); }} className="flex-1 text-[11px] font-medium py-1.5 rounded-md transition-colors text-center" style={{ background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)" }}>
+            <button onClick={() => { setEditKey(null); setForm(emptyForm); setShowForm(p => !p); }} className="flex-1 text-[11px] font-medium py-2 rounded-md transition-colors text-center" style={{ background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)" }}>
               {t("home.quickMemo" as any)}
             </button>
           </div>
@@ -263,7 +263,7 @@ export default function Home() {
         {/* ── Memo modal (portal) ── */}
         {showForm && createPortal(
           <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]" onClick={resetForm}>
-            <div className="absolute inset-0 bg-black/30" />
+            <div className="absolute inset-0 modal-backdrop" />
             <div
               className="relative card p-5 w-[90vw] max-w-md space-y-3 celebrate-bounce"
               style={{ boxShadow: "var(--shadow-lg)" }}
@@ -288,7 +288,7 @@ export default function Home() {
                         key={opt.key}
                         type="button"
                         onClick={() => setForm(p => ({ ...p, type: opt.label }))}
-                        className="card p-2.5 text-left transition-colors"
+                        className="card p-3 text-left transition-colors"
                         style={form.type === opt.label ? { borderColor: "var(--accent)", background: "var(--accent-light)" } : {}}
                       >
                         <div className="text-[13px] mb-0.5">{opt.emoji}</div>
@@ -324,7 +324,7 @@ export default function Home() {
             <h3 className="section-label">{t("home.focus.title" as any)}</h3>
             <p className="text-[11px] mt-0.5" style={{ color: "var(--text-secondary)" }}>{t("home.focus.desc" as any)}</p>
           </div>
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-2 stagger-in">
             {pending.map(item => {
               const sameType = data.todayFocus.filter(i => i.type === item.type && i.status !== "completed" && !skipped.includes(i.key));
               return (
@@ -429,11 +429,11 @@ function FocusCard({ item, saving, canSwap = true, onComplete, onSkip }: {
         <p className="text-[11px] mt-0.5 line-clamp-2" style={{ color: "var(--text-secondary)" }}>{item.reason}</p>
       </div>
       <div className="flex items-center gap-1.5">
-        <button onClick={onComplete} disabled={saving} className="text-[11px] font-medium px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50" style={{ background: "var(--accent)", color: "#fff" }}>
+        <button onClick={onComplete} disabled={saving} className="text-[11px] font-medium px-3 py-2 rounded-lg transition-colors disabled:opacity-50" style={{ background: "var(--accent)", color: "#fff" }}>
           <Check size={16} className="inline mr-0.5" style={{ verticalAlign: "-1px" }} /> {t("common.complete" as any)}
         </button>
         {canSwap && (
-          <button onClick={onSkip} disabled={saving} className="text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-50" style={{ background: "var(--surface-alt)", color: "var(--text-secondary)" }}>
+          <button onClick={onSkip} disabled={saving} className="text-[11px] font-medium px-3 py-2 rounded-lg transition-colors disabled:opacity-50" style={{ background: "var(--surface-alt)", color: "var(--text-secondary)" }}>
             {t("home.focus.swap" as any)}
           </button>
         )}

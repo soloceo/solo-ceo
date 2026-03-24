@@ -544,34 +544,34 @@ export default function Finance() {
             </div>
 
             {/* Filters */}
-            <div className="flex flex-wrap items-center gap-2 px-5 py-2.5 border-b shrink-0" style={{ borderColor: "var(--border)" }}>
+            <div className="flex flex-wrap items-center gap-2 px-5 py-3 border-b shrink-0" style={{ borderColor: "var(--border)" }}>
               <div className="relative flex-1 min-w-[140px] max-w-[240px]">
                 <Search size={16} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: "var(--text-secondary)" }} />
                 <input
                   type="text" value={filterSearch} onChange={e => setFilter("search", e.target.value)}
                   placeholder={t("finance.searchPlaceholder" as any)}
-                  className="input-base w-full pl-8 pr-3 py-1.5 text-[13px]"
+                  className="input-base w-full pl-8 pr-3 py-2 text-[13px]"
                 />
               </div>
-              <select value={filterType} onChange={e => setFilter("type", e.target.value)} className="input-base px-2 py-1.5 text-[13px]">
+              <select value={filterType} onChange={e => setFilter("type", e.target.value)} className="input-base px-2 py-2 text-[13px]">
                 <option value="all">{t("money.filter.typeAll" as any)}</option>
                 <option value="income">{t("money.filter.income" as any)}</option>
                 <option value="expense">{t("money.filter.expense" as any)}</option>
               </select>
-              <select value={filterCategory} onChange={e => setFilter("category", e.target.value)} className="input-base px-2 py-1.5 text-[13px]">
+              <select value={filterCategory} onChange={e => setFilter("category", e.target.value)} className="input-base px-2 py-2 text-[13px]">
                 <option value="all">{t("money.filter.categoryAll" as any)}</option>
                 {categories.map(c => <option key={c} value={c}>{catLabel(c, t)}</option>)}
               </select>
-              <select value={filterStatus} onChange={e => setFilter("status", e.target.value)} className="input-base px-2 py-1.5 text-[13px]">
+              <select value={filterStatus} onChange={e => setFilter("status", e.target.value)} className="input-base px-2 py-2 text-[13px]">
                 <option value="all">{t("money.filter.statusAll" as any)}</option>
                 {statuses.map(s => <option key={s} value={s}>{stLabel(s, t)}</option>)}
               </select>
-              <select value={filterClient} onChange={e => setFilter("client", e.target.value)} className="input-base px-2 py-1.5 text-[13px]">
+              <select value={filterClient} onChange={e => setFilter("client", e.target.value)} className="input-base px-2 py-2 text-[13px]">
                 <option value="all">{t("money.filter.clientAll" as any)}</option>
                 {clientList.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
               </select>
-              <input type="date" value={filterDateFrom} onChange={e => setFilter("dateFrom", e.target.value)} className="input-base px-2 py-1.5 text-[13px]" />
-              <input type="date" value={filterDateTo} onChange={e => setFilter("dateTo", e.target.value)} className="input-base px-2 py-1.5 text-[13px]" />
+              <input type="date" value={filterDateFrom} onChange={e => setFilter("dateFrom", e.target.value)} className="input-base px-2 py-2 text-[13px]" />
+              <input type="date" value={filterDateTo} onChange={e => setFilter("dateTo", e.target.value)} className="input-base px-2 py-2 text-[13px]" />
               {(filterType !== "all" || filterCategory !== "all" || filterStatus !== "all" || filterClient !== "all" || filterDateFrom || filterDateTo || filterSearch) && (
                 <button
                   onClick={() => setFilters({ type: "all", category: "all", status: "all", client: "all", dateFrom: "", dateTo: "", search: "" })}
@@ -614,7 +614,7 @@ export default function Finance() {
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="fixed inset-0 z-50"
-              style={{ background: isMobile ? "var(--bg)" : "rgba(0,0,0,0.2)" }}
+              className={isMobile ? "" : "modal-backdrop"} style={{ background: isMobile ? "var(--bg)" : undefined }}
               onClick={() => !isMobile && setShowPanel(false)}
             />
             <motion.div
@@ -701,7 +701,7 @@ export default function Finance() {
                         key={mode}
                         type="button"
                         onClick={() => setFormData({ ...formData, taxMode: mode })}
-                        className="text-[13px] px-3 py-1.5 rounded-lg transition-colors"
+                        className="text-[13px] px-3 py-2 rounded-lg transition-colors"
                         style={{
                           background: formData.taxMode === mode ? "var(--accent)" : "var(--surface-alt)",
                           color: formData.taxMode === mode ? "#fff" : "var(--text-secondary)",
@@ -718,7 +718,7 @@ export default function Finance() {
                           key={r}
                           type="button"
                           onClick={() => setFormData({ ...formData, taxRate: String(r) })}
-                          className="text-[13px] px-2.5 py-1 rounded-md transition-colors"
+                          className="text-[13px] px-3 py-1 rounded-md transition-colors"
                           style={{
                             background: String(formData.taxRate) === String(r) ? "var(--accent-light)" : "var(--surface-alt)",
                             color: String(formData.taxRate) === String(r) ? "var(--accent)" : "var(--text-secondary)",
@@ -798,7 +798,7 @@ const TxRow = React.memo(function TxRow({ tx, t, fmtAmt, fmtAmtColor, onEdit, on
     return (
       <>
         {/* Desktop */}
-        <div className="hidden md:grid grid-cols-[100px_1fr_120px_120px_120px_80px] gap-2 px-5 py-2.5 items-center border-b group hover:bg-[var(--surface-alt)] transition-colors" style={{ borderColor: "var(--border)" }}>
+        <div className="hidden md:grid grid-cols-[100px_1fr_120px_120px_120px_80px] gap-2 px-5 py-3 items-center border-b group hover:bg-[var(--surface-alt)] transition-colors" style={{ borderColor: "var(--border)" }}>
           <span className="text-[13px]" style={{ color: "var(--text-secondary)" }}>{tx.date || "—"}</span>
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-[13px] truncate" style={{ color: "var(--text)" }}>{tx.description || tx.desc || tx.client_name || "—"}</span>
@@ -811,7 +811,7 @@ const TxRow = React.memo(function TxRow({ tx, t, fmtAmt, fmtAmtColor, onEdit, on
         </div>
         {/* Mobile — swipe left to delete */}
         <SwipeAction onDelete={onDelete} disabled={isSystem}>
-          <div className="flex md:hidden items-center gap-3 px-4 py-2.5 border-b" style={{ borderColor: "var(--border)" }} onClick={isSystem ? undefined : onEdit}>
+          <div className="flex md:hidden items-center gap-3 px-4 py-3 border-b" style={{ borderColor: "var(--border)" }} onClick={isSystem ? undefined : onEdit}>
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: isIncome ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)" }}>
               {isIncome ? <ArrowUpRight size={16} style={{ color: "var(--success, #22c55e)" }} /> : <ArrowDownRight size={16} style={{ color: "var(--danger, #ef4444)" }} />}
             </div>
@@ -834,7 +834,7 @@ const TxRow = React.memo(function TxRow({ tx, t, fmtAmt, fmtAmtColor, onEdit, on
   }
 
   return (
-    <div className="flex items-center gap-3 px-1 py-2.5 border-b group" style={{ borderColor: "var(--border)" }}>
+    <div className="flex items-center gap-3 px-1 py-3 border-b group" style={{ borderColor: "var(--border)" }}>
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: isIncome ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)" }}>
         {isIncome ? <ArrowUpRight size={16} style={{ color: "var(--success, #22c55e)" }} /> : <ArrowDownRight size={16} style={{ color: "var(--danger, #ef4444)" }} />}
       </div>
@@ -852,7 +852,7 @@ const TxRow = React.memo(function TxRow({ tx, t, fmtAmt, fmtAmtColor, onEdit, on
         <div className="text-[13px] font-semibold tabular-nums" style={{ color: fmtAmtColor(amt) }}>{fmtAmt(amt)}</div>
         <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{stLabel(tx.status || "", t)}</div>
       </div>
-      <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">{actionBtns}</div>
+      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">{actionBtns}</div>
     </div>
   );
 });

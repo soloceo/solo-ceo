@@ -30,7 +30,7 @@ export default function SalesToolsPanel({ open, onClose }: { open: boolean; onCl
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+      <div className="absolute inset-0 modal-backdrop" onClick={onClose} />
       <motion.div
         initial={{ x: "100%" }}
         animate={{ x: 0 }}
@@ -42,18 +42,18 @@ export default function SalesToolsPanel({ open, onClose }: { open: boolean; onCl
         {toast && <Toast message={toast} />}
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
+        <div className="flex items-center justify-between px-5 py-4 shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
           <h2 className="text-[15px] font-bold">{t("pipeline.salesTools" as any)}</h2>
           <button onClick={onClose} className="btn-ghost p-1.5"><X size={16} /></button>
         </div>
 
         {/* Tab bar — icon + text, horizontal pills */}
-        <div className="flex gap-1 px-4 py-2.5 shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
+        <div className="flex gap-1 px-4 py-3 shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
           {SEG_CONFIG.map(s => (
             <button
               key={s.id}
               onClick={() => setSeg(s.id)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all"
               style={seg === s.id
                 ? { background: "var(--accent)", color: "#fff" }
                 : { background: "var(--surface-alt)", color: "var(--text-secondary)" }
@@ -94,11 +94,11 @@ function BilingualBlock({ zh, en, showToast, t, type = "body" }: {
     return (
       <div className="space-y-1.5">
         <div className="flex items-center gap-1.5">
-          <div className="flex-1 text-[13px] px-3 py-1.5 rounded-lg font-medium" style={{ background: "var(--surface-alt)" }}>{zh}</div>
+          <div className="flex-1 text-[13px] px-3 py-2 rounded-lg font-medium" style={{ background: "var(--surface-alt)" }}>{zh}</div>
           <CopyBtn text={zh} showToast={showToast} t={t} size={16} />
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="flex-1 text-[13px] px-3 py-1.5 rounded-lg" style={{ background: "var(--surface-alt)", color: "var(--text-secondary)" }}>{en}</div>
+          <div className="flex-1 text-[13px] px-3 py-2 rounded-lg" style={{ background: "var(--surface-alt)", color: "var(--text-secondary)" }}>{en}</div>
           <CopyBtn text={en} showToast={showToast} t={t} size={16} />
         </div>
       </div>
@@ -108,12 +108,12 @@ function BilingualBlock({ zh, en, showToast, t, type = "body" }: {
     <div className="space-y-2">
       <div className="relative">
         <div className="flex items-center gap-1 mb-1"><span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>中文</span></div>
-        <pre className="text-[11px] leading-relaxed px-3 py-2.5 rounded-lg whitespace-pre-wrap" style={{ background: "var(--surface-alt)", color: "var(--text-secondary)" }}>{zh}</pre>
+        <pre className="text-[11px] leading-relaxed px-3 py-3 rounded-lg whitespace-pre-wrap" style={{ background: "var(--surface-alt)", color: "var(--text-secondary)" }}>{zh}</pre>
         <div className="absolute top-6 right-1.5"><CopyBtn text={zh} showToast={showToast} t={t} /></div>
       </div>
       <div className="relative">
         <div className="flex items-center gap-1 mb-1"><span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>EN</span></div>
-        <pre className="text-[11px] leading-relaxed px-3 py-2.5 rounded-lg whitespace-pre-wrap" style={{ background: "var(--surface-alt)", color: "var(--text-secondary)" }}>{en}</pre>
+        <pre className="text-[11px] leading-relaxed px-3 py-3 rounded-lg whitespace-pre-wrap" style={{ background: "var(--surface-alt)", color: "var(--text-secondary)" }}>{en}</pre>
         <div className="absolute top-6 right-1.5"><CopyBtn text={en} showToast={showToast} t={t} /></div>
       </div>
     </div>

@@ -256,7 +256,7 @@ function App() {
         </button>
 
         {/* Nav items */}
-        <nav className="flex-1 flex flex-col gap-0.5 px-2">
+        <nav className="flex-1 flex flex-col gap-1 px-2">
           {TABS.map(tab => (
             <SidebarItem
               key={tab.id}
@@ -273,7 +273,7 @@ function App() {
         {/* Bottom area: sync status + settings avatar */}
         <div className="mt-auto flex flex-col gap-1 px-2 pb-3">
           {/* Sync status */}
-          <div className={`flex items-center ${sidebarExpanded ? "px-2 py-1.5" : "justify-center py-1.5"}`}>
+          <div className={`flex items-center ${sidebarExpanded ? "px-2 py-2" : "justify-center py-2"}`}>
             <SyncIndicator isOnline={isOnline} syncStatus={syncStatus} pendingOps={pendingOps} compact={!sidebarExpanded} />
             {sidebarExpanded && (
               <span className="ml-1.5 text-[11px] truncate" style={{ color: "var(--text-secondary)" }}>
@@ -317,7 +317,7 @@ function App() {
                   <div className="text-[13px] font-semibold truncate" style={{ color: "var(--text)" }}>{operatorDisplayName}</div>
                   {user?.email && <div className="text-[11px] truncate" style={{ color: "var(--text-secondary)" }}>{user.email}</div>}
                 </div>
-                <button onClick={() => { setAvatarMenu(false); signOut(); }} className="flex items-center gap-2.5 w-full px-4 py-2.5 text-[13px] transition-colors hover:bg-[var(--surface-alt)]" style={{ color: "var(--danger)" }}>
+                <button onClick={() => { setAvatarMenu(false); signOut(); }} className="flex items-center gap-2.5 w-full px-4 py-3 text-[13px] transition-colors hover:bg-[var(--surface-alt)]" style={{ color: "var(--danger)" }}>
                   <LogOut size={14} />
                   {t("auth.logoutBtn" as any)}
                 </button>
@@ -374,7 +374,7 @@ function App() {
                     <div className="text-[13px] font-semibold truncate" style={{ color: "var(--text)" }}>{operatorDisplayName}</div>
                     {user?.email && <div className="text-[11px] truncate" style={{ color: "var(--text-secondary)" }}>{user.email}</div>}
                   </div>
-                  <button onClick={() => { setAvatarMenu(false); signOut(); }} className="flex items-center gap-2.5 w-full px-4 py-2.5 text-[13px] transition-colors" style={{ color: "var(--danger)" }}>
+                  <button onClick={() => { setAvatarMenu(false); signOut(); }} className="flex items-center gap-2.5 w-full px-4 py-3 text-[13px] transition-colors" style={{ color: "var(--danger)" }}>
                     <LogOut size={14} />
                     {t("auth.logoutBtn" as any)}
                   </button>
@@ -474,7 +474,7 @@ const MobileNavItem = React.memo(function MobileNavItem({
     <button
       onClick={() => (onClick as (id: string) => void)(id)}
       aria-current={active ? "page" : undefined}
-      className="relative flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 min-w-[52px] min-h-[44px] transition-colors active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+      className="relative flex flex-col items-center justify-center gap-1 rounded-lg px-3 py-2 min-w-[52px] min-h-[44px] transition-colors active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
       style={{ color: active ? "var(--accent)" : "var(--text-secondary)" }}
     >
       {/* Active dot indicator */}
@@ -559,7 +559,7 @@ function SyncToast() {
 
   return (
     <div
-      className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-medium shadow-lg"
+      className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-2 px-4 py-3 rounded-xl text-[13px] font-medium shadow-lg"
       style={{
         background: "var(--surface)",
         border: "1px solid var(--border)",

@@ -68,7 +68,7 @@ export default function TodayPrinciple() {
       <div className="card overflow-hidden">
         <button
           onClick={() => setExpanded(p => !p)}
-          className="w-full flex items-start gap-3 px-4 py-3.5 text-left transition-colors"
+          className="w-full flex items-start gap-3 px-4 py-4 text-left transition-colors"
           style={{ background: expanded ? "var(--surface-alt)" : undefined }}
         >
           <span className="text-lg shrink-0 mt-0.5">{todayPrinciple.catEmoji}</span>
@@ -179,7 +179,7 @@ export default function TodayPrinciple() {
                       {isOpen ? <ChevronDown size={16} style={{ color: "var(--text-secondary)" }} /> : <ChevronRight size={16} style={{ color: "var(--text-secondary)" }} />}
                     </button>
                     {isOpen && cat.principles.map(pr => (
-                      <div key={pr.id} className="flex items-center gap-2 px-4 py-2.5" style={{ borderTop: "1px solid var(--border)" }}>
+                      <div key={pr.id} className="flex items-center gap-2 px-4 py-3" style={{ borderTop: "1px solid var(--border)" }}>
                         <span className="flex-1 text-[13px] min-w-0 truncate">{L(pr.name)}</span>
                         <button
                           onClick={() => {
