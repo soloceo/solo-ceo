@@ -77,7 +77,7 @@ function calcTax(amount: number, mode: string, rate: number): number {
 async function syncClientSubscriptionLedger(userId: string) {
   const { data: clients } = await supabase
     .from('clients')
-    .select('id, name, plan_tier, mrr, status, joined_at, subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from, tax_mode, tax_rate, payment_method')
+    .select('id, name, plan_tier, mrr, status, joined_at, subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from, subscription_timeline, tax_mode, tax_rate, payment_method')
     .eq('user_id', userId)
     .eq('soft_deleted', false)
     .gt('mrr', 0);
@@ -90,22 +90,40 @@ async function syncClientSubscriptionLedger(userId: string) {
   for (const client of (clients || [])) {
     const joined = client.joined_at ? new Date(String(client.joined_at).replace(' ', 'T')) : now;
     const safeJoined = Number.isNaN(joined.getTime()) ? now : joined;
-    const startM = monthKey(client.subscription_start_date, safeJoined);
-    const effectiveM = monthKey(client.mrr_effective_from || client.subscription_start_date, safeJoined);
-    const pausedM = client.paused_at ? monthKey(client.paused_at) : null;
-    const resumedM = client.resumed_at ? monthKey(client.resumed_at) : null;
-    const cancelledM = client.cancelled_at ? monthKey(client.cancelled_at) : null;
 
+    // Parse timeline — prefer new timeline array, fallback to legacy 4-field
+    let timeline: { type: string; date: string }[] = [];
+    try { timeline = JSON.parse(client.subscription_timeline || '[]'); } catch { timeline = []; }
+    if (!timeline.length && client.subscription_start_date) {
+      // Migrate legacy fields into timeline format
+      timeline = [{ type: 'start', date: client.subscription_start_date }];
+      if (client.paused_at) timeline.push({ type: 'pause', date: client.paused_at });
+      if (client.resumed_at) timeline.push({ type: 'resume', date: client.resumed_at });
+      if (client.cancelled_at) timeline.push({ type: 'cancel', date: client.cancelled_at });
+    }
+    if (!timeline.length) continue;
+
+    // Sort by date
+    timeline.sort((a, b) => a.date.localeCompare(b.date));
+    const startDate = timeline[0].date;
+    const startM = monthKey(startDate, safeJoined);
+
+    // Build a map of month → active/paused based on timeline events
     let [year, month] = startM.split('-').map(Number);
     while (`${year}-${String(month).padStart(2, '0')}` <= cm) {
       const lm = `${year}-${String(month).padStart(2, '0')}`;
-      let shouldBill = lm >= effectiveM;
-      if (pausedM && lm >= pausedM) shouldBill = false;
-      if (resumedM && lm >= resumedM) shouldBill = true;
-      if (cancelledM && lm >= cancelledM) shouldBill = false;
-      if (client.status !== 'Active' && !pausedM && !cancelledM) shouldBill = false;
 
-      if (shouldBill) {
+      // Determine billing state for this month by replaying timeline
+      let active = false;
+      for (const evt of timeline) {
+        const evtM = monthKey(evt.date);
+        if (evtM && evtM <= lm) {
+          if (evt.type === 'start' || evt.type === 'resume') active = true;
+          else if (evt.type === 'pause' || evt.type === 'cancel') active = false;
+        }
+      }
+
+      if (active) {
         const amt = Number(client.mrr || 0);
         const tm = client.tax_mode || 'none';
         const tr = Number(client.tax_rate || 0);
@@ -117,7 +135,7 @@ async function syncClientSubscriptionLedger(userId: string) {
           amount: amt,
           category: '订阅收入',
           description: `${client.name || '未命名客户'} · ${client.plan_tier || '订阅'} · ${lm}`,
-          date: `${lm}-01`,
+          date: lm === startM ? startDate : `${lm}-${startDate.split('-')[2] || '01'}`,
           status: client.payment_method === 'manual' ? '待收款 (应收)' : '已完成',
           client_id: client.id,
           client_name: client.name || '未命名客户',
@@ -153,7 +171,7 @@ async function syncClientSubscriptionLedger(userId: string) {
     const existId = existingMap.get(key);
     if (existId) {
       // Already exists — update amount/description/tax in case client changed
-      toUpdate.push({ id: existId, data: { amount: row.amount, description: row.description, tax_mode: row.tax_mode, tax_rate: row.tax_rate, tax_amount: row.tax_amount, client_name: row.client_name } });
+      toUpdate.push({ id: existId, data: { amount: row.amount, description: row.description, date: row.date, status: row.status, tax_mode: row.tax_mode, tax_rate: row.tax_rate, tax_amount: row.tax_amount, client_name: row.client_name } });
       existingMap.delete(key);
     } else {
       toInsert.push(row);
@@ -266,6 +284,7 @@ export async function handleSupabaseRequest(
         subscription_start_date: subscription_start_date || today,
         paused_at: '', resumed_at: '', cancelled_at: '',
         mrr_effective_from: mrr_effective_from || subscription_start_date || today,
+        subscription_timeline: JSON.stringify([{ type: 'start', date: subscription_start_date || today }]),
       })
       .select('id')
       .single();
@@ -307,7 +326,7 @@ export async function handleSupabaseRequest(
 
   if (path === '/api/clients' && method === 'POST') {
     const { name, industry, plan_tier, status, brand_context, mrr,
-            subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from,
+            subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from, subscription_timeline,
             company_name, contact_name, contact_email, contact_phone, billing_type, project_fee, project_end_date, tax_mode, tax_rate, drive_folder_url, payment_method } = body;
     const np = normalizePlanTier(plan_tier || '');
     const { data, error: e } = await supabase
@@ -319,6 +338,7 @@ export async function handleSupabaseRequest(
         subscription_start_date: subscription_start_date || '', paused_at: paused_at || '',
         resumed_at: resumed_at || '', cancelled_at: cancelled_at || '',
         mrr_effective_from: mrr_effective_from || subscription_start_date || '',
+        subscription_timeline: subscription_timeline || JSON.stringify(subscription_start_date ? [{ type: 'start', date: subscription_start_date }] : []),
         company_name: company_name || '', contact_name: contact_name || '',
         contact_email: contact_email || '', contact_phone: contact_phone || '',
         billing_type: billing_type || 'subscription', project_fee: project_fee || 0,
@@ -340,7 +360,7 @@ export async function handleSupabaseRequest(
     const id = Number(clientMatch[1]);
     if (method === 'PUT') {
       const { name, industry, plan_tier, status, brand_context, mrr,
-              subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from,
+              subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from, subscription_timeline,
               company_name, contact_name, contact_email, contact_phone, billing_type, project_fee, project_end_date, tax_mode, tax_rate, drive_folder_url, payment_method } = body;
       const np = normalizePlanTier(plan_tier || '');
       const { error: e } = await supabase
@@ -351,12 +371,14 @@ export async function handleSupabaseRequest(
           subscription_start_date: subscription_start_date || '', paused_at: paused_at || '',
           resumed_at: resumed_at || '', cancelled_at: cancelled_at || '',
           mrr_effective_from: mrr_effective_from || subscription_start_date || '',
+          subscription_timeline: subscription_timeline || '[]',
           company_name: company_name || '', contact_name: contact_name || '',
           contact_email: contact_email || '', contact_phone: contact_phone || '',
           billing_type: billing_type || 'subscription', project_fee: project_fee || 0,
           project_end_date: project_end_date || '',
           tax_mode: tax_mode || 'none', tax_rate: tax_rate || 0,
           drive_folder_url: drive_folder_url || '',
+          payment_method: payment_method || 'auto',
         })
         .eq('id', id);
       if (e) return err(500, e.message);
@@ -508,6 +530,27 @@ export async function handleSupabaseRequest(
       `$${Number(milestone.amount || 0).toLocaleString()} · ${payment_method || ''}`, id);
 
     return ok({ success: true, financeId: milestone.finance_tx_id });
+  }
+
+  // ── Undo mark-paid ──
+  const undoPaidMatch = path.match(/^\/api\/milestones\/(\d+)\/undo-paid$/);
+  if (undoPaidMatch && method === 'POST') {
+    const id = Number(undoPaidMatch[1]);
+    const { data: milestone } = await supabase.from('payment_milestones').select('*').eq('id', id).single();
+    if (!milestone) return err(404, 'Milestone not found');
+    // Delete linked finance transaction
+    if (milestone.finance_tx_id) {
+      await supabase.from('finance_transactions').update({ soft_deleted: true }).eq('id', Number(milestone.finance_tx_id));
+    }
+    // Reset milestone to pending
+    await supabase.from('payment_milestones').update({
+      status: 'pending', paid_date: '', payment_method: '', finance_tx_id: null,
+    }).eq('id', id);
+    const { data: client } = await supabase.from('clients').select('name, company_name').eq('id', milestone.client_id).single();
+    await logActivity(userId, 'milestone', 'undo_paid',
+      `撤销收款：${client?.company_name || client?.name || ''} · ${milestone.label || ''}`,
+      `$${Number(milestone.amount || 0).toLocaleString()}`, id);
+    return ok({ success: true });
   }
 
   // ── TASKS ──────────────────────────────────────────────────────
@@ -882,6 +925,12 @@ export async function handleSupabaseRequest(
       .filter(([m]) => m.startsWith(`${currentYear}-`))
       .reduce((s, [, total]) => s + total, 0);
 
+    // Today's income
+    const today = todayDateKey();
+    const todayIncome = (ledgerSeries || [])
+      .filter(r => String(r.date || '').startsWith(today))
+      .reduce((s, r) => s + Number(r.amount || 0), 0);
+
     const recentActivity = (recentActivityRows || []).map((r) => ({
       activity: r.title, detail: r.detail, time: r.created_at, type: r.entity_type, action: r.action,
     }));
@@ -937,7 +986,7 @@ export async function handleSupabaseRequest(
 
     const todayFocus = autoFocus.map((item: any) => ({ ...item, status: focusStateMap[item.key] || 'pending' }));
 
-    return ok({ clientsCount, mrr, activeTasks, leadsCount, mrrSeries, recentActivity, ytdRevenue, todayFocus, manualTodayEvents });
+    return ok({ clientsCount, mrr, activeTasks, leadsCount, mrrSeries, recentActivity, ytdRevenue, todayIncome, todayFocus, manualTodayEvents });
   }
 
   // ── SETTINGS ───────────────────────────────────────────────────

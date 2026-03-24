@@ -242,18 +242,20 @@ function App() {
           WebkitAppRegion: "no-drag",
         } as React.CSSProperties}
       >
-        {/* spacer */}
-        <div className="h-3 shrink-0" />
-
-        {/* Sidebar toggle */}
-        <button
-          onClick={() => setSidebarExpanded(p => !p)}
-          className="mx-auto mb-3 flex h-7 w-7 items-center justify-center rounded-md transition-opacity hover:opacity-80"
-          style={{ color: "var(--text-secondary)" }}
-          aria-label={sidebarExpanded ? t("app.collapseSidebar" as any) : t("app.expandSidebar" as any)}
-        >
-          {sidebarExpanded ? <PanelLeftClose size={15} /> : <PanelLeft size={15} />}
-        </button>
+        {/* Header: logo/name + toggle */}
+        <div className={`flex items-center shrink-0 ${sidebarExpanded ? "justify-between px-3 py-3" : "justify-center py-3"}`}>
+          {sidebarExpanded && (
+            <span className="text-[13px] font-bold tracking-tight" style={{ color: "var(--text)" }}>Solo CEO</span>
+          )}
+          <button
+            onClick={() => setSidebarExpanded(p => !p)}
+            className="flex h-7 w-7 items-center justify-center rounded-md transition-all hover:bg-[var(--surface-alt)]"
+            style={{ color: "var(--text-secondary)" }}
+            aria-label={sidebarExpanded ? t("app.collapseSidebar" as any) : t("app.expandSidebar" as any)}
+          >
+            {sidebarExpanded ? <PanelLeftClose size={15} /> : <PanelLeft size={15} />}
+          </button>
+        </div>
 
         {/* Nav items */}
         <nav className="flex-1 flex flex-col gap-1 px-2">
@@ -270,15 +272,15 @@ function App() {
           ))}
         </nav>
 
-        {/* Bottom area: sync status + settings avatar */}
-        <div className="mt-auto flex flex-col gap-1 px-2 pb-3">
+        {/* Bottom area: sync status + avatar */}
+        <div className="mt-auto flex flex-col gap-1 px-2 pb-3 border-t pt-2" style={{ borderColor: "var(--border)" }}>
           {/* Sync status */}
-          <div className={`flex items-center ${sidebarExpanded ? "px-2 py-2" : "justify-center py-2"}`}>
+          <div className={`flex items-center ${sidebarExpanded ? "px-2 py-1.5" : "justify-center py-1.5"}`} title={!sidebarExpanded ? (isOnline ? "Online" : "Offline") : undefined}>
             <SyncIndicator isOnline={isOnline} syncStatus={syncStatus} pendingOps={pendingOps} compact={!sidebarExpanded} />
             {sidebarExpanded && (
               <span className="ml-1.5 text-[11px] truncate" style={{ color: "var(--text-secondary)" }}>
                 {syncStatus === "syncing"
-                  ? (pendingOps > 0 ? `${t("settings.sync.syncing" as any)}` : t("settings.sync.syncing" as any))
+                  ? t("settings.sync.syncing" as any)
                   : !isOnline
                     ? t("settings.cloudSync.offline" as any)
                     : t("settings.cloudSync.connected" as any)}
@@ -288,7 +290,8 @@ function App() {
           <div className="relative" ref={desktopAvatarRef}>
             <button
               onClick={() => setAvatarMenu(p => !p)}
-              className="flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors w-full"
+              title={sidebarExpanded ? undefined : operatorDisplayName}
+              className={`flex items-center rounded-lg py-2 transition-all w-full hover:bg-[var(--surface-alt)] ${sidebarExpanded ? "gap-2.5 px-2" : "justify-center px-0"}`}
               style={{
                 background: avatarMenu ? "var(--surface-alt)" : "transparent",
               }}
@@ -317,7 +320,12 @@ function App() {
                   <div className="text-[13px] font-semibold truncate" style={{ color: "var(--text)" }}>{operatorDisplayName}</div>
                   {user?.email && <div className="text-[11px] truncate" style={{ color: "var(--text-secondary)" }}>{user.email}</div>}
                 </div>
-                <button onClick={() => { setAvatarMenu(false); signOut(); }} className="flex items-center gap-2.5 w-full px-4 py-3 text-[13px] transition-colors hover:bg-[var(--surface-alt)]" style={{ color: "var(--danger)" }}>
+                <button onClick={() => { setAvatarMenu(false); handleTabChange("settings"); }} className="flex items-center gap-2.5 w-full px-4 py-2.5 text-[13px] transition-colors hover:bg-[var(--surface-alt)]" style={{ color: "var(--text)" }}>
+                  <SettingsIcon size={14} />
+                  {t("nav.settings" as any)}
+                </button>
+                <div className="border-t" style={{ borderColor: "var(--border)" }} />
+                <button onClick={() => { setAvatarMenu(false); signOut(); }} className="flex items-center gap-2.5 w-full px-4 py-2.5 text-[13px] transition-colors hover:bg-[var(--surface-alt)]" style={{ color: "var(--danger)" }}>
                   <LogOut size={14} />
                   {t("auth.logoutBtn" as any)}
                 </button>
@@ -442,7 +450,8 @@ const SidebarItem = React.memo(function SidebarItem({
     <button
       onClick={() => onClick(id)}
       aria-current={active ? "page" : undefined}
-      className="relative flex items-center gap-2.5 rounded-lg px-2 py-[7px] text-[13px] font-medium transition-colors"
+      title={expanded ? undefined : label}
+      className={`relative flex items-center rounded-lg text-[13px] font-medium transition-all duration-150 ${expanded ? "gap-2.5 px-2.5 py-2" : "justify-center w-10 h-10 mx-auto"}`}
       style={{
         background: active ? "var(--surface)" : "transparent",
         color: active ? "var(--text)" : "var(--text-secondary)",

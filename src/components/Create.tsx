@@ -405,36 +405,31 @@ Requirements:
 
       {/* ── Header bar ─── */}
       <div className="shrink-0" style={{ borderBottom: "1px solid var(--border)", background: "var(--surface)" }}>
-        {/* Desktop title */}
-        <div className="hidden md:flex items-center justify-between px-6 pt-5 pb-1">
-          <h2 className="text-xl font-semibold tracking-tight" style={{ color: "var(--text)" }}>{t("create.pageTitle" as any)}</h2>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setShowDrafts(!showDrafts)} className="btn-ghost text-[11px] px-3 py-2 rounded-md gap-1.5" style={showDrafts ? { background: "var(--accent-light)", color: "var(--accent)" } : {}}>
-              <Save size={16} /> {t("create.drafts" as any)}
-              {savedDrafts.length > 0 && <span className="text-[11px] font-bold rounded-full px-2 py-0.5" style={{ background: "var(--accent)", color: "#fff" }}>{savedDrafts.length}</span>}
-            </button>
-          </div>
+        {/* Title + Drafts toggle */}
+        <div className="flex items-center justify-between px-4 md:px-6 pt-3 pb-1">
+          <h2 className="text-[15px] font-semibold" style={{ color: "var(--text)" }}>{t("create.pageTitle" as any)}</h2>
+          <button onClick={() => setShowDrafts(!showDrafts)} className="btn-ghost text-[11px] px-2 py-1.5 rounded-md gap-1" style={showDrafts ? { background: "var(--accent-light)", color: "var(--accent)" } : {}}>
+            <Save size={14} /> {t("create.drafts" as any)}
+            {savedDrafts.length > 0 && <span className="text-[11px] font-bold rounded-full px-1.5 py-0.5" style={{ background: "var(--accent)", color: "#fff" }}>{savedDrafts.length}</span>}
+          </button>
         </div>
 
-        {/* Platform selector */}
-        <div className="flex items-center gap-1 px-3 md:px-6 py-3 overflow-x-auto hide-scroll">
-          {PLATFORMS.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => setPlatform(p.id)}
-              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-[6px] rounded-lg text-[13px] font-medium transition-all active:scale-95"
-              style={platform === p.id
-                ? { background: "var(--surface)", color: "var(--text)", boxShadow: "var(--shadow-xs)", border: "1px solid var(--border)" }
-                : { color: "var(--text-secondary)" }}
-            >
-              {p.icon} {t(p.labelKey as any)}
-            </button>
-          ))}
-          {/* Mobile extras */}
-          <div className="shrink-0 w-px h-4 mx-1 md:hidden" style={{ background: "var(--border)" }} />
-          <button onClick={() => setShowDrafts(!showDrafts)} className="shrink-0 inline-flex items-center gap-1.5 px-3 py-[6px] rounded-lg text-[13px] font-medium md:hidden" style={showDrafts ? { color: "var(--accent)" } : { color: "var(--text-secondary)" }}>
-            <Save size={16} /> {t("create.drafts" as any)}
-          </button>
+        {/* Platform selector — grid on narrow, scroll on wide */}
+        <div className="px-3 md:px-6 py-3">
+          <div className="grid grid-cols-4 gap-1.5">
+            {PLATFORMS.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => setPlatform(p.id)}
+                className="inline-flex items-center justify-center gap-1 px-2 py-2 rounded-lg text-[11px] font-medium transition-all active:scale-95"
+                style={platform === p.id
+                  ? { background: "var(--surface)", color: "var(--text)", boxShadow: "var(--shadow-xs)", border: "1px solid var(--border)" }
+                  : { color: "var(--text-secondary)", background: "var(--surface-alt)" }}
+              >
+                {p.icon} <span className="truncate">{t(p.labelKey as any)}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -443,16 +438,16 @@ Requirements:
         <div className="max-w-3xl mx-auto px-4 md:px-6 py-5 md:py-8 space-y-4">
           {/* Empty state */}
           {messages.length === 0 && !showDrafts && (
-            <div className="flex flex-col items-center justify-center text-center min-h-[calc(100vh-220px)]">
-              <div className="relative mb-6">
-                <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: "var(--accent)", boxShadow: "var(--shadow-md)" }}>
-                  <PenTool size={28} className="text-white" />
+            <div className="flex flex-col items-center justify-center text-center py-12">
+              <div className="relative mb-4">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: "var(--accent)", boxShadow: "var(--shadow-md)" }}>
+                  <PenTool size={24} className="text-white" />
                 </div>
-                <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center" style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)" }}>
-                  <Sparkles size={16} style={{ color: "var(--accent)" }} />
+                <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)" }}>
+                  <Sparkles size={12} style={{ color: "var(--accent)" }} />
                 </div>
               </div>
-              <h3 className="text-xl font-semibold mb-2" style={{ color: "var(--text)" }}>{t("create.emptyTitle" as any)}</h3>
+              <h3 className="text-[15px] font-semibold mb-2" style={{ color: "var(--text)" }}>{t("create.emptyTitle" as any)}</h3>
               <p className="text-[13px] max-w-md leading-relaxed mb-1" style={{ color: "var(--text-secondary)" }}>
                 {(t("create.emptyDesc" as any) as string).split("{platform}")[0]}<span className="font-semibold" style={{ color: "var(--accent)" }}>{getPlatformDisplayLabel(platform, t)}</span>{(t("create.emptyDesc" as any) as string).split("{platform}")[1]}
               </p>

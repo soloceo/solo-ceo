@@ -9,7 +9,7 @@ import {
   UserPlus, LayoutGrid, AlignJustify, ChevronDown, GripVertical,
   Search, Filter, PlayCircle, PauseCircle, Layers, PanelRightClose, Phone,
   DollarSign, CircleCheck, Clock, AlertCircle, ChevronUp, Download,
-  FolderOpen, ExternalLink, Briefcase,
+  FolderOpen, ExternalLink, Briefcase, Undo2,
 } from "lucide-react";
 
 const SalesToolsPanel = lazy(() => import("./SalesTools"));
@@ -267,7 +267,7 @@ export function LeadsView() {
               animate={{ x: 0, y: 0 }}
               exit={{ x: isMobile ? 0 : "100%", y: isMobile ? "100%" : 0 }}
               transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
-              className={isMobile ? "fixed inset-0 z-50 flex flex-col" : "fixed top-0 right-0 z-50 h-full w-full max-w-[520px] flex flex-col border-l"}
+              className={isMobile ? "fixed inset-0 z-50 flex flex-col" : "fixed top-0 right-0 z-50 h-full w-full max-w-[440px] lg:max-w-[520px] flex flex-col border-l"}
               style={{ background: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-lg)", paddingTop: isMobile ? "env(safe-area-inset-top, 0px)" : undefined }}
             >
               <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: "var(--border)" }}>
@@ -277,7 +277,7 @@ export function LeadsView() {
                 </div>
                 <button onClick={() => setShowPanel(false)} className="btn-ghost p-1">{isMobile ? <X size={16} /> : <PanelRightClose size={16} />}</button>
               </div>
-              <div className="flex-1 overflow-y-auto ios-scroll p-5 space-y-4">
+              <div className="flex-1 overflow-y-auto ios-scroll p-5 space-y-3">
                 <div className="space-y-3">
                   <FL label={t("pipeline.form.name" as any)}><input required value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
                   <div className="grid grid-cols-2 gap-3">
@@ -313,10 +313,14 @@ export function LeadsView() {
                 <button type="button" onClick={generateOutreach} disabled={generating} className="btn-primary w-full text-[13px] disabled:opacity-50">
                   {generating ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />} {generating ? t("pipeline.ai.generating" as any) : t("pipeline.ai.generate" as any)}
                 </button>
-                <FL label={t("pipeline.form.draftLabel" as any)}>
-                  <textarea value={form.aiDraft} onChange={e => setForm(p => ({ ...p, aiDraft: e.target.value }))} placeholder={t("pipeline.form.draftPlaceholder" as any)} className="input-base w-full h-32 px-3 py-2 text-[13px] resize-none" />
-                </FL>
-                {form.aiDraft && <button onClick={() => { navigator.clipboard.writeText(form.aiDraft); showToast(t("common.copied" as any)); }} className="btn-ghost text-[11px] w-full">{t("pipeline.ai.copyDraft" as any)}</button>}
+                {(form.aiDraft || generating) && (
+                  <>
+                    <FL label={t("pipeline.form.draftLabel" as any)}>
+                      <textarea value={form.aiDraft} onChange={e => setForm(p => ({ ...p, aiDraft: e.target.value }))} placeholder={t("pipeline.form.draftPlaceholder" as any)} className="input-base w-full px-3 py-2 text-[13px] resize-y" style={{ minHeight: 80, maxHeight: 300 }} />
+                    </FL>
+                    {form.aiDraft && <button onClick={() => { navigator.clipboard.writeText(form.aiDraft); showToast(t("common.copied" as any)); }} className="btn-ghost text-[11px] w-full">{t("pipeline.ai.copyDraft" as any)}</button>}
+                  </>
+                )}
               </div>
               <div className="flex items-center justify-between px-5 py-3 border-t pb-safe" style={{ borderColor: "var(--border)" }}>
                 <div className="flex gap-2">
@@ -390,7 +394,7 @@ export function ClientsView() {
   const [filterPlan, setFilterPlan] = useState("All");
   const isMobile = useIsMobile();
   const [plans, setPlans] = useState<any[]>([]);
-  const emptyClient = { name: "", company_name: "", contact_name: "", contact_email: "", contact_phone: "", billing_type: "subscription" as "subscription" | "project", plan: "", status: "Active", mrr: "", project_fee: "", subscription_start_date: new Date().toISOString().split("T")[0], project_end_date: "", paused_at: "", resumed_at: "", cancelled_at: "", mrr_effective_from: new Date().toISOString().split("T")[0], tax_mode: "none" as "none" | "exclusive" | "inclusive", tax_rate: "", drive_folder_url: "", payment_method: "auto" as "auto" | "manual" };
+  const emptyClient = { name: "", company_name: "", contact_name: "", contact_email: "", contact_phone: "", billing_type: "subscription" as "subscription" | "project", plan: "", status: "Active", mrr: "", project_fee: "", subscription_start_date: new Date().toISOString().split("T")[0], project_end_date: "", paused_at: "", resumed_at: "", cancelled_at: "", mrr_effective_from: new Date().toISOString().split("T")[0], tax_mode: "none" as "none" | "exclusive" | "inclusive", tax_rate: "", drive_folder_url: "", payment_method: "auto" as "auto" | "manual", timeline: [{ type: "start", date: new Date().toISOString().split("T")[0] }] as { type: string; date: string }[] };
   const [form, setForm] = useState(emptyClient);
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -401,7 +405,7 @@ export function ClientsView() {
   const [editMsId, setEditMsId] = useState<number | null>(null);
   const [markPaidId, setMarkPaidId] = useState<number | null>(null);
   const [markPaidMethod, setMarkPaidMethod] = useState("bank_transfer");
-  const emptyMs = { label: "", amount: "", percentage: "", due_date: "", note: "" };
+  const emptyMs = { label: "", amount: "", percentage: "", due_date: "", note: "", alreadyPaid: false, payMethod: "bank_transfer" };
   const [msForm, setMsForm] = useState(emptyMs);
 
   const PAYMENT_METHODS = ["bank_transfer", "wechat", "alipay", "cash", "paypal", "stripe", "other"] as const;
@@ -429,17 +433,36 @@ export function ClientsView() {
     if (!editId) return;
     const body = { label: msForm.label, amount: Number(msForm.amount) || 0, percentage: Number(msForm.percentage) || 0, due_date: msForm.due_date || null, note: msForm.note };
     try {
+      let newMsId = editMsId;
       if (editMsId) { await fetch(`/api/milestones/${editMsId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); }
-      else { await fetch(`/api/clients/${editId}/milestones`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); }
-      showToast(t("pipeline.milestones.saved" as any));
+      else {
+        const res = await fetch(`/api/clients/${editId}/milestones`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        const data = await res.json();
+        newMsId = data?.id || null;
+      }
+      // Auto mark-paid if checkbox was checked
+      if (msForm.alreadyPaid && newMsId) {
+        await fetch(`/api/milestones/${newMsId}/mark-paid`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ payment_method: msForm.payMethod }) });
+        showToast(t("pipeline.milestones.autoFinance" as any));
+      } else {
+        showToast(t("pipeline.milestones.saved" as any));
+      }
       setShowAddMs(false); setEditMsId(null); setMsForm(emptyMs);
-      fetchMilestones(editId);
+      fetchMilestones(editId); fetchFinance();
     } catch { showToast(t("common.saveFailed" as any)); }
   };
 
   const deleteMilestone = async (msId: number) => {
     try { await fetch(`/api/milestones/${msId}`, { method: "DELETE" }); showToast(t("pipeline.milestones.deleted" as any)); if (editId) fetchMilestones(editId); }
     catch { showToast(t("common.deleteFailed" as any)); }
+  };
+
+  const undoMarkPaid = async (msId: number) => {
+    try {
+      await fetch(`/api/milestones/${msId}/undo-paid`, { method: "POST" });
+      showToast(t("pipeline.milestones.undone" as any));
+      if (editId) { fetchMilestones(editId); fetchFinance(); }
+    } catch { showToast(t("common.saveFailed" as any)); }
   };
 
   const confirmMarkPaid = async () => {
@@ -503,7 +526,17 @@ export function ClientsView() {
     setShowTxForm(false); setEditTxId(null); setTxForm(emptyTx);
     if (c) {
       setEditId(c.id);
-      setForm({ name: c.name, company_name: c.company_name || "", contact_name: c.contact_name || "", contact_email: c.contact_email || "", contact_phone: c.contact_phone || "", billing_type: c.billing_type || "subscription", plan: c.plan_tier || c.plan, status: c.status, mrr: String(c.mrr).replace(/[^0-9.-]+/g, ""), project_fee: String(c.project_fee || "").replace(/[^0-9.-]+/g, ""), subscription_start_date: c.subscription_start_date || (c.joined_at ? String(c.joined_at).split(" ")[0] : ""), project_end_date: c.project_end_date || "", paused_at: c.paused_at || "", resumed_at: c.resumed_at || "", cancelled_at: c.cancelled_at || "", mrr_effective_from: c.mrr_effective_from || c.subscription_start_date || "", tax_mode: (c.tax_mode || "none") as any, tax_rate: String(c.tax_rate || ""), drive_folder_url: c.drive_folder_url || "", payment_method: (c.payment_method || "auto") as any });
+      // Parse timeline — fallback to legacy fields
+      let tl: { type: string; date: string }[] = [];
+      try { tl = JSON.parse(c.subscription_timeline || '[]'); } catch { tl = []; }
+      if (!tl.length) {
+        const sd = c.subscription_start_date || (c.joined_at ? String(c.joined_at).split("T")[0].split(" ")[0] : "");
+        if (sd) tl.push({ type: "start", date: sd });
+        if (c.paused_at) tl.push({ type: "pause", date: c.paused_at });
+        if (c.resumed_at) tl.push({ type: "resume", date: c.resumed_at });
+        if (c.cancelled_at) tl.push({ type: "cancel", date: c.cancelled_at });
+      }
+      setForm({ name: c.name, company_name: c.company_name || "", contact_name: c.contact_name || "", contact_email: c.contact_email || "", contact_phone: c.contact_phone || "", billing_type: c.billing_type || "subscription", plan: c.plan_tier || c.plan, status: c.status, mrr: String(c.mrr).replace(/[^0-9.-]+/g, ""), project_fee: String(c.project_fee || "").replace(/[^0-9.-]+/g, ""), subscription_start_date: tl[0]?.date || "", project_end_date: c.project_end_date || "", paused_at: c.paused_at || "", resumed_at: c.resumed_at || "", cancelled_at: c.cancelled_at || "", mrr_effective_from: tl[0]?.date || c.mrr_effective_from || "", tax_mode: (c.tax_mode || "none") as any, tax_rate: String(c.tax_rate || ""), drive_folder_url: c.drive_folder_url || "", payment_method: (c.payment_method || "auto") as any, timeline: tl });
       if ((c.billing_type || "subscription") === "project") fetchMilestones(c.id);
     }
     else { setEditId(null); setForm(emptyClient); }
@@ -511,7 +544,8 @@ export function ClientsView() {
   };
 
   const saveClient = async () => {
-    const d = { name: form.name, company_name: form.company_name, contact_name: form.contact_name, contact_email: form.contact_email, contact_phone: form.contact_phone, billing_type: form.billing_type, plan_tier: form.billing_type === "subscription" ? form.plan : "", status: form.status, mrr: form.billing_type === "subscription" ? (Number(form.mrr) || 0) : 0, project_fee: form.billing_type === "project" ? (Number(form.project_fee) || 0) : 0, subscription_start_date: form.subscription_start_date, project_end_date: form.project_end_date, paused_at: form.paused_at, resumed_at: form.resumed_at, cancelled_at: form.cancelled_at, mrr_effective_from: form.mrr_effective_from, tax_mode: form.tax_mode, tax_rate: Number(form.tax_rate) || 0, drive_folder_url: form.drive_folder_url, payment_method: form.payment_method };
+    const startEvt = form.timeline.find(e => e.type === "start");
+    const d = { name: form.name, company_name: form.company_name, contact_name: form.contact_name, contact_email: form.contact_email, contact_phone: form.contact_phone, billing_type: form.billing_type, plan_tier: form.billing_type === "subscription" ? form.plan : "", status: form.status, mrr: form.billing_type === "subscription" ? (Number(form.mrr) || 0) : 0, project_fee: form.billing_type === "project" ? (Number(form.project_fee) || 0) : 0, subscription_start_date: startEvt?.date || form.subscription_start_date, project_end_date: form.project_end_date, paused_at: form.timeline.filter(e => e.type === "pause").pop()?.date || "", resumed_at: form.timeline.filter(e => e.type === "resume").pop()?.date || "", cancelled_at: form.timeline.find(e => e.type === "cancel")?.date || "", mrr_effective_from: startEvt?.date || form.subscription_start_date, subscription_timeline: JSON.stringify(form.timeline), tax_mode: form.tax_mode, tax_rate: Number(form.tax_rate) || 0, drive_folder_url: form.drive_folder_url, payment_method: form.payment_method };
     try {
       if (editId) { await fetch(`/api/clients/${editId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(d) }); showToast(t("pipeline.toast.clientUpdated" as any)); }
       else { await fetch("/api/clients", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(d) }); showToast(t("pipeline.toast.clientAdded" as any)); }
@@ -695,7 +729,7 @@ export function ClientsView() {
                 </div>
                 <button onClick={() => setShowPanel(false)} className="btn-ghost p-1">{isMobile ? <X size={16} /> : <PanelRightClose size={16} />}</button>
               </div>
-              <div className="flex-1 overflow-y-auto ios-scroll p-5 space-y-4">
+              <div className="flex-1 overflow-y-auto ios-scroll p-5 space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <FL label={t("pipeline.clients.companyName" as any)}><input required value={form.company_name} onChange={e => setForm(p => ({ ...p, company_name: e.target.value, name: e.target.value || p.contact_name }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
                   <FL label={t("pipeline.clients.contactName" as any)}><input value={form.contact_name} onChange={e => setForm(p => ({ ...p, contact_name: e.target.value, name: p.company_name || e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
@@ -723,7 +757,33 @@ export function ClientsView() {
                 <FL label={t("pipeline.clients.billingType" as any)}>
                   <div className="segment-switcher">
                     {(["subscription", "project"] as const).map(bt => (
-                      <button key={bt} onClick={() => setForm(p => ({ ...p, billing_type: bt }))} data-active={form.billing_type === bt}>
+                      <button key={bt} onClick={() => {
+                        if (editId && bt !== form.billing_type) {
+                          // Switching billing type on existing client — confirm first
+                          if (!window.confirm(bt === "project"
+                            ? t("pipeline.clients.switchToProjectConfirm" as any)
+                            : t("pipeline.clients.switchToSubConfirm" as any))) return;
+                          // Auto-cleanup when switching
+                          if (bt === "project") {
+                            // Subscription → Project: add cancel event to timeline, zero MRR
+                            const today = new Date().toISOString().split("T")[0];
+                            const hasCancelled = form.timeline.some(e => e.type === "cancel");
+                            setForm(p => ({
+                              ...p, billing_type: bt, mrr: "0", status: "Active",
+                              timeline: hasCancelled ? p.timeline : [...p.timeline, { type: "cancel", date: today }],
+                            }));
+                          } else {
+                            // Project → Subscription: keep milestones as-is, setup subscription fields
+                            const today = new Date().toISOString().split("T")[0];
+                            setForm(p => ({
+                              ...p, billing_type: bt, project_fee: "0",
+                              timeline: [{ type: "start", date: today }],
+                            }));
+                          }
+                        } else {
+                          setForm(p => ({ ...p, billing_type: bt }));
+                        }
+                      }} data-active={form.billing_type === bt}>
                         {bt === "subscription" ? t("pipeline.clients.billingSubscription" as any) : t("pipeline.clients.billingProject" as any)}
                       </button>
                     ))}
@@ -778,11 +838,39 @@ export function ClientsView() {
                     </FL>
                     <div className="border-t" style={{ borderColor: "var(--border)" }} />
                     <span className="section-label">{t("pipeline.clients.timeline" as any)}</span>
-                    <div className="grid grid-cols-2 gap-3">
-                      <FL label={t("pipeline.clients.start" as any)}><input type="date" value={form.subscription_start_date} onChange={e => setForm(p => ({ ...p, subscription_start_date: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
-                      <FL label={t("pipeline.clients.pause" as any)}><input type="date" value={form.paused_at} onChange={e => setForm(p => ({ ...p, paused_at: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
-                      <FL label={t("pipeline.clients.resume" as any)}><input type="date" value={form.resumed_at} onChange={e => setForm(p => ({ ...p, resumed_at: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
-                      <FL label={t("pipeline.clients.cancel" as any)}><input type="date" value={form.cancelled_at} onChange={e => setForm(p => ({ ...p, cancelled_at: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
+                    <div className="space-y-2">
+                      {form.timeline.map((evt, i) => {
+                        const labels: Record<string, string> = { start: t("pipeline.clients.start" as any), pause: t("pipeline.clients.pause" as any), resume: t("pipeline.clients.resume" as any), cancel: t("pipeline.clients.cancel" as any) };
+                        const colors: Record<string, string> = { start: "var(--success)", pause: "var(--warning)", resume: "var(--brand-blue)", cancel: "var(--danger)" };
+                        return (
+                          <div key={i} className="flex items-center gap-2">
+                            <span className="badge text-[11px] shrink-0" style={{ background: `${colors[evt.type]}20`, color: colors[evt.type], minWidth: 40, textAlign: "center" }}>{labels[evt.type] || evt.type}</span>
+                            <input type="date" value={evt.date} onChange={e => { const tl = [...form.timeline]; tl[i] = { ...tl[i], date: e.target.value }; setForm(p => ({ ...p, timeline: tl })); }} className="input-base flex-1 px-3 py-2 text-[13px]" />
+                            {i > 0 && <button type="button" onClick={() => { const tl = form.timeline.filter((_, j) => j !== i); setForm(p => ({ ...p, timeline: tl })); }} className="btn-ghost p-1" style={{ color: "var(--danger)" }}><X size={16} /></button>}
+                          </div>
+                        );
+                      })}
+                      <div className="flex gap-2 flex-wrap">
+                        {(() => {
+                          const last = form.timeline[form.timeline.length - 1];
+                          const hasCancelled = form.timeline.some(e => e.type === "cancel");
+                          if (hasCancelled) return null;
+                          const today = new Date().toISOString().split("T")[0];
+                          if (!last || last.type === "start" || last.type === "resume") {
+                            return (<>
+                              <button type="button" onClick={() => setForm(p => ({ ...p, timeline: [...p.timeline, { type: "pause", date: today }] }))} className="btn-ghost text-[11px] flex items-center gap-1" style={{ color: "var(--warning)" }}><Plus size={12} /> {t("pipeline.clients.pause" as any)}</button>
+                              <button type="button" onClick={() => setForm(p => ({ ...p, timeline: [...p.timeline, { type: "cancel", date: today }] }))} className="btn-ghost text-[11px] flex items-center gap-1" style={{ color: "var(--danger)" }}><Plus size={12} /> {t("pipeline.clients.cancel" as any)}</button>
+                            </>);
+                          }
+                          if (last.type === "pause") {
+                            return (<>
+                              <button type="button" onClick={() => setForm(p => ({ ...p, timeline: [...p.timeline, { type: "resume", date: today }] }))} className="btn-ghost text-[11px] flex items-center gap-1" style={{ color: "var(--brand-blue)" }}><Plus size={12} /> {t("pipeline.clients.resume" as any)}</button>
+                              <button type="button" onClick={() => setForm(p => ({ ...p, timeline: [...p.timeline, { type: "cancel", date: today }] }))} className="btn-ghost text-[11px] flex items-center gap-1" style={{ color: "var(--danger)" }}><Plus size={12} /> {t("pipeline.clients.cancel" as any)}</button>
+                            </>);
+                          }
+                          return null;
+                        })()}
+                      </div>
                     </div>
                   </>
                 ) : (
@@ -830,6 +918,7 @@ export function ClientsView() {
                           <span className="section-label flex items-center gap-1.5"><DollarSign size={16} /> {t("pipeline.milestones.title" as any)}</span>
                           <button onClick={() => { setShowAddMs(true); setEditMsId(null); setMsForm(emptyMs); }} className="btn-ghost text-[11px] flex items-center gap-1" style={{ color: "var(--accent)" }}><Plus size={16} /> {t("pipeline.milestones.add" as any)}</button>
                         </div>
+                        <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{t("pipeline.milestones.hint" as any)}</div>
 
                         {/* Progress bar */}
                         {milestones.length > 0 && (() => {
@@ -859,7 +948,7 @@ export function ClientsView() {
                         ) : (
                           <div className="space-y-2">
                             {milestones.map((ms: any) => (
-                              <div key={ms.id} className="rounded-lg p-3 space-y-2" style={{ background: "var(--surface-alt)", border: "1px solid var(--border)" }}>
+                              <div key={ms.id} className="rounded-lg p-3 space-y-2 cursor-pointer transition-colors" style={{ background: "var(--surface-alt)", border: `1px solid ${ms.status === "paid" ? "var(--success)" : "var(--border)"}` }} onClick={() => { if (ms.status !== "paid") { setEditMsId(ms.id); setMsForm({ label: ms.label, amount: String(ms.amount), percentage: String(ms.percentage || ""), due_date: ms.due_date || "", note: ms.note || "" }); setShowAddMs(true); } }}>
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-2">
                                     {ms.status === "paid" ? <CircleCheck size={16} style={{ color: "var(--success)" }} /> : ms.status === "overdue" ? <AlertCircle size={16} style={{ color: "var(--danger)" }} /> : <Clock size={16} style={{ color: "var(--text-secondary)" }} />}
@@ -879,8 +968,15 @@ export function ClientsView() {
                                   {ms.payment_method && <span>{t(`pipeline.milestones.method.${ms.payment_method}` as any)}</span>}
                                 </div>
                                 {ms.note && <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{ms.note}</div>}
-                                {ms.status !== "paid" && (
-                                  <div className="flex items-center gap-2 pt-1">
+                                {ms.status === "paid" ? (
+                                  <div className="flex items-center justify-between" onClick={e => e.stopPropagation()}>
+                                    <span className="text-[11px]" style={{ color: "var(--success)" }}>{t("pipeline.milestones.autoRecorded" as any)}</span>
+                                    <button onClick={() => undoMarkPaid(ms.id)} className="btn-ghost text-[11px] flex items-center gap-1" style={{ color: "var(--warning)" }}>
+                                      <Undo2 size={12} /> {t("pipeline.milestones.undoPaid" as any)}
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2 pt-1" onClick={e => e.stopPropagation()}>
                                     <button onClick={() => { setMarkPaidId(ms.id); setMarkPaidMethod("bank_transfer"); }} className="text-[11px] font-medium px-3 py-1 rounded-md flex items-center gap-1" style={{ background: "var(--success-light)", color: "var(--success)" }}>
                                       <CircleCheck size={16} /> {t("pipeline.milestones.markPaid" as any)}
                                     </button>
@@ -919,9 +1015,22 @@ export function ClientsView() {
                                 </div>
                                 <FL label={t("pipeline.milestones.dueDate" as any)}><input type="date" value={msForm.due_date} onChange={e => setMsForm(p => ({ ...p, due_date: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
                                 <FL label={t("pipeline.milestones.note" as any)}><input value={msForm.note} onChange={e => setMsForm(p => ({ ...p, note: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]" /></FL>
+                                {!editMsId && (
+                                  <label className="flex items-center gap-2 cursor-pointer py-1">
+                                    <input type="checkbox" checked={msForm.alreadyPaid} onChange={e => setMsForm(p => ({ ...p, alreadyPaid: e.target.checked }))} className="w-4 h-4 rounded accent-[var(--success)]" />
+                                    <span className="text-[13px] font-medium" style={{ color: msForm.alreadyPaid ? "var(--success)" : "var(--text-secondary)" }}>{t("pipeline.milestones.alreadyPaid" as any)}</span>
+                                  </label>
+                                )}
+                                {msForm.alreadyPaid && !editMsId && (
+                                  <FL label={t("pipeline.milestones.paymentMethod" as any)}>
+                                    <select value={msForm.payMethod} onChange={e => setMsForm(p => ({ ...p, payMethod: e.target.value }))} className="input-base w-full px-3 py-2 text-[13px]">
+                                      {PAYMENT_METHODS.map(m => <option key={m} value={m}>{t(`pipeline.milestones.method.${m}` as any)}</option>)}
+                                    </select>
+                                  </FL>
+                                )}
                                 <div className="flex justify-end gap-2">
                                   <button onClick={() => { setShowAddMs(false); setEditMsId(null); setMsForm(emptyMs); }} className="btn-secondary text-[13px]">{t("common.cancel" as any)}</button>
-                                  <button onClick={saveMilestone} disabled={!msForm.label || !msForm.amount} className="btn-primary text-[13px]">{t("common.save" as any)}</button>
+                                  <button onClick={saveMilestone} disabled={!msForm.label || !msForm.amount} className="btn-primary text-[13px]">{msForm.alreadyPaid && !editMsId ? t("pipeline.milestones.saveAndRecord" as any) : t("common.save" as any)}</button>
                                 </div>
                               </div>
                             </motion.div>
@@ -958,15 +1067,17 @@ export function ClientsView() {
                       <span className="section-label flex items-center gap-1.5"><DollarSign size={16} /> {t("pipeline.tx.title" as any)}</span>
                       <button onClick={() => { setShowTxForm(true); setEditTxId(null); setTxForm({ ...emptyTx, taxMode: (form.tax_mode || "none") as any, taxRate: form.tax_rate || "" }); }} className="btn-ghost text-[11px] flex items-center gap-1" style={{ color: "var(--accent)" }}><Plus size={16} /> {t("pipeline.tx.add" as any)}</button>
                     </div>
+                    <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{t("pipeline.tx.hint" as any)}</div>
 
                     {/* Summary bar */}
                     {clientTxs.length > 0 && (() => {
                       const received = clientTxs.filter((tx: any) => tx.type === "income" && (tx.status || "已完成") === "已完成").reduce((s: number, tx: any) => s + Number(tx.amount || 0), 0);
-                      const pending = clientTxs.filter((tx: any) => (tx.status || "").includes("应收")).reduce((s: number, tx: any) => s + Number(tx.amount || 0), 0);
+                      const receivedTax = clientTxs.filter((tx: any) => tx.type === "income" && (tx.status || "已完成") === "已完成").reduce((s: number, tx: any) => s + Number(tx.tax_amount || 0), 0);
+                      const pending = clientTxs.filter((tx: any) => (tx.status || "").includes("应收")).reduce((s: number, tx: any) => s + Number(tx.amount || 0) + Number(tx.tax_amount || 0), 0);
                       const expense = clientTxs.filter((tx: any) => tx.type === "expense" && (tx.status || "已完成") === "已完成").reduce((s: number, tx: any) => s + Number(tx.amount || 0), 0);
                       return (
                         <div className="flex items-center gap-3 text-[11px] font-medium">
-                          <span style={{ color: "var(--success)" }}>{t("pipeline.tx.received" as any)} ${received.toLocaleString()}</span>
+                          <span style={{ color: "var(--success)" }}>{t("pipeline.tx.received" as any)} ${received.toLocaleString()}{receivedTax > 0 ? ` (+${t("finance.tax" as any)} $${receivedTax.toLocaleString()})` : ""}</span>
                           {pending > 0 && <span style={{ color: "var(--warning)" }}>{t("pipeline.tx.pending" as any)} ${pending.toLocaleString()}</span>}
                           {expense > 0 && <span style={{ color: "var(--text-secondary)" }}>{t("pipeline.tx.expense" as any)} ${expense.toLocaleString()}</span>}
                         </div>
@@ -983,9 +1094,10 @@ export function ClientsView() {
                                 <span className="text-[13px] font-semibold shrink-0" style={{ color: tx.type === "income" ? "var(--success)" : "var(--text)" }}>
                                   {tx.type === "income" ? "+" : "-"}${Math.abs(tx.amount).toLocaleString()}
                                 </span>
+                                {Number(tx.tax_amount || 0) > 0 && <span className="text-[11px] shrink-0" style={{ color: "var(--text-secondary)" }}>+{t("finance.tax" as any)} ${Number(tx.tax_amount).toLocaleString()}</span>}
                                 <span className="text-[13px] font-medium truncate" style={{ color: "var(--text)" }}>{tx.description || tx.desc}</span>
                               </div>
-                              {!tx.source && (
+                              {(!tx.source || tx.source === "manual") && (
                                 <div className="flex items-center gap-1 shrink-0">
                                   <button onClick={() => { setEditTxId(tx.id); setTxForm({ date: tx.date, desc: tx.description || tx.desc, category: tx.category, amount: String(Math.abs(tx.amount)), status: tx.status || "已完成", taxMode: tx.tax_mode || "none", taxRate: tx.tax_rate ? String(tx.tax_rate) : "" }); setShowTxForm(true); }} className="btn-ghost p-1"><Edit2 size={16} /></button>
                                   <button onClick={() => deleteTx(tx.id)} className="btn-ghost p-1" style={{ color: "var(--danger)" }}><Trash2 size={16} /></button>
@@ -1056,9 +1168,23 @@ export function ClientsView() {
                                 </div>
                               )}
                             </FL>
+                            {txForm.taxMode !== "none" && Number(txForm.amount) > 0 && Number(txForm.taxRate) > 0 && (() => {
+                              const amt = Number(txForm.amount);
+                              const rate = Number(txForm.taxRate);
+                              const tax = txForm.taxMode === "exclusive" ? Math.round(amt * rate / 100 * 100) / 100 : Math.round(amt * rate / (100 + rate) * 100) / 100;
+                              const total = txForm.taxMode === "exclusive" ? amt + tax : amt;
+                              const base = txForm.taxMode === "inclusive" ? amt - tax : amt;
+                              return (
+                                <div className="rounded-lg p-3 text-[11px] tabular-nums" style={{ background: "var(--surface-alt)", border: "1px solid var(--border)" }}>
+                                  <div className="flex justify-between"><span style={{ color: "var(--text-secondary)" }}>{txForm.taxMode === "inclusive" ? t("pipeline.tx.baseAmount" as any) : t("pipeline.tx.amount" as any)}</span><span style={{ color: "var(--text)" }}>${base.toLocaleString()}</span></div>
+                                  <div className="flex justify-between"><span style={{ color: "var(--text-secondary)" }}>{t("finance.tax" as any)} ({rate}%)</span><span style={{ color: "var(--text)" }}>${tax.toLocaleString()}</span></div>
+                                  <div className="flex justify-between font-semibold border-t pt-1 mt-1" style={{ borderColor: "var(--border)" }}><span style={{ color: "var(--text)" }}>{t("pipeline.tx.total" as any)}</span><span style={{ color: "var(--success)" }}>${total.toLocaleString()}</span></div>
+                                </div>
+                              );
+                            })()}
                             <div className="flex justify-end gap-2">
                               <button onClick={() => { setShowTxForm(false); setEditTxId(null); setTxForm(emptyTx); }} className="btn-secondary text-[13px]">{t("common.cancel" as any)}</button>
-                              <button onClick={saveTx} disabled={!txForm.desc || !txForm.amount} className="btn-primary text-[13px]">{t("common.save" as any)}</button>
+                              <button onClick={saveTx} disabled={!txForm.amount} className="btn-primary text-[13px]">{t("common.save" as any)}</button>
                             </div>
                           </div>
                         </motion.div>

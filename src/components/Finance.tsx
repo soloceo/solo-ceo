@@ -191,22 +191,25 @@ export default function Finance() {
     const thisYear = String(now.getFullYear());
 
     let totalIncome = 0, totalExpense = 0, receivable = 0, payable = 0;
-    let monthIncome = 0, monthExpense = 0;
+    let monthIncome = 0, monthExpense = 0, totalTax = 0;
 
     for (const tx of transactions) {
-      const amt = Number(tx.amount || 0);
-      const isIncome = tx.type === "income" || amt > 0;
-      const absAmt = Math.abs(amt);
+      const amt = Math.abs(Number(tx.amount || 0));
+      const tax = Math.abs(Number(tx.tax_amount || 0));
+      const isIncome = tx.type === "income" || Number(tx.amount || 0) > 0;
 
-      if (tx.status === "待收款 (应收)") { receivable += absAmt; continue; }
-      if (tx.status === "待支付 (应付)") { payable += absAmt; continue; }
+      // 应收/应付用含税额（客户实际要付的）
+      if (tx.status === "待收款 (应收)") { receivable += amt + tax; continue; }
+      if (tx.status === "待支付 (应付)") { payable += amt + tax; continue; }
 
-      if (isIncome) { totalIncome += absAmt; }
-      else { totalExpense += absAmt; }
+      // 收入/支出用税前额（你的真实收入）
+      if (isIncome) { totalIncome += amt; }
+      else { totalExpense += amt; }
+      totalTax += tax;
 
       if ((tx.date || "").startsWith(thisMonth)) {
-        if (isIncome) monthIncome += absAmt;
-        else monthExpense += absAmt;
+        if (isIncome) monthIncome += amt;
+        else monthExpense += amt;
       }
     }
 
@@ -214,7 +217,7 @@ export default function Finance() {
       totalIncome, totalExpense,
       netProfit: totalIncome - totalExpense,
       margin: totalIncome > 0 ? ((totalIncome - totalExpense) / totalIncome * 100).toFixed(1) : "0",
-      receivable, payable,
+      receivable, payable, totalTax,
       monthIncome, monthExpense,
       monthNet: monthIncome - monthExpense,
     };
@@ -366,9 +369,9 @@ export default function Finance() {
   /* ── Export CSV ── */
   const exportCSV = () => {
     const data = filteredTxs.length > 0 ? filteredTxs : transactions;
-    const header = [t("money.table.date" as any), t("money.table.description" as any), t("money.table.category" as any), t("money.table.amount" as any), t("money.table.status" as any), t("money.filter.client" as any)].join(",");
+    const header = [t("money.table.date" as any), t("money.table.description" as any), t("money.table.category" as any), t("money.table.amount" as any), t("finance.tax" as any), t("money.table.status" as any), t("money.filter.client" as any)].join(",");
     const rows = data.map(tx =>
-      [tx.date, `"${(tx.description || tx.desc || "").replace(/"/g, '""')}"`, tx.category, tx.amount, tx.status, `"${tx.client_name || ""}"`].join(",")
+      [tx.date, `"${(tx.description || tx.desc || "").replace(/"/g, '""')}"`, tx.category, tx.amount, tx.tax_amount || 0, tx.status, `"${tx.client_name || ""}"`].join(",")
     );
     const csv = [header, ...rows].join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
@@ -446,6 +449,15 @@ export default function Finance() {
           icon={<AlertCircle size={16} />}
           color="var(--warning, #f59e0b)"
         />
+        {stats.totalTax > 0 && (
+          <StatCard
+            label={t("finance.totalTax" as any)}
+            value={`$${stats.totalTax.toLocaleString()}`}
+            sub=""
+            icon={<Receipt size={16} />}
+            color="var(--text-secondary)"
+          />
+        )}
       </div>
 
       {/* ── Chart ── */}
@@ -463,7 +475,7 @@ export default function Finance() {
         </div>
         <div className="h-[200px]">
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
+            <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: isMobile ? 0 : -15, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--text-secondary)" }} tickLine={false} axisLine={false} />
               <YAxis tick={{ fontSize: 11, fill: "var(--text-secondary)" }} tickLine={false} axisLine={false} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
@@ -738,6 +750,20 @@ export default function Finance() {
                     </div>
                   )}
                 </div>
+                {formData.taxMode !== "none" && Number(formData.amount) > 0 && Number(formData.taxRate) > 0 && (() => {
+                  const amt = Number(formData.amount);
+                  const rate = Number(formData.taxRate);
+                  const tax = formData.taxMode === "exclusive" ? Math.round(amt * rate / 100 * 100) / 100 : Math.round(amt * rate / (100 + rate) * 100) / 100;
+                  const total = formData.taxMode === "exclusive" ? amt + tax : amt;
+                  const base = formData.taxMode === "inclusive" ? amt - tax : amt;
+                  return (
+                    <div className="rounded-lg p-3 text-[11px] tabular-nums" style={{ background: "var(--surface-alt)", border: "1px solid var(--border)" }}>
+                      <div className="flex justify-between"><span style={{ color: "var(--text-secondary)" }}>{formData.taxMode === "inclusive" ? t("pipeline.tx.baseAmount" as any) : t("pipeline.tx.amount" as any)}</span><span style={{ color: "var(--text)" }}>${base.toLocaleString()}</span></div>
+                      <div className="flex justify-between"><span style={{ color: "var(--text-secondary)" }}>{t("finance.tax" as any)} ({rate}%)</span><span style={{ color: "var(--text)" }}>${tax.toLocaleString()}</span></div>
+                      <div className="flex justify-between font-semibold border-t pt-1 mt-1" style={{ borderColor: "var(--border)" }}><span style={{ color: "var(--text)" }}>{t("pipeline.tx.total" as any)}</span><span style={{ color: "var(--success)" }}>${total.toLocaleString()}</span></div>
+                    </div>
+                  );
+                })()}
               </form>
 
               {/* Footer */}
@@ -805,7 +831,10 @@ const TxRow = React.memo(function TxRow({ tx, t, fmtAmt, fmtAmtColor, onEdit, on
             {sourceBadge && <span className="badge text-[11px] shrink-0">{sourceBadge}</span>}
           </div>
           <span className="text-[13px]" style={{ color: "var(--text-secondary)" }}>{catLabel(tx.category || "", t)}</span>
-          <span className="text-[13px] font-semibold text-right tabular-nums" style={{ color: fmtAmtColor(amt) }}>{fmtAmt(amt)}</span>
+          <div className="text-right">
+            <span className="text-[13px] font-semibold tabular-nums" style={{ color: fmtAmtColor(amt) }}>{fmtAmt(amt)}</span>
+            {Number(tx.tax_amount || 0) > 0 && <div className="text-[11px] tabular-nums" style={{ color: "var(--text-secondary)" }}>+{t("finance.tax" as any)} ${Number(tx.tax_amount).toLocaleString()}</div>}
+          </div>
           <span className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{stLabel(tx.status || "", t)}</span>
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">{actionBtns}</div>
         </div>
@@ -824,6 +853,7 @@ const TxRow = React.memo(function TxRow({ tx, t, fmtAmt, fmtAmtColor, onEdit, on
             </div>
             <div className="text-right shrink-0">
               <div className="text-[13px] font-semibold tabular-nums" style={{ color: fmtAmtColor(amt) }}>{fmtAmt(amt)}</div>
+              {Number(tx.tax_amount || 0) > 0 && <div className="text-[11px] tabular-nums" style={{ color: "var(--text-secondary)" }}>+{t("finance.tax" as any)} ${Number(tx.tax_amount).toLocaleString()}</div>}
               <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{stLabel(tx.status || "", t)}</div>
             </div>
             {isSystem && <span className="p-1" style={{ color: "var(--text-secondary)" }}><Lock size={16} /></span>}

@@ -347,7 +347,7 @@ export default function Settings() {
 
   /* ── Render ──────────────────────────────────────────────────── */
   return (
-    <div className="mobile-page max-w-2xl mx-auto px-4 py-4 md:px-8 md:py-6 lg:py-8 relative">
+    <div className="mobile-page max-w-2xl lg:max-w-3xl mx-auto px-4 py-4 md:px-8 md:py-6 lg:py-8 relative">
       <Toast message={toast} />
 
       {/* Header */}
@@ -512,7 +512,7 @@ export default function Settings() {
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: 'var(--accent)' }}>🌐</div>
                 <div className="text-[13px] font-medium" style={{ color: 'var(--text)' }}>{t("settings.timezone" as any)}</div>
               </div>
-              <select value={timezone} onChange={e => setTimezone(e.target.value)} className="input-base px-2 py-2 text-[13px] max-w-[200px]">
+              <select value={timezone} onChange={e => setTimezone(e.target.value)} className="input-base px-2 py-2 text-[13px] w-full md:max-w-[200px]">
                 {['Asia/Shanghai', 'Asia/Tokyo', 'Asia/Hong_Kong', 'Asia/Taipei', 'Asia/Singapore', 'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'America/Toronto', 'America/Vancouver', 'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Australia/Sydney', 'Pacific/Auckland'].map(tz => (
                   <option key={tz} value={tz}>{tz.replace(/_/g, ' ')}</option>
                 ))}

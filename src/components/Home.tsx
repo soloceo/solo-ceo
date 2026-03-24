@@ -33,6 +33,7 @@ type DashboardData = {
   activeTasks: number;
   leadsCount: number;
   ytdRevenue?: number;
+  todayIncome?: number;
 };
 
 type ManualForm = { type: string; title: string; note: string };
@@ -196,6 +197,7 @@ export default function Home() {
   /* ── Animated KPIs ── */
   const animMrr = useCountUp(data.mrr || 0);
   const animYtd = useCountUp(data.ytdRevenue || 0);
+  const animToday = useCountUp(data.todayIncome || 0);
 
   /* ── Render ───────────────────────────────────────────────────── */
   return (
@@ -217,7 +219,7 @@ export default function Home() {
           </div>
           {/* KPI — 2 big + 3 small */}
           <div className="px-5 pb-3">
-            <div className="flex items-end gap-4 mb-2">
+            <div className="flex flex-wrap items-end gap-x-4 gap-y-2 mb-2">
               <div>
                 <div className="text-[20px] font-bold leading-none" style={{ color: "#fff" }}>{loading ? "—" : `$${animMrr.toLocaleString()}`}</div>
                 <div className="text-[11px] mt-1" style={{ color: "rgba(255,255,255,0.45)" }}>MRR</div>
@@ -226,7 +228,13 @@ export default function Home() {
                 <div className="text-[20px] font-bold leading-none" style={{ color: "var(--accent)" }}>{loading ? "—" : `$${animYtd.toLocaleString()}`}</div>
                 <div className="text-[11px] mt-1" style={{ color: "rgba(255,255,255,0.45)" }}>{t("home.kpi.ytdRevenue" as any)}</div>
               </div>
-              <div className="flex-1" />
+              {(data.todayIncome || 0) > 0 && (
+                <div>
+                  <div className="text-[20px] font-bold leading-none" style={{ color: "#4ade80" }}>{loading ? "—" : `+$${animToday.toLocaleString()}`}</div>
+                  <div className="text-[11px] mt-1" style={{ color: "rgba(255,255,255,0.45)" }}>{t("home.kpi.todayIncome" as any)}</div>
+                </div>
+              )}
+              <div className="flex-1 min-w-[24px]" />
               <div className="flex gap-4">
                 {[
                   { label: t("home.kpi.activeClients" as any), value: loading ? "—" : String(data.clientsCount || 0) },
@@ -265,7 +273,7 @@ export default function Home() {
           <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]" onClick={resetForm}>
             <div className="absolute inset-0 modal-backdrop" />
             <div
-              className="relative card p-5 w-[90vw] max-w-md space-y-3 celebrate-bounce"
+              className="relative card p-5 w-[92vw] max-w-sm space-y-3 celebrate-bounce"
               style={{ boxShadow: "var(--shadow-lg)" }}
               onClick={e => e.stopPropagation()}
             >
@@ -324,7 +332,7 @@ export default function Home() {
             <h3 className="section-label">{t("home.focus.title" as any)}</h3>
             <p className="text-[11px] mt-0.5" style={{ color: "var(--text-secondary)" }}>{t("home.focus.desc" as any)}</p>
           </div>
-          <div className="grid gap-3 md:grid-cols-2 stagger-in">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 stagger-in">
             {pending.map(item => {
               const sameType = data.todayFocus.filter(i => i.type === item.type && i.status !== "completed" && !skipped.includes(i.key));
               return (

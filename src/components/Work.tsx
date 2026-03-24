@@ -261,7 +261,7 @@ export default function Work() {
               transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
               className={isMobile
                 ? "fixed inset-0 z-50 flex flex-col"
-                : "fixed top-0 right-0 z-50 h-full w-full max-w-[520px] flex flex-col border-l"
+                : "fixed top-0 right-0 z-50 h-full w-full max-w-[440px] lg:max-w-[520px] flex flex-col border-l"
               }
               style={{
                 background: "var(--surface)",
@@ -287,7 +287,7 @@ export default function Work() {
 
               {/* Panel body */}
               <div className="flex-1 overflow-y-auto ios-scroll">
-                <div className="p-5 space-y-4">
+                <div className="p-5 space-y-3">
                   {/* Core fields */}
                   <div className="space-y-3">
                     <FL label={t("work.form.title" as any)}>
@@ -337,27 +337,33 @@ export default function Work() {
                     ))}
                   </div>
 
-                  {/* AI output tabs */}
-                  <div>
-                    <div className="flex gap-1 mb-2">
-                      {([["breakdown", t("work.ai.tab.breakdown" as any)], ["mj", t("work.ai.tab.mj" as any)], ["story", t("work.ai.tab.story" as any)]] as const).map(([k, l]) => (
-                        <button key={k} type="button" onClick={() => setActiveTab(k)}
-                          className="px-3 py-1 text-[11px] font-medium rounded-md transition-colors"
-                          style={activeTab === k ? { background: "var(--surface-alt)", color: "var(--text)" } : { color: "var(--text-secondary)" }}>
-                          {l}
-                        </button>
-                      ))}
+                  {/* AI output tabs — only show if any AI content exists */}
+                  {(form.aiBreakdown || form.aiMjPrompts || form.aiStory || generating) && (
+                    <div>
+                      <div className="flex gap-1 mb-2">
+                        {([["breakdown", t("work.ai.tab.breakdown" as any)], ["mj", t("work.ai.tab.mj" as any)], ["story", t("work.ai.tab.story" as any)]] as const).map(([k, l]) => {
+                          const hasContent = k === "breakdown" ? form.aiBreakdown : k === "mj" ? form.aiMjPrompts : form.aiStory;
+                          return (
+                            <button key={k} type="button" onClick={() => setActiveTab(k)}
+                              className="px-3 py-1 text-[11px] font-medium rounded-md transition-colors"
+                              style={activeTab === k ? { background: "var(--surface-alt)", color: "var(--text)" } : { color: hasContent ? "var(--text-secondary)" : "var(--text-tertiary)" }}>
+                              {l}{hasContent ? " ●" : ""}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <textarea
+                        value={activeTab === "breakdown" ? form.aiBreakdown : activeTab === "mj" ? form.aiMjPrompts : form.aiStory}
+                        onChange={e => {
+                          const field = activeTab === "breakdown" ? "aiBreakdown" : activeTab === "mj" ? "aiMjPrompts" : "aiStory";
+                          setForm(p => ({ ...p, [field]: e.target.value }));
+                        }}
+                        placeholder={t("work.ai.placeholder" as any)}
+                        className="input-base w-full px-3 py-2 text-[13px] resize-y"
+                        style={{ minHeight: 80, maxHeight: 300 }}
+                      />
                     </div>
-                    <textarea
-                      value={activeTab === "breakdown" ? form.aiBreakdown : activeTab === "mj" ? form.aiMjPrompts : form.aiStory}
-                      onChange={e => {
-                        const field = activeTab === "breakdown" ? "aiBreakdown" : activeTab === "mj" ? "aiMjPrompts" : "aiStory";
-                        setForm(p => ({ ...p, [field]: e.target.value }));
-                      }}
-                      placeholder={t("work.ai.placeholder" as any)}
-                      className="input-base w-full h-32 px-3 py-2 text-[13px] resize-none"
-                    />
-                  </div>
+                  )}
                 </div>
               </div>
 
@@ -433,7 +439,7 @@ function FL({ label, children, className }: { label: string; children: React.Rea
 
 function Column({ col, items, onAdd, onEdit, onDelete, emptyText }: { col: { id: string; title: string; color: string }; items: any[]; onAdd: () => void; onEdit: (t: any) => void; onDelete: (id: number) => void; emptyText: string }) {
   return (
-    <div className="flex flex-col w-[280px] shrink-0 h-full">
+    <div className="flex flex-col w-[260px] md:w-[280px] shrink-0 h-full">
       {/* Column header with color bar */}
       <div className="flex items-center justify-between mb-2 px-1">
         <div className="flex items-center gap-2">

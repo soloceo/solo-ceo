@@ -38,63 +38,101 @@ function currentMonth() {
   return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`;
 }
 
+function calcTaxOffline(amount: number, mode: string, rate: number): number {
+  if (mode === 'none' || !rate) return 0;
+  if (mode === 'exclusive') return Math.round(amount * rate / 100 * 100) / 100;
+  if (mode === 'inclusive') return Math.round(amount * rate / (100 + rate) * 100) / 100;
+  return 0;
+}
+
 function syncClientSubscriptionLedger(db: Database) {
   const clients = all(
     db,
     `SELECT id, name, plan_tier, mrr, status, joined_at,
             subscription_start_date, paused_at, resumed_at,
-            cancelled_at, mrr_effective_from
+            cancelled_at, mrr_effective_from, subscription_timeline,
+            tax_mode, tax_rate, payment_method
      FROM clients WHERE COALESCE(mrr, 0) > 0`
   );
-
-  run(db, 'DELETE FROM client_subscription_ledger', []);
 
   const now = new Date();
   const cm = currentMonth();
 
+  // Collect what SHOULD exist
+  const shouldExist = new Map<string, any>();
+
   for (const client of clients) {
-    const joined = client.joined_at
-      ? new Date(String(client.joined_at).replace(' ', 'T'))
-      : now;
+    const joined = client.joined_at ? new Date(String(client.joined_at).replace(' ', 'T')) : now;
     const safeJoined = Number.isNaN(joined.getTime()) ? now : joined;
 
-    const startM = monthKey(client.subscription_start_date as string, safeJoined);
-    const effectiveM = monthKey(
-      (client.mrr_effective_from as string) || (client.subscription_start_date as string),
-      safeJoined
-    );
-    const pausedM = client.paused_at ? monthKey(client.paused_at as string) : null;
-    const resumedM = client.resumed_at ? monthKey(client.resumed_at as string) : null;
-    const cancelledM = client.cancelled_at ? monthKey(client.cancelled_at as string) : null;
+    // Parse timeline — prefer new timeline, fallback to legacy fields
+    let timeline: { type: string; date: string }[] = [];
+    try { timeline = JSON.parse(client.subscription_timeline || '[]'); } catch { timeline = []; }
+    if (!timeline.length && client.subscription_start_date) {
+      timeline = [{ type: 'start', date: client.subscription_start_date as string }];
+      if (client.paused_at) timeline.push({ type: 'pause', date: client.paused_at as string });
+      if (client.resumed_at) timeline.push({ type: 'resume', date: client.resumed_at as string });
+      if (client.cancelled_at) timeline.push({ type: 'cancel', date: client.cancelled_at as string });
+    }
+    if (!timeline.length) continue;
+    timeline.sort((a, b) => a.date.localeCompare(b.date));
+    const startDate = timeline[0].date;
+    const startM = monthKey(startDate, safeJoined);
 
     let [year, month] = startM.split('-').map(Number);
     while (`${year}-${String(month).padStart(2, '0')}` <= cm) {
-      const ledgerMonth = `${year}-${String(month).padStart(2, '0')}`;
-
-      let shouldBill = ledgerMonth >= effectiveM;
-      if (pausedM && ledgerMonth >= pausedM) shouldBill = false;
-      if (resumedM && ledgerMonth >= resumedM) shouldBill = true;
-      if (cancelledM && ledgerMonth >= cancelledM) shouldBill = false;
-      if (client.status !== 'Active' && !pausedM && !cancelledM) shouldBill = false;
-
-      if (shouldBill) {
-        db.run(
-          `INSERT INTO client_subscription_ledger
-             (client_id, client_name, plan_tier, amount, ledger_month)
-           VALUES (?, ?, ?, ?, ?)`,
-          [
-            client.id,
-            client.name || '未命名客户',
-            client.plan_tier || '',
-            Number(client.mrr || 0),
-            ledgerMonth,
-          ]
-        );
+      const lm = `${year}-${String(month).padStart(2, '0')}`;
+      let active = false;
+      for (const evt of timeline) {
+        const evtM = monthKey(evt.date);
+        if (evtM && evtM <= lm) {
+          if (evt.type === 'start' || evt.type === 'resume') active = true;
+          else if (evt.type === 'pause' || evt.type === 'cancel') active = false;
+        }
       }
-
+      if (active) {
+        const amt = Number(client.mrr || 0);
+        const tm = (client.tax_mode as string) || 'none';
+        const tr = Number(client.tax_rate || 0);
+        shouldExist.set(`${client.id}-${lm}`, {
+          type: 'income', source: 'subscription', source_id: client.id,
+          amount: amt, category: '订阅收入',
+          description: `${client.name || '未命名客户'} · ${client.plan_tier || '订阅'} · ${lm}`,
+          date: lm === startM ? startDate : `${lm}-${startDate.split('-')[2] || '01'}`,
+          status: client.payment_method === 'manual' ? '待收款 (应收)' : '已完成',
+          client_id: client.id, client_name: client.name || '未命名客户',
+          tax_mode: tm, tax_rate: tr, tax_amount: calcTaxOffline(amt, tm, tr),
+        });
+      }
       month += 1;
       if (month > 12) { month = 1; year += 1; }
     }
+  }
+
+  // Fetch existing subscription transactions
+  const existing = all(db, `SELECT id, source_id, date FROM finance_transactions WHERE source='subscription'`);
+  const existingMap = new Map<string, number>();
+  for (const row of existing) {
+    const m = String(row.date || '').substring(0, 7);
+    existingMap.set(`${row.source_id}-${m}`, row.id as number);
+  }
+
+  // Upsert
+  for (const [key, row] of shouldExist) {
+    const existId = existingMap.get(key);
+    if (existId) {
+      run(db, `UPDATE finance_transactions SET amount=?, description=?, date=?, status=?, tax_mode=?, tax_rate=?, tax_amount=?, client_name=? WHERE id=?`,
+        [row.amount, row.description, row.date, row.status, row.tax_mode, row.tax_rate, row.tax_amount, row.client_name, existId]);
+      existingMap.delete(key);
+    } else {
+      run(db, `INSERT INTO finance_transactions (type, source, source_id, amount, category, description, date, status, client_id, client_name, tax_mode, tax_rate, tax_amount) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        [row.type, row.source, row.source_id, row.amount, row.category, row.description, row.date, row.status, row.client_id, row.client_name, row.tax_mode, row.tax_rate, row.tax_amount]);
+    }
+  }
+
+  // Soft-delete removed
+  for (const id of existingMap.values()) {
+    run(db, `DELETE FROM finance_transactions WHERE id=?`, [id]);
   }
 }
 
@@ -297,6 +335,8 @@ function initSchema(db: Database) {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`,
+    `ALTER TABLE clients ADD COLUMN drive_folder_url TEXT DEFAULT ''`,
+    `ALTER TABLE clients ADD COLUMN subscription_timeline TEXT DEFAULT '[]'`,
   ];
   for (const m of migrations) {
     try { db.run(m); } catch { /* already exists */ }
@@ -763,9 +803,9 @@ export async function handleApiRequest(
   }
 
   if (path === '/api/finance' && method === 'POST') {
-    const { type, amount, category, description, date, status, tax_mode, tax_rate, tax_amount, client_id, client_name } = body;
-    const res = run(db, `INSERT INTO finance_transactions (type, amount, category, description, date, status, tax_mode, tax_rate, tax_amount, client_id, client_name) VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
-      [type||'income', amount||0, category||'', description||'', date||'', status||'已完成', tax_mode||'none', tax_rate||0, tax_amount||0, client_id||null, client_name||'']);
+    const { type, amount, category, description, date, status, tax_mode, tax_rate, tax_amount, client_id, client_name, source, source_id } = body;
+    const res = run(db, `INSERT INTO finance_transactions (type, amount, category, description, date, status, tax_mode, tax_rate, tax_amount, client_id, client_name, source, source_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [type||'income', amount||0, category||'', description||'', date||'', status||'已完成', tax_mode||'none', tax_rate||0, tax_amount||0, client_id||null, client_name||'', source||'manual', source_id||null]);
     logActivity(db, 'finance', 'created', `新增交易：${description||'未命名交易'}`,
       `${type==='income'?'+':'-'}$${Number(amount||0).toLocaleString()} · ${category||'未分类'}`, res.lastInsertRowid);
     await saveDb();
