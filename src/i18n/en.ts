@@ -32,6 +32,9 @@ const en: typeof zh = {
   "work.seg.content": "Create",
 
   /* ── Pipeline — Sales Tools ── */
+  "finance.source.subscription": "Subscription",
+  "finance.source.milestone": "Milestone",
+  "finance.source.project": "Project",
   "pipeline.salesTools": "Sales Tools",
   "pipeline.emailTemplates": "Email Templates",
   "pipeline.scripts": "Scripts",

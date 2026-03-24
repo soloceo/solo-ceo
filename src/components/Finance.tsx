@@ -450,8 +450,7 @@ export default function Finance() {
 
         <div className="space-y-0">
           {recentTxs.map(tx => {
-            const virtual = String(tx.id).includes("-");
-            const locked = !virtual && !!tx.milestone_linked;
+            const isSystem = tx.source && tx.source !== 'manual';
             return (
               <TxRow
                 key={tx.id}
@@ -459,10 +458,9 @@ export default function Finance() {
                 t={t}
                 fmtAmt={fmtAmt}
                 fmtAmtColor={fmtAmtColor}
-                onEdit={() => { if (!virtual && !locked) openPanel(tx); }}
-                onDelete={() => { if (!virtual && !locked) setDeleteId(tx.id); }}
-                isVirtual={virtual}
-                isLocked={locked}
+                onEdit={() => { if (!isSystem) openPanel(tx); }}
+                onDelete={() => { if (!isSystem) setDeleteId(tx.id); }}
+                isSystem={isSystem}
               />
             );
           })}
@@ -553,8 +551,7 @@ export default function Finance() {
                 <span></span>
               </div>
               {filteredTxs.map(tx => {
-                const virtual = String(tx.id).includes("-");
-                const locked = !virtual && !!tx.milestone_linked;
+                const isSystem = tx.source && tx.source !== 'manual';
                 return (
                   <TxRow
                     key={tx.id}
@@ -562,10 +559,9 @@ export default function Finance() {
                     t={t}
                     fmtAmt={fmtAmt}
                     fmtAmtColor={fmtAmtColor}
-                    onEdit={() => { if (!virtual && !locked) openPanel(tx); }}
-                    onDelete={() => { if (!virtual && !locked) setDeleteId(tx.id); }}
-                    isVirtual={virtual}
-                    isLocked={locked}
+                    onEdit={() => { if (!isSystem) openPanel(tx); }}
+                    onDelete={() => { if (!isSystem) setDeleteId(tx.id); }}
+                    isSystem={isSystem}
                     expanded
                   />
                 );
@@ -744,20 +740,31 @@ function StatCard({ label, value, sub, icon, color }: {
 }
 
 /* ── Transaction Row ────────────────────────────────────────────── */
-const TxRow = React.memo(function TxRow({ tx, t, fmtAmt, fmtAmtColor, onEdit, onDelete, isVirtual, isLocked, expanded }: {
+const TxRow = React.memo(function TxRow({ tx, t, fmtAmt, fmtAmtColor, onEdit, onDelete, isSystem, expanded }: {
   tx: any; t: (k: any) => string; fmtAmt: (n: number) => string; fmtAmtColor: (n: number) => string;
-  onEdit: () => void; onDelete: () => void; isVirtual: boolean; isLocked?: boolean; expanded?: boolean;
+  onEdit: () => void; onDelete: () => void; isSystem: boolean; expanded?: boolean;
 }) {
   const amt = Number(tx.amount || 0);
   const isIncome = tx.type === "income" || amt > 0;
-  const sourceBadge = tx.source === "client_subscription"
-    ? t("money.badge.subscription" as any)
-    : tx.source === "client_project"
-    ? t("money.badge.project" as any)
+  const src = tx.source || 'manual';
+  const sourceBadge = src === "subscription"
+    ? t("finance.source.subscription" as any)
+    : src === "milestone"
+    ? t("finance.source.milestone" as any)
+    : src === "project_fee"
+    ? t("finance.source.project" as any)
     : null;
 
+  const actionBtns = isSystem ? (
+    <span className="p-1 rounded" style={{ color: "var(--text-tertiary)" }} title={t("finance.locked.hint" as any)}><Lock size={12} /></span>
+  ) : (
+    <>
+      <button onClick={onEdit} className="p-1 rounded" style={{ color: "var(--text-tertiary)" }}><Edit2 size={12} /></button>
+      <button onClick={onDelete} className="p-1 rounded" style={{ color: "var(--text-tertiary)" }}><Trash2 size={12} /></button>
+    </>
+  );
+
   if (expanded) {
-    // Desktop table row (md+) + mobile compact row (<md)
     return (
       <>
         {/* Desktop */}
@@ -770,16 +777,7 @@ const TxRow = React.memo(function TxRow({ tx, t, fmtAmt, fmtAmtColor, onEdit, on
           <span className="text-[12px]" style={{ color: "var(--text-secondary)" }}>{catLabel(tx.category || "", t)}</span>
           <span className="text-[13px] font-semibold text-right tabular-nums" style={{ color: fmtAmtColor(amt) }}>{fmtAmt(amt)}</span>
           <span className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{stLabel(tx.status || "", t)}</span>
-          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            {isLocked ? (
-              <span className="p-1 rounded" style={{ color: "var(--text-tertiary)" }} title={t("finance.locked.hint" as any)}><Lock size={12} /></span>
-            ) : !isVirtual ? (
-              <>
-                <button onClick={onEdit} className="p-1 rounded" style={{ color: "var(--text-tertiary)" }}><Edit2 size={12} /></button>
-                <button onClick={onDelete} className="p-1 rounded" style={{ color: "var(--text-tertiary)" }}><Trash2 size={12} /></button>
-              </>
-            ) : null}
-          </div>
+          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">{actionBtns}</div>
         </div>
         {/* Mobile */}
         <div className="flex md:hidden items-center gap-3 px-4 py-2.5 border-b" style={{ borderColor: "var(--border)" }}>
@@ -790,30 +788,19 @@ const TxRow = React.memo(function TxRow({ tx, t, fmtAmt, fmtAmtColor, onEdit, on
             <div className="flex items-center gap-1.5">
               <span className="text-[13px] font-medium truncate" style={{ color: "var(--text)" }}>{tx.description || tx.desc || tx.client_name || catLabel(tx.category || "", t)}</span>
               {sourceBadge && <span className="badge text-[9px] shrink-0">{sourceBadge}</span>}
-              {isLocked && <Lock size={10} className="shrink-0" style={{ color: "var(--text-tertiary)" }} />}
             </div>
-            <div className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>
-              {tx.date || "—"} · {catLabel(tx.category || "", t)}
-            </div>
+            <div className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>{tx.date || "—"} · {catLabel(tx.category || "", t)}</div>
           </div>
           <div className="text-right shrink-0">
             <div className="text-[13px] font-semibold tabular-nums" style={{ color: fmtAmtColor(amt) }}>{fmtAmt(amt)}</div>
             <div className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>{stLabel(tx.status || "", t)}</div>
           </div>
-          {isLocked ? (
-            <span className="p-1 shrink-0" style={{ color: "var(--text-tertiary)" }} title={t("finance.locked.hint" as any)}><Lock size={12} /></span>
-          ) : !isVirtual ? (
-            <div className="flex gap-0.5 shrink-0">
-              <button onClick={onEdit} className="p-1 rounded" style={{ color: "var(--text-tertiary)" }}><Edit2 size={12} /></button>
-              <button onClick={onDelete} className="p-1 rounded" style={{ color: "var(--text-tertiary)" }}><Trash2 size={12} /></button>
-            </div>
-          ) : null}
+          <div className="flex gap-0.5 shrink-0">{actionBtns}</div>
         </div>
       </>
     );
   }
 
-  // Mobile / compact row (homepage recent list)
   return (
     <div className="flex items-center gap-3 px-1 py-2.5 border-b group" style={{ borderColor: "var(--border)" }}>
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: isIncome ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)" }}>
@@ -823,7 +810,6 @@ const TxRow = React.memo(function TxRow({ tx, t, fmtAmt, fmtAmtColor, onEdit, on
         <div className="flex items-center gap-1.5">
           <span className="text-[13px] font-medium truncate" style={{ color: "var(--text)" }}>{tx.description || tx.desc || tx.client_name || catLabel(tx.category || "", t)}</span>
           {sourceBadge && <span className="badge text-[9px] shrink-0">{sourceBadge}</span>}
-          {isLocked && <Lock size={10} className="shrink-0" style={{ color: "var(--text-tertiary)" }} />}
         </div>
         <div className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>
           {tx.date || "—"} · {catLabel(tx.category || "", t)}
@@ -834,14 +820,7 @@ const TxRow = React.memo(function TxRow({ tx, t, fmtAmt, fmtAmtColor, onEdit, on
         <div className="text-[13px] font-semibold tabular-nums" style={{ color: fmtAmtColor(amt) }}>{fmtAmt(amt)}</div>
         <div className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>{stLabel(tx.status || "", t)}</div>
       </div>
-      {isLocked ? (
-        <span className="p-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "var(--text-tertiary)" }} title={t("finance.locked.hint" as any)}><Lock size={12} /></span>
-      ) : !isVirtual ? (
-        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-          <button onClick={onEdit} className="p-1 rounded" style={{ color: "var(--text-tertiary)" }}><Edit2 size={12} /></button>
-          <button onClick={onDelete} className="p-1 rounded" style={{ color: "var(--text-tertiary)" }}><Trash2 size={12} /></button>
-        </div>
-      ) : null}
+      <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">{actionBtns}</div>
     </div>
   );
 });

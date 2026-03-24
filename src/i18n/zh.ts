@@ -30,6 +30,9 @@ const zh = {
   "work.seg.content": "内容创作",
 
   /* ── Pipeline — Sales Tools ── */
+  "finance.source.subscription": "订阅",
+  "finance.source.milestone": "里程碑",
+  "finance.source.project": "项目",
   "pipeline.salesTools": "销售工具",
   "pipeline.emailTemplates": "邮件模板",
   "pipeline.scripts": "话术锦囊",
