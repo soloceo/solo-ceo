@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from "react";
-import { ChevronDown, ChevronRight, Award, HelpCircle, AlertTriangle, BookOpen } from "lucide-react";
+import { ChevronDown, ChevronRight, Award, HelpCircle, AlertTriangle, BookOpen, Check } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useT } from "../i18n/context";
 import { KNOWLEDGE_CATEGORIES } from "../data/evolution-knowledge";
@@ -209,62 +209,76 @@ export default function TodayPrinciple() {
 
                           {/* Expanded detail */}
                           {isExpanded && (
-                            <div className="px-4 pb-4 space-y-3">
-                              {/* Core idea */}
-                              <div className="p-3 rounded-lg" style={{ background: "var(--surface-alt)" }}>
-                                <p className="text-[13px] leading-relaxed" style={{ color: "var(--text)" }}>{L(pr.core)}</p>
+                            <div className="px-4 pb-5 space-y-4">
+                              {/* Core idea — highlighted card */}
+                              <div className="p-4 rounded-xl" style={{ background: "var(--accent-light)", borderLeft: "3px solid var(--accent)" }}>
+                                <p className="text-[13px] leading-relaxed font-medium" style={{ color: "var(--text)" }}>{L(pr.core)}</p>
                               </div>
 
                               {/* Deep explanation */}
                               {pr.explanation && (
-                                <div>
-                                  <div className="section-label flex items-center gap-1 mb-1">
-                                    <BookOpen size={16} /> {t("evolution.explanation" as any)}
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)" }}>
+                                      <BookOpen size={16} style={{ color: "var(--accent)" }} />
+                                    </div>
+                                    <span className="text-[13px] font-semibold">{t("evolution.explanation" as any)}</span>
                                   </div>
-                                  <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{L(pr.explanation)}</p>
+                                  <p className="text-[13px] leading-[1.8]" style={{ color: "var(--text-secondary)" }}>{L(pr.explanation)}</p>
                                 </div>
                               )}
 
-                              {/* Action steps */}
+                              {/* Action steps — numbered cards */}
                               {pr.actionSteps && pr.actionSteps.length > 0 && (
-                                <div>
-                                  <div className="section-label flex items-center gap-1 mb-1" style={{ color: "var(--accent)" }}>
-                                    <ChevronRight size={16} /> {t("evolution.actionSteps" as any)}
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: "color-mix(in srgb, var(--success) 12%, transparent)" }}>
+                                      <Check size={16} style={{ color: "var(--success)" }} />
+                                    </div>
+                                    <span className="text-[13px] font-semibold" style={{ color: "var(--success)" }}>{t("evolution.actionSteps" as any)}</span>
                                   </div>
-                                  <ol className="space-y-1 list-decimal list-inside">
+                                  <div className="space-y-2">
                                     {pr.actionSteps.map((s: any, i: number) => (
-                                      <li key={i} className="text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{L(s)}</li>
+                                      <div key={i} className="flex items-start gap-3 p-3 rounded-lg" style={{ background: "var(--surface-alt)" }}>
+                                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold" style={{ background: "var(--success)", color: "#fff" }}>{i + 1}</span>
+                                        <p className="text-[13px] leading-relaxed" style={{ color: "var(--text)" }}>{L(s)}</p>
+                                      </div>
                                     ))}
-                                  </ol>
+                                  </div>
                                 </div>
                               )}
 
-                              {/* Daily checks */}
-                              <div>
-                                <div className="section-label flex items-center gap-1 mb-1">
-                                  <HelpCircle size={16} /> {t("evolution.checkQuestions" as any)}
+                              {/* Two-column: checks + anti-patterns */}
+                              <div className="grid md:grid-cols-2 gap-3">
+                                {/* Daily checks */}
+                                <div className="p-3 rounded-xl" style={{ background: "var(--surface-alt)" }}>
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <HelpCircle size={16} style={{ color: "var(--accent)" }} />
+                                    <span className="text-[11px] font-semibold">{t("evolution.checkQuestions" as any)}</span>
+                                  </div>
+                                  <ul className="space-y-2">
+                                    {pr.checks.map((c: any, i: number) => (
+                                      <li key={i} className="text-[13px] flex items-start gap-2 leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                                        <span className="shrink-0 mt-0.5" style={{ color: "var(--accent)" }}>&#10148;</span> {L(c)}
+                                      </li>
+                                    ))}
+                                  </ul>
                                 </div>
-                                <ul className="space-y-1">
-                                  {pr.checks.map((c: any, i: number) => (
-                                    <li key={i} className="text-[13px] flex items-start gap-2" style={{ color: "var(--text-secondary)" }}>
-                                      <span style={{ color: "var(--accent)" }}>?</span> {L(c)}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
 
-                              {/* Anti-patterns */}
-                              <div>
-                                <div className="section-label flex items-center gap-1 mb-1" style={{ color: "var(--danger)" }}>
-                                  <AlertTriangle size={16} /> {t("evolution.antiPatterns" as any)}
+                                {/* Anti-patterns */}
+                                <div className="p-3 rounded-xl" style={{ background: "color-mix(in srgb, var(--danger) 4%, transparent)" }}>
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <AlertTriangle size={16} style={{ color: "var(--danger)" }} />
+                                    <span className="text-[11px] font-semibold" style={{ color: "var(--danger)" }}>{t("evolution.antiPatterns" as any)}</span>
+                                  </div>
+                                  <ul className="space-y-2">
+                                    {pr.antiPatterns.map((a: any, i: number) => (
+                                      <li key={i} className="text-[13px] flex items-start gap-2 leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                                        <span className="shrink-0 mt-0.5" style={{ color: "var(--danger)" }}>&#10006;</span> {L(a)}
+                                      </li>
+                                    ))}
+                                  </ul>
                                 </div>
-                                <ul className="space-y-1">
-                                  {pr.antiPatterns.map((a: any, i: number) => (
-                                    <li key={i} className="text-[13px] flex items-start gap-2" style={{ color: "var(--text-secondary)" }}>
-                                      <span style={{ color: "var(--danger)" }}>✗</span> {L(a)}
-                                    </li>
-                                  ))}
-                                </ul>
                               </div>
                             </div>
                           )}
