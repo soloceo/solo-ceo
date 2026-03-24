@@ -333,6 +333,7 @@ export default function Home() {
             <p className="text-[11px] mt-0.5" style={{ color: "var(--text-secondary)" }}>{t("home.focus.desc" as any)}</p>
           </div>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 stagger-in">
+            {/* Auto-generated focus cards */}
             {pending.map(item => {
               const sameType = data.todayFocus.filter(i => i.type === item.type && i.status !== "completed" && !skipped.includes(i.key));
               return (
@@ -346,7 +347,18 @@ export default function Home() {
                 />
               );
             })}
-            {!loading && !pending.length && (
+            {/* Manual events as focus cards */}
+            {pendingManual.map(item => (
+              <FocusCard
+                key={item.key}
+                item={item}
+                saving={savingKey === item.key}
+                canSwap={false}
+                onComplete={() => updateStatus(item.key, "completed")}
+                onSkip={undefined}
+              />
+            ))}
+            {!loading && !pending.length && !pendingManual.length && (
               <div className="col-span-full card py-8 text-center celebrate-bounce" style={{ background: "var(--success-light)" }}>
                 <div className="text-[20px] mb-1">&#10024;</div>
                 <div className="text-[13px] font-semibold" style={{ color: "var(--success)" }}>
@@ -419,18 +431,19 @@ export default function Home() {
 /* ── Sub-components ─────────────────────────────────────────────── */
 
 function FocusCard({ item, saving, canSwap = true, onComplete, onSkip }: {
-  item: FocusItem; saving: boolean; canSwap?: boolean; onComplete: () => void; onSkip: () => void;
+  item: FocusItem; saving: boolean; canSwap?: boolean; onComplete: () => void; onSkip?: () => void;
 }) {
   const { t } = useT();
   const revenueLabel = t("home.focus.revenue" as any);
   const deliveryLabel = t("home.focus.delivery" as any);
   const isRevenue = item.type === revenueLabel;
   const isDelivery = item.type === deliveryLabel;
-  const badgeColor = isRevenue ? "var(--success)" : isDelivery ? "var(--warning)" : "var(--accent)";
-  const badgeBg = isRevenue ? "var(--success-light)" : isDelivery ? "var(--warning-light)" : "var(--accent-light)";
+  const isManual = (item as any).isManual;
+  const badgeColor = isRevenue ? "var(--success)" : isDelivery ? "var(--warning)" : isManual ? "var(--brand-blue)" : "var(--accent)";
+  const badgeBg = isRevenue ? "var(--success-light)" : isDelivery ? "var(--warning-light)" : isManual ? "color-mix(in srgb, var(--brand-blue) 12%, transparent)" : "var(--accent-light)";
 
   return (
-    <article className="card p-4 flex flex-col justify-between gap-2.5" style={isRevenue ? { borderLeft: "3px solid var(--success)" } : isDelivery ? { borderLeft: "3px solid var(--warning)" } : { borderLeft: "3px solid var(--accent)" }}>
+    <article className="card p-4 flex flex-col justify-between gap-2.5" style={{ borderLeft: `3px solid ${isRevenue ? "var(--success)" : isDelivery ? "var(--warning)" : isManual ? "var(--brand-blue)" : "var(--accent)"}` }}>
       <div>
         <span className="badge text-[11px] mb-1.5 inline-block" style={{ background: badgeBg, color: badgeColor }}>{item.type}</span>
         <h4 className="text-[13px] font-semibold leading-snug" style={{ color: "var(--text)" }}>{item.title}</h4>
