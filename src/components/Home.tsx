@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback, lazy, Suspense } from "react";
 import { createPortal } from "react-dom";
 import {
-  CircleDollarSign, FolderCog, CheckSquare,
   Check, Undo2, Plus, Pencil, Trash2, X, ChevronDown, ChevronRight,
   ArrowUpRight, ArrowDownRight,
   UserPlus, ClipboardList, Wallet,
@@ -187,44 +186,58 @@ export default function Home() {
     <div className="mobile-page page-wrap">
       <div className="space-y-5">
         {/* ═══ LAYER 1: Hero card (greeting + KPI + quick actions) ═══ */}
-        <header className="rounded-2xl px-5 py-5" style={{ background: "linear-gradient(135deg, var(--brand-blue-deep) 0%, var(--brand-blue) 100%)" }}>
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <p className="text-[12px] font-medium" style={{ color: "rgba(255,255,255,0.6)" }}>{greeting(t)}</p>
-              <h1 className="text-lg font-bold" style={{ color: "#fff" }}>
-                {operatorName.trim() || "Solo CEO"}
-              </h1>
-            </div>
-            <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.45)" }}>{todayStr(lang)}</span>
-          </div>
-          {/* KPI row inside hero */}
-          <div className="grid grid-cols-5 gap-2 mb-4">
-            {[
-              { label: "MRR", value: loading ? "—" : `$${Number(data.mrr || 0).toLocaleString()}` },
-              { label: t("home.kpi.ytdRevenue" as any), value: loading ? "—" : `$${Number(data.ytdRevenue || 0).toLocaleString()}` },
-              { label: t("home.kpi.activeClients" as any), value: loading ? "—" : String(data.clientsCount || 0) },
-              { label: t("home.kpi.leads" as any), value: loading ? "—" : String(data.leadsCount || 0) },
-              { label: t("home.kpi.inProgress" as any), value: loading ? "—" : String(data.activeTasks || 0) },
-            ].map(kpi => (
-              <div key={kpi.label} className="text-center">
-                <div className="text-[16px] font-bold" style={{ color: "#fff" }}>{kpi.value}</div>
-                <div className="text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>{kpi.label}</div>
+        <header className="rounded-2xl overflow-hidden" style={{ background: "linear-gradient(135deg, var(--brand-blue-deep) 0%, var(--brand-blue) 100%)" }}>
+          {/* Greeting */}
+          <div className="px-5 pt-5 pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[11px] font-medium" style={{ color: "rgba(255,255,255,0.55)" }}>{greeting(t)}</p>
+                <h1 className="text-[17px] font-bold mt-0.5" style={{ color: "#fff" }}>
+                  {operatorName.trim() || "Solo CEO"}
+                </h1>
               </div>
-            ))}
+              <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.35)" }}>{todayStr(lang)}</span>
+            </div>
           </div>
-          {/* Quick actions */}
-          <div className="flex flex-wrap gap-1.5">
-            <button onClick={() => goToTab("clients")} className="text-[11px] font-medium px-3 py-1.5 rounded-lg transition-colors" style={{ background: "var(--accent)", color: "#fff" }}>
-              <UserPlus size={11} className="inline mr-1" style={{ verticalAlign: "-1px" }} />{t("home.welcome.addLead" as any)}
+          {/* KPI — 2 big + 3 small */}
+          <div className="px-5 pb-3">
+            <div className="flex items-end gap-4 mb-2">
+              <div>
+                <div className="text-[22px] font-bold leading-none" style={{ color: "#fff" }}>{loading ? "—" : `$${Number(data.mrr || 0).toLocaleString()}`}</div>
+                <div className="text-[10px] mt-1" style={{ color: "rgba(255,255,255,0.45)" }}>MRR</div>
+              </div>
+              <div>
+                <div className="text-[22px] font-bold leading-none" style={{ color: "var(--accent)" }}>{loading ? "—" : `$${Number(data.ytdRevenue || 0).toLocaleString()}`}</div>
+                <div className="text-[10px] mt-1" style={{ color: "rgba(255,255,255,0.45)" }}>{t("home.kpi.ytdRevenue" as any)}</div>
+              </div>
+              <div className="flex-1" />
+              <div className="flex gap-4">
+                {[
+                  { label: t("home.kpi.activeClients" as any), value: loading ? "—" : String(data.clientsCount || 0) },
+                  { label: t("home.kpi.leads" as any), value: loading ? "—" : String(data.leadsCount || 0) },
+                  { label: t("home.kpi.inProgress" as any), value: loading ? "—" : String(data.activeTasks || 0) },
+                ].map(kpi => (
+                  <div key={kpi.label} className="text-center">
+                    <div className="text-[15px] font-bold leading-none" style={{ color: "#fff" }}>{kpi.value}</div>
+                    <div className="text-[9px] mt-1" style={{ color: "rgba(255,255,255,0.4)" }}>{kpi.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          {/* Quick actions — frosted glass bar */}
+          <div className="flex gap-1 px-4 py-2.5" style={{ background: "rgba(0,0,0,0.15)" }}>
+            <button onClick={() => goToTab("clients")} className="flex-1 text-[10px] font-medium py-1.5 rounded-md transition-colors text-center" style={{ background: "var(--accent)", color: "#fff" }}>
+              {t("home.welcome.addLead" as any)}
             </button>
-            <button onClick={() => goToTab("work")} className="text-[11px] font-medium px-3 py-1.5 rounded-lg transition-colors" style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}>
-              <ClipboardList size={11} className="inline mr-1" style={{ verticalAlign: "-1px" }} />{t("home.welcome.addTask" as any)}
+            <button onClick={() => goToTab("work")} className="flex-1 text-[10px] font-medium py-1.5 rounded-md transition-colors text-center" style={{ background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)" }}>
+              {t("home.welcome.addTask" as any)}
             </button>
-            <button onClick={() => goToTab("finance")} className="text-[11px] font-medium px-3 py-1.5 rounded-lg transition-colors" style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}>
-              <Wallet size={11} className="inline mr-1" style={{ verticalAlign: "-1px" }} />{t("home.welcome.addIncome" as any)}
+            <button onClick={() => goToTab("finance")} className="flex-1 text-[10px] font-medium py-1.5 rounded-md transition-colors text-center" style={{ background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)" }}>
+              {t("home.welcome.addIncome" as any)}
             </button>
-            <button onClick={() => { setEditKey(null); setForm(emptyForm); setShowForm(p => !p); }} className="text-[11px] font-medium px-3 py-1.5 rounded-lg transition-colors" style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}>
-              <Plus size={11} className="inline mr-1" style={{ verticalAlign: "-1px" }} />{t("home.quickMemo" as any)}
+            <button onClick={() => { setEditKey(null); setForm(emptyForm); setShowForm(p => !p); }} className="flex-1 text-[10px] font-medium py-1.5 rounded-md transition-colors text-center" style={{ background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)" }}>
+              {t("home.quickMemo" as any)}
             </button>
           </div>
         </header>
@@ -387,26 +400,19 @@ function FocusCard({ item, saving, onComplete, onSkip }: {
   const isDelivery = item.type === deliveryLabel;
   const badgeColor = isRevenue ? "var(--success)" : isDelivery ? "var(--warning)" : "var(--accent)";
   const badgeBg = isRevenue ? "var(--success-light)" : isDelivery ? "var(--warning-light)" : "var(--accent-light)";
-  const icon = isRevenue ? <CircleDollarSign size={10} /> : isDelivery ? <CheckSquare size={10} /> : <FolderCog size={10} />;
 
   return (
-    <article className="card-interactive p-4 flex flex-col justify-between gap-3">
+    <article className="card p-4 flex flex-col justify-between gap-2.5" style={isRevenue ? { borderLeft: "3px solid var(--success)" } : isDelivery ? { borderLeft: "3px solid var(--warning)" } : { borderLeft: "3px solid var(--accent)" }}>
       <div>
-        <div className="flex items-center justify-between mb-2">
-          <span className="badge" style={{ background: badgeBg, color: badgeColor }}>{icon} {item.type}</span>
-          {isRevenue && (
-            <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--success)" }}>{t("home.focus.priority" as any)}</span>
-          )}
-        </div>
-        <h4 className="text-[13px] font-medium leading-snug mb-1" style={{ color: "var(--text)" }}>{item.title}</h4>
-        <p className="text-[12px] line-clamp-2" style={{ color: "var(--text-secondary)" }}>{item.reason}</p>
-        <p className="text-[11px] mt-1" style={{ color: "var(--text-tertiary)" }}>{item.actionHint}</p>
+        <span className="badge text-[10px] mb-1.5 inline-block" style={{ background: badgeBg, color: badgeColor }}>{item.type}</span>
+        <h4 className="text-[13px] font-semibold leading-snug" style={{ color: "var(--text)" }}>{item.title}</h4>
+        <p className="text-[11px] mt-0.5 line-clamp-2" style={{ color: "var(--text-tertiary)" }}>{item.reason}</p>
       </div>
-      <div className="flex items-center gap-2">
-        <button onClick={onComplete} disabled={saving} className="btn-primary flex-1 text-[12px] disabled:opacity-50" style={{ padding: "6px 10px" }}>
-          <Check size={13} /> {t("common.complete" as any)}
+      <div className="flex items-center gap-1.5">
+        <button onClick={onComplete} disabled={saving} className="text-[11px] font-medium px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50" style={{ background: "var(--accent)", color: "#fff" }}>
+          <Check size={11} className="inline mr-0.5" style={{ verticalAlign: "-1px" }} /> {t("common.complete" as any)}
         </button>
-        <button onClick={onSkip} disabled={saving} className="btn-secondary text-[12px] disabled:opacity-50" style={{ padding: "6px 10px" }}>
+        <button onClick={onSkip} disabled={saving} className="text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-50" style={{ background: "var(--surface-alt)", color: "var(--text-secondary)" }}>
           {t("home.focus.swap" as any)}
         </button>
       </div>
