@@ -72,7 +72,7 @@ export default function SwipeAction({
           aria-label="Delete"
         >
           <Trash2 size={16} />
-          <span className="text-[11px] font-medium">删除</span>
+          <span className="text-[11px]" style={{ fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>删除</span>
         </button>
       </div>
 

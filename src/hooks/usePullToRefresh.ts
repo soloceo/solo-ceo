@@ -24,8 +24,8 @@ export function usePullToRefresh(
       position: absolute; top: -40px; left: 50%; transform: translateX(-50%);
       width: 36px; height: 36px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      background: var(--surface); border: 1px solid var(--border);
-      box-shadow: var(--shadow-sm); color: var(--accent);
+      background: var(--color-bg-primary); border: 1px solid var(--color-border-primary);
+      box-shadow: var(--shadow-sm); color: var(--color-accent);
       transition: transform 0.2s, opacity 0.2s; opacity: 0; z-index: 10;
     `;
     containerRef.current?.style.setProperty('position', 'relative');

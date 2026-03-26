@@ -1,75 +1,29 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { useVirtualizer } from "@tanstack/react-virtual";
-import { useT } from "../i18n/context";
-import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh";
-import SwipeAction from "./SwipeAction";
-import { useIsMobile } from "../hooks/useIsMobile";
-import { useToast } from "../hooks/useToast";
-import { Toast } from "./Money";
+import { useT } from "../../i18n/context";
+import { useRealtimeRefresh } from "../../hooks/useRealtimeRefresh";
+import { useIsMobile } from "../../hooks/useIsMobile";
+import { useUIStore } from "../../store/useUIStore";
+import { Skeleton } from "../../components/ui";
 import { motion, AnimatePresence } from "motion/react";
 import {
-  ResponsiveContainer,
-  ComposedChart,
-  Bar,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-} from "recharts";
-import {
   Plus,
-  Edit2,
   X,
-  Check,
-  Trash2,
-  Loader2,
   TrendingUp,
   TrendingDown,
   Wallet,
   AlertCircle,
   PanelRightClose,
-  Filter,
   Download,
   Search,
   Receipt,
-  FileText,
-  ArrowUpRight,
-  ArrowDownRight,
-  Lock,
-  ChevronRight,
 } from "lucide-react";
 
-/* ── Helpers ────────────────────────────────────────────────────── */
-const calcTaxAmount = (amount: number, mode: string, rate: number): number => {
-  if (mode === "none" || !rate) return 0;
-  if (mode === "exclusive") return Math.round((amount * rate) / 100 * 100) / 100;
-  if (mode === "inclusive") return Math.round((amount * rate) / (100 + rate) * 100) / 100;
-  return 0;
-};
+import { calcTaxAmount, catLabel, STATUS_I18N } from "../../lib/tax";
+const FinanceChart = React.lazy(() => import("./FinanceChart"));
+import { StatCard, TxRow, VirtualTxList } from "./TransactionList";
 
-const CATEGORY_I18N: Record<string, string> = {
-  "收入": "money.cat.income",
-  "软件支出": "money.cat.software",
-  "外包支出": "money.cat.outsource",
-  "应收": "money.cat.receivable",
-  "应付": "money.cat.payable",
-  "其他支出": "money.cat.other",
-  "项目收入": "money.category.projectIncome",
-};
-
-const STATUS_I18N: Record<string, string> = {
-  "已完成": "money.st.completed",
-  "待收款 (应收)": "money.st.receivable",
-  "待支付 (应付)": "money.st.payable",
-};
-
-const catLabel = (cat: string, t: (k: any) => string) => {
-  const key = CATEGORY_I18N[cat];
-  return key ? t(key as any) : cat;
-};
-
+/* ── Helpers ── */
 const stLabel = (st: string, t: (k: any) => string) => {
   const key = STATUS_I18N[st];
   return key ? t(key as any) : st;
@@ -79,46 +33,12 @@ function FL({ children }: { children: React.ReactNode }) {
   return <label className="section-label block mb-1">{children}</label>;
 }
 
-/* ── Virtual scrolled transaction list ── */
-function VirtualTxList({ items, t, fmtAmt, fmtAmtColor, onEdit, onDelete }: {
-  items: any[]; t: any; fmtAmt: any; fmtAmtColor: any;
-  onEdit: (tx: any) => void; onDelete: (tx: any) => void;
-}) {
-  const parentRef = useRef<HTMLDivElement>(null);
-  const rowVirtualizer = useVirtualizer({
-    count: items.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 56,
-    overscan: 10,
-  });
-
-  return (
-    <div ref={parentRef} className="flex-1 overflow-y-auto ios-scroll">
-      <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: "relative" }}>
-        {rowVirtualizer.getVirtualItems().map(vRow => {
-          const tx = items[vRow.index];
-          const isSystem = tx.source && tx.source !== 'manual';
-          return (
-            <div key={tx.id} style={{ position: "absolute", top: 0, left: 0, width: "100%", transform: `translateY(${vRow.start}px)` }}>
-              <TxRow
-                tx={tx} t={t} fmtAmt={fmtAmt} fmtAmtColor={fmtAmtColor}
-                onEdit={() => onEdit(tx)} onDelete={() => onDelete(tx)}
-                isSystem={isSystem} expanded
-              />
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 /* ═══════════════════════════════════════════════════════════════════
-   Finance — 收支统计
+   FinancePage — 收支统计
    ═══════════════════════════════════════════════════════════════════ */
-export default function Finance() {
+export default function FinancePage() {
   const { t } = useT();
-  const [toast, showToast] = useToast();
+  const showToast = useUIStore((s) => s.showToast);
   const isMobile = useIsMobile();
 
   /* ── Data state ── */
@@ -140,7 +60,6 @@ export default function Finance() {
   const setFilter = useCallback(<K extends keyof typeof filters>(key: K, val: typeof filters[K]) => {
     setFilters(p => ({ ...p, [key]: val }));
   }, []);
-  // Aliases for compatibility
   const filterType = filters.type, filterCategory = filters.category;
   const filterStatus = filters.status, filterClient = filters.client;
   const filterDateFrom = filters.dateFrom, filterDateTo = filters.dateTo;
@@ -185,11 +104,20 @@ export default function Finance() {
     return () => window.dispatchEvent(new CustomEvent("mobile-nav-visibility", { detail: { hidden: false } }));
   }, [showPanel, showAll, isMobile]);
 
+  /* ── Quick Create listener ── */
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.type === "transaction") openPanel();
+    };
+    window.addEventListener("quick-create", handler);
+    return () => window.removeEventListener("quick-create", handler);
+  }, []);
+
   /* ── Stats computation ── */
   const stats = useMemo(() => {
     const now = new Date();
     const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    const thisYear = String(now.getFullYear());
 
     let totalIncome = 0, totalExpense = 0, receivable = 0, payable = 0;
     let monthIncome = 0, monthExpense = 0, totalTax = 0;
@@ -200,14 +128,11 @@ export default function Finance() {
       const isIncome = tx.type === "income" || Number(tx.amount || 0) > 0;
       const txMode = tx.tax_mode || 'none';
 
-      // Expense actual cost: exclusive adds tax, inclusive already contains tax
       const expenseTotal = txMode === 'exclusive' ? amt + tax : amt;
 
-      // 应收/应付：exclusive 加税，inclusive 已含税
       if (tx.status === "待收款 (应收)") { receivable += (txMode === 'exclusive' ? amt + tax : amt); continue; }
       if (tx.status === "待支付 (应付)") { payable += expenseTotal; continue; }
 
-      // 收入用税前额（税是代收）；支出用实际花费
       if (isIncome) { totalIncome += amt; totalTax += tax; }
       else { totalExpense += expenseTotal; }
 
@@ -232,7 +157,6 @@ export default function Finance() {
     const months: Record<string, { month: string; income: number; expense: number; net: number }> = {};
     const now = new Date();
 
-    // Init last 12 months
     for (let i = 11; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -255,7 +179,7 @@ export default function Finance() {
     return Object.values(months).map(m => ({
       ...m,
       net: m.income - m.expense,
-      label: m.month.slice(5), // "01", "02"
+      label: m.month.slice(5),
     }));
   }, [transactions]);
 
@@ -395,20 +319,27 @@ export default function Finance() {
   };
 
   const fmtAmtColor = (amt: number) =>
-    amt >= 0 ? "var(--success, #22c55e)" : "var(--danger, #ef4444)";
+    amt >= 0 ? "var(--color-success, #22c55e)" : "var(--color-danger, #ef4444)";
 
   /* ── Loading ── */
   if (isLoading) {
     return (
-      <div className="mobile-page max-w-[960px] mx-auto min-h-full flex items-center justify-center">
-        <Loader2 size={24} className="animate-spin" style={{ color: "var(--accent)" }} />
+      <div className="mobile-page max-w-[960px] mx-auto min-h-full px-4 py-3 md:px-6 md:py-4 lg:px-8 lg:py-5">
+        <div className="space-y-4 animate-skeleton-in">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[1,2,3,4].map(i => <Skeleton key={i} className="h-[80px] rounded-[var(--radius-8)]" />)}
+          </div>
+          <Skeleton className="h-[200px] rounded-[var(--radius-8)]" />
+          <div className="space-y-0">
+            {[1,2,3,4,5].map(i => <Skeleton key={i} className="h-[64px]" />)}
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="mobile-page max-w-[960px] mx-auto min-h-full flex flex-col px-4 py-3 md:px-6 md:py-4 lg:px-8 lg:py-5 relative">
-      <Toast message={toast} />
 
       {/* Header */}
       <header className="flex items-center justify-between mb-4">
@@ -430,28 +361,28 @@ export default function Finance() {
           value={`$${stats.totalIncome.toLocaleString()}`}
           sub={`${t("finance.thisMonth" as any)} $${stats.monthIncome.toLocaleString()}`}
           icon={<TrendingUp size={16} />}
-          color="var(--success, #22c55e)"
+          color="var(--color-success, #22c55e)"
         />
         <StatCard
           label={t("money.stat.completedExpense" as any)}
           value={`$${stats.totalExpense.toLocaleString()}`}
           sub={`${t("finance.thisMonth" as any)} $${stats.monthExpense.toLocaleString()}`}
           icon={<TrendingDown size={16} />}
-          color="var(--danger, #ef4444)"
+          color="var(--color-danger, #ef4444)"
         />
         <StatCard
           label={t("money.stat.netProfit" as any)}
           value={`$${stats.netProfit.toLocaleString()}`}
           sub={`${t("money.stat.margin" as any)} ${stats.margin}%`}
           icon={<Wallet size={16} />}
-          color={stats.netProfit >= 0 ? "var(--success, #22c55e)" : "var(--danger, #ef4444)"}
+          color={stats.netProfit >= 0 ? "var(--color-success, #22c55e)" : "var(--color-danger, #ef4444)"}
         />
         <StatCard
           label={t("money.stat.receivable" as any)}
           value={`$${stats.receivable.toLocaleString()}`}
           sub={stats.payable > 0 ? `${t("money.st.payable" as any)} $${stats.payable.toLocaleString()}` : ""}
           icon={<AlertCircle size={16} />}
-          color="var(--warning, #f59e0b)"
+          color="var(--color-warning, #f59e0b)"
         />
         {stats.totalTax > 0 && (
           <StatCard
@@ -459,47 +390,20 @@ export default function Finance() {
             value={`$${stats.totalTax.toLocaleString()}`}
             sub=""
             icon={<Receipt size={16} />}
-            color="var(--text-secondary)"
+            color="var(--color-text-secondary)"
           />
         )}
       </div>
 
       {/* ── Chart ── */}
-      <div className="card p-4 mb-5">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h3 className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>{t("money.chart.title" as any)}</h3>
-            <p className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{t("money.chart.subtitle" as any)}</p>
-          </div>
-          <div className="flex items-center gap-3 text-[11px]" style={{ color: "var(--text-secondary)" }}>
-            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: "var(--success, #22c55e)" }} />{t("money.chart.revenue" as any)}</span>
-            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: "var(--danger, #ef4444)" }} />{t("money.chart.expense" as any)}</span>
-            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full" style={{ background: "var(--accent)" }} />{t("money.chart.net" as any)}</span>
-          </div>
-        </div>
-        <div className="h-[200px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: isMobile ? 0 : -15, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--text-secondary)" }} tickLine={false} axisLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: "var(--text-secondary)" }} tickLine={false} axisLine={false} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
-              <Tooltip
-                contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
-                formatter={(value: number, name: string) => [`$${value.toLocaleString()}`, name === "income" ? t("money.chart.revenue" as any) : name === "expense" ? t("money.chart.expense" as any) : t("money.chart.net" as any)]}
-                labelFormatter={(label: string) => `${label}${t("money.monthSuffix" as any)}`}
-              />
-              <Bar dataKey="income" fill="var(--success, #22c55e)" radius={[3, 3, 0, 0]} opacity={0.8} />
-              <Bar dataKey="expense" fill="var(--danger, #ef4444)" radius={[3, 3, 0, 0]} opacity={0.8} />
-              <Line type="monotone" dataKey="net" stroke="var(--accent)" strokeWidth={2} dot={{ r: 3, fill: "var(--accent)" }} />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+      <React.Suspense fallback={<div className="card p-4 mb-5 h-[200px] skeleton-bone rounded-[var(--radius-8)]" />}>
+        <FinanceChart chartData={chartData} isMobile={isMobile} t={t} />
+      </React.Suspense>
 
       {/* ── Recent Transactions ── */}
       <div className="card p-4 flex-1 min-h-0">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>{t("money.recent.title" as any)}</h3>
+          <h3 className="text-[13px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("money.recent.title" as any)}</h3>
           <button onClick={() => setShowAll(true)} className="btn-ghost text-[13px]">
             {t("money.recent.viewAll" as any)} ({transactions.length})
           </button>
@@ -523,8 +427,8 @@ export default function Finance() {
           })}
           {recentTxs.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 gap-2">
-              <Receipt size={32} style={{ color: "var(--text-secondary)" }} />
-              <p className="text-[13px]" style={{ color: "var(--text-secondary)" }}>{t("money.noData" as any)}</p>
+              <Receipt size={32} style={{ color: "var(--color-text-secondary)" }} />
+              <p className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{t("money.noData" as any)}</p>
             </div>
           )}
         </div>
@@ -534,11 +438,11 @@ export default function Finance() {
       {deleteId !== null && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.4)" }}>
           <div className="card-elevated p-5 max-w-sm w-full">
-            <h3 className="text-[15px] font-semibold mb-2" style={{ color: "var(--text)" }}>{t("money.delete.title" as any)}</h3>
-            <p className="text-[13px] mb-4" style={{ color: "var(--text-secondary)" }}>{t("money.delete.message" as any)}</p>
+            <h3 className="text-[15px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("money.delete.title" as any)}</h3>
+            <p className="text-[13px] mb-4" style={{ color: "var(--color-text-secondary)" }}>{t("money.delete.message" as any)}</p>
             <div className="flex justify-end gap-2">
               <button onClick={() => setDeleteId(null)} className="btn-ghost text-[13px]">{t("money.cancel" as any)}</button>
-              <button onClick={() => deleteTx(deleteId)} className="text-[13px] font-medium px-4 py-2 rounded-lg text-white transition-colors" style={{ background: "var(--danger)" }}>{t("money.delete.confirm" as any)}</button>
+              <button onClick={() => deleteTx(deleteId)} className="text-[13px] px-4 py-2 rounded-[var(--radius-6)] text-white transition-colors" style={{ background: "var(--color-danger)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("money.delete.confirm" as any)}</button>
             </div>
           </div>
         </div>
@@ -546,23 +450,23 @@ export default function Finance() {
 
       {/* ── View All Modal ── */}
       {showAll && createPortal(
-        <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "var(--bg)" }}>
+        <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "var(--color-bg-primary)" }}>
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-3 border-b shrink-0" style={{ borderColor: "var(--border)", paddingTop: "var(--mobile-header-pt, max(env(safe-area-inset-top), 18px))" }}>
+            <div className="flex items-center justify-between px-5 py-3 border-b shrink-0" style={{ borderColor: "var(--color-border-primary)", paddingTop: "var(--mobile-header-pt, max(env(safe-area-inset-top), 18px))" }}>
               <div>
-                <h3 className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>{t("money.allTx.title" as any)}</h3>
-                <p className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{t("money.filter.results" as any).replace("{count}", String(filteredTxs.length))}</p>
+                <h3 className="text-[13px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("money.allTx.title" as any)}</h3>
+                <p className="text-[11px]" style={{ color: "var(--color-text-secondary)" }}>{t("money.filter.results" as any).replace("{count}", String(filteredTxs.length))}</p>
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={exportCSV} className="btn-ghost text-[13px] gap-1"><Download size={16} /></button>
-                <button onClick={() => setShowAll(false)} className="p-1.5 rounded-lg" style={{ color: "var(--text-secondary)" }}><X size={20} /></button>
+                <button onClick={() => setShowAll(false)} className="p-1.5 rounded-[var(--radius-6)]" style={{ color: "var(--color-text-secondary)" }}><X size={20} /></button>
               </div>
             </div>
 
             {/* Filters */}
-            <div className="flex flex-wrap items-center gap-2 px-5 py-3 border-b shrink-0" style={{ borderColor: "var(--border)" }}>
+            <div className="flex flex-wrap items-center gap-2 px-5 py-3 border-b shrink-0" style={{ borderColor: "var(--color-border-primary)" }}>
               <div className="relative flex-1 min-w-[140px] max-w-[240px]">
-                <Search size={16} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: "var(--text-secondary)" }} />
+                <Search size={16} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: "var(--color-text-secondary)" }} />
                 <input
                   type="text" value={filterSearch} onChange={e => setFilter("search", e.target.value)}
                   placeholder={t("finance.searchPlaceholder" as any)}
@@ -597,7 +501,7 @@ export default function Finance() {
             </div>
 
             {/* Table — virtualized for 500+ rows */}
-            <div className="hidden md:grid grid-cols-[100px_1fr_120px_120px_120px_80px] gap-2 px-5 py-2 text-[11px] font-medium shrink-0" style={{ color: "var(--text-secondary)", borderBottom: "1px solid var(--border)" }}>
+            <div className="hidden md:grid grid-cols-[100px_1fr_120px_120px_120px_80px] gap-2 px-5 py-2 text-[11px] shrink-0" style={{ color: "var(--color-text-secondary)", borderBottom: "1px solid var(--color-border-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
               <span>{t("money.table.date" as any)}</span>
               <span>{t("money.table.description" as any)}</span>
               <span>{t("money.table.category" as any)}</span>
@@ -615,8 +519,8 @@ export default function Finance() {
             />
             {filteredTxs.length === 0 && (
               <div className="flex flex-col items-center justify-center py-20 gap-2">
-                <Receipt size={32} style={{ color: "var(--text-secondary)" }} />
-                <p className="text-[13px]" style={{ color: "var(--text-secondary)" }}>{t("money.noData" as any)}</p>
+                <Receipt size={32} style={{ color: "var(--color-text-secondary)" }} />
+                <p className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{t("money.noData" as any)}</p>
               </div>
             )}
           </div>,
@@ -629,8 +533,8 @@ export default function Finance() {
           <>
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50"
-              className={isMobile ? "" : "modal-backdrop"} style={{ background: isMobile ? "var(--bg)" : undefined }}
+              className={isMobile ? "fixed inset-0 z-50" : "fixed inset-0 z-50 modal-backdrop"}
+              style={{ background: isMobile ? "var(--color-bg-primary)" : undefined }}
               onClick={() => !isMobile && setShowPanel(false)}
             />
             <motion.div
@@ -642,24 +546,24 @@ export default function Finance() {
                 ? "fixed inset-0 z-50 flex flex-col"
                 : "fixed top-0 right-0 z-50 h-full w-full max-w-[480px] border-l flex flex-col"
               }
-              style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+              style={{ background: "var(--color-bg-primary)", borderColor: "var(--color-border-primary)" }}
             >
               {/* Panel header */}
-              <div className="flex items-center justify-between px-5 py-3 border-b shrink-0" style={{ borderColor: "var(--border)", paddingTop: "var(--mobile-header-pt, max(env(safe-area-inset-top), 18px))" }}>
+              <div className="flex items-center justify-between px-5 py-3 border-b shrink-0" style={{ borderColor: "var(--color-border-primary)", paddingTop: "var(--mobile-header-pt, max(env(safe-area-inset-top), 18px))" }}>
                 <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: "var(--accent-light)", color: "var(--accent)" }}>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-6)]" style={{ background: "var(--color-accent-tint)", color: "var(--color-accent)" }}>
                     <Receipt size={16} />
                   </div>
                   <div>
-                    <h3 className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>
+                    <h3 className="text-[13px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
                       {editingTx ? t("money.panel.edit" as any) : t("money.panel.new" as any)}
                     </h3>
-                    <p className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
+                    <p className="text-[11px]" style={{ color: "var(--color-text-secondary)" }}>
                       {editingTx ? t("money.panel.editDesc" as any) : t("money.panel.newDesc" as any)}
                     </p>
                   </div>
                 </div>
-                <button onClick={() => setShowPanel(false)} className="p-1.5 rounded-lg" style={{ color: "var(--text-secondary)" }}>
+                <button onClick={() => setShowPanel(false)} className="p-1.5 rounded-[var(--radius-6)]" style={{ color: "var(--color-text-secondary)" }}>
                   {isMobile ? <X size={20} /> : <PanelRightClose size={20} />}
                 </button>
               </div>
@@ -688,7 +592,7 @@ export default function Finance() {
                   <div>
                     <FL>{t("money.form.amount" as any)}</FL>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px]" style={{ color: "var(--text-secondary)" }}>$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px]" style={{ color: "var(--color-text-secondary)" }}>$</span>
                       <input type="number" required min="0" step="0.01" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} placeholder="0.00" className="input-base w-full pl-7 pr-3 py-2 text-[13px]" />
                     </div>
                   </div>
@@ -717,8 +621,8 @@ export default function Finance() {
                         key={mode}
                         type="button"
                         onClick={() => setFormData({ ...formData, taxMode: mode })}
-                        className="flex-1 text-[13px] py-2 rounded-lg font-medium transition-all"
-                        style={formData.taxMode === mode ? { background: "var(--accent)", color: "#fff" } : { background: "var(--surface-alt)", color: "var(--text-secondary)" }}
+                        className="flex-1 text-[13px] py-2 rounded-[var(--radius-6)] transition-all"
+                        style={formData.taxMode === mode ? { background: "var(--color-accent)", color: "#fff", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties : { background: "var(--color-bg-tertiary)", color: "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
                       >
                         {mode === "none" ? t("money.form.taxNone" as any) : mode === "exclusive" ? t("money.form.taxExcl" as any) : t("money.form.taxIncl" as any)}
                       </button>
@@ -731,10 +635,10 @@ export default function Finance() {
                           key={r}
                           type="button"
                           onClick={() => setFormData({ ...formData, taxRate: String(r) })}
-                          className="text-[13px] px-3 py-1 rounded-md transition-colors"
+                          className="text-[13px] px-3 py-1 rounded-[var(--radius-4)] transition-colors"
                           style={{
-                            background: String(formData.taxRate) === String(r) ? "var(--accent-light)" : "var(--surface-alt)",
-                            color: String(formData.taxRate) === String(r) ? "var(--accent)" : "var(--text-secondary)",
+                            background: String(formData.taxRate) === String(r) ? "var(--color-accent-tint)" : "var(--color-bg-tertiary)",
+                            color: String(formData.taxRate) === String(r) ? "var(--color-accent)" : "var(--color-text-secondary)",
                           }}
                         >
                           {r}%
@@ -758,17 +662,17 @@ export default function Finance() {
                   const total = formData.taxMode === "exclusive" ? amt + tax : amt;
                   const base = formData.taxMode === "inclusive" ? amt - tax : amt;
                   return (
-                    <div className="rounded-lg p-3 text-[11px] tabular-nums" style={{ background: "var(--surface-alt)", border: "1px solid var(--border)" }}>
-                      <div className="flex justify-between"><span style={{ color: "var(--text-secondary)" }}>{formData.taxMode === "inclusive" ? t("pipeline.tx.baseAmount" as any) : t("pipeline.tx.amount" as any)}</span><span style={{ color: "var(--text)" }}>${base.toLocaleString()}</span></div>
-                      <div className="flex justify-between"><span style={{ color: "var(--text-secondary)" }}>{t("finance.tax" as any)} ({rate}%)</span><span style={{ color: "var(--text)" }}>${tax.toLocaleString()}</span></div>
-                      <div className="flex justify-between font-semibold border-t pt-1 mt-1" style={{ borderColor: "var(--border)" }}><span style={{ color: "var(--text)" }}>{t("pipeline.tx.total" as any)}</span><span style={{ color: "var(--success)" }}>${total.toLocaleString()}</span></div>
+                    <div className="rounded-[var(--radius-6)] p-3 text-[11px] tabular-nums" style={{ background: "var(--color-bg-tertiary)", border: "1px solid var(--color-border-primary)" }}>
+                      <div className="flex justify-between"><span style={{ color: "var(--color-text-secondary)" }}>{formData.taxMode === "inclusive" ? t("pipeline.tx.baseAmount" as any) : t("pipeline.tx.amount" as any)}</span><span style={{ color: "var(--color-text-primary)" }}>${base.toLocaleString()}</span></div>
+                      <div className="flex justify-between"><span style={{ color: "var(--color-text-secondary)" }}>{t("finance.tax" as any)} ({rate}%)</span><span style={{ color: "var(--color-text-primary)" }}>${tax.toLocaleString()}</span></div>
+                      <div className="flex justify-between border-t pt-1 mt-1" style={{ borderColor: "var(--color-border-primary)", color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}><span>{t("pipeline.tx.total" as any)}</span><span style={{ color: "var(--color-success)" }}>${total.toLocaleString()}</span></div>
                     </div>
                   );
                 })()}
               </form>
 
               {/* Footer */}
-              <div className="flex items-center justify-end gap-2 px-5 py-3 border-t pb-safe shrink-0" style={{ borderColor: "var(--border)" }}>
+              <div className="flex items-center justify-end gap-2 px-5 py-3 border-t pb-safe shrink-0" style={{ borderColor: "var(--color-border-primary)" }}>
                 <button type="button" onClick={() => setShowPanel(false)} className="btn-ghost text-[13px]">{t("money.cancel" as any)}</button>
                 <button type="submit" form="finance-form" className="btn-primary text-[13px]">{t("money.saveRecord" as any)}</button>
               </div>
@@ -779,121 +683,3 @@ export default function Finance() {
     </div>
   );
 }
-
-/* ── Stat Card ──────────────────────────────────────────────────── */
-function StatCard({ label, value, sub, icon, color }: {
-  label: string; value: string; sub: string; icon: React.ReactNode; color: string;
-}) {
-  return (
-    <div className="stat-card">
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>{label}</span>
-        <span style={{ color }}>{icon}</span>
-      </div>
-      <div className="text-lg font-semibold tracking-tight" style={{ color: "var(--text)" }}>{value}</div>
-      {sub && <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{sub}</div>}
-    </div>
-  );
-}
-
-/* ── Transaction Row ────────────────────────────────────────────── */
-const TxRow = React.memo(function TxRow({ tx, t, fmtAmt, fmtAmtColor, onEdit, onDelete, isSystem, expanded }: {
-  tx: any; t: (k: any) => string; fmtAmt: (n: number) => string; fmtAmtColor: (n: number) => string;
-  onEdit: () => void; onDelete: () => void; isSystem: boolean; expanded?: boolean;
-}) {
-  const rawAmt = Number(tx.amount || 0);
-  const tax = Math.abs(Number(tx.tax_amount || 0));
-  const isIncome = tx.type === "income" || rawAmt > 0;
-  const taxMode = tx.tax_mode || 'none';
-  // Display logic:
-  // - Income: always show pre-tax (amount), tax is collected for gov
-  // - Expense exclusive: show amount + tax (total cash out)
-  // - Expense inclusive: show amount as-is (tax already included)
-  // - Expense none: show amount as-is
-  const amt = isIncome ? rawAmt
-    : taxMode === 'exclusive' ? (rawAmt < 0 ? rawAmt - tax : rawAmt + tax)
-    : rawAmt;
-  const src = tx.source || 'manual';
-  const sourceBadge = src === "subscription"
-    ? t("finance.source.subscription" as any)
-    : src === "milestone"
-    ? t("finance.source.milestone" as any)
-    : src === "project_fee"
-    ? t("finance.source.project" as any)
-    : null;
-
-  const actionBtns = isSystem ? (
-    <span className="p-1 rounded" style={{ color: "var(--text-secondary)" }} title={t("finance.locked.hint" as any)}><Lock size={16} /></span>
-  ) : (
-    <>
-      <button onClick={onEdit} className="p-1.5 rounded" style={{ color: "var(--text-secondary)" }} aria-label={t("common.edit" as any)}><Edit2 size={16} /></button>
-      <button onClick={onDelete} className="p-1.5 rounded" style={{ color: "var(--text-secondary)" }} aria-label={t("common.delete" as any)}><Trash2 size={16} /></button>
-    </>
-  );
-
-  if (expanded) {
-    return (
-      <>
-        {/* Desktop */}
-        <div className="hidden md:grid grid-cols-[100px_1fr_120px_120px_120px_80px] gap-2 px-5 py-3 items-center border-b group hover:bg-[var(--surface-alt)] transition-colors" style={{ borderColor: "var(--border)" }}>
-          <span className="text-[13px]" style={{ color: "var(--text-secondary)" }}>{tx.date || "—"}</span>
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-[13px] truncate" style={{ color: "var(--text)" }}>{tx.description || tx.desc || tx.client_name || "—"}</span>
-            {sourceBadge && <span className="badge text-[11px] shrink-0">{sourceBadge}</span>}
-          </div>
-          <span className="text-[13px]" style={{ color: "var(--text-secondary)" }}>{catLabel(tx.category || "", t)}</span>
-          <div className="text-right">
-            <span className="text-[13px] font-semibold tabular-nums" style={{ color: fmtAmtColor(amt) }}>{fmtAmt(amt)}</span>
-            {tax > 0 && <div className="text-[11px] tabular-nums" style={{ color: "var(--text-secondary)" }}>{taxMode === "exclusive" ? `+${t("finance.tax" as any)} $${tax.toLocaleString()}` : taxMode === "inclusive" ? `${t("finance.taxIncluded" as any)} $${tax.toLocaleString()}` : ""}</div>}
-          </div>
-          <span className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{stLabel(tx.status || "", t)}</span>
-          <div className="flex gap-1">{actionBtns}</div>
-        </div>
-        {/* Mobile — swipe left to delete */}
-        <SwipeAction onDelete={onDelete} disabled={isSystem}>
-          <div className="flex md:hidden items-center gap-3 px-4 py-3 border-b" style={{ borderColor: "var(--border)" }} onClick={isSystem ? undefined : onEdit}>
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: isIncome ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)" }}>
-              {isIncome ? <ArrowUpRight size={16} style={{ color: "var(--success, #22c55e)" }} /> : <ArrowDownRight size={16} style={{ color: "var(--danger, #ef4444)" }} />}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[13px] font-medium truncate" style={{ color: "var(--text)" }}>{tx.description || tx.desc || tx.client_name || catLabel(tx.category || "", t)}</span>
-                {sourceBadge && <span className="badge text-[11px] shrink-0">{sourceBadge}</span>}
-              </div>
-              <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{tx.date || "—"} · {catLabel(tx.category || "", t)}</div>
-            </div>
-            <div className="text-right shrink-0">
-              <div className="text-[13px] font-semibold tabular-nums" style={{ color: fmtAmtColor(amt) }}>{fmtAmt(amt)}</div>
-              {tax > 0 && <div className="text-[11px] tabular-nums" style={{ color: "var(--text-secondary)" }}>{taxMode === "exclusive" ? `+${t("finance.tax" as any)} $${tax.toLocaleString()}` : taxMode === "inclusive" ? `${t("finance.taxIncluded" as any)} $${tax.toLocaleString()}` : ""}</div>}
-              <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{stLabel(tx.status || "", t)}</div>
-            </div>
-            {isSystem ? <span className="p-1" style={{ color: "var(--text-secondary)" }}><Lock size={16} /></span> : <span className="p-1" style={{ color: "var(--text-secondary)", opacity: 0.4 }}><ChevronRight size={16} /></span>}
-          </div>
-        </SwipeAction>
-      </>
-    );
-  }
-
-  return (
-    <div className="flex items-center gap-3 px-1 py-3 border-b group" style={{ borderColor: "var(--border)" }}>
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: isIncome ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)" }}>
-        {isIncome ? <ArrowUpRight size={16} style={{ color: "var(--success, #22c55e)" }} /> : <ArrowDownRight size={16} style={{ color: "var(--danger, #ef4444)" }} />}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[13px] font-medium truncate" style={{ color: "var(--text)" }}>{tx.description || tx.desc || tx.client_name || catLabel(tx.category || "", t)}</span>
-          {sourceBadge && <span className="badge text-[11px] shrink-0">{sourceBadge}</span>}
-        </div>
-        <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
-          {tx.date || "—"} · {catLabel(tx.category || "", t)}
-          {tx.client_name ? ` · ${tx.client_name}` : ""}
-        </div>
-      </div>
-      <div className="text-right shrink-0">
-        <div className="text-[13px] font-semibold tabular-nums" style={{ color: fmtAmtColor(amt) }}>{fmtAmt(amt)}</div>
-        <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>{stLabel(tx.status || "", t)}</div>
-      </div>
-      <div className="flex gap-1 shrink-0">{actionBtns}</div>
-    </div>
-  );
-});

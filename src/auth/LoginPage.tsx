@@ -68,21 +68,21 @@ export default function LoginPage() {
   return (
     <div
       className="flex min-h-screen items-center justify-center px-4"
-      style={{ background: 'var(--bg)', WebkitAppRegion: 'drag' } as React.CSSProperties}
+      style={{ background: 'var(--color-bg-primary)', WebkitAppRegion: 'drag' } as React.CSSProperties}
     >
       <div className="w-full max-w-sm" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
         {/* Logo / Brand */}
         <div className="mb-8 text-center">
           <div
-            className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl text-2xl font-bold"
-            style={{ background: 'var(--accent)', color: '#fff' }}
+            className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[var(--radius-8)] text-2xl"
+            style={{ background: 'var(--color-accent)', color: '#fff', fontWeight: 'var(--font-weight-bold)' } as React.CSSProperties}
           >
             S
           </div>
-          <h1 className="text-xl font-bold" style={{ color: 'var(--text)' }}>
+          <h1 className="text-xl" style={{ color: 'var(--color-text-primary)', fontWeight: 'var(--font-weight-bold)' } as React.CSSProperties}>
             {t('auth.title' as any)}
           </h1>
-          <p className="mt-1 text-[13px]" style={{ color: 'var(--text-tertiary)' }}>
+          <p className="mt-1 text-[13px]" style={{ color: 'var(--color-text-tertiary)' }}>
             {t('auth.subtitle' as any)}
           </p>
         </div>
@@ -94,7 +94,7 @@ export default function LoginPage() {
               <Mail
                 size={16}
                 className="absolute left-3 top-1/2 -translate-y-1/2"
-                style={{ color: 'var(--text-tertiary)' }}
+                style={{ color: 'var(--color-text-tertiary)' }}
               />
               <input
                 type="email"
@@ -112,7 +112,7 @@ export default function LoginPage() {
                 <Lock
                   size={16}
                   className="absolute left-3 top-1/2 -translate-y-1/2"
-                  style={{ color: 'var(--text-tertiary)' }}
+                  style={{ color: 'var(--color-text-tertiary)' }}
                 />
                 <input
                   type="password"
@@ -130,7 +130,7 @@ export default function LoginPage() {
                 <Lock
                   size={16}
                   className="absolute left-3 top-1/2 -translate-y-1/2"
-                  style={{ color: 'var(--text-tertiary)' }}
+                  style={{ color: 'var(--color-text-tertiary)' }}
                 />
                 <input
                   type="password"
@@ -147,16 +147,16 @@ export default function LoginPage() {
           {/* Error / Success messages */}
           {error && (
             <div
-              className="rounded-lg p-3 text-[12px]"
-              style={{ background: 'var(--danger-light)', color: 'var(--danger)' }}
+              className="rounded-[var(--radius-6)] p-3 text-[12px]"
+              style={{ background: 'color-mix(in srgb, var(--color-danger) 12%, transparent)', color: 'var(--color-danger)' }}
             >
               {error}
             </div>
           )}
           {success && (
             <div
-              className="rounded-lg p-3 text-[12px]"
-              style={{ background: 'var(--success-light)', color: 'var(--success)' }}
+              className="rounded-[var(--radius-6)] p-3 text-[12px]"
+              style={{ background: 'color-mix(in srgb, var(--color-success) 12%, transparent)', color: 'var(--color-success)' }}
             >
               {success}
             </div>
@@ -166,7 +166,8 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary w-full py-3 text-[14px] font-medium disabled:opacity-50"
+            className="btn-primary w-full py-3 text-[14px] disabled:opacity-50"
+            style={{ fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}
           >
             {loading ? (
               <Loader2 size={16} className="animate-spin" />
@@ -197,8 +198,8 @@ export default function LoginPage() {
               setError('');
               setSuccess('');
             }}
-            className="text-[13px] font-medium"
-            style={{ color: 'var(--accent)' }}
+            className="text-[13px]"
+            style={{ color: 'var(--color-accent)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}
           >
             {mode === 'forgot'
               ? t('auth.switchToLogin' as any)
@@ -211,7 +212,7 @@ export default function LoginPage() {
               <button
                 onClick={() => { setMode('forgot'); setError(''); setSuccess(''); }}
                 className="text-[12px]"
-                style={{ color: 'var(--text-tertiary)' }}
+                style={{ color: 'var(--color-text-tertiary)' }}
               >
                 {t('auth.forgotPassword' as any)}
               </button>

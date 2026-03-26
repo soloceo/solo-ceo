@@ -406,11 +406,17 @@ export async function exportAllData(): Promise<Record<string, any>> {
   for (const t of SYNC_TABLES) snapshot[t] = all(db, `SELECT * FROM ${t}`);
   // Include recent activity log for reference
   snapshot['activity_log'] = all(db, 'SELECT * FROM activity_log ORDER BY created_at DESC LIMIT 500');
-  // Include settings (avatar, name, etc.)
-  snapshot['settings'] = {
-    OPERATOR_NAME: localStorage.getItem('OPERATOR_NAME') || '',
-    OPERATOR_AVATAR: localStorage.getItem('OPERATOR_AVATAR') || '',
-  };
+  // Include settings (avatar, name, etc.) — read from Zustand persisted storage
+  try {
+    const stored = JSON.parse(localStorage.getItem('solo-ceo-settings') || '{}');
+    const state = stored?.state || {};
+    snapshot['settings'] = {
+      OPERATOR_NAME: state.operatorName || '',
+      OPERATOR_AVATAR: state.operatorAvatar || '',
+    };
+  } catch {
+    snapshot['settings'] = { OPERATOR_NAME: '', OPERATOR_AVATAR: '' };
+  }
   return snapshot;
 }
 
@@ -430,11 +436,16 @@ export async function importAllData(data: Record<string, any>): Promise<void> {
       );
     }
   }
-  // Restore settings (avatar, name)
+  // Restore settings (avatar, name) — write to Zustand persisted storage
   if (data.settings && typeof data.settings === 'object' && !Array.isArray(data.settings)) {
-    for (const [key, value] of Object.entries(data.settings)) {
-      if (value) localStorage.setItem(key, String(value));
-    }
+    try {
+      const stored = JSON.parse(localStorage.getItem('solo-ceo-settings') || '{}');
+      const state = stored?.state || {};
+      if (data.settings.OPERATOR_NAME) state.operatorName = data.settings.OPERATOR_NAME;
+      if (data.settings.OPERATOR_AVATAR) state.operatorAvatar = data.settings.OPERATOR_AVATAR;
+      stored.state = state;
+      localStorage.setItem('solo-ceo-settings', JSON.stringify(stored));
+    } catch {}
     window.dispatchEvent(new Event('operator-name-updated'));
     window.dispatchEvent(new Event('operator-avatar-updated'));
   }

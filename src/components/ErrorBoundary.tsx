@@ -45,21 +45,21 @@ export class ErrorBoundary extends React.Component<Props, State> {
         <div className="flex flex-col items-center justify-center h-full gap-4 p-8 text-center">
           <div
             className="w-12 h-12 rounded-full flex items-center justify-center"
-            style={{ background: "color-mix(in srgb, var(--danger) 15%, transparent)" }}
+            style={{ background: "color-mix(in srgb, var(--color-danger) 15%, transparent)" }}
           >
-            <AlertTriangle size={24} style={{ color: "var(--danger)" }} />
+            <AlertTriangle size={24} style={{ color: "var(--color-danger)" }} />
           </div>
           <div>
-            <h3 className="text-base font-semibold mb-1" style={{ color: "var(--text-primary)" }}>
+            <h3 className="text-base mb-1" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
               {getLabel("页面加载出错", "Page Load Error")}
             </h3>
-            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+            <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
               {this.state.error?.message || getLabel("发生了未知错误", "An unknown error occurred")}
             </p>
           </div>
           <button
             onClick={this.handleRetry}
-            className="btn-primary flex items-center gap-2 px-4 py-2 rounded-lg text-sm"
+            className="btn-primary flex items-center gap-2 px-4 py-2 rounded-[var(--radius-6)] text-sm"
           >
             <RefreshCw size={16} />
             {getLabel("重新加载", "Reload")}

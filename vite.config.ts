@@ -63,6 +63,7 @@ export default defineConfig(({mode}) => {
             'vendor-recharts': ['recharts'],
             'vendor-dnd': ['@hello-pangea/dnd'],
             'vendor-motion': ['motion'],
+            'vendor-cmdk': ['cmdk'],
           },
         },
       },

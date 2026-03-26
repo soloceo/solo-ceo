@@ -1,0 +1,188 @@
+/* ══════════════════════════════════════════════════════════════════
+   Base — Solo CEO V2
+   Linear-identical typography · Inter Variable
+   ══════════════════════════════════════════════════════════════════ */
+
+@font-face {
+  font-family: 'Inter Variable';
+  src: url('/fonts/InterVariable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+  font-style: normal;
+  /* Latin + Latin Extended — let CJK system fonts handle Chinese */
+  unicode-range: U+0000-024F, U+0300-036F, U+0370-03FF, U+2000-206F, U+2070-209F, U+20A0-20CF, U+2100-214F, U+2200-22FF, U+FB00-FB4F;
+}
+
+/* ── Font tokens ──────────────────────────────────────────────── */
+:root {
+  --font-regular:
+    'Inter Variable',
+    -apple-system, BlinkMacSystemFont,
+    /* CJK: macOS */     'PingFang SC',
+    /* CJK: Windows */   'Microsoft YaHei UI', 'Microsoft YaHei',
+    /* CJK: Linux */     'Noto Sans CJK SC',
+    /* CJK: fallback */  'Source Han Sans SC',
+    'Segoe UI', 'Roboto', 'Helvetica Neue',
+    sans-serif;
+
+  --font-monospace: 'SF Mono', 'Menlo', ui-monospace, monospace;
+
+  --font-weight-light:    300;
+  --font-weight-normal:   400;
+  --font-weight-medium:   510;
+  --font-weight-semibold: 590;
+  --font-weight-bold:     680;
+}
+
+/* ── Resets ────────────────────────────────────────────────────── */
+
+html, body, #root {
+  height: 100%;
+  background-color: var(--color-bg-primary);
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}
+
+* { -webkit-tap-highlight-color: transparent; }
+a, button, [role="button"] { cursor: pointer; }
+input, textarea, select { cursor: text; }
+[draggable="true"] { cursor: grab; }
+[draggable="true"]:active { cursor: grabbing; }
+
+@media (max-width: 1023px) {
+  html, body {
+    position: fixed;
+    width: 100%;
+    overflow: hidden;
+  }
+}
+
+/* ── Typography ───────────────────────────────────────────────── */
+
+body {
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family: var(--font-regular);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  letter-spacing: -0.013em;
+  font-variant-numeric: tabular-nums;
+  font-optical-sizing: auto;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
+}
+
+/* ── Dark mode: slightly heavier text for legibility ──────────── */
+@media (prefers-color-scheme: dark) {
+  body { -webkit-font-smoothing: auto; }
+}
+.dark body { -webkit-font-smoothing: auto; }
+
+button, input, select, textarea {
+  font: inherit;
+  max-width: 100%;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+/* ── Title scale (Linear-identical) ───────────────────────────── */
+
+.text-title-1 {
+  font-size: 1.0625rem;
+  line-height: 1.4;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.012em;
+}
+
+.text-title-2 {
+  font-size: 1.25rem;
+  line-height: 1.33;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.012em;
+}
+
+.text-title-3 {
+  font-size: 1.5rem;
+  line-height: 1.33;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.012em;
+}
+
+.text-title-4 {
+  font-size: 2rem;
+  line-height: 1.125;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.022em;
+}
+
+/* ── Body text scale (Linear-identical) ───────────────────────── */
+
+.text-tiny {
+  font-size: 0.625rem;
+  line-height: 1.5;
+  letter-spacing: -0.015em;
+}
+
+.text-micro {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+
+.text-mini {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+}
+
+.text-small {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  letter-spacing: -0.013em;
+}
+
+.text-regular {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  letter-spacing: -0.011em;
+}
+
+.text-large {
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  letter-spacing: 0;
+}
+
+/* ── Legacy aliases (backward compat with V1 pages) ───────────── */
+.text-display  { font-size: 1.5rem; line-height: 1.33; font-weight: var(--font-weight-semibold); letter-spacing: -0.012em; }
+.text-title    { font-size: 1.0625rem; line-height: 1.4; font-weight: var(--font-weight-semibold); letter-spacing: -0.012em; }
+.text-heading  { font-size: 0.875rem; line-height: 1.4; font-weight: var(--font-weight-semibold); letter-spacing: -0.013em; }
+.text-body     { font-size: 0.875rem; line-height: 1.5; font-weight: var(--font-weight-normal); letter-spacing: -0.013em; }
+.text-caption  { font-size: 0.8125rem; line-height: 1.5; font-weight: var(--font-weight-medium); color: var(--color-text-tertiary); letter-spacing: -0.01em; }
+
+/* ── Section label ─────────────────────────────────────────────── */
+.section-label {
+  font-size: 0.6875rem;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-quaternary);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* ── Monospace ──────────────────────────────────────────────────── */
+.text-mono {
+  font-family: var(--font-monospace);
+}
+
+/* ── Hide scrollbars globally ─────────────────────────────────── */
+::-webkit-scrollbar { display: none; }
+* {
+  -ms-overflow-style: none;   /* IE / Edge */
+  scrollbar-width: none;      /* Firefox */
+}

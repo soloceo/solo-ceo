@@ -1,0 +1,90 @@
+/* ══════════════════════════════════════════════════════════════════
+   Animations — Solo CEO V2
+   Spring physics via Motion library; CSS for simple/loading states
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Keyframes ────────────────────────────────────────────────── */
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes skeleton-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in-down {
+  from { opacity: 0; transform: translateX(-50%) translateY(-12px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── Staggered list entrance ─────────────────────────────────── */
+
+@keyframes list-item-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.stagger-in > * {
+  animation: list-item-in 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.stagger-in > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-in > *:nth-child(2) { animation-delay: 30ms; }
+.stagger-in > *:nth-child(3) { animation-delay: 60ms; }
+.stagger-in > *:nth-child(4) { animation-delay: 90ms; }
+.stagger-in > *:nth-child(5) { animation-delay: 120ms; }
+.stagger-in > *:nth-child(6) { animation-delay: 150ms; }
+.stagger-in > *:nth-child(7) { animation-delay: 180ms; }
+.stagger-in > *:nth-child(8) { animation-delay: 210ms; }
+.stagger-in > *:nth-child(n+9) { animation-delay: 240ms; }
+
+/* ── Utility classes ─────────────────────────────────────────── */
+
+.animate-skeleton-in {
+  animation: skeleton-in 0.3s ease-out 0.3s both;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.15s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── Page enter (instant Linear-style) ─────────────────────── */
+
+@keyframes page-enter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.page-enter {
+  animation: page-enter 80ms ease-out both;
+}
+
+/* ── Press feedback ──────────────────────────────────────────── */
+
+.press-feedback {
+  transition: transform var(--transition-fast);
+}
+.press-feedback:active {
+  transform: scale(0.97);
+  transition-duration: 60ms;
+}

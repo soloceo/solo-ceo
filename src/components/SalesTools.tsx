@@ -1,28 +1,24 @@
-import React, { useState, useCallback, lazy, Suspense } from "react";
+import React, { useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import {
-  X, Copy, ChevronDown, ChevronRight, DollarSign, Loader2, Globe,
-  Mail, MessageSquare, Sparkles,
+  X, Copy, ChevronDown, ChevronRight, DollarSign,
+  Mail, MessageSquare,
 } from "lucide-react";
 import { useT } from "../i18n/context";
-import { useToast } from "../hooks/useToast";
-import { Toast } from "./Money";
+import { useUIStore } from "../store/useUIStore";
 import { EMAIL_TEMPLATES, SCRIPT_SCENARIOS, PRICING_TIERS, PRICING_STAGES } from "../data/breakthrough-templates";
 
-const CreatePage = lazy(() => import("./Create"));
-
-type Seg = "emails" | "scripts" | "ai";
+type Seg = "emails" | "scripts";
 
 const SEG_CONFIG: { id: Seg; icon: React.ReactNode; labelKey: string }[] = [
   { id: "emails", icon: <Mail size={16} />, labelKey: "pipeline.emailTemplates" },
   { id: "scripts", icon: <MessageSquare size={16} />, labelKey: "pipeline.scripts" },
-  { id: "ai", icon: <Sparkles size={16} />, labelKey: "pipeline.aiContent" },
 ];
 
 export default function SalesToolsPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t, lang } = useT();
-  const { toast, showToast } = useToast();
+  const showToast = useUIStore((s) => s.showToast);
   const [seg, setSeg] = useState<Seg>("emails");
   const L = useCallback((o: { zh: string; en: string }) => o[lang] || o.en, [lang]);
 
@@ -39,8 +35,6 @@ export default function SalesToolsPanel({ open, onClose }: { open: boolean; onCl
         className="relative w-full max-w-lg flex flex-col overflow-hidden"
         style={{ background: "var(--bg)", borderLeft: "1px solid var(--border)" }}
       >
-        {toast && <Toast message={toast} />}
-
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
           <h2 className="text-[15px] font-bold">{t("pipeline.salesTools" as any)}</h2>
@@ -68,11 +62,6 @@ export default function SalesToolsPanel({ open, onClose }: { open: boolean; onCl
         <div className="flex-1 overflow-y-auto">
           {seg === "emails" && <EmailArsenal L={L} t={t} showToast={showToast} />}
           {seg === "scripts" && <ScriptVault L={L} t={t} showToast={showToast} />}
-          {seg === "ai" && (
-            <Suspense fallback={<div className="flex justify-center py-12"><Loader2 className="animate-spin" style={{ color: "var(--accent)" }} /></div>}>
-              <CreatePage />
-            </Suspense>
-          )}
         </div>
       </motion.div>
     </div>,

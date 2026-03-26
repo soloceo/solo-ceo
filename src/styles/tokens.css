@@ -1,0 +1,226 @@
+/* ══════════════════════════════════════════════════════════════════
+   Design Tokens — Solo CEO V2
+   100% Linear Design System · Inter Variable · LCH-based palette
+   ══════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Backgrounds (warm neutral palette) ────────────────────── */
+  --color-bg-primary:      #ffffff;
+  --color-bg-secondary:    #faf9f7;
+  --color-bg-tertiary:     #f5f3f0;
+  --color-bg-quaternary:   #eeece8;
+  --color-bg-quinary:      #e8e5e1;
+  --color-bg-panel:        #f6f4f1;
+  --color-bg-tint:         #f7f5f2;
+  --color-bg-translucent:  rgba(0,0,0,0.02);
+
+  /* Background levels (elevation) */
+  --color-bg-level-0:      #ffffff;
+  --color-bg-level-1:      #faf9f7;
+  --color-bg-level-2:      #f5f3f0;
+  --color-bg-level-3:      #f0ede9;
+
+  /* ── Lines / Dividers ────────────────────────────────────────── */
+  --color-line-primary:    #d6d3ce;
+  --color-line-secondary:  #eae8e4;
+  --color-line-tertiary:   #f0ede9;
+
+  /* ── Borders ─────────────────────────────────────────────────── */
+  --color-border-primary:             #e8e5e1;
+  --color-border-secondary:           #e0ddd8;
+  --color-border-tertiary:            #d6d3ce;
+  --color-border-translucent:         rgba(0,0,0,0.05);
+  --color-border-translucent-strong:  rgba(0,0,0,0.08);
+
+  /* ── Text (4-level hierarchy) ────────────────────────────────── */
+  --color-text-primary:    #1a1a1a;
+  --color-text-secondary:  #4a4a4a;
+  --color-text-tertiary:   #7a7772;
+  --color-text-quaternary: #9b9790;
+
+  /* ── Foreground aliases ──────────────────────────────────────── */
+  --color-fg-primary:      #1a1a1a;
+  --color-fg-secondary:    #4a4a4a;
+  --color-fg-tertiary:     #7a7772;
+  --color-fg-quaternary:   #9b9790;
+
+  /* ── Brand / Accent — Solo CEO Yellow ─────────────────────────── */
+  --color-indigo:          #f0bf00;
+  --color-accent:          #f0bf00;
+  --color-accent-hover:    #ddb000;
+  --color-accent-tint:     #fffbe6;
+  --color-brand-bg:        #f0bf00;
+  --color-brand-text:      #1a1400;
+
+  /* ── Semantic ────────────────────────────────────────────────── */
+  --color-blue:            #4ea7fc;
+  --color-red:             #eb5757;
+  --color-green:           #27a644;
+  --color-orange:          #fc7840;
+  --color-yellow:          #f0bf00;
+  --color-teal:            #00b8cc;
+
+  --color-success:         #27a644;
+  --color-success-light:   #f0fdf4;
+  --color-warning:         #f0bf00;
+  --color-warning-light:   #fefce8;
+  --color-danger:          #eb5757;
+  --color-danger-light:    #fef2f2;
+
+  /* ── Link ────────────────────────────────────────────────────── */
+  --color-link-primary:    #ddb000;
+
+  /* ── Header ──────────────────────────────────────────────────── */
+  --header-bg:             var(--color-bg-primary);
+  --header-border:         rgba(0,0,0,0.06);
+
+  /* ── Overlay ──────────────────────────────────────────────────── */
+  --color-overlay-primary: rgba(255,255,255,0.65);
+
+  /* ── Shadows — warm neutral system ─────────────────────────── */
+  --shadow-none:           0px 0px 0px transparent;
+  --shadow-tiny:           0px 1px 1px 0px rgba(0,0,0,0.06);
+  --shadow-low:            0px 1px 4px -1px rgba(0,0,0,0.07);
+  --shadow-medium:         0px 3px 12px rgba(0,0,0,0.07);
+  --shadow-high:           0px 7px 24px rgba(0,0,0,0.05);
+  --shadow-stack-low:      0px -1px 1px 0px rgba(0,0,0,0.08) inset, 0px 8px 2px 0px rgba(0,0,0,0), 0px 5px 2px 0px rgba(0,0,0,0.01), 0px 3px 2px 0px rgba(0,0,0,0.03), 0px 1px 1px 0px rgba(0,0,0,0.05), 0px 0px 1px 0px rgba(0,0,0,0.06);
+
+  /* ── Radius — Linear system ──────────────────────────────────── */
+  --radius-4:              4px;
+  --radius-6:              6px;
+  --radius-8:              8px;
+  --radius-12:             12px;
+  --radius-16:             16px;
+  --radius-24:             24px;
+  --radius-rounded:        9999px;
+  --radius-circle:         50%;
+
+  /* ── Layout ──────────────────────────────────────────────────── */
+  --sidebar-width:         232px;
+  --header-height:         48px;
+  --page-padding-inline:   24px;
+  --page-max-width:        1024px;
+  --min-tap-size:          44px;
+  --app-radius:            12px;
+  --scrollbar-size:        6px;
+
+  /* ── Transitions — Linear easing ─────────────────────────────── */
+  --speed-quick:           0.1s;
+  --speed-regular:         0.25s;
+  --ease-out-quad:         cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-out-quint:        cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-out-expo:         cubic-bezier(0.19, 1, 0.22, 1);
+  --transition-fast:       0.1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --transition-base:       0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+  /* ── Focus ───────────────────────────────────────────────────── */
+  --focus-ring-color:      rgba(0,0,0,0.3);
+  --focus-ring-width:      2px;
+
+  /* ── Scrollbar ───────────────────────────────────────────────── */
+  --scrollbar-color:       rgba(0,0,0,0.08);
+  --scrollbar-color-hover: rgba(0,0,0,0.15);
+
+  /* ── Z-Index layers ──────────────────────────────────────────── */
+  --layer-header:          100;
+  --layer-overlay:         500;
+  --layer-popover:         600;
+  --layer-command-menu:    650;
+  --layer-dialog-overlay:  699;
+  --layer-dialog:          700;
+  --layer-toasts:          800;
+  --layer-tooltip:         1100;
+
+  /* ── Legacy aliases (V1 pages not yet refactored) ────────────── */
+  --text:              var(--color-text-primary);
+  --text-secondary:    var(--color-text-secondary);
+  --text-tertiary:     var(--color-text-tertiary);
+  --surface:           var(--color-bg-primary);
+  --surface-alt:       var(--color-bg-tertiary);
+  --border:            var(--color-border-primary);
+  --border-subtle:     var(--color-border-secondary);
+  --border-strong:     var(--color-border-primary);
+  --accent:            var(--color-accent);
+  --accent-subtle:     var(--color-accent-tint);
+  --danger:            var(--color-danger);
+  --success:           var(--color-success);
+  --success-light:     var(--color-success-light);
+  --warning:           var(--color-warning);
+  --warning-light:     var(--color-warning-light);
+  --brand-blue:        var(--color-blue);
+  --brand-blue-light:  rgba(78,167,252,0.1);
+  --radius-sm:         var(--radius-4);
+  --radius-md:         var(--radius-6);
+  --radius-lg:         var(--radius-12);
+  --shadow-elevated:   var(--shadow-high);
+
+  color-scheme: light;
+}
+
+/* ── Dark Theme — Linear exact values ─────────────────────────── */
+.dark {
+  --color-bg-primary:      #111214;
+  --color-bg-secondary:    #1c1c1f;
+  --color-bg-tertiary:     #232326;
+  --color-bg-quaternary:   #28282c;
+  --color-bg-quinary:      #282828;
+  --color-bg-panel:        #08090a;
+  --color-bg-tint:         #141516;
+  --color-bg-translucent:  rgba(255,255,255,0.05);
+
+  --color-bg-level-0:      #08090a;
+  --color-bg-level-1:      #111214;
+  --color-bg-level-2:      #161718;
+  --color-bg-level-3:      #1c1c1f;
+
+  --color-line-primary:    #37393a;
+  --color-line-secondary:  #202122;
+  --color-line-tertiary:   #18191a;
+
+  --color-border-primary:             #23252a;
+  --color-border-secondary:           #34343a;
+  --color-border-tertiary:            #3e3e44;
+  --color-border-translucent:         rgba(255,255,255,0.05);
+  --color-border-translucent-strong:  rgba(255,255,255,0.08);
+
+  --color-text-primary:    #f7f8f8;
+  --color-text-secondary:  #d0d6e0;
+  --color-text-tertiary:   #8a8f98;
+  --color-text-quaternary: #62666d;
+
+  --color-fg-primary:      #f7f8f8;
+  --color-fg-secondary:    #d0d6e0;
+  --color-fg-tertiary:     #8a8f98;
+  --color-fg-quaternary:   #62666d;
+
+  --color-accent:          #f0bf00;
+  --color-accent-hover:    #ffe033;
+  --color-accent-tint:     #2a2510;
+  --color-brand-bg:        #f0bf00;
+
+  --color-link-primary:    #ffe033;
+
+  --color-success:         #27a644;
+  --color-success-light:   #052e16;
+  --color-warning:         #f0bf00;
+  --color-warning-light:   #1a1600;
+  --color-danger:          #eb5757;
+  --color-danger-light:    #2a0808;
+
+  --header-bg:             rgba(11,11,11,0.8);
+  --header-border:         rgba(255,255,255,0.08);
+
+  --color-overlay-primary: rgba(0,0,0,0.85);
+
+  --shadow-tiny:           0px 0px 0px transparent;
+  --shadow-low:            0px 2px 4px rgba(0,0,0,0.1);
+  --shadow-medium:         0px 4px 24px rgba(0,0,0,0.2);
+  --shadow-high:           0px 7px 32px rgba(0,0,0,0.35);
+
+  --focus-ring-color:      var(--color-indigo);
+
+  --scrollbar-color:       rgba(255,255,255,0.1);
+  --scrollbar-color-hover: rgba(255,255,255,0.2);
+
+  color-scheme: dark;
+}
