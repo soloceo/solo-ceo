@@ -1,0 +1,375 @@
+/* ══════════════════════════════════════════════════════════════════
+   Component Classes — Solo CEO V2
+   Linear-identical patterns
+   ══════════════════════════════════════════════════════════════════ */
+
+@layer utilities {
+
+  /* ── Safe-area helpers ─────────────────────────────────────── */
+  .pb-safe { padding-bottom: max(18px, env(safe-area-inset-bottom)); }
+  .ios-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* ── Cards ─────────────────────────────────────────────────── */
+
+  .card {
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border-translucent);
+    border-radius: var(--radius-16);
+  }
+
+  .card-elevated {
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border-translucent);
+    border-radius: var(--radius-16);
+    box-shadow: var(--shadow-medium);
+  }
+
+  .card-interactive {
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border-translucent);
+    border-radius: var(--radius-16);
+    transition: border-color var(--transition-fast),
+                background var(--transition-fast);
+  }
+  .card-interactive:hover {
+    background: var(--color-bg-secondary);
+    border-color: var(--color-border-primary);
+  }
+
+  /* ── Modal backdrop ────────────────────────────────────────── */
+
+  .modal-backdrop {
+    background: var(--color-overlay-primary);
+  }
+
+  /* ── Page title (hidden on mobile — header shows it) ──────── */
+
+  .page-title {
+    font-size: 1.0625rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+    letter-spacing: -0.012em;
+  }
+  @media (max-width: 1023px) {
+    .page-title { display: none; }
+  }
+
+  /* ── Page layouts ──────────────────────────────────────────── */
+
+  .page-wrap {
+    @apply mx-auto;
+    max-width: var(--page-max-width);
+    padding: var(--page-padding-inline);
+  }
+  @media (min-width: 768px) {
+    .page-wrap { padding: 32px; }
+  }
+  @media (min-width: 1024px) {
+    .page-wrap { padding: 32px 40px; }
+  }
+
+  .page-stack {
+    @apply flex flex-col;
+    gap: 20px;
+  }
+  @media (min-width: 768px) {
+    .page-stack { gap: 24px; }
+  }
+
+  /* ── Segment switcher (28px inner → 32px total) ──────────── */
+
+  .segment-switcher {
+    @apply inline-flex items-center gap-0.5;
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border-translucent);
+    border-radius: var(--radius-pill);
+    padding: 2px;
+  }
+  .segment-switcher > button {
+    @apply text-[13px] transition-all;
+    font-weight: var(--font-weight-medium);
+    padding: 4px 12px;
+    height: 28px;
+    border-radius: var(--radius-pill);
+    color: var(--color-text-tertiary);
+  }
+  .segment-switcher > button[data-active="true"],
+  .segment-switcher > button.active {
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    box-shadow: var(--shadow-tiny);
+  }
+
+  /* ── Skeleton loading ──────────────────────────────────────── */
+
+  .skeleton-bone {
+    background: linear-gradient(105deg,
+      var(--color-bg-tertiary) 30%,
+      var(--color-border-translucent) 50%,
+      var(--color-bg-tertiary) 70%
+    );
+    background-size: 250% 100%;
+    animation: shimmer 2s ease-in-out infinite;
+  }
+
+  /* ── List item ─────────────────────────────────────────────── */
+
+  .list-item {
+    @apply flex items-center gap-3;
+    transition: background var(--transition-fast);
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--color-line-tertiary);
+  }
+  .list-item:last-child { border-bottom: none; }
+  .list-item:hover { background: var(--color-bg-tertiary); }
+
+  /* ── Badge ─────────────────────────────────────────────────── */
+
+  .badge {
+    @apply inline-flex items-center gap-1;
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-medium);
+    padding: 1px 6px;
+    border-radius: var(--radius-pill);
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-tertiary);
+  }
+
+  /* ── Mobile page (no overflow) ─────────────────────────────── */
+
+  .mobile-page {
+    /* No overflow properties — parent motion.div handles scrolling */
+  }
+  @media (max-width: 1023px) {
+    .mobile-page {
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 90px);
+    }
+  }
+
+  /* ── Buttons (40px default, 36px compact; mobile 48px/40px) ── */
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-1.5;
+    font-size: 0.875rem;
+    font-weight: var(--font-weight-medium);
+    background: var(--color-accent);
+    color: var(--color-brand-text);
+    border-radius: var(--radius-pill);
+    padding: 8px 16px;
+    height: 40px;
+    transition: background var(--transition-fast);
+  }
+  .btn-primary:hover { background: var(--color-accent-hover); transform: scale(1.02); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-1.5;
+    font-size: 0.875rem;
+    font-weight: var(--font-weight-medium);
+    background: transparent;
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border-secondary);
+    border-radius: var(--radius-pill);
+    padding: 8px 16px;
+    height: 40px;
+    transition: all var(--transition-fast);
+  }
+  .btn-secondary:hover { background: var(--color-bg-tertiary); }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-1.5;
+    font-size: 0.875rem;
+    font-weight: var(--font-weight-medium);
+    background: transparent;
+    color: var(--color-text-tertiary);
+    border-radius: var(--radius-pill);
+    padding: 8px 12px;
+    height: 40px;
+    transition: all var(--transition-fast);
+  }
+  .btn-ghost:hover {
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-primary);
+  }
+
+  .btn-secondary:hover { transform: scale(1.02); }
+  .btn-primary:active,
+  .btn-secondary:active,
+  .btn-ghost:active { transform: scale(0.95); transition: transform 0.2s var(--spring-bounce); }
+
+  /* ── Compact size (36px — toolbar / filter bar) ──────────── */
+
+  .btn-primary.compact,
+  .btn-secondary.compact,
+  .btn-ghost.compact {
+    height: 36px;
+    padding: 6px 12px;
+    font-size: 0.8125rem;
+  }
+  .input-base.compact {
+    height: 36px;
+    font-size: 0.875rem;
+  }
+
+  /* ── Input (40px desktop, 48px mobile) ── */
+
+  .input-base {
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border-primary);
+    border-radius: var(--radius-12);
+    color: var(--color-text-primary);
+    height: 40px;
+    outline: none;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  }
+  textarea.input-base {
+    height: auto; /* textareas should grow naturally */
+  }
+  .input-base::placeholder {
+    color: var(--color-text-quaternary);
+  }
+  .input-base:hover {
+    border-color: var(--color-border-secondary);
+  }
+  .input-base:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 var(--focus-ring-width) var(--color-accent-tint);
+  }
+  select.input-base {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 32px;
+  }
+  input[type="date"].input-base { min-width: 0; }
+
+  /* ── Icon-only buttons (44px mobile touch target) ──────── */
+
+  .btn-icon {
+    @apply flex items-center justify-center shrink-0;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-rounded);
+    color: var(--color-text-quaternary);
+    transition: background var(--transition-fast), color var(--transition-fast);
+  }
+  .btn-icon:hover {
+    background: var(--color-bg-quaternary);
+    color: var(--color-text-secondary);
+  }
+  .btn-icon-sm {
+    @apply flex items-center justify-center shrink-0;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-rounded);
+    color: var(--color-text-quaternary);
+    transition: background var(--transition-fast), color var(--transition-fast);
+  }
+  .btn-icon-sm:hover {
+    background: var(--color-bg-quaternary);
+    color: var(--color-text-secondary);
+  }
+  .btn-icon:active,
+  .btn-icon-sm:active {
+    transform: scale(0.92);
+    transition: transform 0.15s var(--spring-bounce);
+  }
+
+  /* ── Focus visible (keyboard accessibility) ──────────────── */
+  .btn-primary:focus-visible,
+  .btn-secondary:focus-visible,
+  .btn-ghost:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+  .btn-icon:focus-visible,
+  .btn-icon-sm:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  /* ── Mobile: enlarge inputs & buttons to 48px (Material Design 3) ── */
+  @media (max-width: 1023px) {
+    .input-base { height: 48px; }
+    .input-base.compact { height: 40px; }
+    textarea.input-base { height: auto; }
+    .btn-primary,
+    .btn-secondary,
+    .btn-ghost { height: 48px; padding-top: 10px; padding-bottom: 10px; }
+    .btn-primary.compact,
+    .btn-secondary.compact,
+    .btn-ghost.compact { height: 40px; padding-top: 8px; padding-bottom: 8px; }
+    .segment-switcher > button { height: 36px; padding: 8px 16px; }
+    .btn-icon { width: 48px; height: 48px; }
+    .btn-icon-sm { width: 40px; height: 40px; }
+  }
+
+  /* ── Mobile sheet ──────────────────────────────────────────── */
+
+  .mobile-sheet-overlay {
+    @apply fixed inset-0 z-50 flex flex-col justify-end md:items-center md:justify-center;
+    background: var(--color-overlay-primary);
+  }
+  .mobile-sheet-content {
+    @apply w-full overflow-hidden;
+    background: var(--color-bg-primary);
+    max-height: 95vh;
+    border-radius: var(--radius-28) var(--radius-28) 0 0;
+    box-shadow: var(--shadow-high);
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
+  }
+  @media (min-width: 768px) {
+    .mobile-sheet-content {
+      border-radius: var(--radius-20);
+      max-width: 36rem;
+      width: 100%;
+      padding-bottom: 0;
+    }
+  }
+
+  /* ── Stat card ─────────────────────────────────────────────── */
+
+  .stat-card {
+    @apply flex flex-col gap-0.5;
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border-translucent);
+    border-radius: var(--radius-16);
+    padding: 12px;
+  }
+  @media (min-width: 768px) {
+    .stat-card {
+      @apply gap-1;
+      padding: 16px;
+    }
+  }
+
+  /* ── Press feedback — defined in animations.css ──────────── */
+
+  /* ── Content panel (floating on desktop) ──────────────────── */
+
+  @media (min-width: 1024px) {
+    .content-panel {
+      border-radius: var(--radius-20);
+      box-shadow: var(--shadow-low);
+      border: 1px solid var(--color-border-translucent);
+    }
+  }
+
+  /* ── Glass (mobile nav only) ───────────────────────────────── */
+
+  .glass {
+    background: var(--header-bg);
+    backdrop-filter: blur(20px) saturate(1.2);
+    -webkit-backdrop-filter: blur(20px) saturate(1.2);
+    border-top: 1px solid var(--header-border);
+  }
+
+  /* ── Widget card ─────────────────────────────────────────── */
+  .widget-card {
+    aspect-ratio: 1 / 1;
+  }
+}

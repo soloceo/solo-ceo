@@ -1,0 +1,73 @@
+/* ══════════════════════════════════════════════════════════════════
+   Animations — Solo CEO V2
+   Spring physics via Motion library; CSS for simple/loading states
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Keyframes ────────────────────────────────────────────────── */
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes skeleton-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in-down {
+  from { opacity: 0; transform: translateX(-50%) translateY(-12px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ── Utility classes ─────────────────────────────────────────── */
+
+.animate-skeleton-in {
+  animation: skeleton-in 0.3s ease-out 0.3s both;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── Page enter (instant Linear-style) ─────────────────────── */
+
+@keyframes page-enter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.page-enter {
+  animation: page-enter 80ms ease-out both;
+}
+
+/* ── Press feedback ──────────────────────────────────────────── */
+
+.press-feedback {
+  transition: transform var(--transition-fast);
+}
+.press-feedback:active {
+  transform: scale(0.96);
+  transition: transform 0.15s var(--spring-bounce);
+}
+
+/* ── Celebrate bounce ──────────────────────────────────────────── */
+
+@keyframes celebrate-bounce {
+  0%, 100% { transform: scale(1); }
+  25% { transform: scale(1.05); }
+  50% { transform: scale(0.97); }
+  75% { transform: scale(1.02); }
+}
+.celebrate-bounce {
+  animation: celebrate-bounce 0.5s var(--spring-bounce);
+}

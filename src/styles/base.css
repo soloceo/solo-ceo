@@ -1,0 +1,105 @@
+/* ══════════════════════════════════════════════════════════════════
+   Base — Solo CEO V2
+   System font stack: SF Pro (Apple) · Roboto (Android) · Segoe UI (Windows)
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Font tokens ──────────────────────────────────────────────── */
+:root {
+  --font-regular:
+    -apple-system, BlinkMacSystemFont,
+    'SF Pro Display', 'SF Pro Text',
+    /* CJK: macOS */     'PingFang SC',
+    /* CJK: Windows */   'Microsoft YaHei UI', 'Microsoft YaHei',
+    /* CJK: Linux */     'Noto Sans CJK SC',
+    /* CJK: fallback */  'Source Han Sans SC',
+    'Segoe UI', 'Roboto', 'Helvetica Neue',
+    system-ui, sans-serif;
+
+  --font-monospace: 'SF Mono', 'Menlo', ui-monospace, monospace;
+
+  /* SF Pro standard weights */
+  --font-weight-normal:   400;
+  --font-weight-medium:   500;
+  --font-weight-semibold: 600;
+  --font-weight-bold:     700;
+}
+
+/* ── Resets ────────────────────────────────────────────────────── */
+
+html, body, #root {
+  height: 100%;
+  background-color: var(--color-bg-primary);
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}
+
+* { -webkit-tap-highlight-color: transparent; }
+a, button, [role="button"] { cursor: pointer; }
+input, textarea, select { cursor: text; }
+[draggable="true"] { cursor: grab; }
+[draggable="true"]:active { cursor: grabbing; }
+
+@media (max-width: 1023px) {
+  html, body {
+    position: fixed;
+    width: 100%;
+    overflow: hidden;
+  }
+}
+
+/* ── Typography ───────────────────────────────────────────────── */
+
+body {
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family: var(--font-regular);
+  font-size: 1rem;
+  line-height: 1.5;
+  letter-spacing: -0.013em;
+  font-variant-numeric: tabular-nums;
+  font-optical-sizing: auto;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
+}
+
+/* ── Dark mode: slightly heavier text for legibility ──────────── */
+@media (prefers-color-scheme: dark) {
+  body { -webkit-font-smoothing: auto; }
+}
+.dark body { -webkit-font-smoothing: auto; }
+
+button, input, select, textarea {
+  font: inherit;
+  max-width: 100%;
+}
+
+/* ── iOS zoom prevention: inputs < 16px trigger auto-zoom ───── */
+@media (max-width: 1023px) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+/* ── Section label ─────────────────────────────────────────────── */
+.section-label {
+  font-size: 0.6875rem;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-quaternary);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* ── Hide scrollbars globally ─────────────────────────────────── */
+::-webkit-scrollbar { display: none; }
+* {
+  -ms-overflow-style: none;   /* IE / Edge */
+  scrollbar-width: none;      /* Firefox */
+}

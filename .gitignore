@@ -1,0 +1,16 @@
+node_modules
+dist
+dist-server
+electron-dist
+release
+.env
+database.sqlite
+*.dmg
+*.zip
+*.apk
+*.blockmap
+builder-debug.yml
+latest-mac.yml
+*.blockmap.yml
+.DS_Store
+.claude/settings.local.json
