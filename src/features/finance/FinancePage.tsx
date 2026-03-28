@@ -67,6 +67,7 @@ export default function FinancePage() {
   const [clientList, setClientList] = useState<any[]>([]);
 
   /* ── UI state ── */
+  const [financeTab, setFinanceTab] = useState<"business" | "personal">("business");
   const [showPanel, setShowPanel] = useState(false);
   const [editingTx, setEditingTx] = useState<any>(null);
   const [showAll, setShowAll] = useState(false);
@@ -88,14 +89,14 @@ export default function FinancePage() {
 
   /* ── Filter state (consolidated to reduce re-renders) ── */
   const [filters, setFilters] = useState({
-    scope: "all", type: "all", category: "all", status: "all", client: "all",
+    type: "all", category: "all", status: "all",
     dateFrom: "", dateTo: "", search: "",
   });
   const setFilter = useCallback(<K extends keyof typeof filters>(key: K, val: typeof filters[K]) => {
     setFilters(p => ({ ...p, [key]: val }));
   }, []);
-  const filterScope = filters.scope, filterType = filters.type, filterCategory = filters.category;
-  const filterStatus = filters.status, filterClient = filters.client;
+  const filterType = filters.type, filterCategory = filters.category;
+  const filterStatus = filters.status;
   const filterDateFrom = filters.dateFrom, filterDateTo = filters.dateTo;
   const filterSearch = filters.search;
 
@@ -138,6 +139,14 @@ export default function FinancePage() {
     return () => window.removeEventListener("quick-create", handler);
   }, []);
 
+  /* ── Tab-filtered transactions ── */
+  const tabTxs = useMemo(() => {
+    return transactions.filter(tx => {
+      const isPersonal = PERSONAL_CATEGORIES.has(tx.category || "");
+      return financeTab === "personal" ? isPersonal : !isPersonal;
+    });
+  }, [transactions, financeTab]);
+
   /* ── Stats computation ── */
   const stats = useMemo(() => {
     const now = new Date();
@@ -146,7 +155,7 @@ export default function FinancePage() {
     let totalIncome = 0, totalExpense = 0, receivable = 0, payable = 0;
     let monthIncome = 0, monthExpense = 0, totalTax = 0;
 
-    for (const tx of transactions) {
+    for (const tx of tabTxs) {
       const amt = Math.abs(Number(tx.amount || 0));
       const tax = Math.abs(Number(tx.tax_amount || 0));
       const isIncome = tx.type === "income" || Number(tx.amount || 0) > 0;
@@ -174,7 +183,20 @@ export default function FinancePage() {
       monthIncome, monthExpense,
       monthNet: monthIncome - monthExpense,
     };
-  }, [transactions]);
+  }, [tabTxs]);
+
+  /* ── Personal stats ── */
+  const personalStats = useMemo(() => {
+    if (financeTab !== "personal") return { monthTotal: 0, dailyAvg: 0 };
+    const now = new Date();
+    const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    let monthTotal = 0;
+    for (const tx of tabTxs) {
+      if ((tx.date || "").startsWith(thisMonth)) monthTotal += Math.abs(Number(tx.amount || 0));
+    }
+    const dayOfMonth = now.getDate();
+    return { monthTotal, dailyAvg: dayOfMonth > 0 ? monthTotal / dayOfMonth : 0 };
+  }, [tabTxs, financeTab]);
 
   /* ── Chart data ── */
   const chartData = useMemo(() => {
@@ -187,7 +209,7 @@ export default function FinancePage() {
       months[key] = { month: key, income: 0, expense: 0, net: 0 };
     }
 
-    for (const tx of transactions) {
+    for (const tx of tabTxs) {
       if (!tx.date) continue;
       const m = tx.date.slice(0, 7);
       if (!months[m]) continue;
@@ -205,17 +227,12 @@ export default function FinancePage() {
       net: m.income - m.expense,
       label: m.month.slice(5),
     }));
-  }, [transactions]);
+  }, [tabTxs]);
 
   /* ── Filtered transactions for "View All" ── */
   const filteredTxs = useMemo(() => {
-    return transactions
+    return tabTxs
       .filter(tx => {
-        if (filterScope !== "all") {
-          const isPersonal = PERSONAL_CATEGORIES.has(tx.category || "");
-          if (filterScope === "personal" && !isPersonal) return false;
-          if (filterScope === "business" && isPersonal) return false;
-        }
         if (filterType !== "all") {
           const isIncome = tx.type === "income" || Number(tx.amount) > 0;
           if (filterType === "income" && !isIncome) return false;
@@ -223,25 +240,23 @@ export default function FinancePage() {
         }
         if (filterCategory !== "all" && tx.category !== filterCategory) return false;
         if (filterStatus !== "all" && tx.status !== filterStatus) return false;
-        if (filterClient !== "all" && String(tx.client_id) !== filterClient) return false;
         if (filterDateFrom && (tx.date || "") < filterDateFrom) return false;
         if (filterDateTo && (tx.date || "") > filterDateTo) return false;
         if (filterSearch) {
           const s = filterSearch.toLowerCase();
           const desc = (tx.description || tx.desc || "").toLowerCase();
           const cat = (tx.category || "").toLowerCase();
-          const client = (tx.client_name || "").toLowerCase();
-          if (!desc.includes(s) && !cat.includes(s) && !client.includes(s)) return false;
+          if (!desc.includes(s) && !cat.includes(s)) return false;
         }
         return true;
       })
       .sort((a: any, b: any) => (b.date || "").localeCompare(a.date || ""));
-  }, [transactions, filters]);
+  }, [tabTxs, filters]);
 
   /* ── Recent transactions (top 8) ── */
   const recentTxs = useMemo(() =>
-    [...transactions].sort((a, b) => (b.date || "").localeCompare(a.date || "")).slice(0, 8),
-  [transactions]);
+    [...tabTxs].sort((a, b) => (b.date || "").localeCompare(a.date || "")).slice(0, 8),
+  [tabTxs]);
 
   /* ── Panel open/close ── */
   const openPanel = async (tx: any = null) => {
@@ -260,7 +275,13 @@ export default function FinancePage() {
       });
     } else {
       setEditingTx(null);
-      setFormData(createEmptyForm());
+      const form = createEmptyForm();
+      if (financeTab === "personal") {
+        form.category = "餐饮";
+        form.status = "已完成";
+        form.taxMode = "none";
+      }
+      setFormData(form);
     }
     setShowPanel(true);
   };
@@ -410,46 +431,87 @@ export default function FinancePage() {
         </div>
       </header>
 
+      {/* ── Tab switcher ── */}
+      <div className="flex gap-1 mb-4 p-1 rounded-[var(--radius-8)]" style={{ background: "var(--color-bg-tertiary)" }}>
+        {(["business", "personal"] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => { setFinanceTab(tab); setFilters({ type: "all", category: "all", status: "all", dateFrom: "", dateTo: "", search: "" }); }}
+            className="flex-1 py-2 text-[14px] rounded-[var(--radius-6)] transition-colors press-feedback"
+            style={financeTab === tab ? {
+              background: "var(--color-bg-primary)",
+              color: "var(--color-text-primary)",
+              fontWeight: "var(--font-weight-semibold)",
+              boxShadow: "var(--shadow-low)",
+            } as React.CSSProperties : {
+              color: "var(--color-text-tertiary)",
+              fontWeight: "var(--font-weight-medium)",
+            } as React.CSSProperties}
+          >
+            {tab === "business" ? (lang === "zh" ? "公司" : "Business") : (lang === "zh" ? "个人" : "Personal")}
+          </button>
+        ))}
+      </div>
+
       {/* ── KPI Stat Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-        <StatCard
-          label={t("money.stat.completedRevenue" as any)}
-          value={`$${stats.totalIncome.toLocaleString()}`}
-          sub={`${t("finance.thisMonth" as any)} $${stats.monthIncome.toLocaleString()}`}
-          icon={<TrendingUp size={16} />}
-          color="var(--color-success)"
-        />
-        <StatCard
-          label={t("money.stat.completedExpense" as any)}
-          value={`$${stats.totalExpense.toLocaleString()}`}
-          sub={`${t("finance.thisMonth" as any)} $${stats.monthExpense.toLocaleString()}`}
-          icon={<TrendingDown size={16} />}
-          color="var(--color-danger)"
-        />
-        <StatCard
-          label={t("money.stat.netProfit" as any)}
-          value={stats.netProfit < 0 ? `-$${Math.abs(stats.netProfit).toLocaleString()}` : `$${stats.netProfit.toLocaleString()}`}
-          sub={`${t("money.stat.margin" as any)} ${stats.margin}%`}
-          icon={<Wallet size={16} />}
-          color={stats.netProfit >= 0 ? "var(--color-success)" : "var(--color-danger)"}
-        />
-        <StatCard
-          label={t("money.stat.receivable" as any)}
-          value={`$${stats.receivable.toLocaleString()}`}
-          sub={stats.payable > 0 ? `${t("money.st.payable" as any)} $${stats.payable.toLocaleString()}` : ""}
-          icon={<AlertCircle size={16} />}
-          color="var(--color-warning)"
-        />
-        {stats.totalTax > 0 && (
+      {financeTab === "business" ? (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
           <StatCard
-            label={t("finance.totalTax" as any)}
-            value={`$${stats.totalTax.toLocaleString()}`}
+            label={t("money.stat.completedRevenue" as any)}
+            value={`$${stats.totalIncome.toLocaleString()}`}
+            sub={`${t("finance.thisMonth" as any)} $${stats.monthIncome.toLocaleString()}`}
+            icon={<TrendingUp size={16} />}
+            color="var(--color-success)"
+          />
+          <StatCard
+            label={t("money.stat.completedExpense" as any)}
+            value={`$${stats.totalExpense.toLocaleString()}`}
+            sub={`${t("finance.thisMonth" as any)} $${stats.monthExpense.toLocaleString()}`}
+            icon={<TrendingDown size={16} />}
+            color="var(--color-danger)"
+          />
+          <StatCard
+            label={t("money.stat.netProfit" as any)}
+            value={stats.netProfit < 0 ? `-$${Math.abs(stats.netProfit).toLocaleString()}` : `$${stats.netProfit.toLocaleString()}`}
+            sub={`${t("money.stat.margin" as any)} ${stats.margin}%`}
+            icon={<Wallet size={16} />}
+            color={stats.netProfit >= 0 ? "var(--color-success)" : "var(--color-danger)"}
+          />
+          <StatCard
+            label={t("money.stat.receivable" as any)}
+            value={`$${stats.receivable.toLocaleString()}`}
+            sub={stats.payable > 0 ? `${t("money.st.payable" as any)} $${stats.payable.toLocaleString()}` : ""}
+            icon={<AlertCircle size={16} />}
+            color="var(--color-warning)"
+          />
+          {stats.totalTax > 0 && (
+            <StatCard
+              label={t("finance.totalTax" as any)}
+              value={`$${stats.totalTax.toLocaleString()}`}
+              sub=""
+              icon={<Receipt size={16} />}
+              color="var(--color-text-secondary)"
+            />
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <StatCard
+            label={lang === "zh" ? "本月支出" : "This Month"}
+            value={`$${personalStats.monthTotal.toLocaleString()}`}
             sub=""
-            icon={<Receipt size={16} />}
+            icon={<TrendingDown size={16} />}
+            color="var(--color-danger)"
+          />
+          <StatCard
+            label={lang === "zh" ? "日均支出" : "Daily Avg"}
+            value={`$${Math.round(personalStats.dailyAvg).toLocaleString()}`}
+            sub=""
+            icon={<Wallet size={16} />}
             color="var(--color-text-secondary)"
           />
-        )}
-      </div>
+        </div>
+      )}
 
       {/* ── Chart ── */}
       <React.Suspense fallback={<div className="card p-4 mb-4 h-[200px] skeleton-bone rounded-[var(--radius-12)]" />}>
@@ -529,33 +591,28 @@ export default function FinancePage() {
                   className="input-base compact w-full pl-8 pr-3 text-[15px]"
                 />
               </div>
-              <select value={filterScope} onChange={e => setFilter("scope", e.target.value)} className="input-base compact px-2 text-[15px] shrink-0">
-                <option value="all">{t("money.filter.scopeAll" as any)}</option>
-                <option value="business">{t("money.filter.scopeBusiness" as any)}</option>
-                <option value="personal">{t("money.filter.scopePersonal" as any)}</option>
-              </select>
-              <select value={filterType} onChange={e => setFilter("type", e.target.value)} className="input-base compact px-2 text-[15px] shrink-0">
-                <option value="all">{t("money.filter.typeAll" as any)}</option>
-                <option value="income">{t("money.filter.income" as any)}</option>
-                <option value="expense">{t("money.filter.expense" as any)}</option>
-              </select>
+              {financeTab === "business" && (
+                <select value={filterType} onChange={e => setFilter("type", e.target.value)} className="input-base compact px-2 text-[15px] shrink-0">
+                  <option value="all">{t("money.filter.typeAll" as any)}</option>
+                  <option value="income">{t("money.filter.income" as any)}</option>
+                  <option value="expense">{t("money.filter.expense" as any)}</option>
+                </select>
+              )}
               <select value={filterCategory} onChange={e => setFilter("category", e.target.value)} className="input-base compact px-2 text-[15px] shrink-0">
                 <option value="all">{t("money.filter.categoryAll" as any)}</option>
-                <optgroup label={t("money.filter.scopeBusiness" as any)}>{BIZ_CATEGORIES.map(c => <option key={c} value={c}>{catLabel(c, t)}</option>)}</optgroup><optgroup label={t("money.filter.scopePersonal" as any)}>{PERSONAL_CATEGORIES_LIST.map(c => <option key={c} value={c}>{catLabel(c, t)}</option>)}</optgroup>
+                {(financeTab === "business" ? BIZ_CATEGORIES : PERSONAL_CATEGORIES_LIST).map(c => <option key={c} value={c}>{catLabel(c, t)}</option>)}
               </select>
-              <select value={filterStatus} onChange={e => setFilter("status", e.target.value)} className="input-base compact px-2 text-[15px] shrink-0">
-                <option value="all">{t("money.filter.statusAll" as any)}</option>
-                {statuses.map(s => <option key={s} value={s}>{stLabel(s, t)}</option>)}
-              </select>
-              <select value={filterClient} onChange={e => setFilter("client", e.target.value)} className="input-base compact px-2 text-[15px] shrink-0">
-                <option value="all">{t("money.filter.clientAll" as any)}</option>
-                {clientList.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
-              </select>
+              {financeTab === "business" && (
+                <select value={filterStatus} onChange={e => setFilter("status", e.target.value)} className="input-base compact px-2 text-[15px] shrink-0">
+                  <option value="all">{t("money.filter.statusAll" as any)}</option>
+                  {statuses.map(s => <option key={s} value={s}>{stLabel(s, t)}</option>)}
+                </select>
+              )}
               <input type="date" value={filterDateFrom} onChange={e => setFilter("dateFrom", e.target.value)} className="input-base compact px-2 text-[15px] shrink-0" />
               <input type="date" value={filterDateTo} onChange={e => setFilter("dateTo", e.target.value)} className="input-base compact px-2 text-[15px] shrink-0" />
-              {(filterScope !== "all" || filterType !== "all" || filterCategory !== "all" || filterStatus !== "all" || filterClient !== "all" || filterDateFrom || filterDateTo || filterSearch) && (
+              {(filterType !== "all" || filterCategory !== "all" || filterStatus !== "all" || filterDateFrom || filterDateTo || filterSearch) && (
                 <button
-                  onClick={() => setFilters({ scope: "all", type: "all", category: "all", status: "all", client: "all", dateFrom: "", dateTo: "", search: "" })}
+                  onClick={() => setFilters({ type: "all", category: "all", status: "all", dateFrom: "", dateTo: "", search: "" })}
                   className="btn-ghost compact text-[13px]"
                 >{t("money.filter.clear" as any)}</button>
               )}
@@ -644,7 +701,7 @@ export default function FinancePage() {
                   <div>
                     <FL>{t("money.form.category" as any)}</FL>
                     <select value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} className="input-base w-full px-3 py-2 text-[15px]">
-                      <optgroup label={t("money.filter.scopeBusiness" as any)}>{BIZ_CATEGORIES.map(c => <option key={c} value={c}>{catLabel(c, t)}</option>)}</optgroup><optgroup label={t("money.filter.scopePersonal" as any)}>{PERSONAL_CATEGORIES_LIST.map(c => <option key={c} value={c}>{catLabel(c, t)}</option>)}</optgroup>
+                      {(financeTab === "business" ? BIZ_CATEGORIES : PERSONAL_CATEGORIES_LIST).map(c => <option key={c} value={c}>{catLabel(c, t)}</option>)}
                     </select>
                   </div>
                 </div>
@@ -654,7 +711,7 @@ export default function FinancePage() {
                   <input type="text" value={formData.desc} onChange={e => setFormData({ ...formData, desc: e.target.value })} placeholder={t("money.form.descPlaceholder" as any)} className="input-base w-full px-3 py-2 text-[15px]" />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className={financeTab === "business" ? "grid grid-cols-1 sm:grid-cols-2 gap-3" : ""}>
                   <div>
                     <FL>{t("money.form.amount" as any)}</FL>
                     <div className="relative">
@@ -662,24 +719,18 @@ export default function FinancePage() {
                       <input type="number" required min="0" step="0.01" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} placeholder="0.00" className="input-base w-full pl-7 pr-3 py-2 text-[15px]" />
                     </div>
                   </div>
-                  <div>
-                    <FL>{t("money.form.status" as any)}</FL>
-                    <select value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })} className="input-base w-full px-3 py-2 text-[15px]">
-                      {statuses.map(s => <option key={s} value={s}>{stLabel(s, t)}</option>)}
-                    </select>
-                  </div>
+                  {financeTab === "business" && (
+                    <div>
+                      <FL>{t("money.form.status" as any)}</FL>
+                      <select value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })} className="input-base w-full px-3 py-2 text-[15px]">
+                        {statuses.map(s => <option key={s} value={s}>{stLabel(s, t)}</option>)}
+                      </select>
+                    </div>
+                  )}
                 </div>
 
-                <div>
-                  <FL>{t("money.form.client" as any)}</FL>
-                  <select value={formData.client_id} onChange={e => { const c = clientList.find(cl => String(cl.id) === e.target.value); setFormData({ ...formData, client_id: e.target.value, client_name: c?.name || "" }); }} className="input-base w-full px-3 py-2 text-[15px]">
-                    <option value="">{t("money.form.clientNone" as any)}</option>
-                    {clientList.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
-                  </select>
-                </div>
-
-                {/* Tax */}
-                <div>
+                {/* Tax — business only */}
+                {financeTab === "business" && <><div>
                   <FL>{t("money.form.tax" as any)}</FL>
                   <div className="flex gap-2 mb-2">
                     {(["none", "exclusive", "inclusive"] as const).map(mode => (
@@ -734,7 +785,7 @@ export default function FinancePage() {
                       <div className="flex justify-between border-t pt-1 mt-1" style={{ borderColor: "var(--color-border-primary)", color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}><span>{t("pipeline.tx.total" as any)}</span><span style={{ color: "var(--color-success)" }}>${total.toLocaleString()}</span></div>
                     </div>
                   );
-                })()}
+                })()}</>}
               </form>
 
               {/* Footer */}

@@ -210,6 +210,17 @@ export default function HomePage() {
     [],
   );
 
+  // Study counts for principles
+  const studyCounts: Record<string, number> = useMemo(() => {
+    try { return settings?.principle_study_counts ? JSON.parse(settings.principle_study_counts) : {}; } catch { return {}; }
+  }, [settings?.principle_study_counts]);
+
+  const recordStudy = async (principleId: string) => {
+    const newCounts = { ...studyCounts, [principleId]: (studyCounts[principleId] || 0) + 1 };
+    await save("principle_study_counts", JSON.stringify(newCounts));
+    invalidateSettingsCache();
+  };
+
   const todayPrinciple = useMemo(() => {
     // Rotate through all principles by day-of-year for variety
     const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
@@ -393,6 +404,22 @@ export default function HomePage() {
                 </div>
               </div>
             </button>
+            {/* Study button */}
+            <div className="flex items-center justify-end px-3 pb-2 -mt-1" style={{ borderTop: "none" }}>
+              <button
+                onClick={(e) => { e.stopPropagation(); recordStudy(todayPrinciple.id); }}
+                className="flex items-center gap-1 text-[13px] px-2 py-1 rounded-[var(--radius-4)] transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback"
+                style={{ color: "var(--color-accent)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
+              >
+                <BookOpen size={12} />
+                {lang === "zh" ? "学了" : "Studied"}
+                {(studyCounts[todayPrinciple.id] || 0) > 0 && (
+                  <span className="text-[12px] tabular-nums" style={{ color: "var(--color-text-quaternary)" }}>
+                    ×{studyCounts[todayPrinciple.id]}
+                  </span>
+                )}
+              </button>
+            </div>
 
             {/* 展开：深度解读 */}
             <AnimatePresence>
@@ -741,6 +768,11 @@ export default function HomePage() {
                                     <span className="text-[10px] px-1.5 py-0.5 rounded-[var(--radius-4)] shrink-0"
                                       style={{ background: "var(--color-accent)", color: "#fff", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
                                       {lang === "zh" ? "今日" : "Today"}
+                                    </span>
+                                  )}
+                                  {(studyCounts[p.id] || 0) > 0 && (
+                                    <span className="text-[11px] tabular-nums shrink-0" style={{ color: "var(--color-text-quaternary)" }}>
+                                      ×{studyCounts[p.id]}
                                     </span>
                                   )}
                                   <ChevronRight size={12} style={{ color: "var(--color-text-quaternary)" }} className="shrink-0" />
