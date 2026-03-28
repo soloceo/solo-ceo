@@ -198,7 +198,7 @@ export default function MiniCalendarWidget() {
                       width: s(20), height: s(20), borderRadius: "50%",
                       fontSize: s(11), fontWeight: td ? 700 : 400,
                       background: td ? "var(--color-accent)" : isSel ? "color-mix(in srgb, var(--color-accent) 12%, transparent)" : "transparent",
-                      color: td ? "#fff" : "var(--color-text-primary)",
+                      color: td ? "var(--color-text-on-color)" : "var(--color-text-primary)",
                       transition: "background 0.15s",
                     }}
                   >

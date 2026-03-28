@@ -366,7 +366,7 @@ export function LeadsView() {
                     }}>
                       <span className="inline-block px-1.5 py-0.5 rounded-[var(--radius-4)] text-[11px] mb-1" style={{
                         background: aiAnalysis.score === "high" ? "var(--color-success)" : aiAnalysis.score === "medium" ? "var(--color-warning)" : "var(--color-danger)",
-                        color: "#fff", fontWeight: "var(--font-weight-semibold)",
+                        color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)",
                       } as React.CSSProperties}>
                         {aiAnalysis.score === "high" ? (lang === "zh" ? "高价值" : "High") : aiAnalysis.score === "medium" ? (lang === "zh" ? "中等" : "Medium") : (lang === "zh" ? "低价值" : "Low")}
                       </span>

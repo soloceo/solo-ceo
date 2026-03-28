@@ -568,7 +568,7 @@ export default function HomePage() {
                         className="py-1.5 px-3 rounded-full text-[13px] transition-colors shrink-0 flex items-center gap-1.5 press-feedback"
                         style={{
                           background: isActive ? "var(--color-accent)" : "var(--color-bg-quaternary)",
-                          color: isActive ? "#fff" : "var(--color-text-secondary)",
+                          color: isActive ? "var(--color-text-on-color)" : "var(--color-text-secondary)",
                           fontWeight: "var(--font-weight-medium)",
                         } as React.CSSProperties}
                       >
@@ -766,7 +766,7 @@ export default function HomePage() {
                                   </span>
                                   {isToday && (
                                     <span className="text-[10px] px-1.5 py-0.5 rounded-[var(--radius-4)] shrink-0"
-                                      style={{ background: "var(--color-accent)", color: "#fff", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
+                                      style={{ background: "var(--color-accent)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
                                       {lang === "zh" ? "今日" : "Today"}
                                     </span>
                                   )}
@@ -822,7 +822,7 @@ function ProtocolSection({ title, steps, state, streak, doneCount, onToggle, lan
             className="text-[13px] tabular-nums px-1.5 py-0.5 rounded-[var(--radius-4)]"
             style={doneCount > 0 ? {
               background: doneCount === steps.length ? "var(--color-success)" : "var(--color-accent)",
-              color: "#fff",
+              color: "var(--color-text-on-color)",
               fontWeight: "var(--font-weight-semibold)",
             } as React.CSSProperties : { color: "var(--color-text-quaternary)" }}
           >
@@ -862,13 +862,13 @@ function ProtocolSection({ title, steps, state, streak, doneCount, onToggle, lan
                   border: done ? "none" : "2px solid var(--color-border-secondary)",
                 }}
               >
-                {done && <CheckCircle2 size={14} style={{ color: "#fff" }} />}
+                {done && <CheckCircle2 size={14} style={{ color: "var(--color-text-on-color)" }} />}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] shrink-0 uppercase tracking-wide px-2 py-0.5 rounded-[var(--radius-4)]"
                     style={{
-                      color: done ? "var(--color-text-quaternary)" : isCurrent ? "#fff" : "var(--color-text-secondary)",
+                      color: done ? "var(--color-text-quaternary)" : isCurrent ? "var(--color-text-on-color)" : "var(--color-text-secondary)",
                       background: done ? "var(--color-bg-tertiary)" : isCurrent ? "var(--color-accent)" : "var(--color-bg-tertiary)",
                       fontWeight: "var(--font-weight-bold)",
                     } as React.CSSProperties}>

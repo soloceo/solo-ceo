@@ -15,7 +15,7 @@ export default defineConfig(({mode}) => {
       react(),
       tailwindcss(),
       VitePWA({
-        registerType: 'autoUpdate',
+        registerType: 'prompt',
         includeAssets: ['sql-js/**/*'],
         manifest: {
           name: '一人CEO · Solo CEO',

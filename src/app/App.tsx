@@ -800,7 +800,7 @@ const SidebarItem = React.memo(function SidebarItem({
                   className="flex items-center justify-center rounded-full text-[10px] tabular-nums"
                   style={{
                     minWidth: 18, height: 18, padding: "0 5px",
-                    background: seg.color, color: "#fff",
+                    background: seg.color, color: "var(--color-text-on-color)",
                     fontWeight: "var(--font-weight-bold)", lineHeight: 1,
                   } as React.CSSProperties}
                 >
