@@ -658,7 +658,7 @@ export default function HomePage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
-            style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)" }}
+            style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", paddingTop: "calc(env(safe-area-inset-top, 0px) + 48px)" }}
             onClick={() => { setShowAllPrinciples(false); setSelectedPrinciple(null); }}
           >
             <motion.div
@@ -669,13 +669,13 @@ export default function HomePage() {
               className="w-full sm:max-w-lg rounded-t-[var(--radius-16)] sm:rounded-[var(--radius-16)] overflow-hidden"
               style={{
                 background: "var(--color-bg-primary)",
-                maxHeight: "calc(100dvh - env(safe-area-inset-top, 0px))",
+                maxHeight: "85dvh",
               }}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Sheet header */}
               <div className="flex items-center justify-between sticky top-0 z-10 px-4 py-3"
-                style={{ borderBottom: "1px solid var(--color-border-primary)", background: "var(--color-bg-primary)", paddingTop: "max(12px, env(safe-area-inset-top, 12px))" }}>
+                style={{ borderBottom: "1px solid var(--color-border-primary)", background: "var(--color-bg-primary)" }}>
                 <button
                   onClick={() => { setShowAllPrinciples(false); setSelectedPrinciple(null); }}
                   className="text-[15px] press-feedback"
@@ -690,7 +690,7 @@ export default function HomePage() {
               </div>
 
               {/* Scrollable content */}
-              <div className="overflow-y-auto" style={{ maxHeight: "calc(100dvh - env(safe-area-inset-top, 0px) - 48px)" }}>
+              <div className="overflow-y-auto" style={{ maxHeight: "calc(85dvh - 48px)" }}>
                 {selectedPrinciple ? (
                   /* ── Principle detail view ── */
                   <div className="px-4 py-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)" }}>
