@@ -36,7 +36,7 @@ export function TodayFocus({
   onDeleteManual,
   openFormTrigger,
 }: TodayFocusProps) {
-  const { t } = useT();
+  const { t, lang } = useT();
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editKey, setEditKey] = useState<string | null>(null);
@@ -130,13 +130,24 @@ export function TodayFocus({
     <section>
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
-          {t("home.focus.title" as any)}
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
+            {t("home.focus.title" as any)}
+          </h3>
+          {skipped.length > 0 && (
+            <button
+              onClick={() => setSkipped([])}
+              className="text-[12px] px-1.5 py-0.5 rounded-[var(--radius-4)] transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback"
+              style={{ color: "var(--color-text-quaternary)" }}
+            >
+              {lang === "zh" ? "重置" : "Reset"}
+            </button>
+          )}
+        </div>
         <button
           onClick={() => { setEditKey(null); setForm(emptyForm); setShowForm(true); }}
-          className="flex items-center gap-1 text-[14px] transition-colors hover:opacity-80"
-          style={{ color: "var(--color-text-quaternary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
+          className="flex items-center gap-1 text-[13px] transition-colors hover:opacity-80 press-feedback"
+          style={{ color: "var(--color-accent)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
         >
           <Plus size={14} /> {t("home.quickMemo" as any)}
         </button>

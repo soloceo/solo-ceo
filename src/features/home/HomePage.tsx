@@ -796,7 +796,7 @@ export default function HomePage() {
                             {cat.principles.length}
                           </span>
                         </div>
-                        <div className="flex flex-col gap-2">
+                        <div className="card overflow-hidden divide-y divide-[var(--color-line-secondary)]">
                           {cat.principles.map((p) => {
                             const isToday = p.id === todayPrinciple.id;
                             const coreText = p.core[lang as "zh" | "en"];
@@ -805,16 +805,10 @@ export default function HomePage() {
                               <button
                                 key={p.id}
                                 onClick={() => setSelectedPrinciple({ ...p, catEmoji: cat.emoji })}
-                                className="w-full text-left rounded-[var(--radius-8)] press-feedback"
-                                style={{
-                                  padding: "10px 12px",
-                                  background: isToday
-                                    ? "color-mix(in srgb, var(--color-accent) 8%, transparent)"
-                                    : "var(--color-bg-secondary)",
-                                  border: isToday ? "1px solid color-mix(in srgb, var(--color-accent) 20%, transparent)" : "1px solid transparent",
-                                }}
+                                className="w-full text-left px-3 py-2.5 press-feedback transition-colors hover:bg-[var(--color-bg-tertiary)]"
+                                style={isToday ? { background: "color-mix(in srgb, var(--color-accent) 6%, transparent)" } : undefined}
                               >
-                                <div className="flex items-center gap-2 mb-1">
+                                <div className="flex items-center gap-2 mb-0.5">
                                   <span className="text-[14px] flex-1 min-w-0 truncate" style={{
                                     color: "var(--color-text-primary)",
                                     fontWeight: "var(--font-weight-semibold)",
