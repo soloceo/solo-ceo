@@ -36,7 +36,7 @@ export default function SalesToolsPanel({ open, onClose }: { open: boolean; onCl
         aria-modal="true"
         aria-label="Sales tools"
         className="relative w-full max-w-lg flex flex-col overflow-hidden"
-        style={{ background: "var(--color-bg-primary)", borderLeft: "1px solid var(--color-border-primary)", paddingTop: "var(--mobile-header-pt, env(safe-area-inset-top, 0px))" }}
+        style={{ background: "var(--color-bg-primary)", borderLeft: "1px solid var(--color-border-primary)", paddingTop: "max(12px, var(--mobile-header-pt, env(safe-area-inset-top, 0px)))" }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 shrink-0" style={{ borderBottom: "1px solid var(--color-border-primary)" }}>

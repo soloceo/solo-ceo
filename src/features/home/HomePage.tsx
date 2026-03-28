@@ -708,7 +708,7 @@ export default function HomePage() {
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
               className="fixed inset-0 flex flex-col"
-              style={{ zIndex: 700, background: "var(--color-bg-primary)", paddingTop: "var(--mobile-header-pt, env(safe-area-inset-top, 0px))" }}
+              style={{ zIndex: 700, background: "var(--color-bg-primary)", paddingTop: "max(12px, var(--mobile-header-pt, env(safe-area-inset-top, 0px)))" }}
             >
               {/* Header */}
               <div className="flex items-center justify-between shrink-0 px-5 py-3 border-b"

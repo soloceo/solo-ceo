@@ -500,7 +500,7 @@ export default function FinancePage() {
       {showAll && createPortal(
         <div className="fixed inset-0 flex flex-col page-enter" role="dialog" aria-modal="true" aria-label="All transactions" style={{ zIndex: 700, background: "var(--color-bg-primary)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 8px)" }}>
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-3 border-b shrink-0" style={{ borderColor: "var(--color-border-primary)", paddingTop: "var(--mobile-header-pt, env(safe-area-inset-top, 0px))" }}>
+            <div className="flex items-center justify-between px-5 py-3 border-b shrink-0" style={{ borderColor: "var(--color-border-primary)", paddingTop: "max(12px, var(--mobile-header-pt, env(safe-area-inset-top, 0px)))" }}>
               <div>
                 <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("money.allTx.title" as any)}</h3>
                 <p className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{t("money.filter.results" as any).replace("{count}", String(filteredTxs.length))}</p>
@@ -602,7 +602,7 @@ export default function FinancePage() {
               style={{ zIndex: 700, background: "var(--color-bg-primary)", borderColor: "var(--color-border-primary)" }}
             >
               {/* Panel header */}
-              <div className="flex items-center justify-between px-5 py-3 border-b shrink-0" style={{ borderColor: "var(--color-border-primary)", paddingTop: "var(--mobile-header-pt, env(safe-area-inset-top, 0px))" }}>
+              <div className="flex items-center justify-between px-5 py-3 border-b shrink-0" style={{ borderColor: "var(--color-border-primary)", paddingTop: "max(12px, var(--mobile-header-pt, env(safe-area-inset-top, 0px)))" }}>
                 <div className="flex items-center gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-6)]" style={{ background: "var(--color-accent-tint)", color: "var(--color-accent)" }}>
                     <Receipt size={16} />
