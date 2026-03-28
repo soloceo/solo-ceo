@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef, lazy, Suspense, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { useT } from "../../i18n/context";
 import { useRealtimeRefresh } from "../../hooks/useRealtimeRefresh";
@@ -651,19 +652,25 @@ export default function HomePage() {
       </div>
 
       {/* ── All Principles Sheet ── */}
-      <AnimatePresence>
+      {createPortal(<AnimatePresence>
         {showAllPrinciples && (
-          <motion.div
-            initial={{ opacity: 0, y: "100%" }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 320 }}
-            className="fixed inset-0 z-50 flex flex-col"
-            style={{ background: "var(--color-bg-primary)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 8px)" }}
-          >
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0"
+              style={{ zIndex: 699, background: "var(--color-bg-primary)" }}
+            />
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="fixed inset-0 flex flex-col"
+              style={{ zIndex: 700, background: "var(--color-bg-primary)", paddingTop: "var(--mobile-header-pt, env(safe-area-inset-top, 0px))" }}
+            >
               {/* Header */}
-              <div className="flex items-center justify-between shrink-0 px-4 py-3 border-b"
-                style={{ borderColor: "var(--color-border-primary)", paddingTop: "max(12px, env(safe-area-inset-top, 0px))" }}>
+              <div className="flex items-center justify-between shrink-0 px-5 py-3 border-b"
+                style={{ borderColor: "var(--color-border-primary)" }}>
                 <button
                   onClick={() => { setShowAllPrinciples(false); setSelectedPrinciple(null); }}
                   className="text-[15px] press-feedback"
@@ -799,9 +806,10 @@ export default function HomePage() {
                   </div>
                 )}
               </div>
-          </motion.div>
+            </motion.div>
+          </>
         )}
-      </AnimatePresence>
+      </AnimatePresence>, document.body)}
 
       {/* ── Weekly Report Modal ── */}
       <WeeklyReport open={reportOpen} onClose={() => setReportOpen(false)} />
