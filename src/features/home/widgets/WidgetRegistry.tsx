@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, createContext, useContext } from "react";
-import { Timer, Calendar, StickyNote, Activity, CalendarClock, Battery } from "lucide-react";
+import { Timer, Calendar, StickyNote, Activity, CalendarClock, Battery, BookOpen } from "lucide-react";
 
 const PomodoroWidget = lazy(() => import("./PomodoroWidget"));
 const MiniCalendarWidget = lazy(() => import("./MiniCalendarWidget"));
@@ -7,6 +7,7 @@ const QuickNoteWidget = lazy(() => import("./QuickNoteWidget"));
 const ActivityWidget = lazy(() => import("./ActivityWidget"));
 const CountdownWidget = lazy(() => import("./CountdownWidget"));
 const EnergyBatteryWidget = lazy(() => import("./EnergyBatteryWidget"));
+const LearningWidget = lazy(() => import("./LearningWidget"));
 
 /* ── Preview mode context ── */
 const WidgetPreviewCtx = createContext(false);
@@ -28,6 +29,7 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
   { id: "activity", nameKey: "widgets.activity", descKey: "widgets.activityDesc", icon: <Activity size={18} />, component: ActivityWidget },
   { id: "countdown", nameKey: "widgets.countdown", descKey: "widgets.countdownDesc", icon: <CalendarClock size={18} />, component: CountdownWidget },
   { id: "energy", nameKey: "widgets.energy", descKey: "widgets.energyDesc", icon: <Battery size={18} />, component: EnergyBatteryWidget },
+  { id: "learning", nameKey: "widgets.learning", descKey: "widgets.learningDesc", icon: <BookOpen size={18} />, component: LearningWidget },
 ];
 
 export function WidgetWrapper({ children }: { children: React.ReactNode }) {

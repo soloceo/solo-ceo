@@ -15,7 +15,8 @@ import { TodayFocus, type FocusItem } from "./TodayFocus";
 import { BarChart3, Flame, ChevronDown, ChevronRight, BookOpen, Circle, CheckCircle2, X } from "lucide-react";
 import { KNOWLEDGE_CATEGORIES } from "../../data/evolution-knowledge";
 import type { Principle } from "../../data/evolution-knowledge";
-import { PROTOCOL_STEPS } from "../../data/evolution-protocol";
+import { PROTOCOL_STEPS, LIFE_PROTOCOL_STEPS } from "../../data/evolution-protocol";
+import type { ProtocolStep } from "../../data/evolution-protocol";
 import { PHASES } from "../../data/breakthrough-tasks";
 
 const WidgetGrid = lazy(() => import("./widgets/WidgetGrid"));
@@ -232,26 +233,41 @@ export default function HomePage() {
 
   const protocolDone = PROTOCOL_STEPS.filter((s) => protocolState.checks[s.id]).length;
 
-  const toggleProtocolStep = async (stepId: string) => {
+  // Life protocol state
+  const lifeProtocolState: { date: string; checks: Record<string, boolean> } = useMemo(() => {
+    try {
+      const raw = settings?.life_protocol ? JSON.parse(settings.life_protocol) : null;
+      const today = new Date().toISOString().slice(0, 10);
+      if (raw && raw.date === today) return raw;
+      return { date: today, checks: {} };
+    } catch { return { date: new Date().toISOString().slice(0, 10), checks: {} }; }
+  }, [settings?.life_protocol]);
+
+  const lifeStreak: { count: number; lastDate: string } = useMemo(() => {
+    try { return settings?.life_streak ? JSON.parse(settings.life_streak) : { count: 0, lastDate: "" }; } catch { return { count: 0, lastDate: "" }; }
+  }, [settings?.life_streak]);
+
+  const lifeDone = LIFE_PROTOCOL_STEPS.filter((s) => lifeProtocolState.checks[s.id]).length;
+
+  const toggleProtocolStep = async (stepId: string, steps: ProtocolStep[], stateKey: string, streakKey: string, currentState: { date: string; checks: Record<string, boolean> }, currentStreak: { count: number; lastDate: string }) => {
     const today = new Date().toISOString().slice(0, 10);
-    const newChecks = { ...protocolState.checks, [stepId]: !protocolState.checks[stepId] };
+    const newChecks = { ...currentState.checks, [stepId]: !currentState.checks[stepId] };
     const newState = { date: today, checks: newChecks };
-    await save("evolution_protocol", JSON.stringify(newState));
+    await save(stateKey, JSON.stringify(newState));
 
     // Update streak
-    const allDone = PROTOCOL_STEPS.every((s) => newChecks[s.id]);
-    let newStreak = { ...protocolStreak };
+    const allDone = steps.every((s) => newChecks[s.id]);
+    let newStreak = { ...currentStreak };
     if (allDone) {
       const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
       newStreak = {
-        count: protocolStreak.lastDate === yesterday ? protocolStreak.count + 1 : 1,
+        count: currentStreak.lastDate === yesterday ? currentStreak.count + 1 : 1,
         lastDate: today,
       };
-    } else if (protocolStreak.lastDate === today) {
-      // Was completed, now unchecking — reduce streak
-      newStreak = { count: Math.max(0, protocolStreak.count - 1), lastDate: "" };
+    } else if (currentStreak.lastDate === today) {
+      newStreak = { count: Math.max(0, currentStreak.count - 1), lastDate: "" };
     }
-    await save("protocol_streak", JSON.stringify(newStreak));
+    await save(streakKey, JSON.stringify(newStreak));
     invalidateSettingsCache();
   };
 
@@ -465,104 +481,26 @@ export default function HomePage() {
         </section>
 
         {/* ── 执行节奏：每日协议 ── */}
-        <section>
-          {/* Header */}
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
-                {lang === "zh" ? "每日协议" : "Daily Protocol"}
-              </span>
-              {protocolDone > 0 && (
-                <span className="text-[13px] tabular-nums px-1.5 py-0.5 rounded-[var(--radius-4)]"
-                  style={{
-                    background: protocolDone === PROTOCOL_STEPS.length ? "var(--color-success)" : "var(--color-accent)",
-                    color: "#fff",
-                    fontWeight: "var(--font-weight-semibold)",
-                  } as React.CSSProperties}>
-                  {protocolDone}/{PROTOCOL_STEPS.length}
-                </span>
-              )}
-              {protocolDone === 0 && (
-                <span className="text-[13px] tabular-nums" style={{ color: "var(--color-text-quaternary)" }}>
-                  {protocolDone}/{PROTOCOL_STEPS.length}
-                </span>
-              )}
-            </div>
-            {protocolStreak.count > 0 && (
-              <span className="flex items-center gap-1 text-[13px] px-2 py-0.5 rounded-[var(--radius-4)]"
-                style={{
-                  color: "var(--color-accent)",
-                  background: "color-mix(in srgb, var(--color-accent) 10%, transparent)",
-                  fontWeight: "var(--font-weight-semibold)",
-                } as React.CSSProperties}>
-                <Flame size={11} /> {protocolStreak.count} {lang === "zh" ? "天连续" : "day streak"}
-              </span>
-            )}
-          </div>
+        <ProtocolSection
+          title={lang === "zh" ? "每日协议" : "Daily Protocol"}
+          steps={PROTOCOL_STEPS}
+          state={protocolState}
+          streak={protocolStreak}
+          doneCount={protocolDone}
+          onToggle={(id) => toggleProtocolStep(id, PROTOCOL_STEPS, "evolution_protocol", "protocol_streak", protocolState, protocolStreak)}
+          lang={lang}
+        />
 
-          {/* 协议步骤卡片 */}
-          <div className="card overflow-hidden divide-y divide-[var(--color-line-secondary)]">
-            {PROTOCOL_STEPS.map((step, i) => {
-              const done = !!protocolState.checks[step.id];
-              const h = new Date().getHours();
-              const isCurrent = (i === 0 && h >= 5 && h < 9) || (i === 1 && h >= 9 && h < 12) || (i === 2 && h >= 12 && h < 14) || (i === 3 && h >= 14 && h < 20) || (i === 4 && h >= 20);
-              return (
-                <button
-                  key={step.id}
-                  onClick={() => toggleProtocolStep(step.id)}
-                  className="flex items-start gap-3 w-full text-left px-3 py-2.5 press-feedback transition-colors hover:bg-[var(--color-bg-tertiary)]"
-                  style={{
-                    opacity: done ? 0.6 : 1,
-                    borderLeft: isCurrent && !done ? "3px solid var(--color-accent)" : "3px solid transparent",
-                  }}
-                >
-                  {/* Check circle */}
-                  <div
-                    className="shrink-0 rounded-full flex items-center justify-center mt-0.5"
-                    style={{
-                      width: 22,
-                      height: 22,
-                      background: done ? "var(--color-accent)" : "transparent",
-                      border: done ? "none" : "2px solid var(--color-border-secondary)",
-                    }}
-                  >
-                    {done && <CheckCircle2 size={14} style={{ color: "#fff" }} />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] shrink-0 uppercase tracking-wide px-2 py-0.5 rounded-[var(--radius-4)]"
-                        style={{
-                          color: done ? "var(--color-text-quaternary)" : isCurrent ? "#fff" : "var(--color-text-secondary)",
-                          background: done ? "var(--color-bg-tertiary)" : isCurrent ? "var(--color-accent)" : "var(--color-bg-tertiary)",
-                          fontWeight: "var(--font-weight-bold)",
-                        } as React.CSSProperties}>
-                        {step.time[lang as "zh" | "en"]}
-                      </span>
-                      <span
-                        className="text-[14px]"
-                        style={{
-                          color: done ? "var(--color-text-quaternary)" : "var(--color-text-primary)",
-                          fontWeight: "var(--font-weight-semibold)",
-                          textDecoration: done ? "line-through" : "none",
-                        } as React.CSSProperties}
-                      >
-                        {step.title[lang as "zh" | "en"]}
-                      </span>
-                    </div>
-                    <p
-                      className="text-[13px] mt-1 leading-relaxed"
-                      style={{
-                        color: done ? "var(--color-text-quaternary)" : "var(--color-text-tertiary)",
-                      }}
-                    >
-                      {step.description[lang as "zh" | "en"]}
-                    </p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </section>
+        {/* ── 生活协议 ── */}
+        <ProtocolSection
+          title={lang === "zh" ? "生活协议" : "Life Protocol"}
+          steps={LIFE_PROTOCOL_STEPS}
+          state={lifeProtocolState}
+          streak={lifeStreak}
+          doneCount={lifeDone}
+          onToggle={(id) => toggleProtocolStep(id, LIFE_PROTOCOL_STEPS, "life_protocol", "life_streak", lifeProtocolState, lifeStreak)}
+          lang={lang}
+        />
 
         {/* ── 推进战线：突围进度 ── */}
         <section>
@@ -854,5 +792,99 @@ export default function HomePage() {
       {/* ── Weekly Report Modal ── */}
       <WeeklyReport open={reportOpen} onClose={() => setReportOpen(false)} />
     </div>
+  );
+}
+
+/* ── Reusable Protocol Section ─────────────────────────────── */
+function ProtocolSection({ title, steps, state, streak, doneCount, onToggle, lang }: {
+  title: string;
+  steps: ProtocolStep[];
+  state: { date: string; checks: Record<string, boolean> };
+  streak: { count: number; lastDate: string };
+  doneCount: number;
+  onToggle: (id: string) => void;
+  lang: string;
+}) {
+  const h = new Date().getHours();
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
+            {title}
+          </span>
+          <span
+            className="text-[13px] tabular-nums px-1.5 py-0.5 rounded-[var(--radius-4)]"
+            style={doneCount > 0 ? {
+              background: doneCount === steps.length ? "var(--color-success)" : "var(--color-accent)",
+              color: "#fff",
+              fontWeight: "var(--font-weight-semibold)",
+            } as React.CSSProperties : { color: "var(--color-text-quaternary)" }}
+          >
+            {doneCount}/{steps.length}
+          </span>
+        </div>
+        {streak.count > 0 && (
+          <span className="flex items-center gap-1 text-[13px] px-2 py-0.5 rounded-[var(--radius-4)]"
+            style={{
+              color: "var(--color-accent)",
+              background: "color-mix(in srgb, var(--color-accent) 10%, transparent)",
+              fontWeight: "var(--font-weight-semibold)",
+            } as React.CSSProperties}>
+            <Flame size={11} /> {streak.count} {lang === "zh" ? "天连续" : "day streak"}
+          </span>
+        )}
+      </div>
+      <div className="card overflow-hidden divide-y divide-[var(--color-line-secondary)]">
+        {steps.map((step) => {
+          const done = !!state.checks[step.id];
+          const isCurrent = step.timeRange ? h >= step.timeRange[0] && h < step.timeRange[1] : false;
+          return (
+            <button
+              key={step.id}
+              onClick={() => onToggle(step.id)}
+              className="flex items-start gap-3 w-full text-left px-3 py-2.5 press-feedback transition-colors hover:bg-[var(--color-bg-tertiary)]"
+              style={{
+                opacity: done ? 0.6 : 1,
+                borderLeft: isCurrent && !done ? "3px solid var(--color-accent)" : "3px solid transparent",
+              }}
+            >
+              <div
+                className="shrink-0 rounded-full flex items-center justify-center mt-0.5"
+                style={{
+                  width: 22, height: 22,
+                  background: done ? "var(--color-accent)" : "transparent",
+                  border: done ? "none" : "2px solid var(--color-border-secondary)",
+                }}
+              >
+                {done && <CheckCircle2 size={14} style={{ color: "#fff" }} />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] shrink-0 uppercase tracking-wide px-2 py-0.5 rounded-[var(--radius-4)]"
+                    style={{
+                      color: done ? "var(--color-text-quaternary)" : isCurrent ? "#fff" : "var(--color-text-secondary)",
+                      background: done ? "var(--color-bg-tertiary)" : isCurrent ? "var(--color-accent)" : "var(--color-bg-tertiary)",
+                      fontWeight: "var(--font-weight-bold)",
+                    } as React.CSSProperties}>
+                    {step.time[lang as "zh" | "en"]}
+                  </span>
+                  <span className="text-[14px]" style={{
+                    color: done ? "var(--color-text-quaternary)" : "var(--color-text-primary)",
+                    fontWeight: "var(--font-weight-semibold)",
+                    textDecoration: done ? "line-through" : "none",
+                  } as React.CSSProperties}>
+                    {step.title[lang as "zh" | "en"]}
+                  </span>
+                </div>
+                <p className="text-[13px] mt-1 leading-relaxed" style={{ color: done ? "var(--color-text-quaternary)" : "var(--color-text-tertiary)" }}>
+                  {step.description[lang as "zh" | "en"]}
+                </p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </section>
   );
 }

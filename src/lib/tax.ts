@@ -18,6 +18,11 @@ export const CATEGORY_I18N: Record<string, string> = {
   "应付": "money.cat.payable",
   "其他支出": "money.cat.other",
   "项目收入": "money.category.projectIncome",
+  "餐饮": "money.cat.food",
+  "交通": "money.cat.transport",
+  "房租": "money.cat.rent",
+  "娱乐": "money.cat.entertainment",
+  "个人其他": "money.cat.personalOther",
 };
 
 export const STATUS_I18N: Record<string, string> = {

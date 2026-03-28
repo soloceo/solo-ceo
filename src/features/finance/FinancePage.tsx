@@ -34,7 +34,8 @@ function FL({ children }: { children: React.ReactNode }) {
 }
 
 const FINANCE_TABLES = ["finance_transactions", "clients", "payment_milestones"] as const;
-const TX_CATEGORIES = ["收入", "软件支出", "外包支出", "应收", "应付", "其他支出"];
+const TX_CATEGORIES = ["收入", "软件支出", "外包支出", "应收", "应付", "其他支出", "餐饮", "交通", "房租", "娱乐", "个人其他"];
+const PERSONAL_CATEGORIES = new Set(["餐饮", "交通", "房租", "娱乐", "个人其他"]);
 const TX_STATUSES = ["已完成", "待收款 (应收)", "待支付 (应付)"];
 
 const createEmptyForm = () => ({
@@ -85,13 +86,13 @@ export default function FinancePage() {
 
   /* ── Filter state (consolidated to reduce re-renders) ── */
   const [filters, setFilters] = useState({
-    type: "all", category: "all", status: "all", client: "all",
+    scope: "all", type: "all", category: "all", status: "all", client: "all",
     dateFrom: "", dateTo: "", search: "",
   });
   const setFilter = useCallback(<K extends keyof typeof filters>(key: K, val: typeof filters[K]) => {
     setFilters(p => ({ ...p, [key]: val }));
   }, []);
-  const filterType = filters.type, filterCategory = filters.category;
+  const filterScope = filters.scope, filterType = filters.type, filterCategory = filters.category;
   const filterStatus = filters.status, filterClient = filters.client;
   const filterDateFrom = filters.dateFrom, filterDateTo = filters.dateTo;
   const filterSearch = filters.search;
@@ -208,6 +209,11 @@ export default function FinancePage() {
   const filteredTxs = useMemo(() => {
     return transactions
       .filter(tx => {
+        if (filterScope !== "all") {
+          const isPersonal = PERSONAL_CATEGORIES.has(tx.category || "");
+          if (filterScope === "personal" && !isPersonal) return false;
+          if (filterScope === "business" && isPersonal) return false;
+        }
         if (filterType !== "all") {
           const isIncome = tx.type === "income" || Number(tx.amount) > 0;
           if (filterType === "income" && !isIncome) return false;
@@ -521,6 +527,11 @@ export default function FinancePage() {
                   className="input-base compact w-full pl-8 pr-3 text-[15px]"
                 />
               </div>
+              <select value={filterScope} onChange={e => setFilter("scope", e.target.value)} className="input-base compact px-2 text-[15px] shrink-0">
+                <option value="all">{t("money.filter.scopeAll" as any)}</option>
+                <option value="business">{t("money.filter.scopeBusiness" as any)}</option>
+                <option value="personal">{t("money.filter.scopePersonal" as any)}</option>
+              </select>
               <select value={filterType} onChange={e => setFilter("type", e.target.value)} className="input-base compact px-2 text-[15px] shrink-0">
                 <option value="all">{t("money.filter.typeAll" as any)}</option>
                 <option value="income">{t("money.filter.income" as any)}</option>
@@ -540,9 +551,9 @@ export default function FinancePage() {
               </select>
               <input type="date" value={filterDateFrom} onChange={e => setFilter("dateFrom", e.target.value)} className="input-base compact px-2 text-[15px] shrink-0" />
               <input type="date" value={filterDateTo} onChange={e => setFilter("dateTo", e.target.value)} className="input-base compact px-2 text-[15px] shrink-0" />
-              {(filterType !== "all" || filterCategory !== "all" || filterStatus !== "all" || filterClient !== "all" || filterDateFrom || filterDateTo || filterSearch) && (
+              {(filterScope !== "all" || filterType !== "all" || filterCategory !== "all" || filterStatus !== "all" || filterClient !== "all" || filterDateFrom || filterDateTo || filterSearch) && (
                 <button
-                  onClick={() => setFilters({ type: "all", category: "all", status: "all", client: "all", dateFrom: "", dateTo: "", search: "" })}
+                  onClick={() => setFilters({ scope: "all", type: "all", category: "all", status: "all", client: "all", dateFrom: "", dateTo: "", search: "" })}
                   className="btn-ghost compact text-[13px]"
                 >{t("money.filter.clear" as any)}</button>
               )}

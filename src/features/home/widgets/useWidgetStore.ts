@@ -21,6 +21,7 @@ const DEFAULT_LAYOUT: WidgetLayout[] = [
   { id: "quick-note", enabled: true, order: 3 },
   { id: "activity", enabled: true, order: 4 },
   { id: "countdown", enabled: false, order: 5 },
+  { id: "learning", enabled: false, order: 6 },
 ];
 
 export const useWidgetStore = create<WidgetState>()(
@@ -44,11 +45,18 @@ export const useWidgetStore = create<WidgetState>()(
     }),
     {
       name: "solo-ceo-widgets",
-      version: 5,
+      version: 6,
       migrate: (persisted: any, version: number) => {
         if (version < 5) {
-          // v5: energy first + enabled by default
           return { ...persisted, layout: DEFAULT_LAYOUT };
+        }
+        if (version < 6) {
+          // v6: add learning widget (disabled by default)
+          const layout = persisted.layout || DEFAULT_LAYOUT;
+          if (!layout.find((w: any) => w.id === "learning")) {
+            layout.push({ id: "learning", enabled: false, order: layout.length });
+          }
+          return { ...persisted, layout };
         }
         return persisted;
       },

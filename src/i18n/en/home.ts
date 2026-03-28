@@ -186,4 +186,8 @@ export const home = {
   "widgets.pomodoro.tapStart": "Tap to start",
   "widgets.pomodoro.tapPause": "Tap to pause",
   "widgets.pomodoro.round": "Round {n}",
+  "widgets.learning": "Weekly Learning",
+  "widgets.learningDesc": "Track weekly learning and reading goals",
+  "widgets.learningPlaceholder": "Add a learning goal...",
+  "widgets.learningEmpty": "Add what you want to learn this week",
 };
