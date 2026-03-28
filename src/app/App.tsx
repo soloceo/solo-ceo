@@ -459,6 +459,7 @@ function App() {
             paddingLeft: "max(env(safe-area-inset-left), 16px)",
             paddingRight: "max(env(safe-area-inset-right), 16px)",
             borderBottom: "1px solid var(--color-line-tertiary)",
+            background: "var(--color-bg-primary)",
           }}
         >
           <span className="text-[16px] truncate" style={{ fontWeight: "var(--font-weight-semibold)", color: "var(--color-text-primary)" } as React.CSSProperties}>

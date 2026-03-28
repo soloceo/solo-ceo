@@ -52,8 +52,8 @@
   --color-text-on-color:   #ffffff;
 
   /* ── Header ──────────────────────────────────────────────────── */
-  --header-bg:             rgba(255,255,255,0.8);
-  --header-border:         rgba(0,0,0,0.06);
+  --header-bg:             rgba(255,255,255,0.6);
+  --header-border:         rgba(0,0,0,0.04);
 
   /* ── Overlay ──────────────────────────────────────────────────── */
   --color-overlay-primary: rgba(255,255,255,0.65);
@@ -151,8 +151,8 @@
   --color-info:            #60a5fa;
   --color-info-light:      #0c1a2e;
 
-  --header-bg:             rgba(11,11,11,0.8);
-  --header-border:         rgba(255,255,255,0.08);
+  --header-bg:             rgba(11,11,11,0.6);
+  --header-border:         rgba(255,255,255,0.06);
 
   --color-overlay-primary: rgba(0,0,0,0.85);
 
