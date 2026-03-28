@@ -52,4 +52,7 @@ export const common = {
   "common.nextMonday": "Mon",
   "common.signOut": "Sign out",
   "nav.pinSidebar": "Expand sidebar",
+  "app.cmdFooter.navigate": "navigate",
+  "app.cmdFooter.select": "select",
+  "app.cmdFooter.close": "close",
 };

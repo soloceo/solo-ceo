@@ -238,9 +238,9 @@ export function CommandPalette() {
                 className="flex items-center gap-3 px-4 py-2 text-[13px]"
                 style={{ borderTop: "1px solid var(--color-line-secondary)", color: "var(--color-text-quaternary)" }}
               >
-                <span className="flex items-center gap-1"><kbd style={{ fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>↑↓</kbd> navigate</span>
-                <span className="flex items-center gap-1"><kbd style={{ fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>↵</kbd> select</span>
-                <span className="flex items-center gap-1"><kbd style={{ fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>esc</kbd> close</span>
+                <span className="flex items-center gap-1"><kbd className="inline-flex items-center px-1.5 py-0.5 text-[11px] rounded-[var(--radius-4)]" style={{ fontWeight: "var(--font-weight-medium)", background: "var(--color-bg-tertiary)", border: "1px solid var(--color-border-secondary)" } as React.CSSProperties}>↑↓</kbd> {t("app.cmdFooter.navigate" as any) || "navigate"}</span>
+                <span className="flex items-center gap-1"><kbd className="inline-flex items-center px-1.5 py-0.5 text-[11px] rounded-[var(--radius-4)]" style={{ fontWeight: "var(--font-weight-medium)", background: "var(--color-bg-tertiary)", border: "1px solid var(--color-border-secondary)" } as React.CSSProperties}>↵</kbd> {t("app.cmdFooter.select" as any) || "select"}</span>
+                <span className="flex items-center gap-1"><kbd className="inline-flex items-center px-1.5 py-0.5 text-[11px] rounded-[var(--radius-4)]" style={{ fontWeight: "var(--font-weight-medium)", background: "var(--color-bg-tertiary)", border: "1px solid var(--color-border-secondary)" } as React.CSSProperties}>esc</kbd> {t("app.cmdFooter.close" as any) || "close"}</span>
               </div>
             </Command>
           </motion.div>

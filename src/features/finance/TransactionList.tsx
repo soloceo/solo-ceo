@@ -28,7 +28,7 @@ export function StatCard({ label, value, sub, icon, color }: {
         <span className="text-[13px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{label}</span>
         <span className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-4)]" style={{ background: `color-mix(in srgb, ${color} 10%, transparent)`, color }}>{icon}</span>
       </div>
-      <div className="text-[16px] md:text-[18px] tracking-tight tabular-nums truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{value}</div>
+      <div className="text-[16px] md:text-[18px] tracking-tight tabular-nums select-all truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{value}</div>
       {sub && <div className="text-[13px] mt-0.5" style={{ color: "var(--color-text-quaternary)" }}>{sub}</div>}
     </div>
   );

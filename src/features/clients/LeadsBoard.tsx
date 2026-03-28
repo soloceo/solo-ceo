@@ -94,15 +94,18 @@ export function LeadsView() {
   };
 
   const [nameError, setNameError] = useState(false);
+  const [savingLead, setSavingLead] = useState(false);
 
   const saveLead = async () => {
     if (!form.name.trim()) { setNameError(true); return; }
     setNameError(false);
+    setSavingLead(true);
     try {
       if (editId) { await fetch(`/api/leads/${editId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) }); showToast(t("pipeline.toast.leadUpdated" as any)); }
       else { await fetch("/api/leads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) }); showToast(t("pipeline.toast.leadAdded" as any)); }
       setShowPanel(false); fetchLeads();
     } catch { showToast(t("common.saveFailed" as any)); }
+    finally { setSavingLead(false); }
   };
 
   const deleteLead = async (id: number) => {
@@ -219,7 +222,7 @@ export function LeadsView() {
               initial={{ x: isMobile ? 0 : "100%", y: isMobile ? "100%" : 0 }}
               animate={{ x: 0, y: 0 }}
               exit={{ x: isMobile ? 0 : "100%", y: isMobile ? "100%" : 0 }}
-              transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
               role="dialog"
               aria-modal="true"
               aria-label="Lead detail"
@@ -262,7 +265,7 @@ export function LeadsView() {
                 </div>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setShowPanel(false)} className="btn-secondary text-[15px]">{t("common.cancel" as any)}</button>
-                  <button type="button" onClick={saveLead} className="btn-primary text-[15px]">{editId ? t("common.save" as any) : t("common.create" as any)}</button>
+                  <button type="button" onClick={saveLead} disabled={savingLead} className="btn-primary text-[15px]">{savingLead ? t("common.loading" as any) : editId ? t("common.save" as any) : t("common.create" as any)}</button>
                 </div>
               </div>
             </motion.div>
@@ -272,7 +275,7 @@ export function LeadsView() {
 
       {/* Delete confirm */}
       {deleteId && createPortal(
-        <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 710, background: "var(--color-overlay-primary)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 16px)" }}>
+        <div className="fixed inset-0 flex items-center justify-center p-4 animate-fade-in" style={{ zIndex: 710, background: "var(--color-overlay-primary)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 16px)" }}>
           <div className="card-elevated w-full max-w-sm p-5" role="dialog" aria-modal="true" aria-label="Confirm delete">
             <h3 className="text-[15px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" as any }}>{t("pipeline.delete.title" as any)}</h3>
             <p className="text-[15px] mb-4" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.delete.warning" as any)}</p>
@@ -286,7 +289,7 @@ export function LeadsView() {
 
       {/* Convert modal */}
       {showConvert && createPortal(
-        <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 710, background: "var(--color-overlay-primary)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 16px)" }}>
+        <div className="fixed inset-0 flex items-center justify-center p-4 animate-fade-in" style={{ zIndex: 710, background: "var(--color-overlay-primary)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 16px)" }}>
           <div className="card-elevated w-full max-w-md p-5 space-y-4" role="dialog" aria-modal="true" aria-label="Convert lead">
             <div className="flex items-center justify-between">
               <h3 className="text-[15px] flex items-center gap-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" as any }}><UserPlus size={16} style={{ color: "var(--color-success)" }} /> {t("pipeline.convert.title" as any)}</h3>
@@ -300,7 +303,7 @@ export function LeadsView() {
             <FL label={t("pipeline.convert.startDate" as any)}><input type="date" value={convertForm.subscription_start_date} onChange={e => setConvertForm(p => ({ ...p, subscription_start_date: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
             <div className="flex justify-end gap-2 pt-2">
               <button onClick={() => setShowConvert(false)} className="btn-secondary text-[15px]">{t("common.cancel" as any)}</button>
-              <button onClick={convertLead} disabled={converting} className="text-[15px] px-4 py-2 rounded-[var(--radius-6)] flex items-center gap-1.5 disabled:opacity-50" style={{ background: "var(--color-success)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
+              <button onClick={convertLead} disabled={converting} className="text-[15px] px-4 py-2 rounded-[var(--radius-6)] flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed" style={{ background: "var(--color-success)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
                 <UserPlus size={16} /> {t("common.confirm" as any)}
               </button>
             </div>
@@ -390,7 +393,7 @@ function LeadSwimlane({ leads, columns, onAdd, onEdit, onDelete, onMove, emptyTe
             {!items.length ? <div className="px-4 py-4 flex items-center justify-center gap-2 text-[14px]" style={{ color: "var(--color-text-quaternary)" }}><UserPlus size={14} />{emptyText}</div> : (
               <div className="overflow-x-auto ios-scroll"><div className="flex gap-2 p-3 min-w-max">
                 {items.map((lead: any) => (
-                  <div key={lead.id} role="button" tabIndex={0} onClick={() => onEdit(lead, col.id)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onEdit(lead, col.id); } }} className="w-[200px] shrink-0 cursor-pointer card-interactive p-3 group">
+                  <div key={lead.id} role="button" tabIndex={0} onClick={() => onEdit(lead, col.id)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onEdit(lead, col.id); } }} className="w-[200px] shrink-0 cursor-pointer card-interactive p-3 group press-feedback">
                     <h4 className="text-[15px] truncate mb-1" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" }}>{lead.name}</h4>
                     <p className="text-[13px] truncate mb-1" style={{ color: "var(--color-text-secondary)" }}>{lead.industry}</p>
                     <div className="flex items-center justify-between mt-2 pt-2 border-t" style={{ borderColor: "var(--color-border-primary)" }} onClick={e => e.stopPropagation()}>

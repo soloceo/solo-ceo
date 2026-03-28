@@ -147,7 +147,7 @@ export function TaskDetail({ open, onClose, editTask, columns, defaultColumn, cl
             initial={{ x: isMobile ? 0 : "100%", y: isMobile ? "100%" : 0 }}
             animate={{ x: 0, y: 0 }}
             exit={{ x: isMobile ? 0 : "100%", y: isMobile ? "100%" : 0 }}
-            transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={{ type: "spring", damping: 30, stiffness: 300 }}
             role="dialog"
             aria-modal="true"
             aria-label="Task detail"

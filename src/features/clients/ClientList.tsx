@@ -730,7 +730,7 @@ export function ClientsView() {
                                 )}
                                 <div className="flex justify-end gap-2">
                                   <button onClick={() => { setShowAddMs(false); setEditMsId(null); setMsForm(EMPTY_MS); }} className="btn-secondary text-[15px]">{t("common.cancel" as any)}</button>
-                                  <button onClick={saveMilestone} disabled={!msForm.label || !msForm.amount || savingMs} className="btn-primary text-[15px]" style={savingMs ? { opacity: 0.6 } : undefined}>{savingMs ? t("common.loading" as any) : msForm.alreadyPaid && !editMsId ? t("pipeline.milestones.saveAndRecord" as any) : t("common.save" as any)}</button>
+                                  <button onClick={saveMilestone} disabled={!msForm.label || !msForm.amount || savingMs} className="btn-primary text-[15px]">{savingMs ? t("common.loading" as any) : msForm.alreadyPaid && !editMsId ? t("pipeline.milestones.saveAndRecord" as any) : t("common.save" as any)}</button>
                                 </div>
                               </div>
                             </motion.div>
@@ -810,10 +810,10 @@ export function ClientsView() {
                                   // Exclusive expense: add tax; Inclusive expense: amount already has tax
                                   const displayAmt = isInc ? txAmt : (txMode === 'exclusive' ? txAmt + txTax : txAmt);
                                   return (<>
-                                    <span className="text-[15px] shrink-0" style={{ color: isInc ? "var(--color-success)" : "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
+                                    <span className="text-[15px] tabular-nums shrink-0" style={{ color: isInc ? "var(--color-success)" : "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
                                       {isInc ? "+" : "-"}${displayAmt.toLocaleString()}
                                     </span>
-                                    {txTax > 0 && <span className="text-[13px] shrink-0" style={{ color: "var(--color-text-secondary)" }}>{txMode === "exclusive" ? `+${t("finance.tax" as any)} $${txTax.toLocaleString()}` : txMode === "inclusive" ? `${t("finance.taxIncluded" as any)} $${txTax.toLocaleString()}` : ""}</span>}
+                                    {txTax > 0 && <span className="text-[13px] tabular-nums shrink-0" style={{ color: "var(--color-text-secondary)" }}>{txMode === "exclusive" ? `+${t("finance.tax" as any)} $${txTax.toLocaleString()}` : txMode === "inclusive" ? `${t("finance.taxIncluded" as any)} $${txTax.toLocaleString()}` : ""}</span>}
                                   </>);
                                 })()}
                                 <span className="text-[15px] truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{tx.description || tx.desc}</span>
@@ -918,7 +918,7 @@ export function ClientsView() {
                 {editId ? <button type="button" onClick={() => setDeleteClientId(editId)} className="btn-ghost text-[15px]" style={{ color: "var(--color-danger)" }}><Trash2 size={16} /> {t("common.delete" as any)}</button> : <div />}
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setShowPanel(false)} className="btn-secondary text-[15px]">{t("common.cancel" as any)}</button>
-                  <button type="button" onClick={saveClient} disabled={savingClient} className="btn-primary text-[15px]" style={savingClient ? { opacity: 0.6 } : undefined}>{savingClient ? t("common.loading" as any) : editId ? t("common.save" as any) : t("common.create" as any)}</button>
+                  <button type="button" onClick={saveClient} disabled={savingClient} className="btn-primary text-[15px]">{savingClient ? t("common.loading" as any) : editId ? t("common.save" as any) : t("common.create" as any)}</button>
                 </div>
               </div>
             </motion.div>

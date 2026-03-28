@@ -30,7 +30,7 @@ export default function WidgetStore({ open, onClose }: Props) {
           />
           <motion.div
             initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 28, stiffness: 300 }}
+            transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className="relative w-full md:w-[400px] md:max-h-[80vh] overflow-hidden rounded-t-[var(--radius-28)] md:rounded-[var(--radius-20)]"
             style={{ background: "var(--color-bg-primary)", boxShadow: "var(--shadow-high)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 8px)" }}
           >

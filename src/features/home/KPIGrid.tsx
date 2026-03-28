@@ -53,7 +53,7 @@ export function KPIGrid({ mrr, ytdRevenue, todayIncome, clientsCount, leadsCount
           </div>
           <div className="flex items-baseline gap-1.5">
             <span
-              className="text-[18px] tracking-tight tabular-nums"
+              className="text-[18px] tracking-tight tabular-nums select-all"
               style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}
             >
               {s.value}

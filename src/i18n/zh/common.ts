@@ -52,4 +52,7 @@ export const common = {
   "common.nextMonday": "下周一",
   "common.signOut": "退出登录",
   "nav.pinSidebar": "展开侧栏",
+  "app.cmdFooter.navigate": "导航",
+  "app.cmdFooter.select": "选择",
+  "app.cmdFooter.close": "关闭",
 };

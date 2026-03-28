@@ -26,7 +26,7 @@ export default function AppearanceSection({ darkMode, toggleDarkMode, lang, setL
       <div className="card overflow-hidden divide-y divide-[var(--color-line-secondary)]">
 
         {/* Dark mode toggle */}
-        <button onClick={toggleDarkMode} className="w-full flex items-center justify-between px-4 py-3 text-left transition-colors hover:bg-[var(--color-bg-tertiary)]">
+        <button onClick={toggleDarkMode} className="w-full flex items-center justify-between px-4 py-3 text-left cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-8)]" style={{ background: 'color-mix(in srgb, var(--color-accent) 10%, transparent)', color: 'var(--color-accent)' }}>
               {darkMode ? <Moon size={20} /> : <Sun size={20} />}
@@ -54,7 +54,7 @@ export default function AppearanceSection({ darkMode, toggleDarkMode, lang, setL
               <button
                 key={l}
                 onClick={() => setLang(l)}
-                className="px-3.5 py-2 text-[14px] transition-colors"
+                className="px-3.5 py-2 text-[14px] cursor-pointer transition-colors"
                 style={{
                   background: lang === l ? 'var(--color-accent)' : 'transparent',
                   color: lang === l ? 'var(--color-brand-text)' : 'var(--color-text-tertiary)',

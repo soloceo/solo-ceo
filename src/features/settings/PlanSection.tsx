@@ -108,7 +108,7 @@ export default function PlanSection({ showToast }: PlanSectionProps) {
           <textarea value={form.features} onChange={e => setForm(p => ({ ...p, features: e.target.value }))} placeholder={t("settings.planFeatures" as any)} className="input-base w-full px-3 py-2 text-[15px] h-20 resize-none" />
           <div className="flex gap-2">
             <button onClick={() => setEditing(null)} className="btn-secondary text-[15px] flex-1">{t("common.cancel" as any)}</button>
-            <button onClick={save} disabled={saving} className="btn-primary text-[15px] flex-1" style={saving ? { opacity: 0.6 } : undefined}>
+            <button onClick={save} disabled={saving} className="btn-primary text-[15px] flex-1">
               {saving ? t("common.loading" as any) : t("common.save" as any)}
             </button>
           </div>

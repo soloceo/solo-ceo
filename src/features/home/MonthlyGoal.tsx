@@ -147,10 +147,10 @@ export function MonthlyGoal({ monthlyIncome, loading }: MonthlyGoalProps) {
       {/* Stats row */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
-          <span className="text-[15px] tabular-nums" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
+          <span className="text-[15px] tabular-nums select-all" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
             ${monthlyIncome.toLocaleString()}
           </span>
-          <span className="text-[13px]" style={{ color: "var(--color-text-quaternary)" }}>
+          <span className="text-[13px] tabular-nums" style={{ color: "var(--color-text-quaternary)" }}>
             / ${goal.toLocaleString()}
           </span>
         </div>

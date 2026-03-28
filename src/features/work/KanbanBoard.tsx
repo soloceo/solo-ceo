@@ -166,7 +166,7 @@ export function SwimlaneView({ columns, tasks, onAdd, onEdit, onDelete, onMove, 
                   tabIndex={0}
                   onClick={() => onEdit(task)}
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onEdit(task); } }}
-                  className="flex items-center gap-3 px-3 py-2.5 group cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
+                  className="flex items-center gap-3 px-3 py-2.5 group cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback"
                 >
                   {/* Priority label */}
                   <span className="text-[11px] shrink-0" style={{ color: prioLabel[task.priority]?.color || "var(--color-text-quaternary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
