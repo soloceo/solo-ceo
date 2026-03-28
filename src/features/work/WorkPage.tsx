@@ -83,7 +83,10 @@ export default function WorkPage() {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       if (detail?.type === "task") {
+        setWorkTab("work");
         openPanel(null, "todo");
+      } else if (detail?.type === "personal-task") {
+        setWorkTab("personal");
       }
     };
     window.addEventListener("quick-create", handler);

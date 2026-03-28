@@ -144,7 +144,8 @@ export default function FinancePage() {
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      if (detail?.type === "transaction") openPanel();
+      if (detail?.type === "transaction" || detail?.type === "biz-transaction") { setFinanceTab("business"); openPanel(); }
+      else if (detail?.type === "personal-transaction") { setFinanceTab("personal"); openPanel(); }
     };
     window.addEventListener("quick-create", handler);
     return () => window.removeEventListener("quick-create", handler);

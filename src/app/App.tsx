@@ -23,6 +23,8 @@ import {
   UserPlus,
   FileText,
   ListTodo,
+  Building2,
+  User,
 } from "lucide-react";
 import { useT } from "../i18n/context";
 import { useAuth } from "../auth/AuthProvider";
@@ -100,7 +102,7 @@ const Content = React.memo(({ activeTab }: { activeTab: string }) => {
    ══════════════════════════════════════════════════════════════════ */
 function App() {
   const { user, loading: authLoading, offlineMode, signOut } = useAuth();
-  const { t } = useT();
+  const { t, lang } = useT();
 
   const {
     activeTab, setActiveTab,
@@ -187,10 +189,11 @@ function App() {
   }, [quickCreateOpen]);
 
   const quickCreateActions = [
-    { icon: <ListTodo size={14} aria-hidden="true" />, label: t("app.quickCreate.task" as any) || "New Task", action: () => { setActiveTab("work"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "task" } })), 100); } },
+    { icon: <Building2 size={14} aria-hidden="true" />, label: lang === "zh" ? "工作任务" : "Work Task", action: () => { setActiveTab("work"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "task" } })), 100); } },
+    { icon: <User size={14} aria-hidden="true" />, label: lang === "zh" ? "个人任务" : "Personal Task", action: () => { setActiveTab("work"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "personal-task" } })), 100); } },
     { icon: <UserPlus size={14} aria-hidden="true" />, label: t("app.quickCreate.lead" as any) || "New Lead", action: () => { setActiveTab("leads" as any); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "lead" } })), 100); } },
-    { icon: <Users size={14} aria-hidden="true" />, label: t("app.quickCreate.client" as any) || "New Client", action: () => { setActiveTab("clients"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "client" } })), 100); } },
-    { icon: <FileText size={14} aria-hidden="true" />, label: t("app.quickCreate.transaction" as any) || "New Transaction", action: () => { setActiveTab("finance"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "transaction" } })), 100); } },
+    { icon: <Building2 size={14} aria-hidden="true" />, label: lang === "zh" ? "公司记账" : "Biz Finance", action: () => { setActiveTab("finance"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "biz-transaction" } })), 100); } },
+    { icon: <User size={14} aria-hidden="true" />, label: lang === "zh" ? "个人记账" : "Personal Finance", action: () => { setActiveTab("finance"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "personal-transaction" } })), 100); } },
   ];
 
   /* ── Mobile FAB menu ── */
