@@ -1,0 +1,1 @@
+function n(t,r){if(!t)return"—";try{const e=new Date(t+"T00:00:00");return isNaN(e.getTime())?t:e.toLocaleDateString(r==="zh"?"zh-CN":"en-US",{month:"short",day:"numeric"})}catch{return t}}export{n as f};

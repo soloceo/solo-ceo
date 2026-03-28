@@ -1,0 +1,1 @@
+import{a as s}from"./vendor-cmdk-CmCZ0KWF.js";const i=160,l=1,S=2.5;function E(n){const[e,r]=s.useState(1);s.useEffect(()=>{const t=n.current;if(!t)return;const c=new ResizeObserver(([u])=>{const o=u.contentRect.width;o>0&&r(Math.min(S,Math.max(l,o/i)))});return c.observe(t),()=>c.disconnect()},[n]);const a=s.useCallback(t=>Math.round(t*e),[e]);return{scale:e,s:a}}export{E as u};
