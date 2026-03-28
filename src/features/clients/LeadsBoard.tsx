@@ -58,6 +58,8 @@ export function LeadsView() {
   const [plans, setPlans] = useState<any[]>([]);
   const [form, setForm] = useState(EMPTY_LEAD);
   const { settings: appSettings } = useAppSettings();
+  const [leadScores, setLeadScores] = useState<Record<number, LeadAnalysis>>({});
+  const [batchAnalyzing, setBatchAnalyzing] = useState(false);
 
   // AI state
   const [aiTone, setAiTone] = useState<"formal" | "friendly" | "direct">("friendly");
@@ -103,6 +105,27 @@ export function LeadsView() {
       setAiAnalysis(result);
     } catch { showToast(t("pipeline.ai.genFailed" as any)); }
     finally { setAiAnalyzing(false); }
+  };
+
+  const handleBatchAnalyze = async () => {
+    const { provider, apiKey } = getAiConfig();
+    if (!provider || !apiKey) {
+      showToast(t("money.ai.noKey" as any), 5000, { label: lang === "zh" ? "去设置" : "Settings", fn: () => setActiveTab("settings" as any) });
+      return;
+    }
+    const allLeads = Object.values(leads).flat();
+    if (!allLeads.length) return;
+    setBatchAnalyzing(true);
+    const results: Record<number, LeadAnalysis> = {};
+    for (const lead of allLeads) {
+      try {
+        const result = await analyzeLeadQuality(lead, lang, provider, apiKey);
+        results[lead.id] = result;
+      } catch { /* skip failed */ }
+    }
+    setLeadScores(prev => ({ ...prev, ...results }));
+    setBatchAnalyzing(false);
+    showToast(lang === "zh" ? `已分析 ${Object.keys(results).length} 条线索` : `Analyzed ${Object.keys(results).length} leads`);
   };
 
   const fetchPlans = async () => { try { const d = await (await fetch("/api/plans")).json(); setPlans(Array.isArray(d) ? d : []); } catch {} };
@@ -202,6 +225,14 @@ export function LeadsView() {
           <ChevronDown size={16} style={{ transform: showFunnel ? "rotate(180deg)" : undefined, transition: "transform 0.2s" }} /> {t("pipeline.funnel.title" as any)}
         </button>
         <div className="flex-1" />
+        <button
+          onClick={handleBatchAnalyze}
+          disabled={batchAnalyzing}
+          className="btn-ghost compact gap-1 disabled:opacity-40"
+        >
+          {batchAnalyzing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+          <span className="hidden sm:inline">{lang === "zh" ? "AI 分析" : "AI Analyze"}</span>
+        </button>
         <button onClick={() => openPanel(null, "new")} className="btn-primary compact"><Plus size={16} /> {t("pipeline.addLead" as any)}</button>
       </div>
 
@@ -256,7 +287,7 @@ export function LeadsView() {
         <div className="flex-1 overflow-x-auto overflow-y-hidden ios-scroll pb-4 -mx-4 px-4 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 snap-x snap-mandatory lg:snap-none">
           <div className="flex h-full gap-3 min-w-max">
             <DragDropContext onDragEnd={onDragEnd}>
-              {LEAD_COLS.map(col => <LeadColumn key={col.id} col={col} items={leads[col.id]} onAdd={() => openPanel(null, col.id)} onEdit={(l: any) => openPanel(l, col.id)} onDelete={(id: number) => setDeleteId(id)} emptyText={t("pipeline.emptyCol" as any)} />)}
+              {LEAD_COLS.map(col => <LeadColumn key={col.id} col={col} items={leads[col.id]} onAdd={() => openPanel(null, col.id)} onEdit={(l: any) => openPanel(l, col.id)} onDelete={(id: number) => setDeleteId(id)} emptyText={t("pipeline.emptyCol" as any)} leadScores={leadScores} />)}
             </DragDropContext>
           </div>
         </div>
@@ -451,7 +482,7 @@ export function LeadsView() {
 }
 
 /* ── Lead column (kanban) ───────────────────────────────────────── */
-function LeadColumn({ col, items, onAdd, onEdit, onDelete, emptyText }: { col: { id: string; title: string; color: string }; items: any[]; onAdd: () => void; onEdit: (l: any) => void; onDelete: (id: number) => void; emptyText: string }) {
+function LeadColumn({ col, items, onAdd, onEdit, onDelete, emptyText, leadScores }: { col: { id: string; title: string; color: string }; items: any[]; onAdd: () => void; onEdit: (l: any) => void; onDelete: (id: number) => void; emptyText: string; leadScores?: Record<number, LeadAnalysis> }) {
   return (
     <div className="flex flex-col min-w-[240px] flex-1 max-w-[320px] shrink-0 h-full snap-start">
       <div className="flex items-center justify-between mb-2 px-1">
@@ -477,7 +508,7 @@ function LeadColumn({ col, items, onAdd, onEdit, onDelete, emptyText }: { col: {
               {items.map((lead: any, i: number) => (
                 // @ts-expect-error React 19 type issue
                 <Draggable key={lead.id.toString()} draggableId={lead.id.toString()} index={i}>
-                  {(prov: any, snap: any) => <LeadCard lead={lead} provided={prov} snapshot={snap} onEdit={onEdit} onDelete={onDelete} />}
+                  {(prov: any, snap: any) => <LeadCard lead={lead} provided={prov} snapshot={snap} onEdit={onEdit} onDelete={onDelete} score={leadScores?.[lead.id]} />}
                 </Draggable>
               ))}
               {provided.placeholder}
@@ -489,7 +520,13 @@ function LeadColumn({ col, items, onAdd, onEdit, onDelete, emptyText }: { col: {
   );
 }
 
-function LeadCard({ lead, provided, snapshot, onEdit, onDelete }: any) {
+function LeadCard({ lead, provided, snapshot, onEdit, onDelete, score }: any) {
+  const scoreColors: Record<string, { bg: string; color: string; label: string }> = {
+    high: { bg: "var(--color-success-light)", color: "var(--color-success)", label: "高" },
+    medium: { bg: "var(--color-warning-light)", color: "var(--color-warning)", label: "中" },
+    low: { bg: "color-mix(in srgb, var(--color-danger) 10%, transparent)", color: "var(--color-danger)", label: "低" },
+  };
+  const s = score ? scoreColors[score.score] : null;
   const card = (
     <div ref={provided.innerRef} {...provided.draggableProps}
       style={{ ...(provided.draggableProps.style as React.CSSProperties), touchAction: snapshot.isDragging ? "none" : "auto", ...(snapshot.isDragging ? { boxShadow: "var(--shadow-high)" } : {}) }}
@@ -503,12 +540,16 @@ function LeadCard({ lead, provided, snapshot, onEdit, onDelete }: any) {
           <h4 className="text-[15px] truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{lead.name || "—"}</h4>
           <p className="text-[13px] truncate mt-0.5" style={{ color: "var(--color-text-secondary)" }}>{lead.industry || "—"}</p>
         </div>
-        {lead.source && <span className="badge">{lead.source}</span>}
+        {s && (
+          <span className="text-[11px] px-1.5 py-0.5 rounded-[var(--radius-4)] shrink-0" style={{ background: s.bg, color: s.color, fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
+            {s.label}
+          </span>
+        )}
       </div>
-      <p className="text-[13px] line-clamp-2 mb-2" style={{ color: "var(--color-text-secondary)" }}>{lead.needs}</p>
+      {lead.needs && <p className="text-[13px] line-clamp-2 mb-2" style={{ color: "var(--color-text-secondary)" }}>{lead.needs}</p>}
       <div className="flex items-center justify-between">
-        <span className="badge"><Mail size={16} /> —</span>
-        <button onClick={e => { e.stopPropagation(); onDelete(lead.id); }} className="btn-icon-sm " aria-label="Delete lead"><Trash2 size={14} /></button>
+        {lead.source ? <span className="badge">{lead.source}</span> : <span />}
+        <button onClick={e => { e.stopPropagation(); onDelete(lead.id); }} className="btn-icon-sm" aria-label="Delete lead"><Trash2 size={14} /></button>
       </div>
     </div>
   );
