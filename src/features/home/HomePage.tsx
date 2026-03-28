@@ -654,28 +654,16 @@ export default function HomePage() {
       <AnimatePresence>
         {showAllPrinciples && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
-            style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", paddingTop: "calc(env(safe-area-inset-top, 0px) + 48px)" }}
-            onClick={() => { setShowAllPrinciples(false); setSelectedPrinciple(null); }}
+            initial={{ opacity: 0, y: "100%" }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: "100%" }}
+            transition={{ type: "spring", damping: 30, stiffness: 320 }}
+            className="fixed inset-0 z-50 flex flex-col"
+            style={{ background: "var(--color-bg-primary)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 8px)" }}
           >
-            <motion.div
-              initial={{ y: 60, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 60, opacity: 0 }}
-              transition={{ type: "spring", damping: 30, stiffness: 320 }}
-              className="w-full sm:max-w-lg rounded-t-[var(--radius-16)] sm:rounded-[var(--radius-16)] overflow-hidden"
-              style={{
-                background: "var(--color-bg-primary)",
-                maxHeight: "85dvh",
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Sheet header */}
-              <div className="flex items-center justify-between sticky top-0 z-10 px-4 py-3"
-                style={{ borderBottom: "1px solid var(--color-border-primary)", background: "var(--color-bg-primary)" }}>
+              {/* Header */}
+              <div className="flex items-center justify-between shrink-0 px-4 py-3 border-b"
+                style={{ borderColor: "var(--color-border-primary)", paddingTop: "max(12px, env(safe-area-inset-top, 0px))" }}>
                 <button
                   onClick={() => { setShowAllPrinciples(false); setSelectedPrinciple(null); }}
                   className="text-[15px] press-feedback"
@@ -690,7 +678,7 @@ export default function HomePage() {
               </div>
 
               {/* Scrollable content */}
-              <div className="overflow-y-auto" style={{ maxHeight: "calc(85dvh - 48px)" }}>
+              <div className="overflow-y-auto flex-1">
                 {selectedPrinciple ? (
                   /* ── Principle detail view ── */
                   <div className="px-4 py-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)" }}>
@@ -811,7 +799,6 @@ export default function HomePage() {
                   </div>
                 )}
               </div>
-            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
