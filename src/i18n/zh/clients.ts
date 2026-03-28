@@ -27,7 +27,7 @@ export const clients = {
   "pipeline.col.won": "赢单",
   "pipeline.col.lost": "失败",
   "pipeline.funnel.title": "管道漏斗",
-  "pipeline.emptyCol": "暂无线索",
+  "pipeline.emptyCol": "暂无线索，点击 + 添加",
   "pipeline.panel.editLead": "编辑线索",
   "pipeline.panel.newLead": "新建线索",
   "pipeline.panel.editClient": "编辑客户",

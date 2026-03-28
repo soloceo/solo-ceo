@@ -106,7 +106,7 @@ export const finance = {
   "money.plans.ai.fail": "生成失败",
   "money.plans.copiedMsg": "已复制 {name} 方案摘要",
   "money.loading": "加载中...",
-  "money.noData": "暂无数据",
+  "money.noData": "暂无记录，点击记录收支开始",
   "money.empty": "还没有记录 — 添加第一笔收支开始吧",
   "money.loadFail": "无法加载财务数据",
   "money.saveFail": "保存失败",

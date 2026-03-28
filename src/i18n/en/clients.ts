@@ -29,7 +29,7 @@ export const clients = {
   "pipeline.col.won": "Won",
   "pipeline.col.lost": "Lost",
   "pipeline.funnel.title": "Sales Funnel",
-  "pipeline.emptyCol": "No leads",
+  "pipeline.emptyCol": "No leads — tap + to add one",
   "pipeline.panel.editLead": "Edit Lead",
   "pipeline.panel.newLead": "New Lead",
   "pipeline.panel.editClient": "Edit Client",

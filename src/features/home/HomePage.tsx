@@ -7,6 +7,7 @@ import { usePullToRefresh } from "../../hooks/usePullToRefresh";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { useUIStore } from "../../store/useUIStore";
 import { useAppSettings, invalidateSettingsCache } from "../../hooks/useAppSettings";
+import { useDueReminders } from "../../hooks/useDueReminders";
 import { KPIGrid } from "./KPIGrid";
 import { MonthlyGoal } from "./MonthlyGoal";
 import type { ActivityItem } from "./ActivityTimeline";
@@ -97,6 +98,7 @@ function ProgressRing({ completed, total }: { completed: number; total: number }
 /* ── Component ──────────────────────────────────────────────────── */
 export default function HomePage() {
   const { t, lang } = useT();
+  useDueReminders(lang);
   const { operatorName } = useSettingsStore();
   const showToast = useUIStore((s) => s.showToast);
   const setHideMobileNav = useUIStore((s) => s.setHideMobileNav);

@@ -16,7 +16,7 @@ export const work = {
   "work.filter.high": "High",
   "work.filter.medium": "Medium",
   "work.filter.low": "Low",
-  "work.empty": "No tasks",
+  "work.empty": "No tasks yet — tap + to create one",
   "work.loadFailed": "Failed to load tasks",
   "work.taskUpdated": "Task updated",
   "work.taskAdded": "Task added",

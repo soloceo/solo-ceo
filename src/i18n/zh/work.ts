@@ -16,7 +16,7 @@ export const work = {
   "work.filter.high": "高",
   "work.filter.medium": "中",
   "work.filter.low": "低",
-  "work.empty": "暂无任务",
+  "work.empty": "暂无任务，点击 + 创建第一个",
   "work.loadFailed": "无法加载任务",
   "work.taskUpdated": "任务已更新",
   "work.taskAdded": "任务已添加",
