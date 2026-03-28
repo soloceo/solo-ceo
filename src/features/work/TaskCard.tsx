@@ -39,6 +39,7 @@ export const TaskCard = React.memo(function TaskCard({ task, provided, snapshot,
     <div
       ref={provided.innerRef}
       {...provided.draggableProps}
+      role="listitem"
       style={{ ...(provided.draggableProps.style as React.CSSProperties), touchAction: snapshot.isDragging ? "none" : "auto", ...(snapshot.isDragging ? { boxShadow: "var(--shadow-high)" } : {}) }}
       onClick={() => onEdit(task)}
       className={`group card-interactive cursor-pointer p-3 press-feedback ${snapshot.isDragging ? "rotate-[2deg] scale-[1.02] z-[1100]" : ""}`}

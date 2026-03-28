@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-type TabId = "home" | "work" | "leads" | "clients" | "finance";
+type TabId = "home" | "work" | "leads" | "clients" | "finance" | "settings";
 type ViewMode = "vertical" | "horizontal";
 
 interface UIState {
@@ -13,10 +13,11 @@ interface UIState {
   tasksViewMode: ViewMode;
   salesViewMode: ViewMode;
 
-  // Toast
+  // Toast (supports stacking — newest toast replaces previous)
   toastMessage: string;
   toastAction: (() => void) | null;
   toastActionLabel: string;
+  toastId: number;
 
   setActiveTab: (tab: TabId) => void;
   toggleSidebar: () => void;
@@ -29,11 +30,13 @@ interface UIState {
   clearToast: () => void;
 }
 
+// Monotonic toast ID to prevent stale timer clearing wrong toast
+let toastCounter = 0;
 let toastTimer: ReturnType<typeof setTimeout> | undefined;
 
 export const useUIStore = create<UIState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       activeTab: "home",
       sidebarExpanded: false,
       darkMode: false,
@@ -44,6 +47,7 @@ export const useUIStore = create<UIState>()(
       toastMessage: "",
       toastAction: null,
       toastActionLabel: "",
+      toastId: 0,
 
       setActiveTab: (tab) => set({ activeTab: tab }),
       toggleSidebar: () => set((s) => ({ sidebarExpanded: !s.sidebarExpanded })),
@@ -59,16 +63,23 @@ export const useUIStore = create<UIState>()(
       setSalesViewMode: (mode) => set({ salesViewMode: mode }),
       showToast: (msg, duration = 3000, action) => {
         clearTimeout(toastTimer);
+        const id = ++toastCounter;
         set({
           toastMessage: msg,
           toastAction: action?.fn || null,
           toastActionLabel: action?.label || "",
+          toastId: id,
         });
-        toastTimer = setTimeout(() => set({ toastMessage: "", toastAction: null, toastActionLabel: "" }), duration);
+        toastTimer = setTimeout(() => {
+          // Only clear if this toast is still the active one
+          if (get().toastId === id) {
+            set({ toastMessage: "", toastAction: null, toastActionLabel: "", toastId: 0 });
+          }
+        }, duration);
       },
       clearToast: () => {
         clearTimeout(toastTimer);
-        set({ toastMessage: "", toastAction: null, toastActionLabel: "" });
+        set({ toastMessage: "", toastAction: null, toastActionLabel: "", toastId: 0 });
       },
     }),
     {

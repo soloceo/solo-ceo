@@ -4,26 +4,13 @@
  * can swap between online (Supabase) and offline (sql.js) seamlessly.
  */
 import { supabase } from './supabase-client';
+import { todayDateKey, monthKey, currentMonth } from '../lib/date-utils';
 
 // ── helpers ────────────────────────────────────────────────────────
 
-function todayDateKey() {
-  return new Date().toISOString().split('T')[0];
-}
-
-function currentMonth() {
-  const n = new Date();
-  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`;
-}
-
-function monthKey(value: string | null | undefined, fallback?: Date): string {
-  if (value) return String(value).slice(0, 7);
-  const d = fallback ?? new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-}
-
 // Cache userId from session (local, no network call) instead of getUser() (network)
 let _cachedUserId: string | null = null;
+let _authSub: { unsubscribe: () => void } | null = null;
 
 async function getUserId(): Promise<string> {
   if (_cachedUserId) return _cachedUserId;
@@ -34,10 +21,18 @@ async function getUserId(): Promise<string> {
   return _cachedUserId;
 }
 
-// Clear cache on auth state change
-supabase.auth.onAuthStateChange((_event, session) => {
-  _cachedUserId = session?.user?.id ?? null;
-});
+// Setup auth listener with cleanup (hot reload safety)
+function setupAuthListener() {
+  // Clean up previous subscription
+  _authSub?.unsubscribe();
+
+  const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+    _cachedUserId = session?.user?.id ?? null;
+  });
+  _authSub = data.subscription;
+}
+
+setupAuthListener();
 
 function normalizePlanTier(t: string): string {
   if (!t) return '';
@@ -312,9 +307,16 @@ export async function handleSupabaseRequest(
       .eq('user_id', userId)
       .eq('type', 'income')
       .eq('status', '已完成')
-      .eq('soft_deleted', false);
+      .eq('soft_deleted', false)
+      .in('client_id', (clients || []).map(c => c.id).filter(id => id != null));
+    const revMap = new Map<number, Array<{ amount: number; date: string }>>();
+    for (const r of (revRows || [])) {
+      const cid = Number(r.client_id);
+      if (!revMap.has(cid)) revMap.set(cid, []);
+      revMap.get(cid)!.push(r);
+    }
     const rows = (clients || []).map((client) => {
-      const cl = (revRows || []).filter((r) => Number(r.client_id) === Number(client.id));
+      const cl = revMap.get(Number(client.id)) || [];
       const lifetimeRevenue = cl.reduce((s, r) => s + Number(r.amount || 0), 0);
       const ytdRevenue = cl
         .filter((r) => String(r.date || '').startsWith(`${currentYear}-`))
@@ -698,15 +700,28 @@ export async function handleSupabaseRequest(
   }
 
   if (path === '/api/finance/report' && method === 'GET') {
-    // Trigger a GET /api/finance internally
-    const { data: allRows } = await handleSupabaseRequest('GET', '/api/finance', null);
-    const transactions = allRows || [];
-    const completedIncome = transactions.filter((t: any) => t.type === 'income' && (t.status || '已完成') === '已完成').reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-    const completedExpense = transactions.filter((t: any) => t.type === 'expense' && (t.status || '已完成') === '已完成').reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-    const receivables = transactions.filter((t: any) => String(t.status || '').includes('应收')).reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-    const payables = transactions.filter((t: any) => String(t.status || '').includes('应付')).reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-    const totalTax = transactions.filter((t: any) => (t.status || '已完成') === '已完成' && Number(t.tax_amount || 0) > 0).reduce((s: number, t: any) => s + Number(t.tax_amount || 0), 0);
-    const rows = transactions.slice(0, 50).map((t: any) => { const taxInfo = Number(t.tax_amount || 0) > 0 ? ` (税$${Number(t.tax_amount).toLocaleString()})` : ''; return `<tr><td>${t.date || ''}</td><td>${t.description || ''}</td><td>${t.category || ''}</td><td>${t.type === 'income' ? '+' : '-'}$${Number(t.amount || 0).toLocaleString()}${taxInfo}</td><td>${t.status || '已完成'}</td></tr>`; }).join('');
+    // Fetch all transactions with optimized queries
+    const [
+      { data: completedIncomeRows },
+      { data: completedExpenseRows },
+      { data: receivablesRows },
+      { data: payablesRows },
+      { data: taxableRows },
+      { data: recentRows },
+    ] = await Promise.all([
+      supabase.from('finance_transactions').select('amount').eq('user_id', userId).eq('type', 'income').eq('status', '已完成').eq('soft_deleted', false),
+      supabase.from('finance_transactions').select('amount').eq('user_id', userId).eq('type', 'expense').eq('status', '已完成').eq('soft_deleted', false),
+      supabase.from('finance_transactions').select('amount').eq('user_id', userId).eq('soft_deleted', false).like('status', '%应收%'),
+      supabase.from('finance_transactions').select('amount').eq('user_id', userId).eq('soft_deleted', false).like('status', '%应付%'),
+      supabase.from('finance_transactions').select('amount, tax_amount').eq('user_id', userId).eq('status', '已完成').eq('soft_deleted', false).gt('tax_amount', 0),
+      supabase.from('finance_transactions').select('*').eq('user_id', userId).eq('soft_deleted', false).order('date', { ascending: false }).limit(50),
+    ]);
+    const completedIncome = (completedIncomeRows || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+    const completedExpense = (completedExpenseRows || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+    const receivables = (receivablesRows || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+    const payables = (payablesRows || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+    const totalTax = (taxableRows || []).reduce((s: number, r: any) => s + Number(r.tax_amount || 0), 0);
+    const rows = (recentRows || []).map((t: any) => { const taxInfo = Number(t.tax_amount || 0) > 0 ? ` (税$${Number(t.tax_amount).toLocaleString()})` : ''; return `<tr><td>${t.date || ''}</td><td>${t.description || ''}</td><td>${t.category || ''}</td><td>${t.type === 'income' ? '+' : '-'}$${Number(t.amount || 0).toLocaleString()}${taxInfo}</td><td>${t.status || '已完成'}</td></tr>`; }).join('');
     const html = `<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"/><title>一人CEO - 财务月度报表</title><style>body{font-family:-apple-system,sans-serif;padding:32px;color:#18181b}h1{font-size:28px;margin:0 0 8px}p{color:#71717a;margin:0 0 24px}.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}.card{border:1px solid #e4e4e7;border-radius:16px;padding:16px}.label{font-size:12px;color:#71717a;margin-bottom:8px}.value{font-size:24px;font-weight:700}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 12px;border-bottom:1px solid #e4e4e7;font-size:12px}th{background:#f4f4f5;color:#52525b}</style></head><body><h1>财务月度报表</h1><p>一人CEO · 导出时间 ${new Date().toLocaleString('zh-CN')}</p><div class="grid"><div class="card"><div class="label">已完成收入</div><div class="value">$${completedIncome.toLocaleString()}</div></div><div class="card"><div class="label">已完成支出</div><div class="value">$${completedExpense.toLocaleString()}</div></div><div class="card"><div class="label">净利润</div><div class="value">$${(completedIncome - completedExpense).toLocaleString()}</div></div><div class="card"><div class="label">应收 / 应付</div><div class="value">$${receivables.toLocaleString()} / $${payables.toLocaleString()}</div></div><div class="card"><div class="label">税费合计</div><div class="value">$${totalTax.toLocaleString()}</div></div></div><table><thead><tr><th>日期</th><th>描述</th><th>分类</th><th>金额</th><th>状态</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
     return { status: 200, data: html };
   }
@@ -913,7 +928,7 @@ export async function handleSupabaseRequest(
     const activeTasks = taskData?.length || 0;
     const todoCount = (taskData || []).filter((t: any) => t.column === 'todo').length;
     const inProgressCount = (taskData || []).filter((t: any) => t.column === 'inProgress').length;
-    const leadsCount = leadData?.length || 0;
+    const leadsCount = (leadData || []).length;
     const leadsNew = (leadData || []).filter((l: any) => l.column === 'new').length;
     const leadsContacted = (leadData || []).filter((l: any) => l.column === 'contacted').length;
     const leadsProposal = (leadData || []).filter((l: any) => l.column === 'proposal').length;
@@ -956,7 +971,7 @@ export async function handleSupabaseRequest(
     const receivables = receivablesData || [];
     const leads = bestLeadArr || [];
     const tasks = urgentTaskArr || [];
-    const overdueMs = overdueMsArr?.[0] as any;
+    const overdueMs = overdueMsArr?.[0] as Record<string, any> | undefined;
 
     // Build multiple candidates per category so "swap" has replacements
     const revenueCandidates: any[] = leads.map((l: any) => ({

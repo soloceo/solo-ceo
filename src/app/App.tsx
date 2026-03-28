@@ -11,10 +11,6 @@ import {
   Sun,
   PanelLeftClose,
   PanelLeft,
-  Cloud,
-  CloudOff,
-  RefreshCw,
-  LogOut,
   Search,
   CheckCircle2,
   AlertTriangle,
@@ -23,18 +19,21 @@ import {
   UserPlus,
   FileText,
   ListTodo,
-  Building2,
-  User,
 } from "lucide-react";
 import { useT } from "../i18n/context";
 import { useAuth } from "../auth/AuthProvider";
 import LoginPage from "../auth/LoginPage";
 import { startRealtime, stopRealtime } from "../db/realtime";
 import { ErrorBoundary } from "../components/ErrorBoundary";
+import { OfflineBanner } from "../components/OfflineBanner";
 import { Avatar, PageSkeleton, GlobalToast } from "../components/ui";
 import { useUIStore } from "../store/useUIStore";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { CommandPalette } from "./CommandPalette";
+import { QuickCreateMenu } from "./QuickCreateMenu";
+import { UserMenu } from "./UserMenu";
+import { SyncIndicator } from "./SyncIndicator";
+import { useClickOutside } from "./useClickOutside";
 
 /* ── Lazy page imports ─────────────────────────────────────────── */
 const HomePage = lazy(() => import("../features/home/HomePage"));
@@ -158,37 +157,12 @@ function App() {
     return () => clearInterval(interval);
   }, [user]);
 
-  /* ── User menu ── */
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const userMenuRef = useRef<HTMLDivElement>(null);
+  /* ── Mobile FAB menu ── */
+  const [fabMenuOpen, setFabMenuOpen] = useState(false);
+  const fabMenuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!userMenuOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
-        setUserMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [userMenuOpen]);
-
-  /* ── Quick create menu ── */
-  const [quickCreateOpen, setQuickCreateOpen] = useState(false);
-  const quickCreateRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!quickCreateOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (quickCreateRef.current && !quickCreateRef.current.contains(e.target as Node)) {
-        setQuickCreateOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [quickCreateOpen]);
-
-  const quickCreateGroups = [
+  // Reusable quick create groups for both desktop and mobile
+  const getQuickCreateGroups = () => [
     { label: t("app.quickCreate.groupWork" as any), items: [
       { icon: <ListTodo size={14} aria-hidden="true" />, label: t("app.quickCreate.task" as any), action: () => { setActiveTab("work"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "task" } })), 100); } },
       { icon: <UserPlus size={14} aria-hidden="true" />, label: t("app.quickCreate.lead" as any), action: () => { setActiveTab("leads" as any); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "lead" } })), 100); } },
@@ -200,20 +174,10 @@ function App() {
       { icon: <FileText size={14} aria-hidden="true" />, label: t("app.quickCreate.personalFinance" as any), action: () => { setActiveTab("finance"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "personal-transaction" } })), 100); } },
     ]},
   ];
-  const quickCreateActions = quickCreateGroups.flatMap(g => g.items);
 
-  /* ── Mobile FAB menu ── */
-  const [fabMenuOpen, setFabMenuOpen] = useState(false);
-  const fabMenuRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!fabMenuOpen) return;
-    const handler = (e: MouseEvent | TouchEvent) => {
-      if (fabMenuRef.current && !fabMenuRef.current.contains(e.target as Node)) setFabMenuOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    document.addEventListener("touchstart", handler);
-    return () => { document.removeEventListener("mousedown", handler); document.removeEventListener("touchstart", handler); };
-  }, [fabMenuOpen]);
+  const quickCreateGroups = useMemo(() => getQuickCreateGroups(), [t]);
+
+  useClickOutside(fabMenuRef, () => setFabMenuOpen(false), fabMenuOpen);
 
   // Realtime
   useEffect(() => {
@@ -378,56 +342,7 @@ function App() {
               <span className="flex-1 text-left truncate">{t("common.search" as any)}</span>
               <kbd className="shrink-0 text-[10px] px-1 py-px rounded-[var(--radius-2)]" style={{ fontFamily: "inherit", color: "var(--color-text-quaternary)", background: "var(--color-bg-tertiary)", border: "1px solid var(--color-border-primary)" }}>⌘K</kbd>
             </button>
-            <div className="relative" ref={quickCreateRef}>
-              <button
-                onClick={() => setQuickCreateOpen((p) => !p)}
-                className="flex items-center justify-center w-8 h-8 shrink-0 rounded-[var(--radius-6)] transition-colors hover:bg-[var(--color-bg-tertiary)]"
-                style={{
-                  color: quickCreateOpen ? "var(--color-accent)" : "var(--color-text-quaternary)",
-                  background: quickCreateOpen ? "var(--color-accent-tint)" : "var(--color-bg-translucent)",
-                }}
-                title={t("app.quickCreate" as any)}
-                aria-label={t("app.quickCreate" as any)}
-              >
-                <Plus size={14} style={{ transition: "transform 0.15s", transform: quickCreateOpen ? "rotate(45deg)" : undefined }} />
-              </button>
-              <AnimatePresence>
-                {quickCreateOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: -4 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: -4 }}
-                    transition={{ duration: 0.12, ease: [0.25, 0.46, 0.45, 0.94] }}
-                    className="absolute left-0 top-[calc(100%+4px)] w-48 py-1 overflow-hidden"
-                    style={{
-                      background: "var(--color-bg-primary)",
-                      border: "1px solid var(--color-border-primary)",
-                      borderRadius: "var(--radius-8)",
-                      boxShadow: "var(--shadow-medium)",
-                      zIndex: 10,
-                    }}
-                  >
-                    {quickCreateGroups.map((group, gi) => (
-                      <div key={gi}>
-                        {gi > 0 && <div className="my-1" style={{ borderTop: "1px solid var(--color-line-secondary)" }} />}
-                        <div className="px-3 pt-1.5 pb-0.5 text-[11px] uppercase tracking-wider" style={{ color: "var(--color-text-quaternary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{group.label}</div>
-                        {group.items.map((item, i) => (
-                          <button
-                            key={i}
-                            onClick={() => { item.action(); setQuickCreateOpen(false); }}
-                            className="flex items-center gap-3 w-full px-3 py-2 text-[15px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
-                            style={{ color: "var(--color-text-secondary)" }}
-                          >
-                            <span style={{ color: "var(--color-text-quaternary)" }}>{item.icon}</span>
-                            {item.label}
-                          </button>
-                        ))}
-                      </div>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+            <QuickCreateMenu setActiveTab={setActiveTab} />
           </div>
         )}
 
@@ -492,7 +407,7 @@ function App() {
                 {darkMode ? <Sun size={14} /> : <Moon size={14} />}
               </button>
               <button
-                onClick={() => setActiveTab("settings" as any)}
+                onClick={() => setActiveTab("settings")}
                 className="btn-icon-sm"
                 style={{ color: activeTab === "settings" ? "var(--color-text-primary)" : "var(--color-text-quaternary)" }}
                 title={t("nav.settings" as any)}
@@ -505,94 +420,20 @@ function App() {
 
 
           {/* User */}
-          <div className="relative" ref={userMenuRef}>
-            <button
-              onClick={() => setUserMenuOpen((p) => !p)}
-              title={isExpanded ? undefined : operatorDisplayName}
-              className={`flex items-center w-full rounded-[var(--radius-6)] py-1.5 transition-colors hover:bg-[var(--color-bg-tertiary)] ${isExpanded ? "gap-2 px-2" : "justify-center"}`}
-            >
-              <span className="relative">
-                <Avatar src={operatorAvatar || undefined} name={operatorDisplayName} size="sm" />
-                <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-[var(--color-bg-panel)]" style={{ background: isOnline ? "var(--color-success)" : "var(--color-text-quaternary)" }} />
-              </span>
-              {isExpanded && (
-                <>
-                  <span className="text-[14px] truncate flex-1 text-left" style={{ fontWeight: "var(--font-weight-medium)", color: "var(--color-text-secondary)" } as React.CSSProperties}>
-                    {operatorDisplayName}
-                  </span>
-                  {streak > 1 && (
-                    <span className="text-[13px] shrink-0 tabular-nums" style={{ fontWeight: "var(--font-weight-bold)", color: "var(--color-warning)" } as React.CSSProperties}>
-                      🔥{streak}
-                    </span>
-                  )}
-                </>
-              )}
-            </button>
-            <AnimatePresence>
-              {userMenuOpen && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95, y: 4 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: 4 }}
-                  transition={{ duration: 0.12, ease: [0.25, 0.46, 0.45, 0.94] }}
-                  className="absolute bottom-[calc(100%+6px)] left-0 w-48 py-1 overflow-hidden"
-                  style={{
-                    background: "var(--color-bg-primary)",
-                    border: "1px solid var(--color-border-primary)",
-                    borderRadius: "var(--radius-8)",
-                    boxShadow: "var(--shadow-medium)",
-                    zIndex: 10,
-                  }}
-                >
-                  {/* User info header */}
-                  <div className="px-3 py-2" style={{ borderBottom: "1px solid var(--color-line-tertiary)" }}>
-                    <div className="text-[14px] truncate" style={{ fontWeight: "var(--font-weight-medium)", color: "var(--color-text-primary)" } as React.CSSProperties}>
-                      {operatorDisplayName}
-                    </div>
-                    {user?.email && (
-                      <div className="text-[13px] truncate mt-0.5" style={{ color: "var(--color-text-quaternary)" }}>
-                        {user.email}
-                      </div>
-                    )}
-                  </div>
-                  {/* Cloud status */}
-                  <div className="flex items-center gap-3 px-3 py-2 text-[14px]" style={{ color: "var(--color-text-tertiary)" }}>
-                    <SyncIndicator isOnline={isOnline} syncStatus={syncStatus} pendingOps={pendingOps} compact />
-                    <span>{isOnline ? t("app.cloudConnected" as any) : t("app.offline" as any)}</span>
-                  </div>
-                  {/* Dark mode toggle */}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); toggleDarkMode(); }}
-                    className="flex items-center gap-3 w-full px-3 py-2 text-[15px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
-                    style={{ color: "var(--color-text-secondary)" }}
-                  >
-                    {darkMode ? <Sun size={14} aria-hidden="true" style={{ color: "var(--color-text-quaternary)" }} /> : <Moon size={14} aria-hidden="true" style={{ color: "var(--color-text-quaternary)" }} />}
-                    {darkMode ? t("app.lightMode" as any) : t("app.darkMode" as any)}
-                  </button>
-                  {/* Settings */}
-                  <button
-                    onClick={() => { setActiveTab("settings" as any); setUserMenuOpen(false); }}
-                    className="flex items-center gap-3 w-full px-3 py-2 text-[15px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
-                    style={{ color: "var(--color-text-secondary)" }}
-                  >
-                    <SettingsIcon size={14} aria-hidden="true" style={{ color: "var(--color-text-quaternary)" }} />
-                    {t("nav.settings" as any)}
-                  </button>
-                  {/* Divider */}
-                  <div style={{ height: 1, background: "var(--color-line-tertiary)", margin: "2px 0" }} />
-                  {/* Sign out */}
-                  <button
-                    onClick={() => { setUserMenuOpen(false); signOut(); }}
-                    className="flex items-center gap-3 w-full px-3 py-2 text-[15px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
-                    style={{ color: "var(--color-danger)" }}
-                  >
-                    <LogOut size={14} aria-hidden="true" />
-                    {t("common.signOut" as any) || "Sign out"}
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+          <UserMenu
+            operatorDisplayName={operatorDisplayName}
+            operatorAvatar={operatorAvatar}
+            streak={streak}
+            isOnline={isOnline}
+            syncStatus={syncStatus}
+            pendingOps={pendingOps}
+            isExpanded={isExpanded}
+            user={user}
+            darkMode={darkMode}
+            toggleDarkMode={toggleDarkMode}
+            setActiveTab={setActiveTab}
+            onSignOut={signOut}
+          />
         </div>
       </aside>
 
@@ -634,7 +475,7 @@ function App() {
               {darkMode ? <Sun size={16} /> : <Moon size={16} />}
             </button>
             <button
-              onClick={() => setActiveTab("settings" as any)}
+              onClick={() => setActiveTab("settings")}
               className="btn-icon"
               aria-label="Settings"
             >
@@ -642,6 +483,8 @@ function App() {
             </button>
           </div>
         </header>
+
+        <OfflineBanner />
 
         {/* Page content — instant switch, no animation (Linear-style) */}
         <main className="flex-1 overflow-hidden">
@@ -842,26 +685,6 @@ const MobileNavItem = React.memo(function MobileNavItem({
       <span className="text-[13px]" style={{ fontWeight: active ? "var(--font-weight-semibold)" : "var(--font-weight-medium)" } as React.CSSProperties}>{label}</span>
     </button>
   );
-});
-
-/* ── Sync indicator ────────────────────────────────────────────── */
-const SyncIndicator = React.memo(function SyncIndicator({
-  isOnline, syncStatus, pendingOps, compact = false,
-}: {
-  isOnline: boolean; syncStatus: "idle" | "syncing"; pendingOps: number; compact?: boolean;
-}) {
-  if (syncStatus === "syncing") {
-    return (
-      <div className="flex items-center gap-1">
-        <RefreshCw size={compact ? 13 : 14} className="animate-spin" style={{ color: "var(--color-accent)" }} />
-        {!compact && pendingOps > 0 && (
-          <span className="text-[13px]" style={{ fontWeight: "var(--font-weight-medium)", color: "var(--color-accent)" } as React.CSSProperties}>{pendingOps}</span>
-        )}
-      </div>
-    );
-  }
-  if (!isOnline) return <CloudOff size={compact ? 13 : 14} style={{ color: "var(--color-warning)" }} />;
-  return <Cloud size={compact ? 13 : 14} style={{ color: "var(--color-green)" }} />;
 });
 
 /* ── Toast ──────────────────────────────────────────────────────── */

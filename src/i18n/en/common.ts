@@ -50,8 +50,6 @@ export const common = {
   "app.quickCreate.groupWork": "Work",
   "app.quickCreate.groupPersonal": "Personal",
   "common.goSettings": "Settings",
-  "common.add": "Add",
-  "common.confirm": "Create",
   "common.regenerate": "Regenerate",
   "common.collapse": "Collapse",
   "app.navigation": "Navigation",

@@ -13,16 +13,31 @@ export function useRealtimeRefresh(
   const timer = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
-    const handler = (e: Event) => {
+    const scheduleRefetch = () => {
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => stableRefetch(), 300);
+    };
+
+    const handleSingle = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       if (detail?.table && tables.includes(detail.table)) {
-        clearTimeout(timer.current);
-        timer.current = setTimeout(() => stableRefetch(), 300);
+        scheduleRefetch();
       }
     };
-    window.addEventListener('supabase-change', handler);
+
+    const handleBatch = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      const changed = detail?.tables as string[] | undefined;
+      if (changed?.some(t => tables.includes(t))) {
+        scheduleRefetch();
+      }
+    };
+
+    window.addEventListener('supabase-change', handleSingle);
+    window.addEventListener('supabase-change-batch', handleBatch);
     return () => {
-      window.removeEventListener('supabase-change', handler);
+      window.removeEventListener('supabase-change', handleSingle);
+      window.removeEventListener('supabase-change-batch', handleBatch);
       clearTimeout(timer.current);
     };
   }, [tables, stableRefetch]);

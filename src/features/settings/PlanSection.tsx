@@ -6,10 +6,19 @@ interface PlanSectionProps {
   showToast: (msg: string) => void;
 }
 
+interface Plan {
+  id: number;
+  name: string;
+  price: number;
+  deliverySpeed?: string;
+  features?: string;
+  [key: string]: any;
+}
+
 export default function PlanSection({ showToast }: PlanSectionProps) {
   const { t } = useT();
-  const [plans, setPlans] = useState<any[]>([]);
-  const [editing, setEditing] = useState<any>(null);
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [editing, setEditing] = useState<Plan | "new" | null>(null);
   const [saving, setSaving] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [form, setForm] = useState({ name: "", price: "", deliverySpeed: "", features: "" });
@@ -17,7 +26,7 @@ export default function PlanSection({ showToast }: PlanSectionProps) {
   const fetchPlans = async () => { try { setPlans(await (await fetch("/api/plans")).json()); } catch (e) { console.error("[fetchPlans]", e); } };
   useEffect(() => { fetchPlans(); }, []);
 
-  const openEdit = (p: any) => { setEditing(p); setForm({ name: p.name, price: String(p.price || 0), deliverySpeed: p.deliverySpeed || "", features: (JSON.parse(p.features || "[]") as string[]).join("\n") }); };
+  const openEdit = (p: Plan) => { setEditing(p); setForm({ name: p.name, price: String(p.price || 0), deliverySpeed: p.deliverySpeed || "", features: (JSON.parse(p.features || "[]") as string[]).join("\n") }); };
   const openNew = () => { setEditing("new"); setForm({ name: "", price: "", deliverySpeed: "", features: "" }); };
 
   const save = async () => {

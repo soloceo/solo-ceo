@@ -54,7 +54,7 @@ function Column({ col, items, onAdd, onEdit, onDelete, onClientClick, emptyText 
   emptyText: string;
 }) {
   return (
-    <div className="flex flex-col min-w-[240px] flex-1 max-w-[320px] h-full snap-start">
+    <div className="flex flex-col min-w-[240px] flex-1 max-w-[320px] h-full snap-start" role="region" aria-label={col.title}>
       {/* Column header */}
       <div className="flex items-center justify-between mb-2 px-1">
         <div className="flex items-center gap-2">
@@ -66,7 +66,7 @@ function Column({ col, items, onAdd, onEdit, onDelete, onClientClick, emptyText 
             {items.length}
           </span>
         </div>
-        <button onClick={onAdd} className="btn-icon-sm" aria-label="Add task">
+        <button onClick={onAdd} className="btn-icon-sm" aria-label={`Add task to ${col.title}`}>
           <Plus size={14} />
         </button>
       </div>
@@ -77,6 +77,7 @@ function Column({ col, items, onAdd, onEdit, onDelete, onClientClick, emptyText 
             {...provided.droppableProps}
             ref={provided.innerRef}
             className="flex flex-col flex-1 min-h-0 rounded-[var(--radius-12)] overflow-hidden"
+            role="list"
             style={{
               background: snapshot.isDraggingOver ? "var(--color-accent-tint)" : "var(--color-bg-tertiary)",
               borderTop: `2px solid ${col.color}`,

@@ -14,6 +14,13 @@ import type { Task } from "./TaskCard";
 
 type TaskMap = Record<string, Task[]>;
 
+interface ClientItem {
+  id: number;
+  name: string;
+  company_name?: string;
+  [key: string]: any;
+}
+
 const WORK_TABLES = ["tasks"] as const;
 
 export default function WorkPage() {
@@ -38,7 +45,7 @@ export default function WorkPage() {
   const setActiveTab = useUIStore((s) => s.setActiveTab);
   const viewMode = useUIStore((s) => s.tasksViewMode);
   const setViewMode = useUIStore((s) => s.setTasksViewMode);
-  const [clientList, setClientList] = useState<any[]>([]);
+  const [clientList, setClientList] = useState<ClientItem[]>([]);
 
   // Task detail panel state
   const [showPanel, setShowPanel] = useState(false);
@@ -46,7 +53,7 @@ export default function WorkPage() {
   const [defaultColumn, setDefaultColumn] = useState("todo");
 
   useEffect(() => {
-    fetch("/api/clients").then((r) => r.json()).then((d) => setClientList(Array.isArray(d) ? d.filter((c: any) => !c.soft_deleted) : [])).catch(() => {});
+    fetch("/api/clients").then((r) => r.json()).then((d) => setClientList(Array.isArray(d) ? d.filter((c: ClientItem) => !c.soft_deleted) : [])).catch(() => {});
   }, []);
 
   const fetchTasks = useCallback(async () => {
@@ -131,7 +138,6 @@ export default function WorkPage() {
     const keyMap = AI_KEY_MAP;
     const apiKey = provider ? appSettings?.[keyMap[provider]] : undefined;
     if (!provider || !apiKey) {
-      const lang = lang;
       showToast(t("work.ai.noKey" as any), 5000, {
         label: t("common.goSettings" as any),
         fn: () => setActiveTab("settings" as any),
@@ -141,7 +147,7 @@ export default function WorkPage() {
     setAiParsing(true);
     try {
       const clientNames = clientList.map((c: any) => c.company_name || c.name).filter(Boolean);
-      const parsed = await parseWorkTask(text, clientNames, lang, provider, apiKey);
+      const parsed = await parseWorkTask(text, clientNames, lang, provider, apiKey) as { title: string; client?: string; priority: string; due?: string; column: string; originalRequest: string };
       await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

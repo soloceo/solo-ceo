@@ -30,8 +30,34 @@ import { useAppSettings } from "../../hooks/useAppSettings";
 const FinanceChart = React.lazy(() => import("./FinanceChart"));
 import { StatCard, TxRow, VirtualTxList } from "./TransactionList";
 
+/* ── Type definitions ── */
+interface FinanceTransaction {
+  id: number;
+  type: "income" | "expense";
+  source?: string;
+  source_id?: number;
+  amount: number;
+  category: string;
+  description: string;
+  date: string;
+  status: string;
+  client_id?: number | null;
+  client_name?: string;
+  tax_mode: "none" | "exclusive" | "inclusive";
+  tax_rate: number;
+  tax_amount: number;
+  [key: string]: any;
+}
+
+interface ClientItem {
+  id: number;
+  name: string;
+  company_name?: string;
+  [key: string]: any;
+}
+
 /* ── Helpers ── */
-const stLabel = (st: string, t: (k: any) => string) => {
+const stLabel = (st: string, t: (k: string) => string) => {
   const key = STATUS_I18N[st];
   return key ? t(key as any) : st;
 };
@@ -71,16 +97,16 @@ export default function FinancePage() {
   const { settings: appSettings } = useAppSettings();
 
   /* ── Data state ── */
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [clientList, setClientList] = useState<any[]>([]);
+  const [clientList, setClientList] = useState<ClientItem[]>([]);
   const [aiInput, setAiInput] = useState("");
   const [aiParsing, setAiParsing] = useState(false);
 
   /* ── UI state ── */
   const [financeTab, setFinanceTab] = useState<"business" | "personal">("business");
   const [showPanel, setShowPanel] = useState(false);
-  const [editingTx, setEditingTx] = useState<any>(null);
+  const [editingTx, setEditingTx] = useState<FinanceTransaction | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 

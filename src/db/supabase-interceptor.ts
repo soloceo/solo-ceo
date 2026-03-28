@@ -23,15 +23,24 @@ function isOnline(): boolean {
 // ── Auth status cache (sync, zero network calls) ─────────────────
 
 let _cachedAuthed = false;
+let _authSub: { unsubscribe: () => void } | null = null;
 
-supabase.auth.onAuthStateChange((_event, session) => {
-  _cachedAuthed = !!session;
-});
+function setupAuthCache() {
+  // Clean up previous subscription (hot reload safety)
+  _authSub?.unsubscribe();
 
-// Init from localStorage — no network request
-supabase.auth.getSession().then(({ data }) => {
-  _cachedAuthed = !!data.session;
-}).catch(() => {});
+  const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+    _cachedAuthed = !!session;
+  });
+  _authSub = data.subscription;
+
+  // Init from localStorage — no network request
+  supabase.auth.getSession().then(({ data }) => {
+    _cachedAuthed = !!data.session;
+  }).catch(() => {});
+}
+
+setupAuthCache();
 
 function isAuthenticated(): boolean {
   return _cachedAuthed;

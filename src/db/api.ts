@@ -4,12 +4,12 @@
  */
 import { Database } from 'sql.js';
 import { getDb, saveDb, all, get, run, exec } from './index';
+import { todayDateKey, monthKey, currentMonth } from '../lib/date-utils';
+
+// ── Type definitions ────────────────────────────────────────────────────────
+type DbRow = Record<string, any>;
 
 // ── helpers ────────────────────────────────────────────────────────────────
-
-function todayDateKey() {
-  return new Date().toISOString().split('T')[0];
-}
 
 function logActivity(
   db: Database,
@@ -25,17 +25,6 @@ function logActivity(
      VALUES (?, ?, ?, ?, ?)`,
     [entityType, entityId ?? null, action, title, detail]
   );
-}
-
-function monthKey(value: string | null | undefined, fallback?: Date): string {
-  if (value) return String(value).slice(0, 7);
-  const d = fallback ?? new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-}
-
-function currentMonth() {
-  const n = new Date();
-  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`;
 }
 
 function calcTaxOffline(amount: number, mode: string, rate: number): number {
@@ -504,7 +493,7 @@ export async function handleApiRequest(
     const id = leadMatch[1];
     if (method === 'PUT') {
       const { name, industry, needs, website, column, aiDraft, source } = body;
-      const prev = get(db, 'SELECT name, column FROM leads WHERE id=?', [id]) as any;
+      const prev = get(db, 'SELECT name, column FROM leads WHERE id=?', [id]) as DbRow;
       run(db, `UPDATE leads SET name=?,industry=?,needs=?,website=?,column=?,aiDraft=?,source=? WHERE id=?`,
         [name||'', industry||'', needs||'', website||'', column||'new', aiDraft||'', source||'', id]);
       const detail = prev?.column && prev.column !== (column||'new')
@@ -512,7 +501,7 @@ export async function handleApiRequest(
       logActivity(db, 'lead', 'updated', `更新线索：${name||prev?.name||'未命名线索'}`, detail, id);
       dirty = true;
     } else if (method === 'DELETE') {
-      const prev = get(db, 'SELECT name FROM leads WHERE id=?', [id]) as any;
+      const prev = get(db, 'SELECT name FROM leads WHERE id=?', [id]) as DbRow;
       run(db, 'DELETE FROM leads WHERE id=?', [id]);
       logActivity(db, 'lead', 'deleted', `删除线索：${prev?.name||'未命名线索'}`, '', id);
       dirty = true;
@@ -524,7 +513,7 @@ export async function handleApiRequest(
   const convertMatch = path.match(/^\/api\/leads\/(\d+)\/convert$/);
   if (convertMatch && method === 'POST') {
     const id = convertMatch[1];
-    const lead = get(db, 'SELECT * FROM leads WHERE id=?', [id]) as any;
+    const lead = get(db, 'SELECT * FROM leads WHERE id=?', [id]) as DbRow;
     if (!lead) return err(404, 'Lead not found');
     const { plan_tier, status, mrr, subscription_start_date, mrr_effective_from } = body || {};
     const np = normalizePlanTier(plan_tier || '');
@@ -588,7 +577,7 @@ export async function handleApiRequest(
               subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from,
               company_name, contact_name, contact_email, contact_phone, billing_type, project_fee, project_end_date, tax_mode, tax_rate } = body;
       const prev = get(db, `SELECT name, status, plan_tier, mrr, subscription_start_date,
-        paused_at, resumed_at, cancelled_at, mrr_effective_from FROM clients WHERE id=?`, [id]) as any;
+        paused_at, resumed_at, cancelled_at, mrr_effective_from FROM clients WHERE id=?`, [id]) as DbRow;
       const np = normalizePlanTier(plan_tier||'');
       run(db, `UPDATE clients SET name=?,industry=?,plan_tier=?,status=?,brand_context=?,mrr=?,
         subscription_start_date=?,paused_at=?,resumed_at=?,cancelled_at=?,mrr_effective_from=?,
@@ -613,7 +602,7 @@ export async function handleApiRequest(
       return ok({ success: true });
     }
     if (method === 'DELETE') {
-      const prev = get(db, 'SELECT name FROM clients WHERE id=?', [id]) as any;
+      const prev = get(db, 'SELECT name FROM clients WHERE id=?', [id]) as DbRow;
       run(db, 'DELETE FROM clients WHERE id=?', [id]);
       syncClientSubscriptionLedger(db);
       logActivity(db, 'client', 'deleted', `删除客户：${prev?.name||'未命名客户'}`, '', id);
@@ -641,7 +630,7 @@ export async function handleApiRequest(
         `INSERT INTO payment_milestones (client_id, label, amount, percentage, due_date, payment_method, invoice_number, note, sort_order, status)
          VALUES (?,?,?,?,?,?,?,?,?,?)`,
         [clientId, label||'', amount||0, percentage||0, due_date||'', payment_method||'', invoice_number||'', note||'', sort_order??0, 'pending']);
-      const client = get(db, 'SELECT name FROM clients WHERE id=?', [clientId]) as any;
+      const client = get(db, 'SELECT name FROM clients WHERE id=?', [clientId]) as DbRow;
       logActivity(db, 'milestone', 'created', `新增付款节点：${client?.name||''} · ${label||''}`,
         amount ? `$${Number(amount).toLocaleString()}` : '', res.lastInsertRowid);
       await saveDb();
@@ -661,7 +650,7 @@ export async function handleApiRequest(
       return ok({ success: true });
     }
     if (method === 'DELETE') {
-      const prev = get(db, 'SELECT label, finance_tx_id FROM payment_milestones WHERE id=?', [id]) as any;
+      const prev = get(db, 'SELECT label, finance_tx_id FROM payment_milestones WHERE id=?', [id]) as DbRow;
       run(db, 'DELETE FROM payment_milestones WHERE id=?', [id]);
       if (prev?.finance_tx_id) {
         run(db, 'DELETE FROM finance_transactions WHERE id=?', [prev.finance_tx_id]);
@@ -677,9 +666,9 @@ export async function handleApiRequest(
     const id = markPaidMatch[1];
     const { payment_method, paid_date } = body || {};
     const actualDate = paid_date || new Date().toISOString().split('T')[0];
-    const milestone = get(db, 'SELECT * FROM payment_milestones WHERE id=?', [id]) as any;
+    const milestone = get(db, 'SELECT * FROM payment_milestones WHERE id=?', [id]) as DbRow;
     if (!milestone) return err(404, 'Milestone not found');
-    const client = get(db, 'SELECT name, tax_mode, tax_rate FROM clients WHERE id=?', [milestone.client_id]) as any;
+    const client = get(db, 'SELECT name, tax_mode, tax_rate FROM clients WHERE id=?', [milestone.client_id]) as DbRow;
     const clientName = client?.name || '';
     const txTaxMode = client?.tax_mode || 'none';
     const txTaxRate = Number(client?.tax_rate || 0);
@@ -729,7 +718,7 @@ export async function handleApiRequest(
     const id = taskMatch[1];
     if (method === 'PUT') {
       const { title, client, priority, due, column, originalRequest, aiBreakdown, aiMjPrompts, aiStory, scope, parent_id } = body;
-      const prev = get(db, 'SELECT title, "column" FROM tasks WHERE id=?', [id]) as any;
+      const prev = get(db, 'SELECT title, "column" FROM tasks WHERE id=?', [id]) as DbRow;
       run(db, `UPDATE tasks SET title=?,client=?,priority=?,due=?,"column"=?,
         originalRequest=?,aiBreakdown=?,aiMjPrompts=?,aiStory=?,scope=?,parent_id=? WHERE id=?`,
         [title||'', client||'', priority||'Medium', due||'', column||'todo',
@@ -741,7 +730,7 @@ export async function handleApiRequest(
       return ok({ success: true });
     }
     if (method === 'DELETE') {
-      const prev = get(db, 'SELECT title FROM tasks WHERE id=?', [id]) as any;
+      const prev = get(db, 'SELECT title FROM tasks WHERE id=?', [id]) as DbRow;
       run(db, 'DELETE FROM tasks WHERE id=?', [id]);
       logActivity(db, 'task', 'deleted', `删除任务：${prev?.title||'未命名任务'}`, '', id);
       await saveDb();
@@ -790,7 +779,7 @@ export async function handleApiRequest(
       return ok({ success: true });
     }
     if (method === 'DELETE') {
-      const prev = get(db, 'SELECT name FROM plans WHERE id=?', [id]) as any;
+      const prev = get(db, 'SELECT name FROM plans WHERE id=?', [id]) as DbRow;
       run(db, 'DELETE FROM plans WHERE id=?', [id]);
       logActivity(db, 'plan', 'deleted', `删除方案：${prev?.name||'未命名方案'}`, '', id);
       await saveDb();
@@ -829,7 +818,7 @@ export async function handleApiRequest(
   if (financeMatch) {
     const id = Number(financeMatch[1]);
     // Check source — only manual transactions can be edited/deleted
-    const txRow = get(db, 'SELECT source, description FROM finance_transactions WHERE id=?', [id]) as any;
+    const txRow = get(db, 'SELECT source, description FROM finance_transactions WHERE id=?', [id]) as DbRow;
     if (!txRow) return err(404, 'Transaction not found');
     const src = txRow.source || 'manual';
     if (src === 'subscription') return err(400, '订阅流水由客户状态自动生成，请在客户管理中编辑');
@@ -876,7 +865,7 @@ export async function handleApiRequest(
   const contentMatch = path.match(/^\/api\/content-drafts\/(\d+)$/);
   if (contentMatch && method === 'DELETE') {
     const id = contentMatch[1];
-    const prev = get(db, 'SELECT topic FROM content_drafts WHERE id=?', [id]) as any;
+    const prev = get(db, 'SELECT topic FROM content_drafts WHERE id=?', [id]) as DbRow;
     run(db, 'DELETE FROM content_drafts WHERE id=?', [id]);
     logActivity(db, 'content', 'deleted', `删除草稿：${prev?.topic||'未命名草稿'}`, '', id);
     await saveDb();
@@ -913,7 +902,7 @@ export async function handleApiRequest(
     if (method === 'PUT') {
       const { type, title, note } = body || {};
       if (!title || !String(title).trim()) return err(400, 'title is required');
-      const prev = get(db, 'SELECT title, type FROM today_focus_manual WHERE id=?', [id]) as any;
+      const prev = get(db, 'SELECT title, type FROM today_focus_manual WHERE id=?', [id]) as DbRow;
       if (!prev) return err(404, 'manual event not found');
       run(db, `UPDATE today_focus_manual SET type=?,title=?,note=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`,
         [type||'系统', String(title).trim(), String(note||'').trim(), id]);
@@ -922,7 +911,7 @@ export async function handleApiRequest(
       return ok({ success: true, id: Number(id) });
     }
     if (method === 'DELETE') {
-      const prev = get(db, 'SELECT title FROM today_focus_manual WHERE id=?', [id]) as any;
+      const prev = get(db, 'SELECT title FROM today_focus_manual WHERE id=?', [id]) as DbRow;
       if (!prev) return err(404, 'manual event not found');
       run(db, 'DELETE FROM today_focus_manual WHERE id=?', [id]);
       run(db, `DELETE FROM today_focus_state WHERE focus_date=? AND focus_key=?`, [todayDateKey(), `manual-${id}`]);
@@ -969,11 +958,11 @@ export async function handleApiRequest(
     const receivables = getFinanceRows(db).filter((t: any) => String(t.status||'').includes('应收'));
     const bestLead = get(db,
       `SELECT id, name, industry, needs, column FROM leads WHERE column IN ('proposal','contacted','new')
-       ORDER BY CASE column WHEN 'proposal' THEN 1 WHEN 'contacted' THEN 2 ELSE 3 END, id DESC LIMIT 1`) as any;
+       ORDER BY CASE column WHEN 'proposal' THEN 1 WHEN 'contacted' THEN 2 ELSE 3 END, id DESC LIMIT 1`) as DbRow;
     const urgentTask = get(db,
       `SELECT id, title, client, priority, due, column FROM tasks WHERE column != 'done'
        ORDER BY CASE priority WHEN 'High' THEN 1 WHEN 'Medium' THEN 2 ELSE 3 END,
-       COALESCE(NULLIF(due,''),'9999-12-31') ASC, id DESC LIMIT 1`) as any;
+       COALESCE(NULLIF(due,''),'9999-12-31') ASC, id DESC LIMIT 1`) as DbRow;
 
     // Overdue milestones detection
     const todayKey = todayDateKey();
@@ -982,7 +971,7 @@ export async function handleApiRequest(
        FROM payment_milestones pm
        JOIN clients c ON c.id = pm.client_id
        WHERE pm.status = 'pending' AND pm.due_date != '' AND pm.due_date < ? AND pm.soft_deleted = 0
-       ORDER BY pm.due_date ASC LIMIT 1`, [todayKey]) as any;
+       ORDER BY pm.due_date ASC LIMIT 1`, [todayKey]) as DbRow;
 
     const systemTask = overdueMs
       ? { key: `system-overdue-ms-${overdueMs.id}`, type: '系统', title: `催收逾期款：${overdueMs.client_name} — ${overdueMs.label} $${Number(overdueMs.amount||0).toLocaleString()}`, reason: `该笔款项已于 ${overdueMs.due_date} 到期，需要尽快催收。`, actionHint: '去客户面板确认收款并标记已付' }

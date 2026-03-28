@@ -19,6 +19,33 @@ const LEADS_TABLES = ['leads', 'plans'] as const;
 
 const EMPTY_LEAD = { name: "", industry: "", needs: "", website: "", column: "new", source: "" };
 
+/* ── Type definitions ── */
+interface Lead {
+  id: number;
+  name: string;
+  industry?: string;
+  needs?: string;
+  website?: string;
+  column: "new" | "contacted" | "proposal" | "won" | "lost";
+  source?: string;
+  [key: string]: any;
+}
+
+interface PlanRow {
+  id: number;
+  name: string;
+  price: number;
+  [key: string]: any;
+}
+
+interface LeadsState {
+  new: Lead[];
+  contacted: Lead[];
+  proposal: Lead[];
+  won: Lead[];
+  lost: Lead[];
+}
+
 /* ── Constants ─────────────────────────────────────────────────── */
 export const LEAD_COL_IDS = [
   { id: "new", color: "var(--color-text-secondary)" },
@@ -44,7 +71,7 @@ export function LeadsView() {
     ...c,
     title: t(`pipeline.col.${c.id}` as any),
   })), [t]);
-  const [leads, setLeads] = useState<any>({ new: [], contacted: [], proposal: [], won: [], lost: [] });
+  const [leads, setLeads] = useState<LeadsState>({ new: [], contacted: [], proposal: [], won: [], lost: [] });
   const [showFunnel, setShowFunnel] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showPanel, setShowPanel] = useState(false);
@@ -56,7 +83,7 @@ export function LeadsView() {
   const viewMode = useUIStore((s) => s.salesViewMode);
   const setViewMode = useUIStore((s) => s.setSalesViewMode);
   const [convertForm, setConvertForm] = useState({ plan_tier: "", status: "Active", mrr: "", subscription_start_date: new Date().toISOString().split("T")[0] });
-  const [plans, setPlans] = useState<any[]>([]);
+  const [plans, setPlans] = useState<PlanRow[]>([]);
   const [form, setForm] = useState(EMPTY_LEAD);
   const { settings: appSettings } = useAppSettings();
   const [leadScores, setLeadScores] = useState<Record<number, LeadAnalysis>>({});
@@ -120,7 +147,7 @@ export function LeadsView() {
     const results: Record<number, LeadAnalysis> = {};
     for (const lead of allLeads) {
       try {
-        const result = await analyzeLeadQuality(lead, lang, provider, apiKey);
+        const result = await analyzeLeadQuality(lead as Lead, lang, provider, apiKey);
         results[lead.id] = result;
       } catch { /* skip failed */ }
     }
@@ -302,7 +329,7 @@ export function LeadsView() {
         <LeadSwimlane leads={leads} columns={LEAD_COLS} onAdd={openPanel} onEdit={openPanel} onDelete={(id: number) => setDeleteId(id)} emptyText={t("pipeline.emptyCol" as any)} onMove={async (id: number, col: string) => {
           try {
             const allLeads = Object.values(leads).flat();
-            const lead = allLeads.find((l: any) => l.id === id);
+            const lead = allLeads.find((l: any) => l.id === id) as Lead | undefined;
             if (!lead) return;
             await fetch(`/api/leads/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...lead, column: col }) }); fetchLeads();
           } catch { showToast(t("pipeline.toast.moveFailed" as any)); }

@@ -16,8 +16,74 @@ import { Skeleton } from "../../components/ui";
 import { FL } from "./LeadsBoard";
 import { calcTaxAmount, CATEGORY_I18N, STATUS_I18N, catLabel } from "../../lib/tax";
 
+/* ── Type definitions ── */
+interface ClientRow {
+  id: number;
+  name: string;
+  company_name?: string;
+  contact_name?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  billing_type: "subscription" | "project";
+  plan_tier?: string;
+  plan?: string;
+  status: string;
+  mrr: number;
+  project_fee: number;
+  subscription_start_date?: string;
+  project_end_date?: string;
+  paused_at?: string | null;
+  resumed_at?: string | null;
+  cancelled_at?: string | null;
+  mrr_effective_from?: string;
+  subscription_timeline?: string;
+  tax_mode: "none" | "exclusive" | "inclusive";
+  tax_rate: number;
+  drive_folder_url?: string;
+  payment_method: "auto" | "manual";
+  [key: string]: any; // For unknown fields from API
+}
+
+interface PlanRow {
+  id: number;
+  name: string;
+  price: number;
+  [key: string]: any;
+}
+
+interface MilestoneRow {
+  id: number;
+  client_id: number;
+  label: string;
+  amount: number;
+  percentage?: number;
+  due_date?: string | null;
+  note?: string;
+  status: string;
+  payment_method?: string;
+  [key: string]: any;
+}
+
+interface FinanceTransaction {
+  id: number;
+  type: "income" | "expense";
+  source?: string;
+  source_id?: number;
+  amount: number;
+  category: string;
+  description: string;
+  date: string;
+  status: string;
+  client_id?: number;
+  client_name?: string;
+  tax_mode: "none" | "exclusive" | "inclusive";
+  tax_rate: number;
+  tax_amount: number;
+  [key: string]: any;
+}
+
 /* ── Finance helpers ── */
-const stLabel = (st: string, t: (k: any) => string) => { const key = STATUS_I18N[st]; return key ? t(key as any) : st; };
+const stLabel = (st: string, t: (k: string) => string) => { const key = STATUS_I18N[st]; return key ? t(key as any) : st; };
 const TX_CATEGORIES = ["收入", "软件支出", "外包支出", "其他支出"];
 const TX_STATUSES = ["已完成", "待收款 (应收)", "待支付 (应付)"];
 
@@ -49,7 +115,7 @@ const createEmptyTx = () => ({
    ══════════════════════════════════════════════════════════════════ */
 export function ClientsView() {
   const { t } = useT();
-  const [clients, setClients] = useState<any[]>([]);
+  const [clients, setClients] = useState<ClientRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPanel, setShowPanel] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
@@ -60,14 +126,14 @@ export function ClientsView() {
   const [filterBilling, setFilterBilling] = useState("All");
   const [filterPlan, setFilterPlan] = useState("All");
   const isMobile = useIsMobile();
-  const [plans, setPlans] = useState<any[]>([]);
+  const [plans, setPlans] = useState<PlanRow[]>([]);
   const [savingClient, setSavingClient] = useState(false);
   const [savingMs, setSavingMs] = useState(false);
   const [form, setForm] = useState(createEmptyClient);
   const parentRef = useRef<HTMLDivElement>(null);
 
   /* ── Milestones state ── */
-  const [milestones, setMilestones] = useState<any[]>([]);
+  const [milestones, setMilestones] = useState<MilestoneRow[]>([]);
   const [msLoading, setMsLoading] = useState(false);
   const [showAddMs, setShowAddMs] = useState(false);
   const [editMsId, setEditMsId] = useState<number | null>(null);
@@ -76,7 +142,7 @@ export function ClientsView() {
   const [markPaidMethod, setMarkPaidMethod] = useState("bank_transfer");
   const [msForm, setMsForm] = useState(EMPTY_MS);
 
-  const [finTxs, setFinTxs] = useState<any[]>([]);
+  const [finTxs, setFinTxs] = useState<FinanceTransaction[]>([]);
 
   /* ── Transaction editing state ── */
   const [showTxForm, setShowTxForm] = useState(false);
@@ -177,7 +243,7 @@ export function ClientsView() {
   };
 
   const clientTxs = useMemo(() =>
-    editId ? finTxs.filter(tx => tx.client_id === editId).sort((a: any, b: any) => (b.date || "").localeCompare(a.date || "")) : [],
+    editId ? finTxs.filter(tx => tx.client_id === editId).sort((a: FinanceTransaction, b: FinanceTransaction) => (b.date || "").localeCompare(a.date || "")) : [],
     [finTxs, editId]
   );
 
@@ -200,7 +266,7 @@ export function ClientsView() {
     return () => { window.dispatchEvent(new CustomEvent("mobile-nav-visibility", { detail: { hidden: false } })); };
   }, [showPanel, isMobile]);
 
-  const openPanel = (c: any = null) => {
+  const openPanel = (c: ClientRow | null = null) => {
     setMilestones([]); setShowAddMs(false); setEditMsId(null); setMarkPaidId(null); setMsForm(EMPTY_MS);
     setShowTxForm(false); setEditTxId(null); setTxForm(createEmptyTx());
     if (c) {
@@ -215,7 +281,7 @@ export function ClientsView() {
         if (c.resumed_at) tl.push({ type: "resume", date: c.resumed_at });
         if (c.cancelled_at) tl.push({ type: "cancel", date: c.cancelled_at });
       }
-      setForm({ name: c.name, company_name: c.company_name || "", contact_name: c.contact_name || "", contact_email: c.contact_email || "", contact_phone: c.contact_phone || "", billing_type: c.billing_type || "subscription", plan: c.plan_tier || c.plan, status: c.status, mrr: String(c.mrr).replace(/[^0-9.-]+/g, ""), project_fee: String(c.project_fee || "").replace(/[^0-9.-]+/g, ""), subscription_start_date: tl[0]?.date || "", project_end_date: c.project_end_date || "", paused_at: c.paused_at || "", resumed_at: c.resumed_at || "", cancelled_at: c.cancelled_at || "", mrr_effective_from: tl[0]?.date || c.mrr_effective_from || "", tax_mode: (c.tax_mode || "none") as any, tax_rate: String(c.tax_rate || ""), drive_folder_url: c.drive_folder_url || "", payment_method: (c.payment_method || "auto") as any, timeline: tl });
+      setForm({ name: c.name, company_name: c.company_name || "", contact_name: c.contact_name || "", contact_email: c.contact_email || "", contact_phone: c.contact_phone || "", billing_type: c.billing_type || "subscription", plan: c.plan_tier || c.plan, status: c.status, mrr: String(c.mrr).replace(/[^0-9.-]+/g, ""), project_fee: String(c.project_fee || "").replace(/[^0-9.-]+/g, ""), subscription_start_date: tl[0]?.date || "", project_end_date: c.project_end_date || "", paused_at: c.paused_at || "", resumed_at: c.resumed_at || "", cancelled_at: c.cancelled_at || "", mrr_effective_from: tl[0]?.date || c.mrr_effective_from || "", tax_mode: (c.tax_mode || "none") as "none" | "exclusive" | "inclusive", tax_rate: String(c.tax_rate || ""), drive_folder_url: c.drive_folder_url || "", payment_method: (c.payment_method || "auto") as "auto" | "manual", timeline: tl });
       if ((c.billing_type || "subscription") === "project") fetchMilestones(c.id);
     }
     else { setEditId(null); setForm(createEmptyClient()); }
@@ -256,18 +322,18 @@ export function ClientsView() {
   // 已到账 = 所有已完成收入（含订阅月付虚拟行 + 真实交易记录）
   const filteredIds = new Set(filtered.map(c => c.id));
   const totalReceived = finTxs
-    .filter((tx: any) => tx.type === "income" && (tx.status || "已完成") === "已完成" && filteredIds.has(tx.client_id))
-    .reduce((s: number, tx: any) => s + Number(tx.amount || 0), 0);
+    .filter((tx: FinanceTransaction) => tx.type === "income" && (tx.status || "已完成") === "已完成" && filteredIds.has(tx.client_id))
+    .reduce((s: number, tx: FinanceTransaction) => s + Number(tx.amount || 0), 0);
 
   const exportClientsCSV = () => {
     const headers = ["Name", "Contact", "Email", "Phone", "Billing", "Plan", "MRR", "Project Fee", "Status", "Start Date"];
-    const rows = filtered.map((c: any) => [
+    const rows = filtered.map((c: ClientRow) => [
       c.name || "", c.contact_name || "", c.contact_email || "", c.contact_phone || "",
       c.billing_type === "project" ? "Project" : "Subscription",
       c.plan_tier || "", c.mrr || "", c.project_fee || "",
       c.status || "", c.subscription_start_date || "",
     ]);
-    const csv = [headers, ...rows].map(r => r.map((v: any) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const csv = [headers, ...rows].map(r => r.map((v: string | number) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -307,25 +373,26 @@ export function ClientsView() {
             {/* Search + Actions row */}
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={16} style={{ color: "var(--color-text-secondary)" }} />
-                <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t("pipeline.clients.search" as any)} className="input-base compact w-full pl-9 pr-3 text-[15px]" />
+                <label htmlFor="client-search" className="sr-only">{t("pipeline.clients.search" as any)}</label>
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={16} style={{ color: "var(--color-text-secondary)" }} aria-hidden="true" />
+                <input id="client-search" value={search} onChange={e => setSearch(e.target.value)} placeholder={t("pipeline.clients.search" as any)} className="input-base compact w-full pl-9 pr-3 text-[15px]" />
               </div>
               <button onClick={exportClientsCSV} className="btn-ghost compact shrink-0" style={{ border: "1px solid var(--color-border-primary)" }}><Download size={16} /> CSV</button>
               <button onClick={() => openPanel()} className="btn-primary compact shrink-0"><Plus size={16} /> {t("pipeline.addClient" as any)}</button>
             </div>
             {/* Filters row */}
             <div className="flex items-center gap-2 flex-wrap">
-              <Filter size={16} className="shrink-0" style={{ color: "var(--color-text-secondary)" }} />
-              <select value={filterSt} onChange={e => setFilterSt(e.target.value)} className="input-base compact px-2 text-[15px]">
+              <Filter size={16} className="shrink-0" style={{ color: "var(--color-text-secondary)" }} aria-hidden="true" />
+              <select value={filterSt} onChange={e => setFilterSt(e.target.value)} aria-label="Filter by status" className="input-base compact px-2 text-[15px]">
                 <option value="All">{t("common.all" as any)}</option><option value="Active">{t("common.active" as any)}</option><option value="Paused">{t("common.paused" as any)}</option>
               </select>
-              <select value={filterBilling} onChange={e => setFilterBilling(e.target.value)} className="input-base compact px-2 text-[15px]">
+              <select value={filterBilling} onChange={e => setFilterBilling(e.target.value)} aria-label="Filter by billing type" className="input-base compact px-2 text-[15px]">
                 <option value="All">{t("pipeline.filter.billingAll" as any)}</option>
                 <option value="subscription">{t("pipeline.clients.billingSubscription" as any)}</option>
                 <option value="project">{t("pipeline.clients.billingProject" as any)}</option>
               </select>
               {uniquePlanTiers.length > 0 && (
-                <select value={filterPlan} onChange={e => setFilterPlan(e.target.value)} className="input-base compact px-2 text-[15px]">
+                <select value={filterPlan} onChange={e => setFilterPlan(e.target.value)} aria-label="Filter by plan" className="input-base compact px-2 text-[15px]">
                   <option value="All">{t("pipeline.filter.planAll" as any)}</option>
                   {uniquePlanTiers.map(p => <option key={p} value={p}>{p === "Basic" ? t("pipeline.convert.planBasic" as any) : p === "Pro" ? t("pipeline.convert.planPro" as any) : p === "Enterprise" ? t("pipeline.convert.planEnterprise" as any) : p}</option>)}
                 </select>
@@ -489,7 +556,7 @@ export function ClientsView() {
                 {form.billing_type === "subscription" ? (
                   <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <FL label={t("pipeline.convert.plan" as any)}><select value={form.plan} onChange={e => { const v = e.target.value; const p = plans.find((x: any) => x.name === v); setForm(prev => ({ ...prev, plan: v, mrr: p ? String(p.price) : prev.mrr })); }} className="input-base w-full px-3 py-2 text-[15px]"><option value="">{t("pipeline.convert.planSelect" as any)}</option>{plans.map((p: any) => <option key={p.id} value={p.name}>{p.name}</option>)}</select></FL>
+                      <FL label={t("pipeline.convert.plan" as any)}><select value={form.plan} onChange={e => { const v = e.target.value; const p = plans.find((x: PlanRow) => x.name === v); setForm(prev => ({ ...prev, plan: v, mrr: p ? String(p.price) : prev.mrr })); }} className="input-base w-full px-3 py-2 text-[15px]"><option value="">{t("pipeline.convert.planSelect" as any)}</option>{plans.map((p: PlanRow) => <option key={p.id} value={p.name}>{p.name}</option>)}</select></FL>
                       <FL label={t("common.status" as any)}><select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]"><option value="Active">{t("common.active" as any)}</option><option value="Paused">{t("common.paused" as any)}</option></select></FL>
                     </div>
                     <FL label={t("pipeline.convert.mrr" as any)}><input type="number" required min="0" value={form.mrr} onChange={e => setForm(p => ({ ...p, mrr: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
@@ -619,8 +686,8 @@ export function ClientsView() {
 
                         {/* Progress bar */}
                         {milestones.length > 0 && (() => {
-                          const totalAmt = milestones.reduce((s: number, m: any) => s + Number(m.amount || 0), 0);
-                          const paidAmt = milestones.filter((m: any) => m.status === "paid").reduce((s: number, m: any) => s + Number(m.amount || 0), 0);
+                          const totalAmt = milestones.reduce((s: number, m: MilestoneRow) => s + Number(m.amount || 0), 0);
+                          const paidAmt = milestones.filter((m: MilestoneRow) => m.status === "paid").reduce((s: number, m: MilestoneRow) => s + Number(m.amount || 0), 0);
                           const pct = totalAmt > 0 ? Math.round(paidAmt / totalAmt * 100) : 0;
                           return (
                             <div>
@@ -647,7 +714,7 @@ export function ClientsView() {
                           <div className="text-center py-4 text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.milestones.noPlan" as any)}</div>
                         ) : (
                           <div className="space-y-2">
-                            {milestones.map((ms: any) => (
+                            {milestones.map((ms: MilestoneRow) => (
                               <div key={ms.id} className="rounded-[var(--radius-6)] p-3 space-y-2 cursor-pointer transition-colors" style={{ background: "var(--color-bg-tertiary)", border: `1px solid ${ms.status === "paid" ? "var(--color-success)" : "var(--color-border-primary)"}` }} onClick={() => { if (ms.status !== "paid") { setEditMsId(ms.id); setMsForm({ label: ms.label, amount: String(ms.amount), percentage: String(ms.percentage || ""), due_date: ms.due_date || "", note: ms.note || "" }); setShowAddMs(true); } }}>
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-2">
@@ -782,10 +849,10 @@ export function ClientsView() {
 
                     {/* Summary bar */}
                     {clientTxs.length > 0 && (() => {
-                      const received = clientTxs.filter((tx: any) => tx.type === "income" && (tx.status || "已完成") === "已完成").reduce((s: number, tx: any) => s + Number(tx.amount || 0), 0);
-                      const receivedTax = clientTxs.filter((tx: any) => tx.type === "income" && (tx.status || "已完成") === "已完成").reduce((s: number, tx: any) => s + Number(tx.tax_amount || 0), 0);
-                      const pending = clientTxs.filter((tx: any) => (tx.status || "").includes("应收")).reduce((s: number, tx: any) => { const a = Number(tx.amount || 0); const t2 = Number(tx.tax_amount || 0); return s + ((tx.tax_mode || 'none') === 'exclusive' ? a + t2 : a); }, 0);
-                      const expense = clientTxs.filter((tx: any) => tx.type === "expense" && (tx.status || "已完成") === "已完成").reduce((s: number, tx: any) => { const a = Number(tx.amount || 0); const t2 = Number(tx.tax_amount || 0); return s + ((tx.tax_mode || 'none') === 'exclusive' ? a + t2 : a); }, 0);
+                      const received = clientTxs.filter((tx: FinanceTransaction) => tx.type === "income" && (tx.status || "已完成") === "已完成").reduce((s: number, tx: FinanceTransaction) => s + Number(tx.amount || 0), 0);
+                      const receivedTax = clientTxs.filter((tx: FinanceTransaction) => tx.type === "income" && (tx.status || "已完成") === "已完成").reduce((s: number, tx: FinanceTransaction) => s + Number(tx.tax_amount || 0), 0);
+                      const pending = clientTxs.filter((tx: FinanceTransaction) => (tx.status || "").includes("应收")).reduce((s: number, tx: FinanceTransaction) => { const a = Number(tx.amount || 0); const t2 = Number(tx.tax_amount || 0); return s + ((tx.tax_mode || 'none') === 'exclusive' ? a + t2 : a); }, 0);
+                      const expense = clientTxs.filter((tx: FinanceTransaction) => tx.type === "expense" && (tx.status || "已完成") === "已完成").reduce((s: number, tx: FinanceTransaction) => { const a = Number(tx.amount || 0); const t2 = Number(tx.tax_amount || 0); return s + ((tx.tax_mode || 'none') === 'exclusive' ? a + t2 : a); }, 0);
                       return (
                         <div className="flex items-center gap-3 text-[13px]" style={{ fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
                           <span style={{ color: "var(--color-success)" }}>{t("pipeline.tx.received" as any)} ${received.toLocaleString()}{receivedTax > 0 ? ` (+${t("finance.tax" as any)} $${receivedTax.toLocaleString()})` : ""}</span>
@@ -798,7 +865,7 @@ export function ClientsView() {
                     {/* Transaction list */}
                     {clientTxs.length > 0 ? (
                       <div className="space-y-2">
-                        {clientTxs.map((tx: any) => (
+                        {clientTxs.map((tx: FinanceTransaction) => (
                           <div key={tx.id} className="rounded-[var(--radius-6)] p-3 space-y-1" style={{ background: "var(--color-bg-tertiary)", border: "1px solid var(--color-border-primary)" }}>
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2 min-w-0 flex-1">

@@ -37,11 +37,14 @@ function dispatchSyncToast(message: string, type: 'info' | 'success' | 'warning'
 // ── Pull cloud state into components ─────────────────────────────
 
 async function pullCloudState(): Promise<void> {
-  // Dispatch supabase-change events for all tables
-  // so components using useRealtimeRefresh will auto-refetch
+  // Batch event — listeners that understand batching can handle all at once
+  window.dispatchEvent(new CustomEvent('supabase-change-batch', {
+    detail: { tables: [...SYNC_TABLES], eventType: 'SYNC_PULL' },
+  }));
+  // Individual events for backward compat (components using useRealtimeRefresh)
   for (const table of SYNC_TABLES) {
     window.dispatchEvent(new CustomEvent('supabase-change', {
-      detail: { table, eventType: 'SYNC_PULL', new: null, old: null },
+      detail: { table, eventType: 'SYNC_PULL', new: null, old: null, batched: true },
     }));
   }
 }
@@ -106,6 +109,8 @@ export function initSyncManager(): void {
   initialized = true;
 
   // 1. Sync when auth becomes ready (covers cold start)
+  // Note: This subscription is never unsubscribed, but initSyncManager is only called once
+  // during app startup and the app never unmounts, so no listener accumulation occurs.
   supabase.auth.onAuthStateChange((_event, session) => {
     if (session && navigator.onLine) {
       // Small delay to let other init complete
