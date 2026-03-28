@@ -188,14 +188,19 @@ function App() {
     return () => document.removeEventListener("mousedown", handler);
   }, [quickCreateOpen]);
 
-  const quickCreateActions = [
-    { icon: <ListTodo size={14} aria-hidden="true" />, label: lang === "zh" ? "新建工作任务" : "New Work Task", action: () => { setActiveTab("work"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "task" } })), 100); } },
-    { icon: <ListTodo size={14} aria-hidden="true" />, label: lang === "zh" ? "新建个人待办" : "New Personal Todo", action: () => { setActiveTab("work"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "personal-task" } })), 100); } },
-    { icon: <UserPlus size={14} aria-hidden="true" />, label: lang === "zh" ? "添加销售线索" : "Add Lead", action: () => { setActiveTab("leads" as any); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "lead" } })), 100); } },
-    { icon: <Users size={14} aria-hidden="true" />, label: lang === "zh" ? "添加签约客户" : "Add Client", action: () => { setActiveTab("clients"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "client" } })), 100); } },
-    { icon: <FileText size={14} aria-hidden="true" />, label: lang === "zh" ? "记录公司收支" : "Log Biz Finance", action: () => { setActiveTab("finance"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "biz-transaction" } })), 100); } },
-    { icon: <FileText size={14} aria-hidden="true" />, label: lang === "zh" ? "记录个人支出" : "Log Personal Expense", action: () => { setActiveTab("finance"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "personal-transaction" } })), 100); } },
+  const quickCreateGroups = [
+    { label: lang === "zh" ? "工作" : "Work", items: [
+      { icon: <ListTodo size={14} aria-hidden="true" />, label: lang === "zh" ? "新建工作任务" : "New Work Task", action: () => { setActiveTab("work"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "task" } })), 100); } },
+      { icon: <UserPlus size={14} aria-hidden="true" />, label: lang === "zh" ? "添加销售线索" : "Add Lead", action: () => { setActiveTab("leads" as any); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "lead" } })), 100); } },
+      { icon: <Users size={14} aria-hidden="true" />, label: lang === "zh" ? "添加签约客户" : "Add Client", action: () => { setActiveTab("clients"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "client" } })), 100); } },
+      { icon: <FileText size={14} aria-hidden="true" />, label: lang === "zh" ? "记录公司收支" : "Log Biz Finance", action: () => { setActiveTab("finance"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "biz-transaction" } })), 100); } },
+    ]},
+    { label: lang === "zh" ? "个人" : "Personal", items: [
+      { icon: <ListTodo size={14} aria-hidden="true" />, label: lang === "zh" ? "新建个人待办" : "New Personal Todo", action: () => { setActiveTab("work"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "personal-task" } })), 100); } },
+      { icon: <FileText size={14} aria-hidden="true" />, label: lang === "zh" ? "记录个人支出" : "Log Personal Expense", action: () => { setActiveTab("finance"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "personal-transaction" } })), 100); } },
+    ]},
   ];
+  const quickCreateActions = quickCreateGroups.flatMap(g => g.items);
 
   /* ── Mobile FAB menu ── */
   const [fabMenuOpen, setFabMenuOpen] = useState(false);
@@ -402,16 +407,22 @@ function App() {
                       zIndex: 10,
                     }}
                   >
-                    {quickCreateActions.map((item, i) => (
-                      <button
-                        key={i}
-                        onClick={() => { item.action(); setQuickCreateOpen(false); }}
-                        className="flex items-center gap-3 w-full px-3 py-2 text-[15px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
-                        style={{ color: "var(--color-text-secondary)" }}
-                      >
-                        <span style={{ color: "var(--color-text-quaternary)" }}>{item.icon}</span>
-                        {item.label}
-                      </button>
+                    {quickCreateGroups.map((group, gi) => (
+                      <div key={gi}>
+                        {gi > 0 && <div className="my-1" style={{ borderTop: "1px solid var(--color-line-secondary)" }} />}
+                        <div className="px-3 pt-1.5 pb-0.5 text-[11px] uppercase tracking-wider" style={{ color: "var(--color-text-quaternary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{group.label}</div>
+                        {group.items.map((item, i) => (
+                          <button
+                            key={i}
+                            onClick={() => { item.action(); setQuickCreateOpen(false); }}
+                            className="flex items-center gap-3 w-full px-3 py-2 text-[15px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
+                            style={{ color: "var(--color-text-secondary)" }}
+                          >
+                            <span style={{ color: "var(--color-text-quaternary)" }}>{item.icon}</span>
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
                     ))}
                   </motion.div>
                 )}
@@ -684,17 +695,23 @@ function App() {
                       style={{ background: "var(--color-bg-primary)", border: "1px solid var(--color-border-translucent)", boxShadow: "var(--shadow-high)" }}
                       role="menu"
                     >
-                      {quickCreateActions.map((item, i) => (
-                        <button
-                          key={i}
-                          role="menuitem"
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-[15px] transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback"
-                          style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" }}
-                          onClick={() => { setFabMenuOpen(false); item.action(); }}
-                        >
-                          <span style={{ color: "var(--color-text-tertiary)" }}>{item.icon}</span>
-                          {item.label}
-                        </button>
+                      {quickCreateGroups.map((group, gi) => (
+                        <div key={gi}>
+                          {gi > 0 && <div className="my-1" style={{ borderTop: "1px solid var(--color-line-secondary)" }} />}
+                          <div className="px-4 pt-1.5 pb-0.5 text-[11px] uppercase tracking-wider" style={{ color: "var(--color-text-quaternary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{group.label}</div>
+                          {group.items.map((item, i) => (
+                            <button
+                              key={i}
+                              role="menuitem"
+                              className="w-full flex items-center gap-3 px-4 py-2.5 text-[15px] transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback"
+                              style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
+                              onClick={() => { setFabMenuOpen(false); item.action(); }}
+                            >
+                              <span style={{ color: "var(--color-text-tertiary)" }}>{item.icon}</span>
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
                       ))}
                     </motion.div>
                   )}
