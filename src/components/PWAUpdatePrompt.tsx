@@ -10,8 +10,8 @@ export default function PWAUpdatePrompt() {
     updateServiceWorker,
   } = useRegisterSW({
     onRegisteredSW(_, r) {
-      // Check for updates every 30 minutes
-      if (r) setInterval(() => r.update(), 30 * 60 * 1000);
+      // Check for updates every 12 hours
+      if (r) setInterval(() => r.update(), 12 * 60 * 60 * 1000);
     },
   });
 
