@@ -107,6 +107,7 @@ export const finance = {
   "money.plans.copiedMsg": "Copied {name} plan summary",
   "money.loading": "Loading...",
   "money.noData": "No data",
+  "money.empty": "No transactions yet — add your first record to get started",
   "money.loadFail": "Failed to load financial data",
   "money.saveFail": "Save failed",
   "money.deleteFail": "Delete failed",

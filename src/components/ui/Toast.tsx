@@ -31,8 +31,10 @@ export function GlobalToast() {
       {toastAction && toastActionLabel && (
         <button
           onClick={() => { toastAction(); clearToast(); }}
-          className="ml-1 px-2 py-0.5 rounded-[var(--radius-4)] text-[14px] transition-colors hover:bg-white/20"
+          className="ml-1 px-2 py-0.5 rounded-[var(--radius-4)] text-[14px] transition-colors"
           style={{ color: "var(--color-accent)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}
+          onMouseEnter={(e) => e.currentTarget.style.background = "color-mix(in srgb, var(--color-bg-primary) 20%, transparent)"}
+          onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
         >
           {toastActionLabel}
         </button>

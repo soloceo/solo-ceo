@@ -55,12 +55,13 @@ export function LeadsView() {
   const [plans, setPlans] = useState<any[]>([]);
   const [form, setForm] = useState(EMPTY_LEAD);
 
-  const fetchPlans = async () => { try { setPlans(await (await fetch("/api/plans")).json()); } catch {} };
+  const fetchPlans = async () => { try { const d = await (await fetch("/api/plans")).json(); setPlans(Array.isArray(d) ? d : []); } catch {} };
 
   const fetchLeads = async () => {
     try {
       const res = await fetch("/api/leads");
-      const data = await res.json();
+      const raw = await res.json();
+      const data = Array.isArray(raw) ? raw : [];
       setLeads({ new: data.filter((l: any) => l.column === "new"), contacted: data.filter((l: any) => l.column === "contacted"), proposal: data.filter((l: any) => l.column === "proposal"), won: data.filter((l: any) => l.column === "won"), lost: data.filter((l: any) => l.column === "lost") });
     } catch { showToast(t("pipeline.toast.loadFailed" as any)); }
     finally { setLoading(false); }
@@ -351,13 +352,13 @@ function LeadCard({ lead, provided, snapshot, onEdit, onDelete }: any) {
       style={{ ...(provided.draggableProps.style as React.CSSProperties), touchAction: snapshot.isDragging ? "none" : "auto", ...(snapshot.isDragging ? { boxShadow: "var(--shadow-high)" } : {}) }}
       onClick={() => onEdit(lead)}
       className={`group card-interactive cursor-pointer p-3 press-feedback ${snapshot.isDragging ? "rotate-[2deg] scale-[1.02] z-[1100]" : ""}`}>
-      <div className="flex items-start justify-between gap-2 mb-1">
+      <div className="flex items-start justify-between gap-2 mb-1 min-w-0">
         <span {...provided.dragHandleProps} style={{ touchAction: "none" }} className="shrink-0 mt-0.5 cursor-grab active:cursor-grabbing">
           <GripVertical size={14} style={{ color: "var(--color-text-quaternary)", opacity: 0.5 }} />
         </span>
         <div className="min-w-0 flex-1">
-          <h4 className="text-[15px] truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{lead.name}</h4>
-          <p className="text-[13px] truncate mt-0.5" style={{ color: "var(--color-text-secondary)" }}>{lead.industry}</p>
+          <h4 className="text-[15px] truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{lead.name || "—"}</h4>
+          <p className="text-[13px] truncate mt-0.5" style={{ color: "var(--color-text-secondary)" }}>{lead.industry || "—"}</p>
         </div>
         {lead.source && <span className="badge">{lead.source}</span>}
       </div>

@@ -37,13 +37,14 @@ export default function WorkPage() {
   const [defaultColumn, setDefaultColumn] = useState("todo");
 
   useEffect(() => {
-    fetch("/api/clients").then((r) => r.json()).then((d) => setClientList(d.filter((c: any) => !c.soft_deleted))).catch(() => {});
+    fetch("/api/clients").then((r) => r.json()).then((d) => setClientList(Array.isArray(d) ? d.filter((c: any) => !c.soft_deleted) : [])).catch(() => {});
   }, []);
 
   const fetchTasks = useCallback(async () => {
     try {
       const res = await fetch("/api/tasks");
-      const data = await res.json();
+      const raw = await res.json();
+      const data = Array.isArray(raw) ? raw : [];
       const grouped = data.reduce((acc: any, t: any) => {
         const col = t.column || "todo";
         if (!acc[col]) acc[col] = [];

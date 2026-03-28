@@ -119,7 +119,7 @@ export default function QuickNoteWidget() {
                 height: s(5),
                 borderRadius: s(2.5),
                 cursor: "pointer",
-                background: i === data.activeIndex ? "var(--color-accent)" : "var(--color-border-subtle, rgba(128,128,128,0.2))",
+                background: i === data.activeIndex ? "var(--color-accent)" : "var(--color-border-primary)",
                 transition: "width 0.2s, background 0.2s",
               }}
               aria-label={`Note ${i + 1}`}

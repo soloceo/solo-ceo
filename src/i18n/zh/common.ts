@@ -51,4 +51,5 @@ export const common = {
   "common.tomorrow": "明天",
   "common.nextMonday": "下周一",
   "common.signOut": "退出登录",
+  "nav.pinSidebar": "展开侧栏",
 };

@@ -135,7 +135,7 @@ function BatteryShape({ level, color, s }: { level: number; color: string; s: (p
 /* ── Main Widget ── */
 export default function EnergyBatteryWidget() {
   const { t } = useT();
-  const title = t("widgets.energy" as any) || "精力电池";
+  const title = t("widgets.energy" as any);
   const [data, setData] = useState<StorageData>(() => loadData());
   const [showRecharge, setShowRecharge] = useState(false);
   const [rechargeFlash, setRechargeFlash] = useState("");

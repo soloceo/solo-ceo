@@ -41,14 +41,14 @@ export const TaskCard = React.memo(function TaskCard({ task, provided, snapshot,
       onClick={() => onEdit(task)}
       className={`group card-interactive cursor-pointer p-3 press-feedback ${snapshot.isDragging ? "rotate-[2deg] scale-[1.02] z-[1100]" : ""}`}
     >
-      <div className="flex items-center gap-2 mb-1">
+      <div className="flex items-center gap-2 mb-1 min-w-0">
         <span {...provided.dragHandleProps} style={{ touchAction: "none" }} className="shrink-0 cursor-grab active:cursor-grabbing">
           <GripVertical size={14} style={{ color: "var(--color-text-quaternary)", opacity: 0.5 }} />
         </span>
         <span className="text-[11px] shrink-0" style={{ color: prio?.color || "var(--color-text-quaternary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
           {prio?.[lang] || ""}
         </span>
-        <h4 className="text-[15px] truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
+        <h4 className="text-[15px] truncate min-w-0" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
           {task.title}
         </h4>
       </div>

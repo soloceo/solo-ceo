@@ -106,13 +106,14 @@ export default function FinancePage() {
   const fetchFinance = useCallback(async () => {
     try {
       const res = await fetch("/api/finance");
-      setTransactions(await res.json());
+      const data = await res.json();
+      setTransactions(Array.isArray(data) ? data : []);
     } catch { showToast(t("money.loadFail" as any)); }
     finally { setIsLoading(false); }
   }, [showToast, t]);
 
   const fetchClients = useCallback(async () => {
-    try { setClientList(await (await fetch("/api/clients")).json()); } catch {}
+    try { const d = await (await fetch("/api/clients")).json(); setClientList(Array.isArray(d) ? d : []); } catch {}
   }, []);
 
   useEffect(() => { Promise.all([fetchFinance(), fetchClients()]); }, [fetchFinance, fetchClients]);
@@ -419,7 +420,7 @@ export default function FinancePage() {
         />
         <StatCard
           label={t("money.stat.netProfit" as any)}
-          value={`$${stats.netProfit.toLocaleString()}`}
+          value={stats.netProfit < 0 ? `-$${Math.abs(stats.netProfit).toLocaleString()}` : `$${stats.netProfit.toLocaleString()}`}
           sub={`${t("money.stat.margin" as any)} ${stats.margin}%`}
           icon={<Wallet size={16} />}
           color={stats.netProfit >= 0 ? "var(--color-success)" : "var(--color-danger)"}

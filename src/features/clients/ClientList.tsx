@@ -81,9 +81,9 @@ export function ClientsView() {
   const [editTxId, setEditTxId] = useState<number | null>(null);
   const [txForm, setTxForm] = useState(createEmptyTx);
 
-  const fetchPlans = async () => { try { setPlans(await (await fetch("/api/plans")).json()); } catch {} };
-  const fetchClients = async () => { try { const res = await fetch("/api/clients"); setClients(await res.json()); } catch { showToast(t("pipeline.toast.clientLoadFailed" as any)); } finally { setLoading(false); } };
-  const fetchFinance = async () => { try { const res = await fetch("/api/finance"); setFinTxs(await res.json()); } catch {} };
+  const fetchPlans = async () => { try { const d = await (await fetch("/api/plans")).json(); setPlans(Array.isArray(d) ? d : []); } catch {} };
+  const fetchClients = async () => { try { const res = await fetch("/api/clients"); const data = await res.json(); setClients(Array.isArray(data) ? data : []); } catch { showToast(t("pipeline.toast.clientLoadFailed" as any)); } finally { setLoading(false); } };
+  const fetchFinance = async () => { try { const res = await fetch("/api/finance"); const d = await res.json(); setFinTxs(Array.isArray(d) ? d : []); } catch {} };
 
   const fetchMilestones = async (clientId: number) => {
     setMsLoading(true);
@@ -332,14 +332,14 @@ export function ClientsView() {
 
           {/* Mobile cards */}
           <div className="md:hidden space-y-2 flex-1 overflow-y-auto ios-scroll pb-4">
-            {!filtered.length && <div className="py-10 text-center text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.clients.noMatch" as any)}</div>}
+            {!filtered.length && <div className="py-10 text-center text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{clients.length === 0 ? t("pipeline.clients.empty" as any) : t("pipeline.clients.noMatch" as any)}</div>}
             {filtered.map(c => {
               const plan = c.plan_tier === "Basic" ? t("pipeline.convert.planBasic" as any) : c.plan_tier === "Pro" ? t("pipeline.convert.planPro" as any) : c.plan_tier === "Enterprise" ? t("pipeline.convert.planEnterprise" as any) : (c.plan_tier || c.plan);
               return (
                 <button key={c.id} onClick={() => openPanel(c)} className="w-full text-left card-interactive p-3 flex items-center gap-3 press-feedback">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-6)] text-[13px]" style={{ background: "var(--color-accent-tint)", color: "var(--color-accent)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>{(c.company_name || c.name).charAt(0).toUpperCase()}</div>
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-6)] text-[13px]" style={{ background: "var(--color-accent-tint)", color: "var(--color-accent)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>{(c.company_name || c.name || "?").charAt(0).toUpperCase()}</div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2"><span className="text-[15px] truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{c.company_name || c.name}</span>
+                    <div className="flex items-center gap-2 min-w-0"><span className="text-[15px] truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{c.company_name || c.name}</span>
                       <span className="badge" style={c.status === "Active" ? { background: "var(--color-success-light)", color: "var(--color-success)" } : { background: "var(--color-warning-light)", color: "var(--color-warning)" }}>{c.status === "Active" ? t("common.active" as any) : t("common.paused" as any)}</span>
                     </div>
                     {c.contact_name && <div className="text-[13px] mt-0.5 truncate" style={{ color: "var(--color-text-secondary)" }}>{c.contact_name}{c.contact_phone ? ` · ${c.contact_phone}` : ""}</div>}
@@ -376,7 +376,7 @@ export function ClientsView() {
                     <tr key={c.id} data-index={vr.index} ref={rowV.measureElement} className="group border-b transition-colors cursor-pointer" style={{ borderColor: "var(--color-border-primary)" }}
                       onClick={() => openPanel(c)}
                       onMouseEnter={e => (e.currentTarget.style.background = "var(--color-bg-tertiary)")} onMouseLeave={e => (e.currentTarget.style.background = "")}>
-                      <td className="px-4 py-3"><div className="flex items-center gap-3"><div className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-4)] text-[13px]" style={{ background: "var(--color-accent-tint)", color: "var(--color-accent)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>{displayInitial}</div><span style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{displayName}</span></div></td>
+                      <td className="px-4 py-3 max-w-[200px]"><div className="flex items-center gap-3 min-w-0"><div className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-4)] text-[13px] shrink-0" style={{ background: "var(--color-accent-tint)", color: "var(--color-accent)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>{displayInitial}</div><span className="truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{displayName}</span></div></td>
                       <td className="px-4 py-3"><div className="min-w-0">{c.contact_name && <span className="text-[15px] block truncate" style={{ color: "var(--color-text-primary)" }}>{c.contact_name}</span>}{c.contact_email && <span className="text-[13px] block truncate" style={{ color: "var(--color-text-secondary)" }}>{c.contact_email}</span>}</div></td>
                       <td className="px-4 py-3"><span className="badge" style={c.billing_type === "project" ? { background: "color-mix(in srgb, var(--color-orange) 12%, transparent)", color: "var(--color-orange)" } : { background: "color-mix(in srgb, var(--color-blue) 12%, transparent)", color: "var(--color-blue)" }}>{c.billing_type === "project" ? t("pipeline.clients.billingProject" as any) : t("pipeline.clients.billingSubscription" as any)}</span></td>
                       <td className="px-4 py-3"><span className="badge">{c.billing_type === "project" ? "—" : plan}</span></td>
@@ -395,7 +395,7 @@ export function ClientsView() {
                 {padBot > 0 && <tr><td style={{ height: padBot, padding: 0 }} colSpan={9} /></tr>}
               </tbody>
             </table>
-            {!filtered.length && <div className="p-8 text-center text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.clients.noMatch" as any)}</div>}
+            {!filtered.length && <div className="p-8 text-center text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{clients.length === 0 ? t("pipeline.clients.empty" as any) : t("pipeline.clients.noMatch" as any)}</div>}
           </div>
         </>
       )}

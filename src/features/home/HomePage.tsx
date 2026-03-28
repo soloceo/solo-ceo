@@ -109,7 +109,14 @@ export default function HomePage() {
   const fetchData = async () => {
     try {
       const res = await fetch("/api/dashboard");
-      setData(await res.json());
+      const raw = await res.json();
+      setData({
+        ...raw,
+        todayFocus: Array.isArray(raw.todayFocus) ? raw.todayFocus : [],
+        manualTodayEvents: Array.isArray(raw.manualTodayEvents) ? raw.manualTodayEvents : [],
+        recentActivity: Array.isArray(raw.recentActivity) ? raw.recentActivity : [],
+        mrrSeries: Array.isArray(raw.mrrSeries) ? raw.mrrSeries : [],
+      });
     } catch {
       showToast(t("home.loadFailed" as any));
     } finally {

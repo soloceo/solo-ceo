@@ -51,4 +51,5 @@ export const common = {
   "common.tomorrow": "Tomorrow",
   "common.nextMonday": "Mon",
   "common.signOut": "Sign out",
+  "nav.pinSidebar": "Expand sidebar",
 };

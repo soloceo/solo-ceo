@@ -39,7 +39,7 @@ export default function WidgetStore({ open, onClose }: Props) {
             </div>
             <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: "1px solid var(--color-line-tertiary)" }}>
               <h3 className="text-[15px]" style={{ fontWeight: "var(--font-weight-semibold)", color: "var(--color-text-primary)" } as React.CSSProperties}>
-                {t("widgets.store" as any) || "Widgets"}
+                {t("widgets.store" as any)}
               </h3>
               <button onClick={onClose} className="btn-icon-sm" aria-label="Close"><X size={16} /></button>
             </div>

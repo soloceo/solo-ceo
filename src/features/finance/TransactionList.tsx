@@ -75,7 +75,7 @@ export const TxRow = React.memo(function TxRow({ tx, t, lang, fmtAmt, fmtAmtColo
         {/* Desktop */}
         <div className="hidden md:grid grid-cols-[100px_1fr_120px_120px_120px_80px] gap-2 px-5 py-3 items-center border-b group hover:bg-[var(--color-bg-tertiary)] transition-colors" style={{ borderColor: "var(--color-border-primary)" }}>
           <span className="text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{fmtDate(tx.date || "", lang || "zh")}</span>
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 overflow-hidden">
             <span className="text-[15px] truncate" style={{ color: "var(--color-text-primary)" }}>{tx.description || tx.desc || tx.client_name || "—"}</span>
             {sourceBadge && <span className="badge text-[13px] shrink-0">{sourceBadge}</span>}
           </div>

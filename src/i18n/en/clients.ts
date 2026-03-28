@@ -84,6 +84,7 @@ export const clients = {
   "pipeline.toast.clientDeleted": "Client deleted",
   "pipeline.clients.search": "Search clients…",
   "pipeline.clients.noMatch": "No matching clients",
+  "pipeline.clients.empty": "No clients yet — add your first client to get started",
   "pipeline.clients.table.name": "Client",
   "pipeline.clients.table.contact": "Contact",
   "pipeline.clients.table.plan": "Plan",

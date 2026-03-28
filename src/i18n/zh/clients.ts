@@ -82,6 +82,7 @@ export const clients = {
   "pipeline.toast.clientDeleted": "客户已删除",
   "pipeline.clients.search": "搜索客户…",
   "pipeline.clients.noMatch": "没有匹配的客户",
+  "pipeline.clients.empty": "还没有客户 — 添加第一个客户开始吧",
   "pipeline.clients.table.name": "客户",
   "pipeline.clients.table.contact": "联系人",
   "pipeline.clients.table.plan": "计划",

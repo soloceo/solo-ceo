@@ -37,7 +37,7 @@ export default function WidgetGrid() {
           style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)", border: "1.5px dashed var(--color-border-translucent)" } as React.CSSProperties}
         >
           <Plus size={14} />
-          <span className="text-[12px]">{t("widgets.addWidget" as any) || "Add Widget"}</span>
+          <span className="text-[12px]">{t("widgets.addWidget" as any)}</span>
         </button>
         <WidgetStore open={storeOpen} onClose={() => setStoreOpen(false)} />
       </section>
@@ -48,7 +48,7 @@ export default function WidgetGrid() {
     <section>
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-[12px]" style={{ color: "var(--color-text-quaternary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-          {t("widgets.title" as any) || "Widgets"}
+          {t("widgets.title" as any)}
         </h2>
         <div className="flex items-center gap-1">
           <button
