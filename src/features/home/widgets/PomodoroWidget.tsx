@@ -219,7 +219,7 @@ export default function PomodoroWidget() {
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span
               className="tabular-nums"
-              style={{ fontSize: s(18), fontWeight: 700, color: "var(--color-text-primary)", letterSpacing: "-0.02em", lineHeight: 1 }}
+              style={{ fontSize: s(15), fontWeight: 700, color: "var(--color-text-primary)", letterSpacing: "-0.02em", lineHeight: 1 }}
             >
               {mm}:{ss}
             </span>
