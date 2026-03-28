@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Plus, Trash2, Edit2, X, Mail, UserPlus, LayoutGrid, AlignJustify,
-  ChevronDown, GripVertical, PanelRightClose, Sparkles, Search, Copy, RefreshCw, Loader2,
+  ChevronDown, GripVertical, PanelRightClose, Sparkles, Search, Copy, RefreshCw, Loader2, Download,
 } from "lucide-react";
 import { useAppSettings } from "../../hooks/useAppSettings";
 import { generateOutreach, analyzeLeadQuality, type AIProvider, type LeadAnalysis } from "../../lib/ai-client";
+import { exportCSV } from "../../lib/csv-export";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { motion, AnimatePresence } from "motion/react";
 import { createPortal } from "react-dom";
@@ -233,6 +234,12 @@ export function LeadsView() {
           {batchAnalyzing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
           <span className="hidden sm:inline">{lang === "zh" ? "AI 分析" : "AI Analyze"}</span>
         </button>
+        <button onClick={() => {
+          const all = Object.values(leads).flat();
+          exportCSV(all.map((l: any) => ({ name: l.name, industry: l.industry, source: l.source, needs: l.needs, stage: l.column })), "leads", [
+            { key: "name", label: "Name" }, { key: "industry", label: "Industry" }, { key: "source", label: "Source" }, { key: "needs", label: "Needs" }, { key: "stage", label: "Stage" },
+          ]);
+        }} className="btn-ghost compact"><Download size={16} /></button>
         <button onClick={() => openPanel(null, "new")} className="btn-primary compact"><Plus size={16} /> {t("pipeline.addLead" as any)}</button>
       </div>
 

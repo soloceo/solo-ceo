@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Plus, Filter, LayoutGrid, AlignJustify, Building2, User as UserIcon, Bot, Send, Loader2 } from "lucide-react";
+import { Plus, Filter, LayoutGrid, AlignJustify, Building2, User as UserIcon, Bot, Send, Loader2, Download } from "lucide-react";
+import { exportCSV } from "../../lib/csv-export";
 import { useAppSettings } from "../../hooks/useAppSettings";
 import { parseWorkTask, type AIProvider } from "../../lib/ai-client";
 import { Skeleton } from "../../components/ui";
@@ -307,6 +308,12 @@ export default function WorkPage() {
             ))}
           </div>
           <div className="flex-1" />
+          <button onClick={() => {
+            const all = Object.values(tasks).flat();
+            exportCSV(all.map(t => ({ title: t.title, client: t.client, priority: t.priority, due: t.due, column: t.column })), "tasks", [
+              { key: "title", label: "Title" }, { key: "client", label: "Client" }, { key: "priority", label: "Priority" }, { key: "due", label: "Due" }, { key: "column", label: "Status" },
+            ]);
+          }} className="btn-ghost compact"><Download size={16} /></button>
           <button onClick={() => openPanel(null, "todo")} className="btn-primary compact">
             <Plus size={16} /> {t("work.new" as any)}
           </button>

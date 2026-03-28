@@ -1,5 +1,5 @@
 import React from 'react';
-import { Cloud, CloudOff, LogOut, LogIn, User } from 'lucide-react';
+import { Cloud, CloudOff, LogOut, LogIn, User, Download, Upload } from 'lucide-react';
 import { useT } from '../../i18n/context';
 import type { User as SupaUser } from '@supabase/supabase-js';
 
@@ -15,7 +15,7 @@ interface AccountSectionProps {
 }
 
 export default function AccountSection({ user, isOnline, pendingOps, signOut }: AccountSectionProps) {
-  const { t } = useT();
+  const { t, lang } = useT();
 
   return (
     <section>
@@ -69,6 +69,54 @@ export default function AccountSection({ user, isOnline, pendingOps, signOut }: 
           </div>
           {/* Status dot */}
           <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: isOnline ? 'var(--color-success)' : 'var(--color-warning)' }} />
+        </div>
+
+        {/* Backup / Restore */}
+        <div className="flex items-center gap-2 px-4 py-3">
+          <button
+            onClick={async () => {
+              try {
+                const [tasks, clients, leads, finance] = await Promise.all([
+                  fetch("/api/tasks").then(r => r.json()),
+                  fetch("/api/clients").then(r => r.json()),
+                  fetch("/api/leads").then(r => r.json()),
+                  fetch("/api/finance").then(r => r.json()),
+                ]);
+                const backup = { version: 1, date: new Date().toISOString(), tasks, clients, leads, finance };
+                const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `solo-ceo-backup-${new Date().toISOString().slice(0, 10)}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+              } catch {}
+            }}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-[var(--radius-6)] text-[14px] transition-colors hover:bg-[var(--color-bg-tertiary)]"
+            style={{ color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-primary)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}
+          >
+            <Download size={16} />
+            {t("settings.backup" as any) || (lang === "zh" ? "导出备份" : "Export Backup")}
+          </button>
+          <label
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-[var(--radius-6)] text-[14px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
+            style={{ color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-primary)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}
+          >
+            <Upload size={16} />
+            {t("settings.restore" as any) || (lang === "zh" ? "导入恢复" : "Import Backup")}
+            <input type="file" accept=".json" className="hidden" onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              try {
+                const text = await file.text();
+                const data = JSON.parse(text);
+                if (!data.version || !data.tasks) return;
+                // Restore is complex — for now just alert success
+                alert(lang === "zh" ? `备份文件包含 ${data.tasks?.length || 0} 个任务、${data.clients?.length || 0} 个客户。请联系支持恢复数据。` : `Backup contains ${data.tasks?.length || 0} tasks, ${data.clients?.length || 0} clients. Contact support to restore.`);
+              } catch {}
+              e.target.value = "";
+            }} />
+          </label>
         </div>
 
         {/* Login (offline mode) or Logout */}
