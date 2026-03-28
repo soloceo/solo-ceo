@@ -1,5 +1,5 @@
 import React from 'react';
-import { Cloud, CloudOff, LogOut, User } from 'lucide-react';
+import { Cloud, CloudOff, LogOut, LogIn, User } from 'lucide-react';
 import { useT } from '../../i18n/context';
 import type { User as SupaUser } from '@supabase/supabase-js';
 
@@ -71,21 +71,43 @@ export default function AccountSection({ user, isOnline, pendingOps, signOut }: 
           <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: isOnline ? 'var(--color-success)' : 'var(--color-warning)' }} />
         </div>
 
-        {/* Logout */}
-        <button
-          onClick={signOut}
-          className="flex items-center gap-3 px-4 py-3 w-full text-left transition-colors hover:bg-[var(--color-bg-tertiary)]"
-        >
-          <div
-            className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-8)]"
-            style={{ background: 'color-mix(in srgb, var(--color-danger) 10%, transparent)', color: 'var(--color-danger)' }}
+        {/* Login (offline mode) or Logout */}
+        {user ? (
+          <button
+            onClick={signOut}
+            className="flex items-center gap-3 px-4 py-3 w-full text-left transition-colors hover:bg-[var(--color-bg-tertiary)]"
           >
-            <LogOut size={20} />
-          </div>
-          <span className="text-[15px]" style={{ color: 'var(--color-danger)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>
-            {t("auth.logoutBtn" as any)}
-          </span>
-        </button>
+            <div
+              className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-8)]"
+              style={{ background: 'color-mix(in srgb, var(--color-danger) 10%, transparent)', color: 'var(--color-danger)' }}
+            >
+              <LogOut size={20} />
+            </div>
+            <span className="text-[15px]" style={{ color: 'var(--color-danger)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>
+              {t("auth.logoutBtn" as any)}
+            </span>
+          </button>
+        ) : (
+          <button
+            onClick={() => window.location.reload()}
+            className="flex items-center gap-3 px-4 py-3 w-full text-left transition-colors hover:bg-[var(--color-bg-tertiary)]"
+          >
+            <div
+              className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-8)]"
+              style={{ background: 'color-mix(in srgb, var(--color-accent) 10%, transparent)', color: 'var(--color-accent)' }}
+            >
+              <LogIn size={20} />
+            </div>
+            <div>
+              <span className="text-[15px] block" style={{ color: 'var(--color-accent)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>
+                {t("auth.loginOrRegister" as any)}
+              </span>
+              <span className="text-[13px] block" style={{ color: 'var(--color-text-tertiary)' }}>
+                {t("auth.loginOrRegisterHint" as any)}
+              </span>
+            </div>
+          </button>
+        )}
       </div>
     </section>
   );

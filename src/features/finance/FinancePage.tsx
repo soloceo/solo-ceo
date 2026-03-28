@@ -501,6 +501,13 @@ export default function FinancePage() {
 
       {/* ── AI Chat Input ── */}
       <div className="flex items-center gap-2 mb-4">
+        <span className="text-[12px] px-2 py-1 rounded-[var(--radius-4)] shrink-0" style={{
+          background: financeTab === "business" ? "color-mix(in srgb, var(--color-accent) 12%, transparent)" : "color-mix(in srgb, var(--color-info) 12%, transparent)",
+          color: financeTab === "business" ? "var(--color-accent)" : "var(--color-info)",
+          fontWeight: "var(--font-weight-semibold)",
+        } as React.CSSProperties}>
+          {financeTab === "business" ? (lang === "zh" ? "公司" : "Biz") : (lang === "zh" ? "个人" : "Personal")}
+        </span>
         <div className="relative flex-1">
           <Bot size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: aiParsing ? "var(--color-accent)" : "var(--color-text-quaternary)" }} />
           <input
