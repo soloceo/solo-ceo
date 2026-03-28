@@ -12,6 +12,8 @@ export interface Task {
   due?: string;
   column: string;
   originalRequest?: string;
+  scope?: string;
+  parent_id?: number | null;
 }
 
 const prioLabel: Record<string, { zh: string; en: string; color: string }> = {

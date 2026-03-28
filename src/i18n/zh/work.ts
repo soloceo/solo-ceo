@@ -2,6 +2,8 @@ export const work = {
   "work.seg.tasks": "任务",
   "work.seg.content": "内容创作",
   "work.pageTitle": "任务",
+  "work.tab.work": "工作",
+  "work.tab.personal": "个人",
   "work.col.todo": "待办",
   "work.col.inProgress": "进行中",
   "work.col.review": "待审核",

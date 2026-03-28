@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Plus, Filter, LayoutGrid, AlignJustify } from "lucide-react";
+import { Plus, Filter, LayoutGrid, AlignJustify, Building2, User as UserIcon } from "lucide-react";
 import { Skeleton } from "../../components/ui";
 import { useT } from "../../i18n/context";
 import { useRealtimeRefresh } from "../../hooks/useRealtimeRefresh";
 import { useUIStore } from "../../store/useUIStore";
 import { KanbanBoard, SwimlaneView, type ColDef } from "./KanbanBoard";
 import { TaskDetail, type TaskForm } from "./TaskDetail";
+import PersonalTaskList from "./PersonalTaskList";
 import type { Task } from "./TaskCard";
 
 type TaskMap = Record<string, Task[]>;
@@ -22,6 +23,8 @@ export default function WorkPage() {
     { id: "done", title: t("work.col.done" as any), color: "var(--color-success)" },
   ], [t]);
 
+  const [workTab, setWorkTab] = useState<"work" | "personal">("work");
+  const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [tasks, setTasks] = useState<TaskMap>({ todo: [], inProgress: [], review: [], done: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [filterPriority, setFilterPriority] = useState("All");
@@ -45,7 +48,10 @@ export default function WorkPage() {
       const res = await fetch("/api/tasks");
       const raw = await res.json();
       const data = Array.isArray(raw) ? raw : [];
-      const grouped = data.reduce((acc: any, t: any) => {
+      setAllTasks(data);
+      // Group work tasks only (exclude personal) for kanban
+      const workData = data.filter((t: any) => t.scope !== "personal");
+      const grouped = workData.reduce((acc: any, t: any) => {
         const col = t.column || "todo";
         if (!acc[col]) acc[col] = [];
         acc[col].push(t);
@@ -203,113 +209,135 @@ export default function WorkPage() {
 
   return (
     <div className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col px-4 py-3 md:px-6 md:py-4 lg:px-8 lg:py-5 relative">
-      {/* Header */}
-      <header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-3">
-        <div className="flex items-center gap-3">
-          <h1 className="page-title">{t("work.pageTitle" as any)}</h1>
-          <span className="text-[14px] tabular-nums" style={{ color: "var(--color-text-quaternary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-            {totalTasks}
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-2 items-center">
-          {/* Priority filter */}
-          <div className="flex items-center gap-1.5">
-            <Filter size={16} style={{ color: "var(--color-text-tertiary)" }} />
-            <select
-              value={filterPriority}
-              onChange={(e) => setFilterPriority(e.target.value)}
-              className="input-base compact px-2 text-[15px]"
+      {/* Tab switcher */}
+      <div className="flex items-center gap-3 mb-3">
+        <div className="flex gap-1 p-1 rounded-[var(--radius-8)] shrink-0" style={{ background: "var(--color-bg-tertiary)" }}>
+          {(["work", "personal"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setWorkTab(tab)}
+              className="py-1.5 px-4 text-[14px] rounded-[var(--radius-6)] transition-colors press-feedback flex items-center gap-1.5"
+              style={workTab === tab ? {
+                background: tab === "work"
+                  ? "color-mix(in srgb, var(--color-accent) 12%, var(--color-bg-primary))"
+                  : "color-mix(in srgb, var(--color-info) 12%, var(--color-bg-primary))",
+                color: tab === "work" ? "var(--color-accent)" : "var(--color-info)",
+                fontWeight: "var(--font-weight-semibold)",
+                boxShadow: "var(--shadow-low)",
+              } as React.CSSProperties : {
+                color: "var(--color-text-tertiary)",
+                fontWeight: "var(--font-weight-medium)",
+              } as React.CSSProperties}
             >
-              <option value="All">{t("work.filter.all" as any)}</option>
-              <option value="High">{t("work.filter.high" as any)}</option>
-              <option value="Medium">{t("work.filter.medium" as any)}</option>
-              <option value="Low">{t("work.filter.low" as any)}</option>
-            </select>
-          </div>
-
-          {/* View mode toggle */}
-          <div className="segment-switcher">
-            {([
-              ["vertical", <LayoutGrid size={14} />, "Board view"],
-              ["horizontal", <AlignJustify size={14} />, "List view"],
-            ] as [string, React.ReactNode, string][]).map(([mode, icon, label]) => (
-              <button
-                key={mode}
-                onClick={() => setViewMode(mode as "vertical" | "horizontal")}
-                data-active={viewMode === mode}
-                aria-label={label}
-              >
-                {icon}
-              </button>
-            ))}
-          </div>
-
-          <button onClick={() => openPanel(null, "todo")} className="btn-primary compact">
-            <Plus size={16} /> {t("work.new" as any)}
-          </button>
-        </div>
-      </header>
-
-      {/* Progress bar */}
-      {!isLoading && totalTasks > 0 && (
-        <div className="mb-3">
-          <div className="flex h-1.5 rounded-full overflow-hidden" style={{ background: "var(--color-bg-quaternary)" }}>
-            {counts.map((c) => (
-              c.count > 0 && (
-                <div
-                  key={c.id}
-                  style={{ width: `${(c.count / totalTasks) * 100}%`, background: c.color }}
-                  className="transition-all duration-300"
-                />
-              )
-            ))}
-          </div>
-          <div className="flex gap-3 mt-1.5">
-            {counts.map((c) => (
-              <div key={c.id} className="flex items-center gap-1.5 text-[13px]" style={{ color: "var(--color-text-tertiary)" }}>
-                <div className="w-1.5 h-1.5 rounded-full" style={{ background: c.color }} />
-                <span>{c.title}</span>
-                <span className="tabular-nums" style={{ color: "var(--color-text-quaternary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{c.count}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Board */}
-      {isLoading ? (
-        <div className="flex-1 flex gap-3 animate-skeleton-in">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="flex-1 min-w-[220px] max-w-[360px] space-y-2">
-              <Skeleton className="h-4 w-20" />
-              <div className="space-y-1.5 p-1.5 rounded-[var(--radius-12)]" style={{ background: "var(--color-bg-tertiary)" }}>
-                <Skeleton className="h-[72px] rounded-[var(--radius-12)]" />
-                <Skeleton className="h-[72px] rounded-[var(--radius-12)]" />
-              </div>
-            </div>
+              {tab === "work" ? <Building2 size={14} /> : <UserIcon size={14} />}
+              {tab === "work" ? (t("work.tab.work" as any)) : (t("work.tab.personal" as any))}
+            </button>
           ))}
         </div>
-      ) : viewMode === "vertical" ? (
-        <KanbanBoard
-          columns={COLS}
-          tasks={filteredTasks}
-          onDragEnd={onDragEnd}
-          onAdd={(col) => openPanel(null, col)}
-          onEdit={(task) => openPanel(task, task.column)}
-          onDelete={handleDelete}
-          onClientClick={() => setActiveTab("clients")}
-          emptyText={t("work.empty" as any)}
-        />
+        <div className="flex-1" />
+        {workTab === "work" && (
+          <>
+            <div className="flex items-center gap-1.5">
+              <Filter size={16} style={{ color: "var(--color-text-tertiary)" }} />
+              <select
+                value={filterPriority}
+                onChange={(e) => setFilterPriority(e.target.value)}
+                className="input-base compact px-2 text-[15px]"
+              >
+                <option value="All">{t("work.filter.all" as any)}</option>
+                <option value="High">{t("work.filter.high" as any)}</option>
+                <option value="Medium">{t("work.filter.medium" as any)}</option>
+                <option value="Low">{t("work.filter.low" as any)}</option>
+              </select>
+            </div>
+            <div className="segment-switcher">
+              {([
+                ["vertical", <LayoutGrid size={14} />, "Board view"],
+                ["horizontal", <AlignJustify size={14} />, "List view"],
+              ] as [string, React.ReactNode, string][]).map(([mode, icon, label]) => (
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode as "vertical" | "horizontal")}
+                  data-active={viewMode === mode}
+                  aria-label={label}
+                >
+                  {icon}
+                </button>
+              ))}
+            </div>
+            <button onClick={() => openPanel(null, "todo")} className="btn-primary compact">
+              <Plus size={16} /> {t("work.new" as any)}
+            </button>
+          </>
+        )}
+      </div>
+
+      {workTab === "work" ? (
+        <>
+          {/* Progress bar */}
+          {!isLoading && totalTasks > 0 && (
+            <div className="mb-3">
+              <div className="flex h-1.5 rounded-full overflow-hidden" style={{ background: "var(--color-bg-quaternary)" }}>
+                {counts.map((c) => (
+                  c.count > 0 && (
+                    <div
+                      key={c.id}
+                      style={{ width: `${(c.count / totalTasks) * 100}%`, background: c.color }}
+                      className="transition-all duration-300"
+                    />
+                  )
+                ))}
+              </div>
+              <div className="flex gap-3 mt-1.5">
+                {counts.map((c) => (
+                  <div key={c.id} className="flex items-center gap-1.5 text-[13px]" style={{ color: "var(--color-text-tertiary)" }}>
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ background: c.color }} />
+                    <span>{c.title}</span>
+                    <span className="tabular-nums" style={{ color: "var(--color-text-quaternary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{c.count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Board */}
+          {isLoading ? (
+            <div className="flex-1 flex gap-3 animate-skeleton-in">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex-1 min-w-[220px] max-w-[360px] space-y-2">
+                  <Skeleton className="h-4 w-20" />
+                  <div className="space-y-1.5 p-1.5 rounded-[var(--radius-12)]" style={{ background: "var(--color-bg-tertiary)" }}>
+                    <Skeleton className="h-[72px] rounded-[var(--radius-12)]" />
+                    <Skeleton className="h-[72px] rounded-[var(--radius-12)]" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : viewMode === "vertical" ? (
+            <KanbanBoard
+              columns={COLS}
+              tasks={filteredTasks}
+              onDragEnd={onDragEnd}
+              onAdd={(col) => openPanel(null, col)}
+              onEdit={(task) => openPanel(task, task.column)}
+              onDelete={handleDelete}
+              onClientClick={() => setActiveTab("clients")}
+              emptyText={t("work.empty" as any)}
+            />
+          ) : (
+            <SwimlaneView
+              columns={COLS}
+              tasks={filteredTasks}
+              onAdd={(col) => openPanel(null, col)}
+              onEdit={(task) => openPanel(task, task.column)}
+              onDelete={handleDelete}
+              onMove={handleMove}
+              emptyText={t("work.empty" as any)}
+            />
+          )}
+        </>
       ) : (
-        <SwimlaneView
-          columns={COLS}
-          tasks={filteredTasks}
-          onAdd={(col) => openPanel(null, col)}
-          onEdit={(task) => openPanel(task, task.column)}
-          onDelete={handleDelete}
-          onMove={handleMove}
-          emptyText={t("work.empty" as any)}
-        />
+        <PersonalTaskList tasks={allTasks} onRefresh={fetchTasks} />
       )}
 
       {/* Task Detail Panel */}

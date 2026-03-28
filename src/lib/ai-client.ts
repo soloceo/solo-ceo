@@ -125,6 +125,36 @@ export async function parseExpense(
   return result;
 }
 
+export interface TaskBreakdown {
+  title: string;
+  steps: string[];
+}
+
+export async function parseTaskBreakdown(
+  text: string,
+  lang: string,
+  provider: AIProvider,
+  apiKey: string
+): Promise<TaskBreakdown> {
+  const systemPrompt = `You are a productivity assistant. The user describes a task or goal.
+Break it down into 5-8 small, concrete, actionable steps in execution order.
+Each step should be something that takes 5-30 minutes and is easy to start.
+The goal is to reduce procrastination by making each step feel small and doable.
+Language: ${lang === "zh" ? "Chinese" : "English"}
+
+Respond with ONLY a JSON object, no markdown:
+{"title": "concise task name", "steps": ["step 1", "step 2", ...]}`;
+
+  const callers = { gemini: callGemini, claude: callClaude, openai: callOpenAI };
+  const result = await callers[provider](apiKey, systemPrompt, text) as unknown as TaskBreakdown;
+
+  if (!result.title) result.title = text;
+  if (!Array.isArray(result.steps) || result.steps.length === 0) {
+    throw new Error("AI returned no steps");
+  }
+  return result;
+}
+
 /** Test if an API key is valid by making a minimal request */
 export async function testApiKey(provider: AIProvider, apiKey: string): Promise<boolean> {
   try {

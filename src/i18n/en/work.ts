@@ -2,6 +2,8 @@ export const work = {
   "work.seg.tasks": "Tasks",
   "work.seg.content": "Create",
   "work.pageTitle": "Tasks",
+  "work.tab.work": "Work",
+  "work.tab.personal": "Personal",
   "work.col.todo": "To Do",
   "work.col.inProgress": "In Progress",
   "work.col.review": "Review",

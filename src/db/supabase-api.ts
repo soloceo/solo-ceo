@@ -565,7 +565,7 @@ export async function handleSupabaseRequest(
   }
 
   if (path === '/api/tasks' && method === 'POST') {
-    const { title, client, priority, due, column, originalRequest, aiBreakdown, aiMjPrompts, aiStory } = body;
+    const { title, client, priority, due, column, originalRequest, aiBreakdown, aiMjPrompts, aiStory, scope, parent_id } = body;
     const { data, error: e } = await supabase
       .from('tasks')
       .insert({
@@ -574,6 +574,7 @@ export async function handleSupabaseRequest(
         due: due || '', column: column || 'todo',
         originalRequest: originalRequest || '', aiBreakdown: aiBreakdown || '',
         aiMjPrompts: aiMjPrompts || '', aiStory: aiStory || '',
+        scope: scope || 'work', parent_id: parent_id || null,
       })
       .select('id')
       .single();
@@ -586,7 +587,7 @@ export async function handleSupabaseRequest(
   if (taskMatch) {
     const id = Number(taskMatch[1]);
     if (method === 'PUT') {
-      const { title, client, priority, due, column, originalRequest, aiBreakdown, aiMjPrompts, aiStory } = body;
+      const { title, client, priority, due, column, originalRequest, aiBreakdown, aiMjPrompts, aiStory, scope, parent_id } = body;
       const { error: e } = await supabase
         .from('tasks')
         .update({
@@ -594,6 +595,7 @@ export async function handleSupabaseRequest(
           due: due || '', column: column || 'todo',
           originalRequest: originalRequest || '', aiBreakdown: aiBreakdown || '',
           aiMjPrompts: aiMjPrompts || '', aiStory: aiStory || '',
+          scope: scope || 'work', parent_id: parent_id ?? null,
         })
         .eq('id', id);
       if (e) return err(500, e.message);
