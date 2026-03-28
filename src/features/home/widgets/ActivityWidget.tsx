@@ -72,7 +72,7 @@ function groupItems(items: ActivityItem[]): GroupedItem[] {
 }
 
 export default function ActivityWidget() {
-  const { t } = useT();
+  const { t, lang } = useT();
   const [rawItems, setRawItems] = useState<ActivityItem[]>([]);
   const [, setTick] = useState(0);
   const prevCountRef = useRef(0);
@@ -102,7 +102,8 @@ export default function ActivityWidget() {
   }, []);
 
   const grouped = useMemo(() => groupItems(rawItems), [rawItems]);
-  const visible = useMemo(() => grouped.slice(0, VISIBLE_COUNT), [grouped]);
+  const [expanded, setExpanded] = useState(false);
+  const visible = useMemo(() => expanded ? grouped : grouped.slice(0, VISIBLE_COUNT), [grouped, expanded]);
 
   /* Empty state */
   if (!rawItems.length) {
@@ -162,12 +163,19 @@ export default function ActivityWidget() {
         })}
       </div>
 
-      {/* More indicator */}
+      {/* More / collapse toggle */}
       {grouped.length > VISIBLE_COUNT && (
         <div className="shrink-0 text-center" style={{ marginTop: s(4) }}>
-          <span className="tabular-nums" style={{ fontSize: s(9), color: "var(--color-text-quaternary)" }}>
-            +{grouped.length - VISIBLE_COUNT} {t("widgets.calendar.more" as any)}
-          </span>
+          <button
+            onClick={() => setExpanded(p => !p)}
+            className="tabular-nums cursor-pointer transition-colors hover:opacity-80"
+            style={{ fontSize: s(9), color: "var(--color-accent)", background: "none", border: "none", padding: 0 }}
+          >
+            {expanded
+              ? (t("widgets.calendar.collapse" as any) || (lang === "zh" ? "收起" : "Collapse"))
+              : `+${grouped.length - VISIBLE_COUNT} ${t("widgets.calendar.more" as any)}`
+            }
+          </button>
         </div>
       )}
     </div>
