@@ -34,8 +34,14 @@ export default function AISection({ settings, save }: AISectionProps) {
   }, [settings]);
 
   const handleSave = async (keyName: string) => {
-    await save(keyName, localKeys[keyName] || "");
+    const value = localKeys[keyName] || "";
+    await save(keyName, value);
     setDirty(p => ({ ...p, [keyName]: false }));
+    // Auto-select this provider if it's the only one with a key, or if none is selected
+    if (value && !activeProvider) {
+      const matchedProvider = PROVIDERS.find(p => p.keyName === keyName);
+      if (matchedProvider) await save("ai_provider", matchedProvider.id);
+    }
   };
 
   const handleTest = async (provider: AIProvider, keyName: string) => {
