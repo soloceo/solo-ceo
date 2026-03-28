@@ -511,20 +511,20 @@ export default function FinancePage() {
 
       {/* ── Header: Tab + Actions ── */}
       <div className="flex items-center gap-3 mb-3">
-        <div className="flex gap-2 shrink-0">
+        <div className="flex gap-1 p-1 rounded-[var(--radius-8)] shrink-0" style={{ background: "var(--color-bg-tertiary)" }}>
           {(["business", "personal"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => { setFinanceTab(tab); setFilters({ type: "all", category: "all", status: "all", dateFrom: "", dateTo: "", search: "" }); }}
-              className="py-1.5 px-4 text-[14px] rounded-[var(--radius-12)] transition-all press-feedback flex items-center gap-1.5 border"
+              className="py-1.5 px-4 text-[14px] rounded-[var(--radius-6)] transition-colors press-feedback flex items-center gap-1.5"
               style={financeTab === tab ? {
-                background: "var(--color-bg-primary)",
-                borderColor: "var(--color-border-primary)",
-                color: "var(--color-text-primary)",
+                background: tab === "business"
+                  ? "color-mix(in srgb, var(--color-accent) 12%, var(--color-bg-primary))"
+                  : "color-mix(in srgb, var(--color-info) 12%, var(--color-bg-primary))",
+                color: tab === "business" ? "var(--color-accent)" : "var(--color-info)",
                 fontWeight: "var(--font-weight-semibold)",
+                boxShadow: "var(--shadow-low)",
               } as React.CSSProperties : {
-                background: "transparent",
-                borderColor: "var(--color-border-translucent)",
                 color: "var(--color-text-tertiary)",
                 fontWeight: "var(--font-weight-medium)",
               } as React.CSSProperties}
@@ -544,26 +544,29 @@ export default function FinancePage() {
       </div>
 
       {/* ── AI Chat Input ── */}
-      <div className="flex items-center gap-2 mb-4 rounded-[var(--radius-12)] px-3 py-2 border" style={{
-        background: "var(--color-bg-primary)",
-        borderColor: "var(--color-border-primary)",
+      <div className="flex items-center gap-2 mb-4 rounded-[var(--radius-8)] p-1.5" style={{
+        background: financeTab === "business"
+          ? "color-mix(in srgb, var(--color-accent) 6%, transparent)"
+          : "color-mix(in srgb, var(--color-info) 6%, transparent)",
       }}>
-        <Bot size={16} className="shrink-0" style={{ color: "var(--color-text-quaternary)" }} />
-        <input
-          type="text"
-          value={aiInput}
-          onChange={e => setAiInput(e.target.value)}
-          onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAiRecord(); }}
-          placeholder={financeTab === "business" ? t("money.tab.bizPlaceholder" as any) : t("money.tab.personalPlaceholder" as any)}
-          disabled={aiParsing}
-          className="flex-1 bg-transparent text-[15px] outline-none placeholder:text-[var(--color-text-quaternary)]"
-          style={{ color: "var(--color-text-primary)" }}
-        />
+        <div className="relative flex-1">
+          <Bot size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{
+            color: financeTab === "business" ? "var(--color-accent)" : "var(--color-info)",
+          }} />
+          <input
+            type="text"
+            value={aiInput}
+            onChange={e => setAiInput(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAiRecord(); }}
+            placeholder={financeTab === "business" ? t("money.tab.bizPlaceholder" as any) : t("money.tab.personalPlaceholder" as any)}
+            disabled={aiParsing}
+            className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]"
+          />
+        </div>
         <button
           onClick={handleAiRecord}
           disabled={!aiInput.trim() || aiParsing}
-          className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full disabled:opacity-30 transition-colors"
-          style={{ background: "var(--color-accent)", color: "var(--color-brand-text)" }}
+          className="btn-primary compact text-[14px] shrink-0 disabled:opacity-40"
         >
           {aiParsing ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
         </button>

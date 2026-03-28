@@ -266,20 +266,20 @@ export default function WorkPage() {
     <div className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col px-4 py-3 md:px-6 md:py-4 lg:px-8 lg:py-5 relative">
       <h1 className="sr-only">{t("nav.work" as any)}</h1>
       {/* Row 1: Tab switcher (full width) */}
-      <div className="flex gap-2 mb-2">
+      <div className="flex gap-1 p-1 mb-2 rounded-[var(--radius-8)]" style={{ background: "var(--color-bg-tertiary)" }}>
         {(["work", "personal"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setWorkTab(tab)}
-            className="flex-1 py-1.5 text-[14px] rounded-[var(--radius-12)] transition-all press-feedback flex items-center justify-center gap-1.5 border"
+            className="flex-1 py-1.5 text-[14px] rounded-[var(--radius-6)] transition-colors press-feedback flex items-center justify-center gap-1.5"
             style={workTab === tab ? {
-              background: "var(--color-bg-primary)",
-              borderColor: "var(--color-border-primary)",
-              color: "var(--color-text-primary)",
+              background: tab === "work"
+                ? "color-mix(in srgb, var(--color-accent) 12%, var(--color-bg-primary))"
+                : "color-mix(in srgb, var(--color-info) 12%, var(--color-bg-primary))",
+              color: tab === "work" ? "var(--color-accent)" : "var(--color-info)",
               fontWeight: "var(--font-weight-semibold)",
+              boxShadow: "var(--shadow-low)",
             } as React.CSSProperties : {
-              background: "transparent",
-              borderColor: "var(--color-border-translucent)",
               color: "var(--color-text-tertiary)",
               fontWeight: "var(--font-weight-medium)",
             } as React.CSSProperties}
@@ -337,22 +337,22 @@ export default function WorkPage() {
       {workTab === "work" ? (
         <>
           {/* AI task input */}
-          <div className="flex items-center gap-2 mb-3 rounded-[var(--radius-12)] px-3 py-2 border" style={{
-            background: "var(--color-bg-primary)",
-            borderColor: "var(--color-border-primary)",
+          <div className="flex items-center gap-2 mb-3 rounded-[var(--radius-8)] p-1.5" style={{
+            background: "color-mix(in srgb, var(--color-accent) 6%, transparent)",
           }}>
-            <Bot size={16} className="shrink-0" style={{ color: "var(--color-text-quaternary)" }} />
-            <input
-              type="text"
-              value={aiInput}
-              onChange={e => setAiInput(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAiTask(); }}
-              placeholder={t("work.ai.placeholder" as any)}
-              disabled={aiParsing}
-              className="flex-1 bg-transparent text-[15px] outline-none placeholder:text-[var(--color-text-quaternary)]"
-              style={{ color: "var(--color-text-primary)" }}
-            />
-            <button onClick={handleAiTask} disabled={!aiInput.trim() || aiParsing} className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full disabled:opacity-30 transition-colors" style={{ background: "var(--color-accent)", color: "var(--color-brand-text)" }}>
+            <div className="relative flex-1">
+              <Bot size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--color-accent)" }} />
+              <input
+                type="text"
+                value={aiInput}
+                onChange={e => setAiInput(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAiTask(); }}
+                placeholder={t("work.ai.placeholder" as any)}
+                disabled={aiParsing}
+                className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]"
+              />
+            </div>
+            <button onClick={handleAiTask} disabled={!aiInput.trim() || aiParsing} className="btn-primary compact text-[14px] shrink-0 disabled:opacity-40">
               {aiParsing ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
             </button>
           </div>
