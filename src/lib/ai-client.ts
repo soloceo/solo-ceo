@@ -195,6 +195,45 @@ Respond with ONLY a JSON object:
   return result;
 }
 
+export interface ParsedWorkTask {
+  title: string;
+  client: string;
+  priority: "High" | "Medium" | "Low";
+  column: string;
+}
+
+export async function parseWorkTask(
+  text: string,
+  clientNames: string[],
+  lang: string,
+  provider: AIProvider,
+  apiKey: string
+): Promise<ParsedWorkTask> {
+  const today = new Date().toISOString().slice(0, 10);
+  const systemPrompt = `You are a task assistant. Parse the user's natural language into a work task.
+
+Known clients: ${clientNames.length ? clientNames.join(", ") : "none"}
+Columns: todo, inProgress, review, done (default: todo)
+Priorities: High, Medium, Low (default: Medium)
+Language: ${lang === "zh" ? "Chinese" : "English"}
+
+Rules:
+- Extract task title (concise, action-oriented)
+- Match client name from the known list if mentioned (or leave empty)
+- Detect priority if mentioned (高/high → High, 中/medium → Medium, 低/low → Low)
+- Default column is "todo"
+
+Respond with ONLY a JSON object:
+{"title": "...", "client": "", "priority": "Medium", "column": "todo"}`;
+
+  const callers = { gemini: callGemini, claude: callClaude, openai: callOpenAI };
+  const result = await callers[provider](apiKey, systemPrompt, text) as unknown as ParsedWorkTask;
+  if (!result.title) result.title = text;
+  if (!["High", "Medium", "Low"].includes(result.priority)) result.priority = "Medium";
+  if (!["todo", "inProgress", "review", "done"].includes(result.column)) result.column = "todo";
+  return result;
+}
+
 /* ── Task AI functions ──────────────────────────────── */
 
 export interface TaskBreakdown {

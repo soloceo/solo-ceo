@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Plus, Filter, LayoutGrid, AlignJustify, Building2, User as UserIcon } from "lucide-react";
+import { Plus, Filter, LayoutGrid, AlignJustify, Building2, User as UserIcon, Bot, Send, Loader2 } from "lucide-react";
+import { useAppSettings } from "../../hooks/useAppSettings";
+import { parseWorkTask, type AIProvider } from "../../lib/ai-client";
 import { Skeleton } from "../../components/ui";
 import { useT } from "../../i18n/context";
 import { useRealtimeRefresh } from "../../hooks/useRealtimeRefresh";
@@ -23,8 +25,11 @@ export default function WorkPage() {
     { id: "done", title: t("work.col.done" as any), color: "var(--color-success)" },
   ], [t]);
 
+  const { settings: appSettings } = useAppSettings();
   const [workTab, setWorkTab] = useState<"work" | "personal">("work");
   const [allTasks, setAllTasks] = useState<Task[]>([]);
+  const [aiInput, setAiInput] = useState("");
+  const [aiParsing, setAiParsing] = useState(false);
   const [tasks, setTasks] = useState<TaskMap>({ todo: [], inProgress: [], review: [], done: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [filterPriority, setFilterPriority] = useState("All");
@@ -115,6 +120,39 @@ export default function WorkPage() {
   };
 
   /* ── Panel helpers ── */
+  const handleAiTask = async () => {
+    const text = aiInput.trim();
+    if (!text) return;
+    const provider = appSettings?.ai_provider as AIProvider | undefined;
+    const keyMap: Record<string, string> = { gemini: "gemini_api_key", claude: "claude_api_key", openai: "openai_api_key" };
+    const apiKey = provider ? appSettings?.[keyMap[provider]] : undefined;
+    if (!provider || !apiKey) {
+      const lang = t("work.tab.work" as any) === "工作" ? "zh" : "en";
+      showToast(lang === "zh" ? "请先在设置中配置 AI API Key" : "Configure AI API Key in Settings first", 5000, {
+        label: lang === "zh" ? "去设置" : "Settings",
+        fn: () => setActiveTab("settings" as any),
+      });
+      return;
+    }
+    setAiParsing(true);
+    try {
+      const clientNames = clientList.map((c: any) => c.company_name || c.name).filter(Boolean);
+      const parsed = await parseWorkTask(text, clientNames, t("work.tab.work" as any) === "工作" ? "zh" : "en", provider, apiKey);
+      await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...parsed, scope: "work" }),
+      });
+      showToast(`${t("pipeline.toast.leadAdded" as any)}: ${parsed.title}`);
+      setAiInput("");
+      fetchTasks();
+    } catch {
+      showToast("AI failed");
+    } finally {
+      setAiParsing(false);
+    }
+  };
+
   const openPanel = useCallback((task: Task | null = null, col = "todo") => {
     setEditTask(task);
     setDefaultColumn(task?.column || col);
@@ -209,71 +247,92 @@ export default function WorkPage() {
 
   return (
     <div className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col px-4 py-3 md:px-6 md:py-4 lg:px-8 lg:py-5 relative">
-      {/* Row 1: Tab switcher */}
-      <div className="flex gap-1 p-1 mb-2 rounded-[var(--radius-8)]" style={{ background: "var(--color-bg-tertiary)" }}>
-        {(["work", "personal"] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setWorkTab(tab)}
-            className="flex-1 py-1.5 text-[14px] rounded-[var(--radius-6)] transition-colors press-feedback flex items-center justify-center gap-1.5"
-            style={workTab === tab ? {
-              background: tab === "work"
-                ? "color-mix(in srgb, var(--color-accent) 12%, var(--color-bg-primary))"
-                : "color-mix(in srgb, var(--color-info) 12%, var(--color-bg-primary))",
-              color: tab === "work" ? "var(--color-accent)" : "var(--color-info)",
-              fontWeight: "var(--font-weight-semibold)",
-              boxShadow: "var(--shadow-low)",
-            } as React.CSSProperties : {
-              color: "var(--color-text-tertiary)",
-              fontWeight: "var(--font-weight-medium)",
-            } as React.CSSProperties}
-          >
-            {tab === "work" ? <Building2 size={14} /> : <UserIcon size={14} />}
-            {tab === "work" ? (t("work.tab.work" as any)) : (t("work.tab.personal" as any))}
-          </button>
-        ))}
-      </div>
-
-      {/* Row 2: Toolbar (work tab only) */}
-      {workTab === "work" && (
-        <div className="flex items-center gap-2 mb-3">
-          <div className="flex items-center gap-1.5">
-            <Filter size={16} style={{ color: "var(--color-text-tertiary)" }} />
-            <select
-              value={filterPriority}
-              onChange={(e) => setFilterPriority(e.target.value)}
-              className="input-base compact px-2 text-[15px]"
+      {/* Header: Tab + Actions (mirrors finance layout) */}
+      <div className="flex items-center gap-3 mb-3">
+        <div className="flex gap-1 p-1 rounded-[var(--radius-8)] shrink-0" style={{ background: "var(--color-bg-tertiary)" }}>
+          {(["work", "personal"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setWorkTab(tab)}
+              className="py-1.5 px-4 text-[14px] rounded-[var(--radius-6)] transition-colors press-feedback flex items-center gap-1.5"
+              style={workTab === tab ? {
+                background: tab === "work"
+                  ? "color-mix(in srgb, var(--color-accent) 12%, var(--color-bg-primary))"
+                  : "color-mix(in srgb, var(--color-info) 12%, var(--color-bg-primary))",
+                color: tab === "work" ? "var(--color-accent)" : "var(--color-info)",
+                fontWeight: "var(--font-weight-semibold)",
+                boxShadow: "var(--shadow-low)",
+              } as React.CSSProperties : {
+                color: "var(--color-text-tertiary)",
+                fontWeight: "var(--font-weight-medium)",
+              } as React.CSSProperties}
             >
-              <option value="All">{t("work.filter.all" as any)}</option>
-              <option value="High">{t("work.filter.high" as any)}</option>
-              <option value="Medium">{t("work.filter.medium" as any)}</option>
-              <option value="Low">{t("work.filter.low" as any)}</option>
-            </select>
-          </div>
-          <div className="segment-switcher">
-            {([
-              ["vertical", <LayoutGrid size={14} />, "Board view"],
-              ["horizontal", <AlignJustify size={14} />, "List view"],
-            ] as [string, React.ReactNode, string][]).map(([mode, icon, label]) => (
-              <button
-                key={mode}
-                onClick={() => setViewMode(mode as "vertical" | "horizontal")}
-                data-active={viewMode === mode}
-                aria-label={label}
-              >
-                {icon}
-              </button>
-            ))}
-          </div>
-          <div className="flex-1" />
-          <button onClick={() => openPanel(null, "todo")} className="btn-primary compact">
-            <Plus size={16} /> <span className="hidden sm:inline">{t("work.new" as any)}</span>
-          </button>
+              {tab === "work" ? <Building2 size={14} /> : <UserIcon size={14} />}
+              {tab === "work" ? (t("work.tab.work" as any)) : (t("work.tab.personal" as any))}
+            </button>
+          ))}
         </div>
-      )}
+        <div className="flex-1" />
+        {workTab === "work" && (
+          <>
+            <div className="flex items-center gap-1.5">
+              <Filter size={16} style={{ color: "var(--color-text-tertiary)" }} />
+              <select
+                value={filterPriority}
+                onChange={(e) => setFilterPriority(e.target.value)}
+                className="input-base compact px-2 text-[15px]"
+              >
+                <option value="All">{t("work.filter.all" as any)}</option>
+                <option value="High">{t("work.filter.high" as any)}</option>
+                <option value="Medium">{t("work.filter.medium" as any)}</option>
+                <option value="Low">{t("work.filter.low" as any)}</option>
+              </select>
+            </div>
+            <div className="segment-switcher">
+              {([
+                ["vertical", <LayoutGrid size={14} />, "Board view"],
+                ["horizontal", <AlignJustify size={14} />, "List view"],
+              ] as [string, React.ReactNode, string][]).map(([mode, icon, label]) => (
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode as "vertical" | "horizontal")}
+                  data-active={viewMode === mode}
+                  aria-label={label}
+                >
+                  {icon}
+                </button>
+              ))}
+            </div>
+            <button onClick={() => openPanel(null, "todo")} className="btn-primary compact">
+              <Plus size={16} /> <span className="hidden sm:inline">{t("work.new" as any)}</span>
+            </button>
+          </>
+        )}
+      </div>
 
       {workTab === "work" ? (
         <>
+          {/* AI task input */}
+          <div className="flex items-center gap-2 mb-3 rounded-[var(--radius-8)] p-1.5" style={{
+            background: "color-mix(in srgb, var(--color-accent) 6%, transparent)",
+          }}>
+            <div className="relative flex-1">
+              <Bot size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--color-accent)" }} />
+              <input
+                type="text"
+                value={aiInput}
+                onChange={e => setAiInput(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAiTask(); }}
+                placeholder={t("work.tab.work" as any) === "工作" ? "AI 创建任务：给Aegis设计logo，高优先级" : "AI: design logo for Aegis, high priority"}
+                disabled={aiParsing}
+                className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]"
+              />
+            </div>
+            <button onClick={handleAiTask} disabled={!aiInput.trim() || aiParsing} className="btn-primary compact text-[14px] shrink-0 disabled:opacity-40">
+              {aiParsing ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+            </button>
+          </div>
+
           {/* Progress bar */}
           {!isLoading && totalTasks > 0 && (
             <div className="mb-3">

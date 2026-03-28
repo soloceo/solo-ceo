@@ -456,10 +456,7 @@ function App() {
               expanded={isExpanded}
               onClick={setActiveTab}
               badge={tab.badgeKey ? badges[tab.badgeKey as keyof NavBadges] : undefined}
-              badgeSegments={tab.id === "work" ? [
-                { count: badges.todoCount, color: "var(--color-text-tertiary)" },
-                { count: badges.inProgressCount, color: "var(--color-accent)" },
-              ] : undefined}
+              badgeSegments={undefined}
             />
           ))}
         </nav>
