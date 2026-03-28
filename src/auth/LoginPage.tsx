@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Loader2, Mail, Lock, ArrowRight, UserPlus, LogIn, KeyRound, WifiOff } from 'lucide-react';
+import { Loader2, Mail, Lock, ArrowRight, UserPlus, LogIn, KeyRound, WifiOff, Globe } from 'lucide-react';
 import { useAuth } from './AuthProvider';
 import { useT } from '../i18n/context';
 import { supabase } from '../db/supabase-client';
 
 export default function LoginPage() {
   const { signIn, signUp, enterOfflineMode } = useAuth();
-  const { t } = useT();
+  const { t, lang, setLang } = useT();
   const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -67,9 +67,19 @@ export default function LoginPage() {
 
   return (
     <div
-      className="flex min-h-screen items-center justify-center px-4"
+      className="relative flex min-h-screen items-center justify-center px-4"
       style={{ background: 'var(--color-bg-primary)', WebkitAppRegion: 'drag' } as React.CSSProperties}
     >
+      {/* Language toggle — top right */}
+      <button
+        onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
+        className="absolute top-4 right-4 flex items-center gap-1.5 px-2.5 py-1.5 rounded-[var(--radius-6)] text-[13px] transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback"
+        style={{ color: 'var(--color-text-tertiary)', fontWeight: 'var(--font-weight-medium)', WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+      >
+        <Globe size={14} />
+        {lang === 'zh' ? 'EN' : '中文'}
+      </button>
+
       <div className="w-full max-w-sm" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
         {/* Logo / Brand */}
         <div className="mb-8 text-center">
