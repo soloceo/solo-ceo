@@ -372,7 +372,7 @@ function LeadCard({ lead, provided, snapshot, onEdit, onDelete }: any) {
       <p className="text-[13px] line-clamp-2 mb-2" style={{ color: "var(--color-text-secondary)" }}>{lead.needs}</p>
       <div className="flex items-center justify-between">
         <span className="badge"><Mail size={16} /> —</span>
-        <button onClick={e => { e.stopPropagation(); onDelete(lead.id); }} className="btn-icon-sm lg:opacity-0 lg:group-hover:opacity-100 transition-opacity" aria-label="Delete lead"><Trash2 size={14} /></button>
+        <button onClick={e => { e.stopPropagation(); onDelete(lead.id); }} className="btn-icon-sm " aria-label="Delete lead"><Trash2 size={14} /></button>
       </div>
     </div>
   );
@@ -398,7 +398,7 @@ function LeadSwimlane({ leads, columns, onAdd, onEdit, onDelete, onMove, emptyTe
                     <p className="text-[13px] truncate mb-1" style={{ color: "var(--color-text-secondary)" }}>{lead.industry}</p>
                     <div className="flex items-center justify-between mt-2 pt-2 border-t" style={{ borderColor: "var(--color-border-primary)" }} onClick={e => e.stopPropagation()}>
                       <select value={col.id} onChange={e => onMove(lead.id, e.target.value)} className="input-base compact cursor-pointer text-[15px] px-2" style={{ fontWeight: "var(--font-weight-medium)" as any }}>{columns.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}</select>
-                      <button onClick={() => onDelete(lead.id)} className="btn-icon-sm lg:opacity-0 lg:group-hover:opacity-100 transition-opacity" aria-label="Delete lead"><Trash2 size={14} /></button>
+                      <button onClick={() => onDelete(lead.id)} className="btn-icon-sm " aria-label="Delete lead"><Trash2 size={14} /></button>
                     </div>
                   </div>
                 ))}

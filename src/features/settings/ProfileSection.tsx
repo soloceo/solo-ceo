@@ -39,7 +39,7 @@ export default function ProfileSection({ operatorName, setOperatorName, operator
               }
             </div>
             {/* Camera overlay */}
-            <label className="absolute inset-0 flex items-center justify-center rounded-full cursor-pointer lg:opacity-0 lg:group-hover:opacity-100 transition-opacity" style={{ background: 'var(--color-overlay-primary)' }}>
+            <label className="absolute inset-0 flex items-center justify-center rounded-full cursor-pointer" style={{ background: 'var(--color-overlay-primary)' }}>
               <Camera size={20} style={{ color: 'var(--color-text-primary)' }} />
               <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
             </label>

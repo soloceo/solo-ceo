@@ -135,7 +135,7 @@ function CompactItem({ item, onRemove, onEdit, t, s }: {
       </button>
       <button
         onClick={(e) => { e.stopPropagation(); onRemove(item.id); }}
-        className="lg:opacity-0 lg:group-hover:opacity-100 transition-opacity shrink-0 press-feedback p-0.5 rounded-full"
+        className=" shrink-0 press-feedback p-0.5 rounded-full"
         style={{ color: "var(--color-text-quaternary)" }}
       >
         <X size={s(9)} />
@@ -168,7 +168,7 @@ function LargeItem({ item, onRemove, onEdit, t, s }: {
       </button>
       <button
         onClick={() => onRemove(item.id)}
-        className="absolute top-0 right-0 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity press-feedback p-0.5 rounded-full"
+        className="absolute top-0 right-0  press-feedback p-0.5 rounded-full"
         style={{ color: "var(--color-text-quaternary)" }}
       >
         <X size={s(9)} />

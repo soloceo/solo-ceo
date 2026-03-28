@@ -358,16 +358,16 @@ function App() {
 
         {/* Search trigger + Quick create */}
         {isExpanded && (
-          <div className="flex gap-1.5 mx-3 mb-2">
+          <div className="flex items-center gap-1.5 mx-3 mb-2">
             <button
               onClick={() => useUIStore.getState().setCommandPaletteOpen(true)}
-              className="flex-1 flex items-center gap-2 px-2 h-8 rounded-[var(--radius-6)] text-[14px] transition-colors hover:bg-[var(--color-bg-tertiary)]"
+              className="flex-1 flex items-center gap-2 px-2 h-8 min-w-0 rounded-[var(--radius-6)] text-[14px] transition-colors hover:bg-[var(--color-bg-tertiary)]"
               style={{ color: "var(--color-text-quaternary)", background: "var(--color-bg-translucent)" }}
               aria-label={t("common.search" as any)}
             >
-              <Search size={14} />
-              <span className="flex-1 text-left">{t("app.searchPlaceholder" as any)}</span>
-              <kbd className="hidden lg:inline-flex text-[11px] px-1.5 py-0.5 rounded-[var(--radius-4)]" style={{ fontFamily: "inherit", fontWeight: "var(--font-weight-medium)", color: "var(--color-text-quaternary)", background: "var(--color-bg-tertiary)", border: "1px solid var(--color-border-primary)" } as React.CSSProperties}>⌘K</kbd>
+              <Search size={14} className="shrink-0" />
+              <span className="flex-1 text-left truncate">{t("app.searchPlaceholder" as any)}</span>
+              <kbd className="hidden xl:inline-flex shrink-0 text-[11px] px-1.5 py-0.5 rounded-[var(--radius-4)]" style={{ fontFamily: "inherit", fontWeight: "var(--font-weight-medium)", color: "var(--color-text-quaternary)", background: "var(--color-bg-tertiary)", border: "1px solid var(--color-border-primary)" } as React.CSSProperties}>⌘K</kbd>
             </button>
             {/* Quick create button */}
             <div className="relative" ref={quickCreateRef}>

@@ -203,7 +203,7 @@ export function TodayFocus({
                   <button
                     onClick={() => handleStatus(item.key, "pending")}
                     disabled={savingKey === item.key}
-                    className="btn-icon-sm lg:opacity-0 lg:group-hover:opacity-100 transition-all disabled:opacity-50"
+                    className="btn-icon-sm  transition-all disabled:opacity-50"
                     aria-label="Undo completion"
                   >
                     <Undo2 size={14} />
@@ -307,7 +307,7 @@ function FocusRow({ item, badgeVariant, saving, canSwap, onToggle, onSkip, onEdi
       </div>
 
       {/* Actions — always visible on mobile, hover on desktop */}
-      <div className="flex items-center gap-1 shrink-0 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-1 shrink-0  transition-opacity">
         {canSwap && onSkip && (
           <button
             onClick={onSkip}
