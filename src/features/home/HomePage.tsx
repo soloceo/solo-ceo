@@ -351,120 +351,112 @@ export default function HomePage() {
         ═══════════════════════════════════════════════════════════ */}
 
         {/* ── 思想武装：今日原则 ── */}
-        <section
-          className="rounded-[var(--radius-8)] overflow-hidden"
-          style={{ background: "var(--color-bg-secondary)" }}
-        >
-          {/* 原则卡片主体 */}
-          <button
-            onClick={() => setPrincipleExpanded((v) => !v)}
-            className="w-full text-left press-feedback"
-            style={{ padding: "14px 14px 12px" }}
-          >
-            <div className="flex items-start gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-[var(--radius-4)] shrink-0"
-                    style={{ background: "var(--color-accent)", color: "#fff", fontWeight: "var(--font-weight-semibold)", letterSpacing: "0.02em" } as React.CSSProperties}>
-                    {lang === "zh" ? "每日一课" : "DAILY"}
-                  </span>
-                  <span className="text-[13px]" style={{ color: "var(--color-text-quaternary)" }}>
-                    {KNOWLEDGE_CATEGORIES.find((c) => c.principles.some((p) => p.id === todayPrinciple.id))?.name[lang as "zh" | "en"]}
-                  </span>
-                </div>
-                <h3 className="text-[15px] mb-1" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
-                  {todayPrinciple.name[lang as "zh" | "en"]}
-                </h3>
-                <p className="text-[14px] leading-relaxed line-clamp-2" style={{ color: "var(--color-text-secondary)" }}>
-                  {todayPrinciple.core[lang as "zh" | "en"]}
-                </p>
-              </div>
-              <div className="shrink-0 mt-0.5">
-                {principleExpanded ? <ChevronDown size={14} style={{ color: "var(--color-text-quaternary)" }} /> : <ChevronRight size={14} style={{ color: "var(--color-text-quaternary)" }} />}
-              </div>
+        <section>
+          {/* Header */}
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
+                {lang === "zh" ? "每日一课" : "Daily Lesson"}
+              </span>
+              <span className="text-[11px] px-1.5 py-0.5 rounded-[var(--radius-4)]"
+                style={{ background: "var(--color-bg-tertiary)", color: "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
+                {KNOWLEDGE_CATEGORIES.find((c) => c.principles.some((p) => p.id === todayPrinciple.id))?.name[lang as "zh" | "en"]}
+              </span>
             </div>
-          </button>
-
-          {/* 展开：深度解读 */}
-          <AnimatePresence>
-            {principleExpanded && todayPrinciple.explanation && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ type: "spring", damping: 30, stiffness: 320 }}
-                className="overflow-hidden"
-              >
-                <div style={{ padding: "0 14px 14px", borderTop: "1px solid var(--color-border-primary)" }}>
-                  <p className="text-[14px] leading-relaxed pt-3 mb-3" style={{ color: "var(--color-text-secondary)" }}>
-                    {todayPrinciple.explanation[lang as "zh" | "en"]}
-                  </p>
-                  {todayPrinciple.actionSteps && todayPrinciple.actionSteps.length > 0 && (
-                    <div className="mb-3 rounded-[var(--radius-8)] p-3" style={{ background: "var(--color-bg-primary)" }}>
-                      <h4 className="text-[12px] mb-2 flex items-center gap-1.5" style={{ color: "var(--color-accent)", fontWeight: "var(--font-weight-semibold)", textTransform: "uppercase", letterSpacing: "0.03em" } as React.CSSProperties}>
-                        <span>→</span> {lang === "zh" ? "行动指南" : "Action Steps"}
-                      </h4>
-                      <div className="flex flex-col gap-1.5">
-                        {todayPrinciple.actionSteps.map((s, i) => (
-                          <div key={i} className="flex items-start gap-2 text-[13px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
-                            <span className="shrink-0 text-[11px] mt-0.5" style={{ color: "var(--color-accent)" }}>{i + 1}.</span>
-                            <span>{s[lang as "zh" | "en"]}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {todayPrinciple.checks && todayPrinciple.checks.length > 0 && (
-                    <div className="mb-3 rounded-[var(--radius-8)] p-3" style={{ background: "color-mix(in srgb, var(--color-success) 6%, var(--color-bg-primary))" }}>
-                      <h4 className="text-[12px] mb-2 flex items-center gap-1.5" style={{ color: "var(--color-success)", fontWeight: "var(--font-weight-semibold)", textTransform: "uppercase", letterSpacing: "0.03em" } as React.CSSProperties}>
-                        <span>✓</span> {lang === "zh" ? "自检清单" : "Self-Check"}
-                      </h4>
-                      <div className="flex flex-col gap-1.5">
-                        {todayPrinciple.checks.map((c, i) => (
-                          <div key={i} className="flex items-start gap-2 text-[13px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
-                            <span className="shrink-0 mt-0.5" style={{ color: "var(--color-success)" }}>☐</span>
-                            <span>{c[lang as "zh" | "en"]}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {todayPrinciple.antiPatterns && todayPrinciple.antiPatterns.length > 0 && (
-                    <div className="rounded-[var(--radius-8)] p-3" style={{ background: "color-mix(in srgb, var(--color-danger) 5%, var(--color-bg-primary))" }}>
-                      <h4 className="text-[12px] mb-2 flex items-center gap-1.5" style={{ color: "var(--color-danger)", fontWeight: "var(--font-weight-semibold)", textTransform: "uppercase", letterSpacing: "0.03em" } as React.CSSProperties}>
-                        <span>✗</span> {lang === "zh" ? "常见误区" : "Anti-Patterns"}
-                      </h4>
-                      <div className="flex flex-col gap-1.5">
-                        {todayPrinciple.antiPatterns.map((a, i) => (
-                          <div key={i} className="flex items-start gap-2 text-[13px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
-                            <span className="shrink-0 mt-0.5" style={{ color: "var(--color-danger)" }}>✗</span>
-                            <span>{a[lang as "zh" | "en"]}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* 底部操作栏 */}
-          <div
-            className="flex items-center justify-between"
-            style={{ padding: "8px 14px", borderTop: "1px solid var(--color-border-primary)" }}
-          >
             <button
               onClick={() => setShowAllPrinciples(true)}
               className="flex items-center gap-1.5 text-[13px] press-feedback"
               style={{ color: "var(--color-accent)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
             >
               <BookOpen size={12} />
-              {lang === "zh" ? "浏览全部原则" : "Browse All Principles"}
+              {lang === "zh" ? `浏览全部原则 ${allPrinciples.length}条` : `All ${allPrinciples.length} Principles`}
             </button>
-            <span className="text-[10px] tabular-nums" style={{ color: "var(--color-text-quaternary)" }}>
-              {allPrinciples.length} {lang === "zh" ? "条" : "total"}
-            </span>
+          </div>
+
+          {/* Card */}
+          <div className="card overflow-hidden">
+            <button
+              onClick={() => setPrincipleExpanded((v) => !v)}
+              className="w-full text-left press-feedback px-3 py-2.5"
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-[15px] mb-1" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
+                    {todayPrinciple.name[lang as "zh" | "en"]}
+                  </h3>
+                  <p className="text-[14px] leading-relaxed line-clamp-2" style={{ color: "var(--color-text-secondary)" }}>
+                    {todayPrinciple.core[lang as "zh" | "en"]}
+                  </p>
+                </div>
+                <div className="shrink-0 mt-0.5">
+                  {principleExpanded ? <ChevronDown size={14} style={{ color: "var(--color-text-quaternary)" }} /> : <ChevronRight size={14} style={{ color: "var(--color-text-quaternary)" }} />}
+                </div>
+              </div>
+            </button>
+
+            {/* 展开：深度解读 */}
+            <AnimatePresence>
+              {principleExpanded && todayPrinciple.explanation && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ type: "spring", damping: 30, stiffness: 320 }}
+                  className="overflow-hidden"
+                >
+                  <div className="px-3 pb-3" style={{ borderTop: "1px solid var(--color-line-secondary)" }}>
+                    <p className="text-[14px] leading-relaxed pt-3 mb-3" style={{ color: "var(--color-text-secondary)" }}>
+                      {todayPrinciple.explanation[lang as "zh" | "en"]}
+                    </p>
+                    {todayPrinciple.actionSteps && todayPrinciple.actionSteps.length > 0 && (
+                      <div className="mb-3 rounded-[var(--radius-8)] p-3" style={{ background: "var(--color-bg-secondary)" }}>
+                        <h4 className="text-[12px] mb-2 flex items-center gap-1.5" style={{ color: "var(--color-accent)", fontWeight: "var(--font-weight-semibold)", textTransform: "uppercase", letterSpacing: "0.03em" } as React.CSSProperties}>
+                          <span>→</span> {lang === "zh" ? "行动指南" : "Action Steps"}
+                        </h4>
+                        <div className="flex flex-col gap-1.5">
+                          {todayPrinciple.actionSteps.map((s, i) => (
+                            <div key={i} className="flex items-start gap-2 text-[13px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+                              <span className="shrink-0 text-[11px] mt-0.5" style={{ color: "var(--color-accent)" }}>{i + 1}.</span>
+                              <span>{s[lang as "zh" | "en"]}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {todayPrinciple.checks && todayPrinciple.checks.length > 0 && (
+                      <div className="mb-3 rounded-[var(--radius-8)] p-3" style={{ background: "color-mix(in srgb, var(--color-success) 6%, var(--color-bg-secondary))" }}>
+                        <h4 className="text-[12px] mb-2 flex items-center gap-1.5" style={{ color: "var(--color-success)", fontWeight: "var(--font-weight-semibold)", textTransform: "uppercase", letterSpacing: "0.03em" } as React.CSSProperties}>
+                          <span>✓</span> {lang === "zh" ? "自检清单" : "Self-Check"}
+                        </h4>
+                        <div className="flex flex-col gap-1.5">
+                          {todayPrinciple.checks.map((c, i) => (
+                            <div key={i} className="flex items-start gap-2 text-[13px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+                              <span className="shrink-0 mt-0.5" style={{ color: "var(--color-success)" }}>☐</span>
+                              <span>{c[lang as "zh" | "en"]}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {todayPrinciple.antiPatterns && todayPrinciple.antiPatterns.length > 0 && (
+                      <div className="rounded-[var(--radius-8)] p-3" style={{ background: "color-mix(in srgb, var(--color-danger) 5%, var(--color-bg-secondary))" }}>
+                        <h4 className="text-[12px] mb-2 flex items-center gap-1.5" style={{ color: "var(--color-danger)", fontWeight: "var(--font-weight-semibold)", textTransform: "uppercase", letterSpacing: "0.03em" } as React.CSSProperties}>
+                          <span>✗</span> {lang === "zh" ? "常见误区" : "Anti-Patterns"}
+                        </h4>
+                        <div className="flex flex-col gap-1.5">
+                          {todayPrinciple.antiPatterns.map((a, i) => (
+                            <div key={i} className="flex items-start gap-2 text-[13px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+                              <span className="shrink-0 mt-0.5" style={{ color: "var(--color-danger)" }}>✗</span>
+                              <span>{a[lang as "zh" | "en"]}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </section>
 
@@ -505,7 +497,7 @@ export default function HomePage() {
           </div>
 
           {/* 协议步骤卡片 */}
-          <div className="flex flex-col gap-2">
+          <div className="card overflow-hidden divide-y divide-[var(--color-line-secondary)]">
             {PROTOCOL_STEPS.map((step, i) => {
               const done = !!protocolState.checks[step.id];
               const h = new Date().getHours();
@@ -514,16 +506,10 @@ export default function HomePage() {
                 <button
                   key={step.id}
                   onClick={() => toggleProtocolStep(step.id)}
-                  className="flex items-start gap-3 w-full text-left rounded-[var(--radius-8)] press-feedback"
+                  className="flex items-start gap-3 w-full text-left px-3 py-2.5 press-feedback"
                   style={{
-                    padding: "12px 14px",
-                    background: done
-                      ? "var(--color-bg-secondary)"
-                      : isCurrent
-                      ? "color-mix(in srgb, var(--color-accent) 6%, var(--color-bg-secondary))"
-                      : "var(--color-bg-secondary)",
-                    border: isCurrent && !done ? "1px solid color-mix(in srgb, var(--color-accent) 20%, transparent)" : "1px solid transparent",
                     opacity: done ? 0.6 : 1,
+                    borderLeft: isCurrent && !done ? "3px solid var(--color-accent)" : "3px solid transparent",
                   }}
                 >
                   {/* Check circle */}
@@ -575,13 +561,11 @@ export default function HomePage() {
         </section>
 
         {/* ── 推进战线：突围进度 ── */}
-        <section
-          className="rounded-[var(--radius-8)]"
-          style={{ background: "var(--color-bg-secondary)", padding: "12px 14px" }}
-        >
+        <section>
+          {/* Header */}
           <button
             onClick={() => setBreakthroughExpanded((v) => !v)}
-            className="w-full text-left press-feedback"
+            className="w-full text-left press-feedback mb-2"
           >
             <div className="flex items-center gap-2 mb-2">
               <span className="text-[16px]">{activePhase.strategy.emoji}</span>
@@ -622,65 +606,60 @@ export default function HomePage() {
                 transition={{ type: "spring", damping: 30, stiffness: 320 }}
                 className="overflow-hidden"
               >
-                <div className="pt-3" style={{ borderTop: "1px solid var(--color-border-primary)", marginTop: 10 }}>
-                  {/* Phase pills */}
-                  <div
-                    className="flex gap-1.5 mb-3"
-                    style={{
-                      overflowX: "auto",
-                      scrollbarWidth: "none",
-                      WebkitOverflowScrolling: "touch",
-                      margin: "0 -14px",
-                      padding: "0 14px",
-                    }}
-                  >
-                    {PHASES.map((phase, idx) => {
-                      const phTasks = phase.tasks;
-                      const phDone = phTasks.filter((t) => breakthroughTasks[phase.id]?.[t.id]).length;
-                      const isActive = idx === activePhaseIdx;
-                      return (
-                        <button
-                          key={phase.id}
-                          onClick={(e) => { e.stopPropagation(); setActivePhaseIdx(idx); }}
-                          className="py-1.5 px-3 rounded-full text-[13px] transition-colors shrink-0 flex items-center gap-1.5 press-feedback"
-                          style={{
-                            background: isActive ? "var(--color-accent)" : "var(--color-bg-quaternary)",
-                            color: isActive ? "#fff" : "var(--color-text-secondary)",
-                            fontWeight: "var(--font-weight-medium)",
-                          } as React.CSSProperties}
-                        >
-                          <span>{phase.strategy.emoji}</span>
-                          <span>{phase.label[lang as "zh" | "en"]}</span>
-                          <span className="tabular-nums" style={{ opacity: 0.7 }}>{phDone}/{phTasks.length}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {/* Task checklist — fully expanded */}
-                  <div className="flex flex-col">
-                    {activePhase.tasks.map((task, idx) => {
-                      const checked = !!breakthroughTasks[activePhase.id]?.[task.id];
-                      return (
-                        <button
-                          key={task.id}
-                          onClick={(e) => { e.stopPropagation(); toggleBreakthroughTask(activePhase.id, task.id); }}
-                          className="flex items-start gap-3 text-left text-[14px] py-3 px-1 press-feedback"
-                          style={{
-                            color: checked ? "var(--color-text-quaternary)" : "var(--color-text-primary)",
-                            borderBottom: idx < activePhase.tasks.length - 1 ? "1px solid var(--color-border-primary)" : "none",
-                          }}
-                        >
-                          {checked
-                            ? <CheckCircle2 size={18} className="shrink-0 mt-0.5" style={{ color: "var(--color-accent)" }} />
-                            : <Circle size={18} className="shrink-0 mt-0.5" style={{ color: "var(--color-border-secondary)" }} />
-                          }
-                          <span className="leading-relaxed" style={{ textDecoration: checked ? "line-through" : "none", opacity: checked ? 0.5 : 1 }}>
-                            {task.title[lang as "zh" | "en"]}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                {/* Phase pills */}
+                <div
+                  className="flex gap-1.5 mb-3"
+                  style={{
+                    overflowX: "auto",
+                    scrollbarWidth: "none",
+                    WebkitOverflowScrolling: "touch",
+                  }}
+                >
+                  {PHASES.map((phase, idx) => {
+                    const phTasks = phase.tasks;
+                    const phDone = phTasks.filter((t) => breakthroughTasks[phase.id]?.[t.id]).length;
+                    const isActive = idx === activePhaseIdx;
+                    return (
+                      <button
+                        key={phase.id}
+                        onClick={(e) => { e.stopPropagation(); setActivePhaseIdx(idx); }}
+                        className="py-1.5 px-3 rounded-full text-[13px] transition-colors shrink-0 flex items-center gap-1.5 press-feedback"
+                        style={{
+                          background: isActive ? "var(--color-accent)" : "var(--color-bg-quaternary)",
+                          color: isActive ? "#fff" : "var(--color-text-secondary)",
+                          fontWeight: "var(--font-weight-medium)",
+                        } as React.CSSProperties}
+                      >
+                        <span>{phase.strategy.emoji}</span>
+                        <span>{phase.label[lang as "zh" | "en"]}</span>
+                        <span className="tabular-nums" style={{ opacity: 0.7 }}>{phDone}/{phTasks.length}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* Task checklist */}
+                <div className="card overflow-hidden divide-y divide-[var(--color-line-secondary)]">
+                  {activePhase.tasks.map((task) => {
+                    const checked = !!breakthroughTasks[activePhase.id]?.[task.id];
+                    return (
+                      <button
+                        key={task.id}
+                        onClick={(e) => { e.stopPropagation(); toggleBreakthroughTask(activePhase.id, task.id); }}
+                        className="flex items-start gap-3 text-left text-[14px] w-full px-3 py-2.5 press-feedback"
+                        style={{
+                          color: checked ? "var(--color-text-quaternary)" : "var(--color-text-primary)",
+                        }}
+                      >
+                        {checked
+                          ? <CheckCircle2 size={18} className="shrink-0 mt-0.5" style={{ color: "var(--color-accent)" }} />
+                          : <Circle size={18} className="shrink-0 mt-0.5" style={{ color: "var(--color-border-secondary)" }} />
+                        }
+                        <span className="leading-relaxed" style={{ textDecoration: checked ? "line-through" : "none", opacity: checked ? 0.5 : 1 }}>
+                          {task.title[lang as "zh" | "en"]}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </motion.div>
             )}
