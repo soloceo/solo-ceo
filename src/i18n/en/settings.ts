@@ -155,6 +155,8 @@ export const settings = {
   "auth.newEmail": "New email address",
   "auth.changeEmailSent": "Confirmation email sent to your new address. Click the link to complete the change",
   "auth.changeEmailHint": "A confirmation email will be sent to your new address",
+  "auth.skipLogin": "Skip login, use offline",
+  "auth.skipLoginHint": "Without an account, data cannot sync to the cloud. All data will only be saved in this browser. It will be lost if you switch devices or clear browser data.",
   "settings.accountSecurity": "Account Security",
   "settings.planManager": "Plan Manager",
   "settings.noPlans": "No plans yet. Click + to add.",

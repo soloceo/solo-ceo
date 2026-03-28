@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Loader2, Mail, Lock, ArrowRight, UserPlus, LogIn, KeyRound } from 'lucide-react';
+import { Loader2, Mail, Lock, ArrowRight, UserPlus, LogIn, KeyRound, WifiOff } from 'lucide-react';
 import { useAuth } from './AuthProvider';
 import { useT } from '../i18n/context';
 import { supabase } from '../db/supabase-client';
 
 export default function LoginPage() {
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, enterOfflineMode } = useAuth();
   const { t } = useT();
   const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
   const [email, setEmail] = useState('');
@@ -218,6 +218,21 @@ export default function LoginPage() {
               </button>
             </div>
           )}
+        </div>
+
+        {/* Skip login — offline mode */}
+        <div className="mt-8 pt-6 text-center" style={{ borderTop: '1px solid var(--color-line-secondary)' }}>
+          <button
+            onClick={enterOfflineMode}
+            className="flex items-center justify-center gap-1.5 mx-auto text-[14px] transition-colors hover:opacity-80 press-feedback"
+            style={{ color: 'var(--color-text-tertiary)' }}
+          >
+            <WifiOff size={14} />
+            {t('auth.skipLogin' as any)}
+          </button>
+          <p className="mt-2 text-[12px] leading-relaxed px-2" style={{ color: 'var(--color-text-quaternary)' }}>
+            {t('auth.skipLoginHint' as any)}
+          </p>
         </div>
       </div>
     </div>

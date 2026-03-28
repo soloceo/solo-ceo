@@ -10,6 +10,7 @@ interface AuthCtx {
   signUp: (email: string, password: string) => Promise<{ error?: string }>;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
+  enterOfflineMode: () => void;
 }
 
 const AuthContext = createContext<AuthCtx>({
@@ -20,6 +21,7 @@ const AuthContext = createContext<AuthCtx>({
   signUp: async () => ({}),
   signIn: async () => ({}),
   signOut: async () => {},
+  enterOfflineMode: () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -120,8 +122,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   }, []);
 
+  const enterOfflineMode = useCallback(() => {
+    setOfflineMode(true);
+    setLoading(false);
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, session, loading, offlineMode, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, offlineMode, signUp, signIn, signOut, enterOfflineMode }}>
       {children}
     </AuthContext.Provider>
   );

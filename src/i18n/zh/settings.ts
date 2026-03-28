@@ -157,6 +157,8 @@ export const settings = {
   "auth.newEmail": "新邮箱地址",
   "auth.changeEmailSent": "确认邮件已发送到新邮箱，请点击确认链接完成更换",
   "auth.changeEmailHint": "更换后会发送确认邮件到新邮箱，确认后生效",
+  "auth.skipLogin": "跳过登录，直接使用",
+  "auth.skipLoginHint": "不登录将无法同步数据到云端，所有数据仅保存在当前浏览器中。更换设备或清除浏览器数据后将丢失。",
   "settings.accountSecurity": "账号安全",
   "settings.planManager": "套餐管理",
   "settings.noPlans": "暂无套餐，点击右上角添加",
