@@ -270,7 +270,7 @@ function App() {
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
 
-      const num = parseInt(e.key);
+      const num = parseInt(e.key, 10);
       if (num >= 1 && num <= MAIN_TABS.length) {
         e.preventDefault();
         setActiveTab(MAIN_TABS[num - 1].id);

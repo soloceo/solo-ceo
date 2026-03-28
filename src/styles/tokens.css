@@ -44,6 +44,9 @@
   --color-warning-light:   #fefce8;
   --color-danger:          #eb5757;
   --color-danger-light:    #fef2f2;
+  --color-danger-tint:     #fef2f2;
+  --color-info:            #3b82f6;
+  --color-info-light:      #eff6ff;
 
   /* ── Text on colored backgrounds ─────────────────────────────── */
   --color-text-on-color:   #ffffff;
@@ -139,6 +142,9 @@
   --color-warning-light:   #1a1600;
   --color-danger:          #eb5757;
   --color-danger-light:    #2a0808;
+  --color-danger-tint:     #2a0808;
+  --color-info:            #60a5fa;
+  --color-info-light:      #0c1a2e;
 
   --header-bg:             rgba(11,11,11,0.8);
   --header-border:         rgba(255,255,255,0.08);

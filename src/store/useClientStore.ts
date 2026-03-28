@@ -91,7 +91,9 @@ export const useClientStore = create<ClientState>((set, get) => ({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "create", ...lead }),
       });
+      if (!res.ok) return null;
       const created = await res.json();
+      if (!created || created.error || !created.id) return null;
       set({ leads: [created, ...get().leads] });
       return created;
     } catch { return null; }
@@ -126,7 +128,9 @@ export const useClientStore = create<ClientState>((set, get) => ({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "create", ...client }),
       });
+      if (!res.ok) return null;
       const created = await res.json();
+      if (!created || created.error || !created.id) return null;
       set({ clients: [created, ...get().clients] });
       return created;
     } catch { return null; }

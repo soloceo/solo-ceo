@@ -20,6 +20,8 @@ export const work = {
   "work.taskAdded": "任务已添加",
   "work.taskDeleted": "任务已删除",
   "work.moveFailed": "移动失败",
+  "work.delete.title": "删除任务",
+  "work.delete.warning": "确定要删除此任务吗？此操作无法撤销。",
   "work.panel.edit": "编辑任务",
   "work.panel.new": "新建任务",
   "work.form.title": "标题",

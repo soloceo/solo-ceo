@@ -17,7 +17,7 @@ export default function WorkPage() {
 
   const COLS = useMemo<ColDef[]>(() => [
     { id: "todo", title: t("work.col.todo" as any), color: "var(--color-text-tertiary)" },
-    { id: "inProgress", title: t("work.col.inProgress" as any), color: "var(--color-info, #3b82f6)" },
+    { id: "inProgress", title: t("work.col.inProgress" as any), color: "var(--color-info)" },
     { id: "review", title: t("work.col.review" as any), color: "var(--color-warning)" },
     { id: "done", title: t("work.col.done" as any), color: "var(--color-success)" },
   ], [t]);

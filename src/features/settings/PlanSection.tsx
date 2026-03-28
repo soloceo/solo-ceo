@@ -34,7 +34,12 @@ export default function PlanSection({ showToast }: PlanSectionProps) {
   };
 
   const del = async (id: number) => {
-    await fetch(`/api/plans/${id}`, { method: "DELETE" });
+    try {
+      await fetch(`/api/plans/${id}`, { method: "DELETE" });
+      showToast(t("settings.planDeleted" as any));
+    } catch {
+      showToast(t("common.deleteFailed" as any));
+    }
     setConfirmDeleteId(null);
     fetchPlans();
   };

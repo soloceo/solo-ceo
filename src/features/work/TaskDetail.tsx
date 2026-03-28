@@ -91,19 +91,6 @@ export function TaskDetail({ open, onClose, editTask, columns, defaultColumn, cl
     }
   }, [open, isMobile]);
 
-  // Cmd/Ctrl+Enter to save
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && form.title.trim()) {
-        e.preventDefault();
-        handleSave();
-      }
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [open, form]);
-
   const handleSave = async () => {
     if (!form.title.trim()) {
       setTitleError(true);
@@ -114,14 +101,34 @@ export function TaskDetail({ open, onClose, editTask, columns, defaultColumn, cl
     onClose();
   };
 
+  // Cmd/Ctrl+Enter to save — use ref to always call latest handleSave
+  const handleSaveRef = React.useRef(handleSave);
+  handleSaveRef.current = handleSave;
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        handleSaveRef.current();
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [open]);
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
   const handleDelete = async () => {
     if (editId) {
       await onDelete(editId);
+      setShowDeleteConfirm(false);
       onClose();
     }
   };
 
-  return createPortal(
+  return <>
+  {createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -282,7 +289,7 @@ export function TaskDetail({ open, onClose, editTask, columns, defaultColumn, cl
               style={{ borderTop: "1px solid var(--color-line-secondary)" }}
             >
               {editId ? (
-                <Button variant="ghost" size="sm" onClick={handleDelete} className="text-[var(--color-danger)]">
+                <Button variant="ghost" size="sm" onClick={() => setShowDeleteConfirm(true)} className="text-[var(--color-danger)]">
                   <Trash2 size={14} /> {t("common.delete" as any)}
                 </Button>
               ) : <div />}
@@ -300,7 +307,21 @@ export function TaskDetail({ open, onClose, editTask, columns, defaultColumn, cl
       )}
     </AnimatePresence>,
     document.body,
-  );
+  )}
+  {showDeleteConfirm && createPortal(
+    <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 710, background: "var(--color-overlay-primary)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 16px)" }}>
+      <div className="card-elevated w-full max-w-sm p-5" role="dialog" aria-modal="true" aria-label="Confirm delete">
+        <h3 className="text-[15px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("work.delete.title" as any)}</h3>
+        <p className="text-[15px] mb-4" style={{ color: "var(--color-text-secondary)" }}>{t("work.delete.warning" as any)}</p>
+        <div className="flex justify-end gap-2">
+          <button onClick={() => setShowDeleteConfirm(false)} className="btn-secondary text-[15px]">{t("common.cancel" as any)}</button>
+          <button onClick={handleDelete} className="text-[15px] px-4 py-2 rounded-[var(--radius-6)]" style={{ background: "var(--color-danger)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("common.confirm" as any)}</button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  )}
+  </>;
 }
 
 function FieldLabel({ label, children }: { label: string; children: React.ReactNode }) {

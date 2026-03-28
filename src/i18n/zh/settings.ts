@@ -164,6 +164,7 @@ export const settings = {
   "settings.planPrice": "月费 ($)",
   "settings.planSpeed": "交付速度",
   "settings.planFeatures": "功能列表（每行一条）",
+  "settings.planDeleted": "套餐已删除",
   "settings.cloudSync": "云同步",
   "settings.cloudSync.status": "同步状态",
   "settings.cloudSync.connected": "已连接 Supabase 云端",

@@ -53,6 +53,7 @@ export function ClientsView() {
   const [loading, setLoading] = useState(true);
   const [showPanel, setShowPanel] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
+  const [deleteClientId, setDeleteClientId] = useState<number | null>(null);
   const showToast = useUIStore((s) => s.showToast);
   const [search, setSearch] = useState("");
   const [filterSt, setFilterSt] = useState("All");
@@ -71,6 +72,7 @@ export function ClientsView() {
   const [showAddMs, setShowAddMs] = useState(false);
   const [editMsId, setEditMsId] = useState<number | null>(null);
   const [markPaidId, setMarkPaidId] = useState<number | null>(null);
+  const [deleteMsId, setDeleteMsId] = useState<number | null>(null);
   const [markPaidMethod, setMarkPaidMethod] = useState("bank_transfer");
   const [msForm, setMsForm] = useState(EMPTY_MS);
 
@@ -79,6 +81,7 @@ export function ClientsView() {
   /* ── Transaction editing state ── */
   const [showTxForm, setShowTxForm] = useState(false);
   const [editTxId, setEditTxId] = useState<number | null>(null);
+  const [deleteTxId, setDeleteTxId] = useState<number | null>(null);
   const [txForm, setTxForm] = useState(createEmptyTx);
 
   const fetchPlans = async () => { try { const d = await (await fetch("/api/plans")).json(); setPlans(Array.isArray(d) ? d : []); } catch {} };
@@ -678,7 +681,7 @@ export function ClientsView() {
                                       <CircleCheck size={16} /> {t("pipeline.milestones.markPaid" as any)}
                                     </button>
                                     <button onClick={() => { setEditMsId(ms.id); setMsForm({ label: ms.label, amount: String(ms.amount), percentage: String(ms.percentage || ""), due_date: ms.due_date || "", note: ms.note || "" }); setShowAddMs(true); }} className="btn-icon-sm"><Edit2 size={16} /></button>
-                                    <button onClick={() => deleteMilestone(ms.id)} className="btn-icon-sm" style={{ color: "var(--color-danger)" }}><Trash2 size={16} /></button>
+                                    <button onClick={() => setDeleteMsId(ms.id)} className="btn-icon-sm" style={{ color: "var(--color-danger)" }}><Trash2 size={16} /></button>
                                   </div>
                                 )}
                               </div>
@@ -733,6 +736,17 @@ export function ClientsView() {
                             </motion.div>
                           )}
                         </AnimatePresence>
+
+                        {/* Delete milestone confirmation */}
+                        {deleteMsId !== null && (
+                          <div className="rounded-[var(--radius-6)] p-3 space-y-3" style={{ background: "color-mix(in srgb, var(--color-danger) 6%, var(--color-bg-primary))", border: "1px solid var(--color-danger)" }}>
+                            <div className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("pipeline.milestones.deleteConfirm" as any)}</div>
+                            <div className="flex justify-end gap-2">
+                              <button onClick={() => setDeleteMsId(null)} className="btn-secondary text-[15px]">{t("common.cancel" as any)}</button>
+                              <button onClick={() => { deleteMilestone(deleteMsId); setDeleteMsId(null); }} className="text-[15px] px-3 py-2 rounded-[var(--radius-6)]" style={{ background: "var(--color-danger)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("common.confirm" as any)}</button>
+                            </div>
+                          </div>
+                        )}
 
                         {/* Mark Paid confirmation modal */}
                         {markPaidId && (
@@ -807,7 +821,7 @@ export function ClientsView() {
                               {(!tx.source || tx.source === "manual") && (
                                 <div className="flex items-center gap-1 shrink-0">
                                   <button onClick={() => { setEditTxId(tx.id); setTxForm({ date: tx.date, desc: tx.description || tx.desc, category: tx.category, amount: String(Math.abs(tx.amount)), status: tx.status || "已完成", taxMode: tx.tax_mode || "none", taxRate: tx.tax_rate ? String(tx.tax_rate) : "" }); setShowTxForm(true); }} className="btn-icon-sm"><Edit2 size={16} /></button>
-                                  <button onClick={() => deleteTx(tx.id)} className="btn-icon-sm" style={{ color: "var(--color-danger)" }}><Trash2 size={16} /></button>
+                                  <button onClick={() => setDeleteTxId(tx.id)} className="btn-icon-sm" style={{ color: "var(--color-danger)" }}><Trash2 size={16} /></button>
                                 </div>
                               )}
                             </div>
@@ -901,7 +915,7 @@ export function ClientsView() {
                 )}
               </div>
               <div className="flex items-center justify-between px-5 py-3 border-t pb-safe" style={{ borderColor: "var(--color-border-primary)" }}>
-                {editId ? <button type="button" onClick={() => deleteClient(editId)} className="btn-ghost text-[15px]" style={{ color: "var(--color-danger)" }}><Trash2 size={16} /> {t("common.delete" as any)}</button> : <div />}
+                {editId ? <button type="button" onClick={() => setDeleteClientId(editId)} className="btn-ghost text-[15px]" style={{ color: "var(--color-danger)" }}><Trash2 size={16} /> {t("common.delete" as any)}</button> : <div />}
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setShowPanel(false)} className="btn-secondary text-[15px]">{t("common.cancel" as any)}</button>
                   <button type="button" onClick={saveClient} disabled={savingClient} className="btn-primary text-[15px]" style={savingClient ? { opacity: 0.6 } : undefined}>{savingClient ? t("common.loading" as any) : editId ? t("common.save" as any) : t("common.create" as any)}</button>
@@ -911,6 +925,34 @@ export function ClientsView() {
           </>
         )}
       </AnimatePresence>, document.body)}
+
+      {/* Delete client confirmation */}
+      {deleteClientId !== null && createPortal(
+        <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 710, background: "var(--color-overlay-primary)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 16px)" }}>
+          <div className="card-elevated w-full max-w-sm p-5" role="dialog" aria-modal="true" aria-label="Confirm delete">
+            <h3 className="text-[15px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.delete.clientTitle" as any)}</h3>
+            <p className="text-[15px] mb-4" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.delete.clientWarning" as any)}</p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setDeleteClientId(null)} className="btn-secondary text-[15px]">{t("common.cancel" as any)}</button>
+              <button onClick={() => { deleteClient(deleteClientId); setDeleteClientId(null); }} className="text-[15px] px-4 py-2 rounded-[var(--radius-6)]" style={{ background: "var(--color-danger)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.delete.confirm" as any)}</button>
+            </div>
+          </div>
+        </div>
+      , document.body)}
+
+      {/* Delete transaction confirmation */}
+      {deleteTxId !== null && createPortal(
+        <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 710, background: "var(--color-overlay-primary)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 16px)" }}>
+          <div className="card-elevated w-full max-w-sm p-5" role="dialog" aria-modal="true" aria-label="Confirm delete">
+            <h3 className="text-[15px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.tx.deleteTitle" as any)}</h3>
+            <p className="text-[15px] mb-4" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.tx.deleteWarning" as any)}</p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setDeleteTxId(null)} className="btn-secondary text-[15px]">{t("common.cancel" as any)}</button>
+              <button onClick={() => { deleteTx(deleteTxId); setDeleteTxId(null); }} className="text-[15px] px-4 py-2 rounded-[var(--radius-6)]" style={{ background: "var(--color-danger)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("common.confirm" as any)}</button>
+            </div>
+          </div>
+        </div>
+      , document.body)}
     </div>
   );
 }

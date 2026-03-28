@@ -143,11 +143,15 @@ export default function HomePage() {
 
   /* ── Focus handlers ── */
   const handleUpdateStatus = async (key: string, status: "pending" | "completed") => {
-    await fetch("/api/today-focus/state", {
+    const res = await fetch("/api/today-focus/state", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ focusKey: key, status }),
     });
+    if (!res.ok) {
+      showToast(t("common.updateFailed" as any) || "Update failed");
+      return;
+    }
     setData((prev) => ({
       ...prev,
       todayFocus: prev.todayFocus.map((i) => (i.key === key ? { ...i, status } : i)),
@@ -157,7 +161,7 @@ export default function HomePage() {
 
   const handleSaveManual = async (form: { type: string; title: string; note: string }, editKey?: string) => {
     const isEdit = Boolean(editKey);
-    await fetch(
+    const res = await fetch(
       isEdit ? `/api/today-focus/manual/${manualIdFromKey(editKey!)}` : "/api/today-focus/manual",
       {
         method: isEdit ? "PUT" : "POST",
@@ -165,11 +169,19 @@ export default function HomePage() {
         body: JSON.stringify({ type: form.type, title: form.title.trim(), note: form.note.trim() }),
       },
     );
+    if (!res.ok) {
+      showToast(t("common.saveFailed" as any) || "Save failed");
+      throw new Error("Save failed");
+    }
     await fetchData();
   };
 
   const handleDeleteManual = async (item: FocusItem) => {
-    await fetch(`/api/today-focus/manual/${manualIdFromKey(item.key)}`, { method: "DELETE" });
+    const res = await fetch(`/api/today-focus/manual/${manualIdFromKey(item.key)}`, { method: "DELETE" });
+    if (!res.ok) {
+      showToast(t("common.deleteFailed" as any) || "Delete failed");
+      throw new Error("Delete failed");
+    }
     await fetchData();
   };
 

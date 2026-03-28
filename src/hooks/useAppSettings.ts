@@ -53,8 +53,9 @@ export function useAppSettings() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ key, value }),
     });
-    // Update local cache immediately
-    if (cache) cache[key] = value;
+    // Update local cache immediately — create new object to avoid shared mutation
+    cache = cache ? { ...cache, [key]: value } : { [key]: value };
+    cacheTime = Date.now();
     setSettings(prev => prev ? { ...prev, [key]: value } : { [key]: value });
   }, []);
 

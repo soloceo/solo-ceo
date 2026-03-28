@@ -162,6 +162,7 @@ export const settings = {
   "settings.planPrice": "Monthly ($)",
   "settings.planSpeed": "Delivery speed",
   "settings.planFeatures": "Features (one per line)",
+  "settings.planDeleted": "Plan deleted",
   "settings.cloudSync": "Cloud Sync",
   "settings.cloudSync.status": "Sync Status",
   "settings.cloudSync.connected": "Connected to Supabase cloud",

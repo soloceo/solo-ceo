@@ -47,7 +47,9 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "create", ...task }),
       });
+      if (!res.ok) return null;
       const created = await res.json();
+      if (!created || created.error || !created.id) return null;
       set({ tasks: [created, ...get().tasks] });
       return created;
     } catch {

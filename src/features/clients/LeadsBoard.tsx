@@ -19,7 +19,7 @@ const EMPTY_LEAD = { name: "", industry: "", needs: "", website: "", column: "ne
 /* ── Constants ─────────────────────────────────────────────────── */
 export const LEAD_COL_IDS = [
   { id: "new", color: "var(--color-text-secondary)" },
-  { id: "contacted", color: "var(--color-info, #3b82f6)" },
+  { id: "contacted", color: "var(--color-info)" },
   { id: "proposal", color: "var(--color-warning)" },
   { id: "won", color: "var(--color-success)" },
   { id: "lost", color: "var(--color-danger)" },
@@ -93,7 +93,11 @@ export function LeadsView() {
     setShowPanel(true);
   };
 
+  const [nameError, setNameError] = useState(false);
+
   const saveLead = async () => {
+    if (!form.name.trim()) { setNameError(true); return; }
+    setNameError(false);
     try {
       if (editId) { await fetch(`/api/leads/${editId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) }); showToast(t("pipeline.toast.leadUpdated" as any)); }
       else { await fetch("/api/leads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) }); showToast(t("pipeline.toast.leadAdded" as any)); }
@@ -231,7 +235,7 @@ export function LeadsView() {
               </div>
               <div className="flex-1 overflow-y-auto overflow-x-hidden ios-scroll p-5 space-y-3">
                 <div className="space-y-3">
-                  <FL label={t("pipeline.form.name" as any)}><input required value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+                  <FL label={t("pipeline.form.name" as any)}><input required value={form.name} onChange={e => { setForm(p => ({ ...p, name: e.target.value })); setNameError(false); }} className="input-base w-full px-3 py-2 text-[15px]" style={nameError ? { borderColor: "var(--color-danger)", boxShadow: "0 0 0 2px color-mix(in srgb, var(--color-danger) 15%, transparent)" } : undefined} /></FL>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <FL label={t("pipeline.form.industry" as any)}><input value={form.industry} onChange={e => setForm(p => ({ ...p, industry: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
                     <FL label={t("pipeline.form.source" as any)}>

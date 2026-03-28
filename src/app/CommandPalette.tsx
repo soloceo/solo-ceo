@@ -158,7 +158,7 @@ export function CommandPalette() {
               </div>
 
               {/* Results */}
-              <Command.List className="max-h-[360px] overflow-y-auto p-2" style={{ scrollbarWidth: "thin" }}>
+              <Command.List className="max-h-[360px] overflow-y-auto p-2">
                 <Command.Empty className="py-6 text-center text-[15px]" style={{ color: "var(--color-text-tertiary)" }}>
                   {t("app.noResults" as any) || "No results found."}
                 </Command.Empty>

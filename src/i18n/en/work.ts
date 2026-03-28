@@ -20,6 +20,8 @@ export const work = {
   "work.taskAdded": "Task added",
   "work.taskDeleted": "Task deleted",
   "work.moveFailed": "Move failed",
+  "work.delete.title": "Delete Task",
+  "work.delete.warning": "Are you sure you want to delete this task? This action cannot be undone.",
   "work.panel.edit": "Edit Task",
   "work.panel.new": "New Task",
   "work.form.title": "Title",
