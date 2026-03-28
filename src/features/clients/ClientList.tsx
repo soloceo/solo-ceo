@@ -334,7 +334,7 @@ export function ClientsView() {
           </div>
 
           {/* Mobile cards */}
-          <div className="md:hidden space-y-2 flex-1 overflow-y-auto ios-scroll pb-4">
+          <div className="md:hidden space-y-2 pb-4">
             {!filtered.length && <div className="py-10 text-center text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{clients.length === 0 ? t("pipeline.clients.empty" as any) : t("pipeline.clients.noMatch" as any)}</div>}
             {filtered.map(c => {
               const plan = c.plan_tier === "Basic" ? t("pipeline.convert.planBasic" as any) : c.plan_tier === "Pro" ? t("pipeline.convert.planPro" as any) : c.plan_tier === "Enterprise" ? t("pipeline.convert.planEnterprise" as any) : (c.plan_tier || c.plan);

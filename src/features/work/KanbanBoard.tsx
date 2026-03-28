@@ -132,7 +132,7 @@ export function SwimlaneView({ columns, tasks, onAdd, onEdit, onDelete, onMove, 
   const { t, lang } = useT();
 
   return (
-    <div className="flex-1 overflow-y-auto space-y-3 pb-4">
+    <div className="space-y-3 pb-4">
       {columns.map((col) => {
         const items = tasks[col.id] || [];
         return (

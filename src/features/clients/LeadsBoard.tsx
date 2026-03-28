@@ -381,7 +381,7 @@ function LeadCard({ lead, provided, snapshot, onEdit, onDelete }: any) {
 
 function LeadSwimlane({ leads, columns, onAdd, onEdit, onDelete, onMove, emptyText }: any) {
   return (
-    <div className="flex-1 overflow-y-auto ios-scroll space-y-2 pb-4">
+    <div className="space-y-2 pb-4">
       {columns.map((col: any) => {
         const items: any[] = leads[col.id] || [];
         return (
