@@ -172,7 +172,7 @@ export default function ActivityWidget() {
             style={{ fontSize: s(9), color: "var(--color-accent)", background: "none", border: "none", padding: 0 }}
           >
             {expanded
-              ? (t("widgets.calendar.collapse" as any) || (lang === "zh" ? "收起" : "Collapse"))
+              ? (lang === "zh" ? "收起" : "Collapse")
               : `+${grouped.length - VISIBLE_COUNT} ${t("widgets.calendar.more" as any)}`
             }
           </button>
