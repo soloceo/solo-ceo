@@ -56,7 +56,7 @@ interface TabDef {
 
 const MAIN_TABS: TabDef[] = [
   { id: "home", labelKey: "nav.home", icon: <HomeIcon size={16} aria-hidden="true" />, component: HomePage, shortcut: "1" },
-  { id: "work", labelKey: "nav.work", icon: <ClipboardList size={16} aria-hidden="true" />, component: WorkPage, shortcut: "2", badgeKey: "tasks" },
+  { id: "work", labelKey: "nav.work", icon: <ClipboardList size={16} aria-hidden="true" />, component: WorkPage, shortcut: "2" },
   { id: "leads",   labelKey: "nav.leads",   icon: <UserPlus size={16} aria-hidden="true" />,  component: LeadsPage,      shortcut: "3" },
   { id: "clients", labelKey: "nav.clients", icon: <Users size={16} aria-hidden="true" />,     component: ClientListPage, shortcut: "4" },
   { id: "finance", labelKey: "nav.finance", icon: <Wallet size={16} aria-hidden="true" />,    component: FinancePage,    shortcut: "5", badgeKey: "monthIncome" },
