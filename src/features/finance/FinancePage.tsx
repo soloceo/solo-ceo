@@ -34,8 +34,10 @@ function FL({ children }: { children: React.ReactNode }) {
 }
 
 const FINANCE_TABLES = ["finance_transactions", "clients", "payment_milestones"] as const;
-const TX_CATEGORIES = ["收入", "软件支出", "外包支出", "其他支出", "餐饮", "交通", "房租", "娱乐", "个人其他"];
-const PERSONAL_CATEGORIES = new Set(["餐饮", "交通", "房租", "娱乐", "个人其他"]);
+const BIZ_CATEGORIES = ["收入", "软件支出", "外包支出", "其他支出"];
+const PERSONAL_CATEGORIES_LIST = ["餐饮", "交通", "房租", "娱乐", "个人其他"];
+const TX_CATEGORIES = [...BIZ_CATEGORIES, ...PERSONAL_CATEGORIES_LIST];
+const PERSONAL_CATEGORIES = new Set(PERSONAL_CATEGORIES_LIST);
 const TX_STATUSES = ["已完成", "待收款 (应收)", "待支付 (应付)"];
 
 const createEmptyForm = () => ({
@@ -539,7 +541,7 @@ export default function FinancePage() {
               </select>
               <select value={filterCategory} onChange={e => setFilter("category", e.target.value)} className="input-base compact px-2 text-[15px] shrink-0">
                 <option value="all">{t("money.filter.categoryAll" as any)}</option>
-                {categories.map(c => <option key={c} value={c}>{catLabel(c, t)}</option>)}
+                <optgroup label={t("money.filter.scopeBusiness" as any)}>{BIZ_CATEGORIES.map(c => <option key={c} value={c}>{catLabel(c, t)}</option>)}</optgroup><optgroup label={t("money.filter.scopePersonal" as any)}>{PERSONAL_CATEGORIES_LIST.map(c => <option key={c} value={c}>{catLabel(c, t)}</option>)}</optgroup>
               </select>
               <select value={filterStatus} onChange={e => setFilter("status", e.target.value)} className="input-base compact px-2 text-[15px] shrink-0">
                 <option value="all">{t("money.filter.statusAll" as any)}</option>
@@ -642,7 +644,7 @@ export default function FinancePage() {
                   <div>
                     <FL>{t("money.form.category" as any)}</FL>
                     <select value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} className="input-base w-full px-3 py-2 text-[15px]">
-                      {categories.map(c => <option key={c} value={c}>{catLabel(c, t)}</option>)}
+                      <optgroup label={t("money.filter.scopeBusiness" as any)}>{BIZ_CATEGORIES.map(c => <option key={c} value={c}>{catLabel(c, t)}</option>)}</optgroup><optgroup label={t("money.filter.scopePersonal" as any)}>{PERSONAL_CATEGORIES_LIST.map(c => <option key={c} value={c}>{catLabel(c, t)}</option>)}</optgroup>
                     </select>
                   </div>
                 </div>

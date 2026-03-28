@@ -18,7 +18,7 @@ import { calcTaxAmount, CATEGORY_I18N, STATUS_I18N, catLabel } from "../../lib/t
 
 /* ── Finance helpers ── */
 const stLabel = (st: string, t: (k: any) => string) => { const key = STATUS_I18N[st]; return key ? t(key as any) : st; };
-const TX_CATEGORIES = ["收入", "软件支出", "外包支出", "应收", "应付", "其他支出"];
+const TX_CATEGORIES = ["收入", "软件支出", "外包支出", "其他支出"];
 const TX_STATUSES = ["已完成", "待收款 (应收)", "待支付 (应付)"];
 
 const CLIENTS_TABLES = ['clients', 'plans', 'payment_milestones', 'finance_transactions'] as const;

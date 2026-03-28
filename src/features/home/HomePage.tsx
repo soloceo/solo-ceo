@@ -15,7 +15,7 @@ import { TodayFocus, type FocusItem } from "./TodayFocus";
 import { BarChart3, Flame, ChevronDown, ChevronRight, BookOpen, Circle, CheckCircle2, X } from "lucide-react";
 import { KNOWLEDGE_CATEGORIES } from "../../data/evolution-knowledge";
 import type { Principle } from "../../data/evolution-knowledge";
-import { PROTOCOL_STEPS, LIFE_PROTOCOL_STEPS } from "../../data/evolution-protocol";
+import { PROTOCOL_STEPS } from "../../data/evolution-protocol";
 import type { ProtocolStep } from "../../data/evolution-protocol";
 import { PHASES } from "../../data/breakthrough-tasks";
 
@@ -233,41 +233,25 @@ export default function HomePage() {
 
   const protocolDone = PROTOCOL_STEPS.filter((s) => protocolState.checks[s.id]).length;
 
-  // Life protocol state
-  const lifeProtocolState: { date: string; checks: Record<string, boolean> } = useMemo(() => {
-    try {
-      const raw = settings?.life_protocol ? JSON.parse(settings.life_protocol) : null;
-      const today = new Date().toISOString().slice(0, 10);
-      if (raw && raw.date === today) return raw;
-      return { date: today, checks: {} };
-    } catch { return { date: new Date().toISOString().slice(0, 10), checks: {} }; }
-  }, [settings?.life_protocol]);
-
-  const lifeStreak: { count: number; lastDate: string } = useMemo(() => {
-    try { return settings?.life_streak ? JSON.parse(settings.life_streak) : { count: 0, lastDate: "" }; } catch { return { count: 0, lastDate: "" }; }
-  }, [settings?.life_streak]);
-
-  const lifeDone = LIFE_PROTOCOL_STEPS.filter((s) => lifeProtocolState.checks[s.id]).length;
-
-  const toggleProtocolStep = async (stepId: string, steps: ProtocolStep[], stateKey: string, streakKey: string, currentState: { date: string; checks: Record<string, boolean> }, currentStreak: { count: number; lastDate: string }) => {
+  const toggleProtocolStep = async (stepId: string) => {
     const today = new Date().toISOString().slice(0, 10);
-    const newChecks = { ...currentState.checks, [stepId]: !currentState.checks[stepId] };
+    const newChecks = { ...protocolState.checks, [stepId]: !protocolState.checks[stepId] };
     const newState = { date: today, checks: newChecks };
-    await save(stateKey, JSON.stringify(newState));
+    await save("evolution_protocol", JSON.stringify(newState));
 
     // Update streak
-    const allDone = steps.every((s) => newChecks[s.id]);
-    let newStreak = { ...currentStreak };
+    const allDone = PROTOCOL_STEPS.every((s) => newChecks[s.id]);
+    let newStreak = { ...protocolStreak };
     if (allDone) {
       const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
       newStreak = {
-        count: currentStreak.lastDate === yesterday ? currentStreak.count + 1 : 1,
+        count: protocolStreak.lastDate === yesterday ? protocolStreak.count + 1 : 1,
         lastDate: today,
       };
-    } else if (currentStreak.lastDate === today) {
-      newStreak = { count: Math.max(0, currentStreak.count - 1), lastDate: "" };
+    } else if (protocolStreak.lastDate === today) {
+      newStreak = { count: Math.max(0, protocolStreak.count - 1), lastDate: "" };
     }
-    await save(streakKey, JSON.stringify(newStreak));
+    await save("protocol_streak", JSON.stringify(newStreak));
     invalidateSettingsCache();
   };
 
@@ -480,25 +464,14 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ── 执行节奏：每日协议 ── */}
+        {/* ── 每日协议 ── */}
         <ProtocolSection
           title={lang === "zh" ? "每日协议" : "Daily Protocol"}
           steps={PROTOCOL_STEPS}
           state={protocolState}
           streak={protocolStreak}
           doneCount={protocolDone}
-          onToggle={(id) => toggleProtocolStep(id, PROTOCOL_STEPS, "evolution_protocol", "protocol_streak", protocolState, protocolStreak)}
-          lang={lang}
-        />
-
-        {/* ── 生活协议 ── */}
-        <ProtocolSection
-          title={lang === "zh" ? "生活协议" : "Life Protocol"}
-          steps={LIFE_PROTOCOL_STEPS}
-          state={lifeProtocolState}
-          streak={lifeStreak}
-          doneCount={lifeDone}
-          onToggle={(id) => toggleProtocolStep(id, LIFE_PROTOCOL_STEPS, "life_protocol", "life_streak", lifeProtocolState, lifeStreak)}
+          onToggle={toggleProtocolStep}
           lang={lang}
         />
 
