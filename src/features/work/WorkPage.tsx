@@ -305,7 +305,7 @@ export default function WorkPage() {
           </div>
           <div className="flex-1" />
           <button onClick={() => openPanel(null, "todo")} className="btn-primary compact">
-            <Plus size={16} /> <span className="hidden sm:inline">{t("work.new" as any)}</span>
+            <Plus size={16} /> {t("work.new" as any)}
           </button>
         </div>
       )}
