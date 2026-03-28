@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Plus, Filter, LayoutGrid, AlignJustify, Building2, User as UserIcon, Bot, Send, Loader2, Download } from "lucide-react";
 import { exportCSV } from "../../lib/csv-export";
 import { useAppSettings } from "../../hooks/useAppSettings";
-import { parseWorkTask, type AIProvider } from "../../lib/ai-client";
+import { parseWorkTask, AI_KEY_MAP, type AIProvider } from "../../lib/ai-client";
 import { Skeleton } from "../../components/ui";
 import { useT } from "../../i18n/context";
 import { useRealtimeRefresh } from "../../hooks/useRealtimeRefresh";
@@ -17,7 +17,7 @@ type TaskMap = Record<string, Task[]>;
 const WORK_TABLES = ["tasks"] as const;
 
 export default function WorkPage() {
-  const { t } = useT();
+  const { t, lang } = useT();
 
   const COLS = useMemo<ColDef[]>(() => [
     { id: "todo", title: t("work.col.todo" as any), color: "var(--color-text-tertiary)" },
@@ -128,10 +128,10 @@ export default function WorkPage() {
     const text = aiInput.trim();
     if (!text) return;
     const provider = appSettings?.ai_provider as AIProvider | undefined;
-    const keyMap: Record<string, string> = { gemini: "gemini_api_key", claude: "claude_api_key", openai: "openai_api_key" };
+    const keyMap = AI_KEY_MAP;
     const apiKey = provider ? appSettings?.[keyMap[provider]] : undefined;
     if (!provider || !apiKey) {
-      const lang = t("work.tab.work" as any) === "工作" ? "zh" : "en";
+      const lang = lang;
       showToast(t("work.ai.noKey" as any), 5000, {
         label: t("common.goSettings" as any),
         fn: () => setActiveTab("settings" as any),
@@ -141,7 +141,7 @@ export default function WorkPage() {
     setAiParsing(true);
     try {
       const clientNames = clientList.map((c: any) => c.company_name || c.name).filter(Boolean);
-      const parsed = await parseWorkTask(text, clientNames, t("work.tab.work" as any) === "工作" ? "zh" : "en", provider, apiKey);
+      const parsed = await parseWorkTask(text, clientNames, lang, provider, apiKey);
       await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

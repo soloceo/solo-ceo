@@ -4,7 +4,7 @@ import { Plus, Check, Circle, ChevronDown, ChevronRight, Bot, Send, Loader2, Tra
 import { useT } from "../../i18n/context";
 import { useAppSettings } from "../../hooks/useAppSettings";
 import { useUIStore } from "../../store/useUIStore";
-import { parseTaskBreakdown, type AIProvider, type TaskBreakdown } from "../../lib/ai-client";
+import { parseTaskBreakdown, AI_KEY_MAP, type AIProvider, type TaskBreakdown } from "../../lib/ai-client";
 import type { Task } from "./TaskCard";
 
 interface PersonalTaskListProps {
@@ -82,7 +82,7 @@ export default function PersonalTaskList({ tasks, onRefresh }: PersonalTaskListP
     const text = aiInput.trim();
     if (!text) return;
     const provider = settings?.ai_provider as AIProvider | undefined;
-    const keyMap: Record<string, string> = { gemini: "gemini_api_key", claude: "claude_api_key", openai: "openai_api_key" };
+    const keyMap = AI_KEY_MAP;
     const apiKey = provider ? settings?.[keyMap[provider]] : undefined;
     if (!provider || !apiKey) {
       showToast(t("money.ai.noKey" as any), 5000, {

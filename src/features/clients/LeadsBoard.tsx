@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
-  Plus, Trash2, Edit2, X, Mail, UserPlus, LayoutGrid, AlignJustify,
+  Plus, Trash2, Edit2, X, UserPlus, LayoutGrid, AlignJustify,
   ChevronDown, GripVertical, PanelRightClose, Sparkles, Search, Copy, RefreshCw, Loader2, Download,
 } from "lucide-react";
 import { useAppSettings } from "../../hooks/useAppSettings";
-import { generateOutreach, analyzeLeadQuality, type AIProvider, type LeadAnalysis } from "../../lib/ai-client";
+import { generateOutreach, analyzeLeadQuality, AI_KEY_MAP, type AIProvider, type LeadAnalysis } from "../../lib/ai-client";
 import { exportCSV } from "../../lib/csv-export";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { motion, AnimatePresence } from "motion/react";
@@ -72,7 +72,7 @@ export function LeadsView() {
 
   const getAiConfig = () => {
     const provider = appSettings?.ai_provider as AIProvider | undefined;
-    const keyMap: Record<string, string> = { gemini: "gemini_api_key", claude: "claude_api_key", openai: "openai_api_key" };
+    const keyMap = AI_KEY_MAP;
     const apiKey = provider ? appSettings?.[keyMap[provider]] : undefined;
     return { provider, apiKey };
   };

@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 
 import { calcTaxAmount, catLabel, STATUS_I18N } from "../../lib/tax";
-import { parseExpense, type AIProvider } from "../../lib/ai-client";
+import { parseExpense, AI_KEY_MAP, type AIProvider } from "../../lib/ai-client";
 import { useAppSettings } from "../../hooks/useAppSettings";
 const FinanceChart = React.lazy(() => import("./FinanceChart"));
 import { StatCard, TxRow, VirtualTxList } from "./TransactionList";
@@ -351,7 +351,7 @@ export default function FinancePage() {
     const text = aiInput.trim();
     if (!text) return;
     const provider = appSettings?.ai_provider as AIProvider | undefined;
-    const keyMap: Record<string, string> = { gemini: "gemini_api_key", claude: "claude_api_key", openai: "openai_api_key" };
+    const keyMap = AI_KEY_MAP;
     const apiKey = provider ? appSettings?.[keyMap[provider]] : undefined;
     if (!provider || !apiKey) {
       showToast(t("money.ai.noKey" as any), 5000, {

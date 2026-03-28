@@ -5,6 +5,12 @@
 
 export type AIProvider = "gemini" | "claude" | "openai";
 
+export const AI_KEY_MAP: Record<string, string> = {
+  gemini: "gemini_api_key",
+  claude: "claude_api_key",
+  openai: "openai_api_key",
+};
+
 export interface ParsedTx {
   category: string;
   amount: number;
