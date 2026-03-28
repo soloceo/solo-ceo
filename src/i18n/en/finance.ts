@@ -197,4 +197,9 @@ export const finance = {
   "money.st.payable": "Payable (Pending)",
   "money.tax.exclDetail": "Pre-tax ${amount} + Tax {rate}% ${tax}",
   "money.tax.inclDetail": "Incl. {rate}% · Tax ${tax} · Pre-tax ${pretax}",
+  "money.ai.placeholder": "AI: spent $20 on lunch",
+  "money.ai.noKey": "Please configure an AI API Key in Settings first",
+  "money.ai.parsing": "Parsing...",
+  "money.ai.recorded": "Recorded: {desc} {amount}",
+  "money.ai.error": "AI parsing failed, please try again",
 };

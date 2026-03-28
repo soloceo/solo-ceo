@@ -17,9 +17,13 @@ import {
   Download,
   Search,
   Receipt,
+  Bot,
+  Loader2,
 } from "lucide-react";
 
 import { calcTaxAmount, catLabel, STATUS_I18N } from "../../lib/tax";
+import { parseExpense, type AIProvider } from "../../lib/ai-client";
+import { useAppSettings } from "../../hooks/useAppSettings";
 const FinanceChart = React.lazy(() => import("./FinanceChart"));
 import { StatCard, TxRow, VirtualTxList } from "./TransactionList";
 
@@ -61,10 +65,14 @@ export default function FinancePage() {
   const setActiveTab = useUIStore((s) => s.setActiveTab);
   const isMobile = useIsMobile();
 
+  const { settings: appSettings } = useAppSettings();
+
   /* ── Data state ── */
   const [transactions, setTransactions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [clientList, setClientList] = useState<any[]>([]);
+  const [aiInput, setAiInput] = useState("");
+  const [aiParsing, setAiParsing] = useState(false);
 
   /* ── UI state ── */
   const [financeTab, setFinanceTab] = useState<"business" | "personal">("business");
@@ -334,6 +342,44 @@ export default function FinancePage() {
     }
   };
 
+  /* ── AI record ── */
+  const handleAiRecord = async () => {
+    const text = aiInput.trim();
+    if (!text) return;
+    const provider = appSettings?.ai_provider as AIProvider | undefined;
+    const keyMap: Record<string, string> = { gemini: "gemini_api_key", claude: "claude_api_key", openai: "openai_api_key" };
+    const apiKey = provider ? appSettings?.[keyMap[provider]] : undefined;
+    if (!provider || !apiKey) { showToast(t("money.ai.noKey" as any)); return; }
+
+    setAiParsing(true);
+    try {
+      const parsed = await parseExpense(text, financeTab, lang, provider, apiKey);
+      const isIncome = financeTab === "business" && parsed.category === "收入";
+      await fetch("/api/finance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: parsed.date,
+          description: parsed.description,
+          category: parsed.category,
+          amount: isIncome ? parsed.amount : -parsed.amount,
+          type: isIncome ? "income" : "expense",
+          status: "已完成",
+          tax_mode: "none",
+          tax_rate: 0,
+          tax_amount: 0,
+        }),
+      });
+      showToast(t("money.ai.recorded" as any).replace("{desc}", parsed.description).replace("{amount}", `$${parsed.amount}`));
+      setAiInput("");
+      fetchFinance();
+    } catch {
+      showToast(t("money.ai.error" as any));
+    } finally {
+      setAiParsing(false);
+    }
+  };
+
   /* ── Delete ── */
   const deleteTx = async (id: number) => {
     // Cache for undo
@@ -451,6 +497,23 @@ export default function FinancePage() {
             {tab === "business" ? (lang === "zh" ? "公司" : "Business") : (lang === "zh" ? "个人" : "Personal")}
           </button>
         ))}
+      </div>
+
+      {/* ── AI Chat Input ── */}
+      <div className="flex items-center gap-2 mb-4">
+        <div className="relative flex-1">
+          <Bot size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: aiParsing ? "var(--color-accent)" : "var(--color-text-quaternary)" }} />
+          <input
+            type="text"
+            value={aiInput}
+            onChange={e => setAiInput(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAiRecord(); }}
+            placeholder={t("money.ai.placeholder" as any)}
+            disabled={aiParsing}
+            className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]"
+          />
+        </div>
+        {aiParsing && <Loader2 size={16} className="animate-spin shrink-0" style={{ color: "var(--color-accent)" }} />}
       </div>
 
       {/* ── KPI Stat Cards ── */}

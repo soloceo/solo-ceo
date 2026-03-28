@@ -6,11 +6,13 @@ import { getQueueLength } from '../../db/offline-queue';
 import { useUIStore } from '../../store/useUIStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
 
+import { useAppSettings } from '../../hooks/useAppSettings';
 import ProfileSection from './ProfileSection';
 import AppearanceSection from './AppearanceSection';
 import PlanSection from './PlanSection';
 import AccountSection from './AccountSection';
 import SecuritySection from './SecuritySection';
+import AISection from './AISection';
 
 export default function SettingsPage() {
   const { t, lang, setLang } = useT();
@@ -19,6 +21,7 @@ export default function SettingsPage() {
   const darkMode = useUIStore((s) => s.darkMode);
   const toggleDarkMode = useUIStore((s) => s.toggleDarkMode);
 
+  const { settings: appSettings, save: saveAppSetting } = useAppSettings();
   const operatorName = useSettingsStore((s) => s.operatorName) || 'Andy';
   const operatorAvatar = useSettingsStore((s) => s.operatorAvatar);
   const currency = useSettingsStore((s) => s.currency);
@@ -155,7 +158,10 @@ export default function SettingsPage() {
         {/* 4. Account & Cloud Sync */}
         <AccountSection user={user} isOnline={isOnline} pendingOps={pendingOps} signOut={signOut} />
 
-        {/* 5. Account Security — rarely used, at bottom */}
+        {/* 5. AI Assistant */}
+        <AISection settings={appSettings} save={saveAppSetting} />
+
+        {/* 6. Account Security — rarely used, at bottom */}
         <SecuritySection showToast={showToast} />
 
         {/* Version info */}

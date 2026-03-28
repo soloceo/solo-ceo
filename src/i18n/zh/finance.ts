@@ -197,4 +197,9 @@ export const finance = {
   "money.st.payable": "待支付 (应付)",
   "money.tax.exclDetail": "税前${amount} + 税{rate}% ${tax}",
   "money.tax.inclDetail": "含税{rate}% · 税${tax} · 税前${pretax}",
+  "money.ai.placeholder": "AI 记账：吃饭花了20",
+  "money.ai.noKey": "请先在设置中配置 AI API Key",
+  "money.ai.parsing": "正在解析...",
+  "money.ai.recorded": "已记录：{desc} {amount}",
+  "money.ai.error": "AI 解析失败，请重试",
 };
