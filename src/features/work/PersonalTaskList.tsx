@@ -132,9 +132,7 @@ export default function PersonalTaskList({ tasks, onRefresh }: PersonalTaskListP
   return (
     <div className="flex-1 space-y-3 pb-4">
       {/* AI input */}
-      <div className="flex items-center gap-2 rounded-[var(--radius-8)] p-1.5" style={{
-        background: "color-mix(in srgb, var(--color-info) 6%, transparent)",
-      }}>
+      <div className="flex items-center gap-2">
         <div className="relative flex-1">
           <Bot size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--color-info)" }} />
           <input

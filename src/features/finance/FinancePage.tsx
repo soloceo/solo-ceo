@@ -511,22 +511,22 @@ export default function FinancePage() {
 
       {/* ── Header: Tab + Actions ── */}
       <div className="flex items-center gap-3 mb-3">
-        <div className="flex gap-1 p-1 rounded-[var(--radius-8)] shrink-0" style={{ background: "var(--color-bg-tertiary)" }}>
+        <div className="flex gap-2 shrink-0">
           {(["business", "personal"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => { setFinanceTab(tab); setFilters({ type: "all", category: "all", status: "all", dateFrom: "", dateTo: "", search: "" }); }}
-              className="py-1.5 px-4 text-[14px] rounded-[var(--radius-6)] transition-colors press-feedback flex items-center gap-1.5"
+              className="py-1.5 px-4 text-[14px] rounded-[var(--radius-8)] transition-colors press-feedback flex items-center gap-1.5"
               style={financeTab === tab ? {
-                background: tab === "business"
-                  ? "color-mix(in srgb, var(--color-accent) 12%, var(--color-bg-primary))"
-                  : "color-mix(in srgb, var(--color-info) 12%, var(--color-bg-primary))",
+                border: `1.5px solid ${tab === "business" ? "var(--color-accent)" : "var(--color-info)"}`,
                 color: tab === "business" ? "var(--color-accent)" : "var(--color-info)",
                 fontWeight: "var(--font-weight-semibold)",
-                boxShadow: "var(--shadow-low)",
+                background: "var(--color-bg-primary)",
               } as React.CSSProperties : {
+                border: "1.5px solid var(--color-border-primary)",
                 color: "var(--color-text-tertiary)",
                 fontWeight: "var(--font-weight-medium)",
+                background: "transparent",
               } as React.CSSProperties}
             >
               {tab === "business" ? <Building2 size={14} /> : <UserIcon size={14} />}
@@ -544,11 +544,7 @@ export default function FinancePage() {
       </div>
 
       {/* ── AI Chat Input ── */}
-      <div className="flex items-center gap-2 mb-4 rounded-[var(--radius-8)] p-1.5" style={{
-        background: financeTab === "business"
-          ? "color-mix(in srgb, var(--color-accent) 6%, transparent)"
-          : "color-mix(in srgb, var(--color-info) 6%, transparent)",
-      }}>
+      <div className="flex items-center gap-2 mb-4">
         <div className="relative flex-1">
           <Bot size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{
             color: financeTab === "business" ? "var(--color-accent)" : "var(--color-info)",

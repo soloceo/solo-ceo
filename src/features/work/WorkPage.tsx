@@ -266,22 +266,22 @@ export default function WorkPage() {
     <div className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col px-4 py-3 md:px-6 md:py-4 lg:px-8 lg:py-5 relative">
       <h1 className="sr-only">{t("nav.work" as any)}</h1>
       {/* Row 1: Tab switcher (full width) */}
-      <div className="flex gap-1 p-1 mb-2 rounded-[var(--radius-8)]" style={{ background: "var(--color-bg-tertiary)" }}>
+      <div className="flex gap-2 mb-2">
         {(["work", "personal"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setWorkTab(tab)}
-            className="flex-1 py-1.5 text-[14px] rounded-[var(--radius-6)] transition-colors press-feedback flex items-center justify-center gap-1.5"
+            className="flex-1 py-1.5 text-[14px] rounded-[var(--radius-8)] transition-colors press-feedback flex items-center justify-center gap-1.5"
             style={workTab === tab ? {
-              background: tab === "work"
-                ? "color-mix(in srgb, var(--color-accent) 12%, var(--color-bg-primary))"
-                : "color-mix(in srgb, var(--color-info) 12%, var(--color-bg-primary))",
+              border: `1.5px solid ${tab === "work" ? "var(--color-accent)" : "var(--color-info)"}`,
               color: tab === "work" ? "var(--color-accent)" : "var(--color-info)",
               fontWeight: "var(--font-weight-semibold)",
-              boxShadow: "var(--shadow-low)",
+              background: "var(--color-bg-primary)",
             } as React.CSSProperties : {
+              border: "1.5px solid var(--color-border-primary)",
               color: "var(--color-text-tertiary)",
               fontWeight: "var(--font-weight-medium)",
+              background: "transparent",
             } as React.CSSProperties}
           >
             {tab === "work" ? <Building2 size={14} /> : <UserIcon size={14} />}
@@ -337,9 +337,7 @@ export default function WorkPage() {
       {workTab === "work" ? (
         <>
           {/* AI task input */}
-          <div className="flex items-center gap-2 mb-3 rounded-[var(--radius-8)] p-1.5" style={{
-            background: "color-mix(in srgb, var(--color-accent) 6%, transparent)",
-          }}>
+          <div className="flex items-center gap-2 mb-3">
             <div className="relative flex-1">
               <Bot size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--color-accent)" }} />
               <input
