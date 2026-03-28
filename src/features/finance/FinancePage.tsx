@@ -34,7 +34,7 @@ function FL({ children }: { children: React.ReactNode }) {
 }
 
 const FINANCE_TABLES = ["finance_transactions", "clients", "payment_milestones"] as const;
-const TX_CATEGORIES = ["收入", "软件支出", "外包支出", "应收", "应付", "其他支出", "餐饮", "交通", "房租", "娱乐", "个人其他"];
+const TX_CATEGORIES = ["收入", "软件支出", "外包支出", "其他支出", "餐饮", "交通", "房租", "娱乐", "个人其他"];
 const PERSONAL_CATEGORIES = new Set(["餐饮", "交通", "房租", "娱乐", "个人其他"]);
 const TX_STATUSES = ["已完成", "待收款 (应收)", "待支付 (应付)"];
 

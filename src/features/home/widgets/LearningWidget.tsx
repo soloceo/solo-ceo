@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { Plus, Check, Circle, Trash2 } from "lucide-react";
+import { Plus, Check, Circle } from "lucide-react";
 import { useT } from "../../../i18n/context";
 import { useWidgetScale } from "./useWidgetScale";
 
@@ -59,10 +59,6 @@ export default function LearningWidget() {
     update(d => ({ ...d, items: d.items.map((item, idx) => idx === i ? { ...item, done: !item.done } : item) }));
   };
 
-  const deleteItem = (i: number) => {
-    update(d => ({ ...d, items: d.items.filter((_, idx) => idx !== i) }));
-  };
-
   const doneCount = data.items.filter(i => i.done).length;
 
   return (
@@ -119,13 +115,6 @@ export default function LearningWidget() {
             }}>
               {item.text}
             </span>
-            <button
-              onClick={e => { e.stopPropagation(); deleteItem(i); }}
-              className="btn-icon-sm shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-              aria-label="Delete"
-            >
-              <Trash2 size={12} />
-            </button>
           </div>
         ))}
       </div>
