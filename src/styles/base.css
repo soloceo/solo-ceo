@@ -6,9 +6,11 @@
 /* ── Font tokens ──────────────────────────────────────────────── */
 :root {
   --font-regular:
-    'Noto Sans SC',
     -apple-system, BlinkMacSystemFont,
     'SF Pro Display', 'SF Pro Text',
+    /* CJK: macOS */     'PingFang SC',
+    /* CJK: Windows */   'Microsoft YaHei UI', 'Microsoft YaHei',
+    /* CJK: Linux */     'Noto Sans CJK SC',
     'Segoe UI', 'Roboto', 'Helvetica Neue',
     system-ui, sans-serif;
 

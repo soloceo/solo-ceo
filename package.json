@@ -76,7 +76,6 @@
     "@capacitor/cli": "^8.2.0",
     "@capacitor/core": "^8.2.0",
     "@capacitor/ios": "^8.2.0",
-    "@fontsource/noto-sans-sc": "^5.2.9",
     "@google/genai": "^1.29.0",
     "@hello-pangea/dnd": "^18.0.1",
     "@supabase/supabase-js": "^2.99.1",
