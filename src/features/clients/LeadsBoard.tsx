@@ -14,10 +14,12 @@ import { Skeleton } from "../../components/ui";
 
 const LEADS_TABLES = ['leads', 'plans'] as const;
 
+const EMPTY_LEAD = { name: "", industry: "", needs: "", website: "", column: "new", source: "" };
+
 /* ── Constants ─────────────────────────────────────────────────── */
 export const LEAD_COL_IDS = [
   { id: "new", color: "var(--color-text-secondary)" },
-  { id: "contacted", color: "var(--color-accent)" },
+  { id: "contacted", color: "var(--color-info, #3b82f6)" },
   { id: "proposal", color: "var(--color-warning)" },
   { id: "won", color: "var(--color-success)" },
   { id: "lost", color: "var(--color-danger)" },
@@ -51,8 +53,7 @@ export function LeadsView() {
   const setViewMode = useUIStore((s) => s.setSalesViewMode);
   const [convertForm, setConvertForm] = useState({ plan_tier: "", status: "Active", mrr: "", subscription_start_date: new Date().toISOString().split("T")[0] });
   const [plans, setPlans] = useState<any[]>([]);
-  const emptyLead = { name: "", industry: "", needs: "", website: "", column: "new", source: "" };
-  const [form, setForm] = useState(emptyLead);
+  const [form, setForm] = useState(EMPTY_LEAD);
 
   const fetchPlans = async () => { try { setPlans(await (await fetch("/api/plans")).json()); } catch {} };
 
@@ -87,7 +88,7 @@ export function LeadsView() {
 
   const openPanel = (lead: any = null, col = "new") => {
     if (lead) { setEditId(lead.id); setForm({ name: lead.name, industry: lead.industry, needs: lead.needs, website: lead.website || "", column: lead.column || col, source: lead.source || "" }); }
-    else { setEditId(null); setForm({ ...emptyLead, column: col }); }
+    else { setEditId(null); setForm({ ...EMPTY_LEAD, column: col }); }
     setShowPanel(true);
   };
 
@@ -216,11 +217,11 @@ export function LeadsView() {
               style={{ zIndex: 700, background: "var(--color-bg-primary)", borderColor: "var(--color-border-primary)", boxShadow: "var(--shadow-high)", paddingTop: isMobile ? "var(--mobile-header-pt, env(safe-area-inset-top, 0px))" : undefined }}
             >
               <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: "var(--color-border-primary)" }}>
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-6)]" style={{ background: "var(--color-accent-tint)", color: "var(--color-accent)" }}>{editId ? <Edit2 size={16} /> : <Plus size={16} />}</div>
                   <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" as any }}>{editId ? t("pipeline.panel.editLead" as any) : t("pipeline.panel.newLead" as any)}</span>
                 </div>
-                <button onClick={() => setShowPanel(false)} className="btn-icon" aria-label="Close panel">{isMobile ? <X size={16} /> : <PanelRightClose size={16} />}</button>
+                <button onClick={() => setShowPanel(false)} className="btn-icon" aria-label="Close panel">{isMobile ? <X size={18} /> : <PanelRightClose size={18} />}</button>
               </div>
               <div className="flex-1 overflow-y-auto overflow-x-hidden ios-scroll p-5 space-y-3">
                 <div className="space-y-3">
@@ -279,7 +280,7 @@ export function LeadsView() {
           <div className="card-elevated w-full max-w-md p-5 space-y-4" role="dialog" aria-modal="true" aria-label="Convert lead">
             <div className="flex items-center justify-between">
               <h3 className="text-[15px] flex items-center gap-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" as any }}><UserPlus size={16} style={{ color: "var(--color-success)" }} /> {t("pipeline.convert.title" as any)}</h3>
-              <button onClick={() => setShowConvert(false)} className="btn-icon" aria-label="Close dialog"><X size={16} /></button>
+              <button onClick={() => setShowConvert(false)} className="btn-icon" aria-label="Close dialog"><X size={18} /></button>
             </div>
             <FL label={t("pipeline.convert.plan" as any)}><select value={convertForm.plan_tier} onChange={e => { const v = e.target.value; const p = plans.find((x: any) => x.name === v); setConvertForm(prev => ({ ...prev, plan_tier: v, mrr: p ? String(p.price) : prev.mrr })); }} className="input-base w-full px-3 py-2 text-[15px]"><option value="">{t("pipeline.convert.planSelect" as any)}</option>{plans.map((p: any) => <option key={p.id} value={p.name}>{p.name}</option>)}</select></FL>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -355,7 +356,7 @@ function LeadCard({ lead, provided, snapshot, onEdit, onDelete }: any) {
         </div>
         {lead.source && <span className="badge">{lead.source}</span>}
       </div>
-      <p className="text-[13px] line-clamp-2 mb-1.5" style={{ color: "var(--color-text-secondary)" }}>{lead.needs}</p>
+      <p className="text-[13px] line-clamp-2 mb-2" style={{ color: "var(--color-text-secondary)" }}>{lead.needs}</p>
       <div className="flex items-center justify-between">
         <span className="badge"><Mail size={16} /> —</span>
         <button onClick={e => { e.stopPropagation(); onDelete(lead.id); }} className="btn-icon-sm lg:opacity-0 lg:group-hover:opacity-100 transition-opacity" aria-label="Delete lead"><Trash2 size={14} /></button>

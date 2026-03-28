@@ -125,7 +125,7 @@ function EmailArsenal({ L, t, showToast }: { L: (o: { zh: string; en: string }) 
           <div key={tpl.id} style={{ borderBottom: "1px solid var(--color-border-primary)" }}>
             <button
               onClick={() => setExpandedId(isOpen ? null : tpl.id)}
-              className="w-full flex items-center gap-2.5 px-5 py-3 text-left transition-colors"
+              className="w-full flex items-center gap-3 px-5 py-3 text-left transition-colors"
               style={{ background: isOpen ? "var(--color-bg-tertiary)" : undefined }}
             >
               {isOpen ? <ChevronDown size={16} style={{ color: "var(--color-text-secondary)" }} /> : <ChevronRight size={16} style={{ color: "var(--color-text-secondary)" }} />}
@@ -164,7 +164,7 @@ function ScriptVault({ L, t, showToast }: { L: (o: { zh: string; en: string }) =
         <div key={sc.id} style={{ borderBottom: "1px solid var(--color-border-primary)" }}>
           <button
             onClick={() => setOpen(open === sc.id ? null : sc.id)}
-            className="w-full flex items-center gap-2.5 px-5 py-3 text-left transition-colors"
+            className="w-full flex items-center gap-3 px-5 py-3 text-left transition-colors"
             style={{ background: open === sc.id ? "var(--color-bg-tertiary)" : undefined }}
           >
             {open === sc.id ? <ChevronDown size={16} style={{ color: "var(--color-text-secondary)" }} /> : <ChevronRight size={16} style={{ color: "var(--color-text-secondary)" }} />}

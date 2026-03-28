@@ -219,14 +219,14 @@ export function ClientsView() {
   const deleteClient = async (id: number) => { try { await fetch(`/api/clients/${id}`, { method: "DELETE" }); setShowPanel(false); showToast(t("pipeline.toast.clientDeleted" as any)); fetchClients(); } catch { showToast(t("common.deleteFailed" as any)); } };
 
   const uniquePlanTiers = [...new Set(clients.filter(c => c.billing_type === "subscription" && c.plan_tier).map(c => c.plan_tier))];
-  const filtered = clients.filter(c => {
+  const filtered = useMemo(() => clients.filter(c => {
     const q = search.toLowerCase();
     const ms = c.name.toLowerCase().includes(q) || (c.company_name || "").toLowerCase().includes(q) || (c.contact_name || "").toLowerCase().includes(q) || (c.contact_email || "").toLowerCase().includes(q);
     const mf = filterSt === "All" || c.status === filterSt;
     const mb = filterBilling === "All" || c.billing_type === filterBilling;
     const mp = filterPlan === "All" || c.plan_tier === filterPlan;
     return ms && mf && mb && mp;
-  });
+  }), [clients, search, filterSt, filterBilling, filterPlan]);
   const activeN = filtered.filter(c => c.status === "Active").length;
   const pausedN = filtered.filter(c => c.status === "Paused").length;
   // 合同总额 = subscription lifetimeRevenue + project fees
@@ -360,7 +360,7 @@ export function ClientsView() {
                     <tr key={c.id} data-index={vr.index} ref={rowV.measureElement} className="group border-b transition-colors cursor-pointer" style={{ borderColor: "var(--color-border-primary)" }}
                       onClick={() => openPanel(c)}
                       onMouseEnter={e => (e.currentTarget.style.background = "var(--color-bg-tertiary)")} onMouseLeave={e => (e.currentTarget.style.background = "")}>
-                      <td className="px-4 py-3"><div className="flex items-center gap-2.5"><div className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-4)] text-[13px]" style={{ background: "var(--color-accent-tint)", color: "var(--color-accent)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>{displayInitial}</div><span style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{displayName}</span></div></td>
+                      <td className="px-4 py-3"><div className="flex items-center gap-3"><div className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-4)] text-[13px]" style={{ background: "var(--color-accent-tint)", color: "var(--color-accent)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>{displayInitial}</div><span style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{displayName}</span></div></td>
                       <td className="px-4 py-3"><div className="min-w-0">{c.contact_name && <span className="text-[15px] block truncate" style={{ color: "var(--color-text-primary)" }}>{c.contact_name}</span>}{c.contact_email && <span className="text-[13px] block truncate" style={{ color: "var(--color-text-secondary)" }}>{c.contact_email}</span>}</div></td>
                       <td className="px-4 py-3"><span className="badge" style={c.billing_type === "project" ? { background: "color-mix(in srgb, var(--color-orange) 12%, transparent)", color: "var(--color-orange)" } : { background: "color-mix(in srgb, var(--color-blue) 12%, transparent)", color: "var(--color-blue)" }}>{c.billing_type === "project" ? t("pipeline.clients.billingProject" as any) : t("pipeline.clients.billingSubscription" as any)}</span></td>
                       <td className="px-4 py-3"><span className="badge">{c.billing_type === "project" ? "—" : plan}</span></td>
@@ -401,11 +401,11 @@ export function ClientsView() {
               style={{ zIndex: 700, background: "var(--color-bg-primary)", borderColor: "var(--color-border-primary)", boxShadow: "var(--shadow-high)", paddingTop: isMobile ? "var(--mobile-header-pt, env(safe-area-inset-top, 0px))" : undefined }}
             >
               <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: "var(--color-border-primary)" }}>
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-6)]" style={{ background: "var(--color-accent-tint)", color: "var(--color-accent)" }}><UserPlus size={16} /></div>
                   <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{editId ? t("pipeline.panel.editClient" as any) : t("pipeline.panel.newClient" as any)}</span>
                 </div>
-                <button onClick={() => setShowPanel(false)} className="btn-icon">{isMobile ? <X size={16} /> : <PanelRightClose size={16} />}</button>
+                <button onClick={() => setShowPanel(false)} className="btn-icon">{isMobile ? <X size={18} /> : <PanelRightClose size={18} />}</button>
               </div>
               <div className="flex-1 overflow-y-auto overflow-x-hidden ios-scroll p-5 space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -605,7 +605,7 @@ export function ClientsView() {
                           const pct = totalAmt > 0 ? Math.round(paidAmt / totalAmt * 100) : 0;
                           return (
                             <div>
-                              <div className="flex items-center justify-between mb-1.5">
+                              <div className="flex items-center justify-between mb-2">
                                 <span className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>
                                   {milestones.filter((m: any) => m.status === "paid").length}/{milestones.length} {t("pipeline.milestones.status.paid" as any).toLowerCase()} · ${paidAmt.toLocaleString()} / ${totalAmt.toLocaleString()}
                                 </span>
@@ -677,7 +677,7 @@ export function ClientsView() {
                               <div className="rounded-[var(--radius-6)] p-3 space-y-3" style={{ background: "var(--color-bg-tertiary)", border: "1px solid var(--color-accent)", borderStyle: "dashed" }}>
                                 <div className="flex items-center justify-between">
                                   <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{editMsId ? t("common.edit" as any) : t("pipeline.milestones.add" as any)}</span>
-                                  <button onClick={() => { setShowAddMs(false); setEditMsId(null); setMsForm(emptyMs); }} className="btn-icon"><X size={16} /></button>
+                                  <button onClick={() => { setShowAddMs(false); setEditMsId(null); setMsForm(emptyMs); }} className="btn-icon"><X size={18} /></button>
                                 </div>
                                 {/* Preset buttons */}
                                 {!editMsId && (
@@ -819,7 +819,7 @@ export function ClientsView() {
                           <div className="rounded-[var(--radius-6)] p-3 space-y-3" style={{ background: "var(--color-bg-tertiary)", border: "1px solid var(--color-accent)", borderStyle: "dashed" }}>
                             <div className="flex items-center justify-between">
                               <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{editTxId ? t("common.edit" as any) : t("pipeline.tx.add" as any)}</span>
-                              <button onClick={() => { setShowTxForm(false); setEditTxId(null); setTxForm(emptyTx); }} className="btn-icon"><X size={16} /></button>
+                              <button onClick={() => { setShowTxForm(false); setEditTxId(null); setTxForm(emptyTx); }} className="btn-icon"><X size={18} /></button>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               <FL label={t("pipeline.tx.date" as any)}><input type="date" value={txForm.date} onChange={e => setTxForm(p => ({ ...p, date: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>

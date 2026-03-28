@@ -122,14 +122,14 @@ interface SwimlaneProps {
   emptyText: string;
 }
 
-const prioColor: Record<string, string> = {
-  High: "var(--color-danger)",
-  Medium: "var(--color-warning)",
-  Low: "var(--color-success)",
+const prioLabel: Record<string, { zh: string; en: string; color: string }> = {
+  High: { zh: "高", en: "H", color: "var(--color-danger)" },
+  Medium: { zh: "中", en: "M", color: "var(--color-warning)" },
+  Low: { zh: "低", en: "L", color: "var(--color-success)" },
 };
 
 export function SwimlaneView({ columns, tasks, onAdd, onEdit, onDelete, onMove, emptyText }: SwimlaneProps) {
-  const { t } = useT();
+  const { t, lang } = useT();
 
   return (
     <div className="flex-1 overflow-y-auto space-y-3 pb-4">
@@ -140,7 +140,7 @@ export function SwimlaneView({ columns, tasks, onAdd, onEdit, onDelete, onMove, 
             {/* Section header */}
             <div className="flex items-center justify-between mb-1 px-1">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full" style={{ background: col.color }} />
+                <div className="w-2.5 h-2.5 rounded-[var(--radius-2)]" style={{ background: col.color }} />
                 <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
                   {col.title}
                 </h3>
@@ -166,10 +166,12 @@ export function SwimlaneView({ columns, tasks, onAdd, onEdit, onDelete, onMove, 
                   tabIndex={0}
                   onClick={() => onEdit(task)}
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onEdit(task); } }}
-                  className="flex items-center gap-2.5 px-3 py-2.5 group cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
+                  className="flex items-center gap-3 px-3 py-2.5 group cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
                 >
-                  {/* Priority dot */}
-                  <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: prioColor[task.priority] || "var(--color-text-quaternary)" }} />
+                  {/* Priority label */}
+                  <span className="text-[11px] shrink-0" style={{ color: prioLabel[task.priority]?.color || "var(--color-text-quaternary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
+                    {prioLabel[task.priority]?.[lang as "zh" | "en"] || ""}
+                  </span>
 
                   {/* Title + client */}
                   <div className="flex-1 min-w-0">
@@ -197,7 +199,7 @@ export function SwimlaneView({ columns, tasks, onAdd, onEdit, onDelete, onMove, 
                   })()}
 
                   {/* Move selector + delete — always visible on mobile, hover on desktop */}
-                  <div className="flex items-center gap-1 shrink-0 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                     <select
                       value={col.id}
                       onChange={(e) => onMove(task.id, e.target.value)}

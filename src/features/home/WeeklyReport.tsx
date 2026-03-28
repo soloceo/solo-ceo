@@ -133,7 +133,7 @@ export function WeeklyReport({ open, onClose }: WeeklyReportProps) {
                     className="card px-4 py-3"
                     style={s.highlight ? { border: `1px solid color-mix(in srgb, ${s.color} 30%, transparent)` } : undefined}
                   >
-                    <div className="flex items-center gap-1.5 mb-1.5">
+                    <div className="flex items-center gap-1.5 mb-2">
                       <div
                         className="flex h-5 w-5 items-center justify-center rounded-[var(--radius-4)]"
                         style={{ background: `color-mix(in srgb, ${s.color} 10%, transparent)`, color: s.color }}

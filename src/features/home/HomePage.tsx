@@ -344,7 +344,7 @@ export default function HomePage() {
           >
             <div className="flex items-start gap-3">
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1.5">
+                <div className="flex items-center gap-2 mb-2">
                   <span className="text-[10px] px-1.5 py-0.5 rounded-full shrink-0"
                     style={{ background: "var(--color-accent)", color: "#fff", fontWeight: "var(--font-weight-semibold)", letterSpacing: "0.02em" } as React.CSSProperties}>
                     {lang === "zh" ? "每日一课" : "DAILY"}
@@ -377,18 +377,52 @@ export default function HomePage() {
                 className="overflow-hidden"
               >
                 <div style={{ padding: "0 14px 14px", borderTop: "1px solid var(--color-border-primary)" }}>
-                  <p className="text-[14px] leading-relaxed pt-3" style={{ color: "var(--color-text-secondary)" }}>
+                  <p className="text-[14px] leading-relaxed pt-3 mb-3" style={{ color: "var(--color-text-secondary)" }}>
                     {todayPrinciple.explanation[lang as "zh" | "en"]}
                   </p>
-                  {/* 行动指南预览 */}
                   {todayPrinciple.actionSteps && todayPrinciple.actionSteps.length > 0 && (
-                    <div className="mt-3 flex flex-col gap-1">
-                      {todayPrinciple.actionSteps.slice(0, 2).map((s, i) => (
-                        <div key={i} className="flex items-start gap-2 text-[13px]" style={{ color: "var(--color-text-tertiary)" }}>
-                          <span style={{ color: "var(--color-accent)" }}>→</span>
-                          <span>{s[lang as "zh" | "en"]}</span>
-                        </div>
-                      ))}
+                    <div className="mb-3 rounded-[var(--radius-8)] p-3" style={{ background: "var(--color-bg-primary)" }}>
+                      <h4 className="text-[12px] mb-2 flex items-center gap-1.5" style={{ color: "var(--color-accent)", fontWeight: "var(--font-weight-semibold)", textTransform: "uppercase", letterSpacing: "0.03em" } as React.CSSProperties}>
+                        <span>→</span> {lang === "zh" ? "行动指南" : "Action Steps"}
+                      </h4>
+                      <div className="flex flex-col gap-1.5">
+                        {todayPrinciple.actionSteps.map((s, i) => (
+                          <div key={i} className="flex items-start gap-2 text-[13px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+                            <span className="shrink-0 text-[11px] mt-0.5" style={{ color: "var(--color-accent)" }}>{i + 1}.</span>
+                            <span>{s[lang as "zh" | "en"]}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {todayPrinciple.checks && todayPrinciple.checks.length > 0 && (
+                    <div className="mb-3 rounded-[var(--radius-8)] p-3" style={{ background: "color-mix(in srgb, var(--color-success) 6%, var(--color-bg-primary))" }}>
+                      <h4 className="text-[12px] mb-2 flex items-center gap-1.5" style={{ color: "var(--color-success)", fontWeight: "var(--font-weight-semibold)", textTransform: "uppercase", letterSpacing: "0.03em" } as React.CSSProperties}>
+                        <span>✓</span> {lang === "zh" ? "自检清单" : "Self-Check"}
+                      </h4>
+                      <div className="flex flex-col gap-1.5">
+                        {todayPrinciple.checks.map((c, i) => (
+                          <div key={i} className="flex items-start gap-2 text-[13px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+                            <span className="shrink-0 mt-0.5" style={{ color: "var(--color-success)" }}>☐</span>
+                            <span>{c[lang as "zh" | "en"]}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {todayPrinciple.antiPatterns && todayPrinciple.antiPatterns.length > 0 && (
+                    <div className="rounded-[var(--radius-8)] p-3" style={{ background: "color-mix(in srgb, var(--color-danger) 5%, var(--color-bg-primary))" }}>
+                      <h4 className="text-[12px] mb-2 flex items-center gap-1.5" style={{ color: "var(--color-danger)", fontWeight: "var(--font-weight-semibold)", textTransform: "uppercase", letterSpacing: "0.03em" } as React.CSSProperties}>
+                        <span>✗</span> {lang === "zh" ? "常见误区" : "Anti-Patterns"}
+                      </h4>
+                      <div className="flex flex-col gap-1.5">
+                        {todayPrinciple.antiPatterns.map((a, i) => (
+                          <div key={i} className="flex items-start gap-2 text-[13px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+                            <span className="shrink-0 mt-0.5" style={{ color: "var(--color-danger)" }}>✗</span>
+                            <span>{a[lang as "zh" | "en"]}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -451,77 +485,73 @@ export default function HomePage() {
             )}
           </div>
 
-          {/* 时间线步骤 — 左侧连线 */}
-          <div className="relative" style={{ paddingLeft: 18 }}>
-            {/* 竖线 */}
-            <div
-              className="absolute top-2 bottom-2"
-              style={{ left: 8, width: 2, background: "var(--color-border-secondary)", borderRadius: 1 }}
-            />
-            <div className="flex flex-col gap-0.5">
-              {PROTOCOL_STEPS.map((step, i) => {
-                const done = !!protocolState.checks[step.id];
-                // 判断当前时间段是否是"当前"时段
-                const h = new Date().getHours();
-                const isCurrent = (i === 0 && h >= 5 && h < 9) || (i === 1 && h >= 9 && h < 12) || (i === 2 && h >= 12 && h < 14) || (i === 3 && h >= 14 && h < 20) || (i === 4 && h >= 20);
-                return (
-                  <button
-                    key={step.id}
-                    onClick={() => toggleProtocolStep(step.id)}
-                    className="flex items-start gap-3 w-full text-left press-feedback relative"
-                    style={{ padding: "8px 10px 8px 14px" }}
+          {/* 协议步骤卡片 */}
+          <div className="flex flex-col gap-2">
+            {PROTOCOL_STEPS.map((step, i) => {
+              const done = !!protocolState.checks[step.id];
+              const h = new Date().getHours();
+              const isCurrent = (i === 0 && h >= 5 && h < 9) || (i === 1 && h >= 9 && h < 12) || (i === 2 && h >= 12 && h < 14) || (i === 3 && h >= 14 && h < 20) || (i === 4 && h >= 20);
+              return (
+                <button
+                  key={step.id}
+                  onClick={() => toggleProtocolStep(step.id)}
+                  className="flex items-start gap-3 w-full text-left rounded-[var(--radius-8)] press-feedback"
+                  style={{
+                    padding: "12px 14px",
+                    background: done
+                      ? "var(--color-bg-secondary)"
+                      : isCurrent
+                      ? "color-mix(in srgb, var(--color-accent) 6%, var(--color-bg-secondary))"
+                      : "var(--color-bg-secondary)",
+                    border: isCurrent && !done ? "1px solid color-mix(in srgb, var(--color-accent) 20%, transparent)" : "1px solid transparent",
+                    opacity: done ? 0.6 : 1,
+                  }}
+                >
+                  {/* Check circle */}
+                  <div
+                    className="shrink-0 rounded-full flex items-center justify-center mt-0.5"
+                    style={{
+                      width: 22,
+                      height: 22,
+                      background: done ? "var(--color-accent)" : "transparent",
+                      border: done ? "none" : "2px solid var(--color-border-secondary)",
+                    }}
                   >
-                    {/* 时间线节点 */}
-                    <div
-                      className="absolute shrink-0 rounded-full z-10"
-                      style={{
-                        left: -14,
-                        top: 14,
-                        width: 10,
-                        height: 10,
-                        background: done ? "var(--color-accent)" : isCurrent ? "var(--color-bg-primary)" : "var(--color-bg-tertiary)",
-                        border: done ? "2px solid var(--color-accent)" : isCurrent ? "2px solid var(--color-accent)" : "2px solid var(--color-border-secondary)",
-                        boxShadow: isCurrent && !done ? "0 0 0 3px color-mix(in srgb, var(--color-accent) 20%, transparent)" : "none",
-                      }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] shrink-0 uppercase tracking-wide"
-                          style={{
-                            color: isCurrent ? "var(--color-accent)" : done ? "var(--color-text-quaternary)" : "var(--color-text-quaternary)",
-                            fontWeight: "var(--font-weight-semibold)",
-                          } as React.CSSProperties}>
-                          {step.time[lang as "zh" | "en"]}
-                        </span>
-                        <span
-                          className="text-[15px]"
-                          style={{
-                            color: done ? "var(--color-text-quaternary)" : "var(--color-text-primary)",
-                            fontWeight: "var(--font-weight-semibold)",
-                            textDecoration: done ? "line-through" : "none",
-                          } as React.CSSProperties}
-                        >
-                          {step.title[lang as "zh" | "en"]}
-                        </span>
-                        {done && <CheckCircle2 size={13} className="shrink-0" style={{ color: "var(--color-accent)" }} />}
-                      </div>
-                      <p
-                        className="text-[13px] mt-0.5 leading-relaxed"
+                    {done && <CheckCircle2 size={14} style={{ color: "#fff" }} />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] shrink-0 uppercase tracking-wide px-2 py-0.5 rounded-[var(--radius-4)]"
                         style={{
-                          color: done ? "var(--color-text-quaternary)" : "var(--color-text-tertiary)",
-                          display: isCurrent && !done ? "block" : "-webkit-box",
-                          WebkitLineClamp: isCurrent && !done ? undefined : 1,
-                          WebkitBoxOrient: "vertical" as const,
-                          overflow: isCurrent && !done ? undefined : "hidden",
-                        }}
+                          color: done ? "var(--color-text-quaternary)" : isCurrent ? "#fff" : "var(--color-text-secondary)",
+                          background: done ? "var(--color-bg-tertiary)" : isCurrent ? "var(--color-accent)" : "var(--color-bg-tertiary)",
+                          fontWeight: "var(--font-weight-bold)",
+                        } as React.CSSProperties}>
+                        {step.time[lang as "zh" | "en"]}
+                      </span>
+                      <span
+                        className="text-[14px]"
+                        style={{
+                          color: done ? "var(--color-text-quaternary)" : "var(--color-text-primary)",
+                          fontWeight: "var(--font-weight-semibold)",
+                          textDecoration: done ? "line-through" : "none",
+                        } as React.CSSProperties}
                       >
-                        {step.description[lang as "zh" | "en"]}
-                      </p>
+                        {step.title[lang as "zh" | "en"]}
+                      </span>
                     </div>
-                  </button>
-                );
-              })}
-            </div>
+                    <p
+                      className="text-[13px] mt-1 leading-relaxed"
+                      style={{
+                        color: done ? "var(--color-text-quaternary)" : "var(--color-text-tertiary)",
+                      }}
+                    >
+                      {step.description[lang as "zh" | "en"]}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </section>
 
@@ -574,7 +604,7 @@ export default function HomePage() {
                 className="overflow-hidden"
               >
                 <div className="pt-3" style={{ borderTop: "1px solid var(--color-border-primary)", marginTop: 10 }}>
-                  {/* Phase pills — horizontal scroll with hidden scrollbar */}
+                  {/* Phase pills */}
                   <div
                     className="flex gap-1.5 mb-3"
                     style={{
@@ -607,32 +637,25 @@ export default function HomePage() {
                       );
                     })}
                   </div>
-                  {/* Task checklist — compact with max-height scroll */}
-                  <div
-                    className="flex flex-col gap-0.5"
-                    style={{
-                      maxHeight: 360,
-                      overflowY: "auto",
-                      scrollbarWidth: "none",
-                    }}
-                  >
-                    {activePhase.tasks.map((task) => {
+                  {/* Task checklist — fully expanded */}
+                  <div className="flex flex-col">
+                    {activePhase.tasks.map((task, idx) => {
                       const checked = !!breakthroughTasks[activePhase.id]?.[task.id];
                       return (
                         <button
                           key={task.id}
                           onClick={(e) => { e.stopPropagation(); toggleBreakthroughTask(activePhase.id, task.id); }}
-                          className="flex items-start gap-2.5 text-left text-[14px] py-2 px-2 rounded-[var(--radius-6)] press-feedback transition-colors"
+                          className="flex items-start gap-3 text-left text-[14px] py-3 px-1 press-feedback"
                           style={{
-                            color: checked ? "var(--color-text-quaternary)" : "var(--color-text-secondary)",
-                            background: checked ? "color-mix(in srgb, var(--color-accent) 5%, transparent)" : "transparent",
+                            color: checked ? "var(--color-text-quaternary)" : "var(--color-text-primary)",
+                            borderBottom: idx < activePhase.tasks.length - 1 ? "1px solid var(--color-border-primary)" : "none",
                           }}
                         >
                           {checked
-                            ? <CheckCircle2 size={16} className="shrink-0 mt-0.5" style={{ color: "var(--color-accent)" }} />
-                            : <Circle size={16} className="shrink-0 mt-0.5" style={{ color: "var(--color-border-secondary)" }} />
+                            ? <CheckCircle2 size={18} className="shrink-0 mt-0.5" style={{ color: "var(--color-accent)" }} />
+                            : <Circle size={18} className="shrink-0 mt-0.5" style={{ color: "var(--color-border-secondary)" }} />
                           }
-                          <span className="leading-relaxed" style={{ textDecoration: checked ? "line-through" : "none" }}>
+                          <span className="leading-relaxed" style={{ textDecoration: checked ? "line-through" : "none", opacity: checked ? 0.5 : 1 }}>
                             {task.title[lang as "zh" | "en"]}
                           </span>
                         </button>
@@ -713,45 +736,45 @@ export default function HomePage() {
                       </div>
                     )}
                     {selectedPrinciple.actionSteps && selectedPrinciple.actionSteps.length > 0 && (
-                      <div className="mb-3">
-                        <h4 className="text-[14px] mb-1.5" style={{ color: "var(--color-accent)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
-                          {lang === "zh" ? "行动指南" : "Action Steps"}
+                      <div className="mb-3 rounded-[var(--radius-8)] p-3" style={{ background: "var(--color-bg-secondary)" }}>
+                        <h4 className="text-[13px] mb-2 flex items-center gap-1.5" style={{ color: "var(--color-accent)", fontWeight: "var(--font-weight-semibold)", textTransform: "uppercase", letterSpacing: "0.03em" } as React.CSSProperties}>
+                          <span>→</span> {lang === "zh" ? "行动指南" : "Action Steps"}
                         </h4>
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-col gap-2">
                           {selectedPrinciple.actionSteps.map((s, i) => (
-                            <div key={i} className="flex items-start gap-2 text-[14px]" style={{ color: "var(--color-text-secondary)" }}>
-                              <span style={{ color: "var(--color-accent)" }}>•</span>
-                              {s[lang as "zh" | "en"]}
+                            <div key={i} className="flex items-start gap-2 text-[14px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+                              <span className="shrink-0 text-[12px] mt-0.5" style={{ color: "var(--color-accent)" }}>{i + 1}.</span>
+                              <span>{s[lang as "zh" | "en"]}</span>
                             </div>
                           ))}
                         </div>
                       </div>
                     )}
                     {selectedPrinciple.checks && selectedPrinciple.checks.length > 0 && (
-                      <div className="mb-3">
-                        <h4 className="text-[14px] mb-1.5" style={{ color: "var(--color-success)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
-                          {lang === "zh" ? "自检清单" : "Self-Check"}
+                      <div className="mb-3 rounded-[var(--radius-8)] p-3" style={{ background: "color-mix(in srgb, var(--color-success) 6%, var(--color-bg-secondary))" }}>
+                        <h4 className="text-[13px] mb-2 flex items-center gap-1.5" style={{ color: "var(--color-success)", fontWeight: "var(--font-weight-semibold)", textTransform: "uppercase", letterSpacing: "0.03em" } as React.CSSProperties}>
+                          <span>✓</span> {lang === "zh" ? "自检清单" : "Self-Check"}
                         </h4>
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-col gap-2">
                           {selectedPrinciple.checks.map((c, i) => (
-                            <div key={i} className="flex items-start gap-2 text-[14px]" style={{ color: "var(--color-text-secondary)" }}>
-                              <span style={{ color: "var(--color-success)" }}>✓</span>
-                              {c[lang as "zh" | "en"]}
+                            <div key={i} className="flex items-start gap-2 text-[14px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+                              <span className="shrink-0 mt-0.5" style={{ color: "var(--color-success)" }}>☐</span>
+                              <span>{c[lang as "zh" | "en"]}</span>
                             </div>
                           ))}
                         </div>
                       </div>
                     )}
                     {selectedPrinciple.antiPatterns && selectedPrinciple.antiPatterns.length > 0 && (
-                      <div>
-                        <h4 className="text-[14px] mb-1.5" style={{ color: "var(--color-danger)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
-                          {lang === "zh" ? "常见误区" : "Anti-Patterns"}
+                      <div className="rounded-[var(--radius-8)] p-3" style={{ background: "color-mix(in srgb, var(--color-danger) 5%, var(--color-bg-secondary))" }}>
+                        <h4 className="text-[13px] mb-2 flex items-center gap-1.5" style={{ color: "var(--color-danger)", fontWeight: "var(--font-weight-semibold)", textTransform: "uppercase", letterSpacing: "0.03em" } as React.CSSProperties}>
+                          <span>✗</span> {lang === "zh" ? "常见误区" : "Anti-Patterns"}
                         </h4>
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-col gap-2">
                           {selectedPrinciple.antiPatterns.map((a, i) => (
-                            <div key={i} className="flex items-start gap-2 text-[14px]" style={{ color: "var(--color-text-secondary)" }}>
-                              <span style={{ color: "var(--color-danger)" }}>✗</span>
-                              {a[lang as "zh" | "en"]}
+                            <div key={i} className="flex items-start gap-2 text-[14px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+                              <span className="shrink-0 mt-0.5" style={{ color: "var(--color-danger)" }}>✗</span>
+                              <span>{a[lang as "zh" | "en"]}</span>
                             </div>
                           ))}
                         </div>
@@ -760,43 +783,57 @@ export default function HomePage() {
                   </div>
                 ) : (
                   /* ── Principle list by category ── */
-                  <div className="px-4 py-2" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)" }}>
-                    {KNOWLEDGE_CATEGORIES.map((cat) => (
-                      <div key={cat.id} className="mb-3">
-                        <div className="flex items-center gap-1.5 mb-1.5">
-                          <span className="text-[15px]">{cat.emoji}</span>
-                          <span className="text-[14px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
+                  <div className="px-4 py-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)" }}>
+                    {KNOWLEDGE_CATEGORIES.map((cat, catIdx) => (
+                      <div key={cat.id}>
+                        {catIdx > 0 && (
+                          <div className="my-4" style={{ borderTop: "1px solid var(--color-border-primary)" }} />
+                        )}
+                        <div className="flex items-center gap-2 mb-3 px-1">
+                          <span className="text-[17px]">{cat.emoji}</span>
+                          <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
                             {cat.name[lang as "zh" | "en"]}
                           </span>
-                          <span className="text-[13px]" style={{ color: "var(--color-text-quaternary)" }}>
+                          <span className="text-[13px] tabular-nums px-1.5 py-0.5 rounded-full" style={{ color: "var(--color-text-tertiary)", background: "var(--color-bg-tertiary)" }}>
                             {cat.principles.length}
                           </span>
                         </div>
-                        <div className="flex flex-col gap-0.5">
+                        <div className="flex flex-col gap-2">
                           {cat.principles.map((p) => {
                             const isToday = p.id === todayPrinciple.id;
+                            const coreText = p.core[lang as "zh" | "en"];
+                            const truncated = coreText.length > 50 ? coreText.slice(0, 50) + "…" : coreText;
                             return (
                               <button
                                 key={p.id}
                                 onClick={() => setSelectedPrinciple({ ...p, catEmoji: cat.emoji })}
-                                className="flex items-center gap-2 w-full text-left rounded-[var(--radius-6)] press-feedback"
+                                className="w-full text-left rounded-[var(--radius-8)] press-feedback"
                                 style={{
-                                  padding: "8px 10px",
-                                  background: isToday ? "color-mix(in srgb, var(--color-accent) 8%, transparent)" : "transparent",
+                                  padding: "10px 12px",
+                                  background: isToday
+                                    ? "color-mix(in srgb, var(--color-accent) 8%, transparent)"
+                                    : "var(--color-bg-secondary)",
+                                  border: isToday ? "1px solid color-mix(in srgb, var(--color-accent) 20%, transparent)" : "1px solid transparent",
                                 }}
                               >
-                                <span className="text-[14px] flex-1 min-w-0 truncate" style={{
-                                  color: "var(--color-text-secondary)",
-                                }}>
-                                  {p.name[lang as "zh" | "en"]}
-                                </span>
-                                {isToday && (
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full shrink-0"
-                                    style={{ background: "var(--color-accent)", color: "#fff", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-                                    {lang === "zh" ? "今日" : "Today"}
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-[14px] flex-1 min-w-0 truncate" style={{
+                                    color: "var(--color-text-primary)",
+                                    fontWeight: "var(--font-weight-semibold)",
+                                  } as React.CSSProperties}>
+                                    {p.name[lang as "zh" | "en"]}
                                   </span>
-                                )}
-                                <ChevronRight size={12} style={{ color: "var(--color-text-quaternary)" }} className="shrink-0" />
+                                  {isToday && (
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full shrink-0"
+                                      style={{ background: "var(--color-accent)", color: "#fff", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
+                                      {lang === "zh" ? "今日" : "Today"}
+                                    </span>
+                                  )}
+                                  <ChevronRight size={12} style={{ color: "var(--color-text-quaternary)" }} className="shrink-0" />
+                                </div>
+                                <p className="text-[13px] leading-relaxed" style={{ color: "var(--color-text-tertiary)" }}>
+                                  {truncated}
+                                </p>
                               </button>
                             );
                           })}

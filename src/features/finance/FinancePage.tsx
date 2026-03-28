@@ -35,6 +35,18 @@ function FL({ children }: { children: React.ReactNode }) {
 
 const FINANCE_TABLES = ["finance_transactions", "clients", "payment_milestones"] as const;
 
+const createEmptyForm = () => ({
+  date: new Date().toISOString().slice(0, 10),
+  desc: "",
+  category: "收入",
+  amount: "",
+  status: "已完成",
+  taxMode: "none" as "none" | "exclusive" | "inclusive",
+  taxRate: "",
+  client_id: "" as string | number,
+  client_name: "",
+});
+
 /* ═══════════════════════════════════════════════════════════════════
    FinancePage — 收支统计
    ═══════════════════════════════════════════════════════════════════ */
@@ -83,18 +95,7 @@ export default function FinancePage() {
   const filterSearch = filters.search;
 
   /* ── Form state ── */
-  const emptyForm = {
-    date: new Date().toISOString().slice(0, 10),
-    desc: "",
-    category: "收入",
-    amount: "",
-    status: "已完成",
-    taxMode: "none" as "none" | "exclusive" | "inclusive",
-    taxRate: "",
-    client_id: "" as string | number,
-    client_name: "",
-  };
-  const [formData, setFormData] = useState(emptyForm);
+  const [formData, setFormData] = useState(createEmptyForm);
 
   const categories = ["收入", "软件支出", "外包支出", "应收", "应付", "其他支出"];
   const statuses = ["已完成", "待收款 (应收)", "待支付 (应付)"];
@@ -248,7 +249,7 @@ export default function FinancePage() {
       });
     } else {
       setEditingTx(null);
-      setFormData({ ...emptyForm, date: new Date().toISOString().slice(0, 10) });
+      setFormData(createEmptyForm());
     }
     setShowPanel(true);
   };
@@ -399,7 +400,7 @@ export default function FinancePage() {
       </header>
 
       {/* ── KPI Stat Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
         <StatCard
           label={t("money.stat.completedRevenue" as any)}
           value={`$${stats.totalIncome.toLocaleString()}`}
@@ -440,7 +441,7 @@ export default function FinancePage() {
       </div>
 
       {/* ── Chart ── */}
-      <React.Suspense fallback={<div className="card p-4 mb-5 h-[200px] skeleton-bone rounded-[var(--radius-12)]" />}>
+      <React.Suspense fallback={<div className="card p-4 mb-4 h-[200px] skeleton-bone rounded-[var(--radius-12)]" />}>
         <FinanceChart chartData={chartData} isMobile={isMobile} t={t} />
       </React.Suspense>
 
@@ -503,7 +504,7 @@ export default function FinancePage() {
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={exportCSV} className="btn-ghost compact gap-1"><Download size={16} /></button>
-                <button onClick={() => setShowAll(false)} className="btn-icon"><X size={20} /></button>
+                <button onClick={() => setShowAll(false)} className="btn-icon"><X size={18} /></button>
               </div>
             </div>
 
@@ -613,7 +614,7 @@ export default function FinancePage() {
                   </div>
                 </div>
                 <button onClick={() => setShowPanel(false)} className="btn-icon">
-                  {isMobile ? <X size={20} /> : <PanelRightClose size={20} />}
+                  {isMobile ? <X size={18} /> : <PanelRightClose size={18} />}
                 </button>
               </div>
 

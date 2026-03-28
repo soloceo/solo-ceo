@@ -14,10 +14,10 @@ export interface Task {
   originalRequest?: string;
 }
 
-const prioColorMap: Record<string, string> = {
-  High: "var(--color-danger)",
-  Medium: "var(--color-warning)",
-  Low: "var(--color-success)",
+const prioLabel: Record<string, { zh: string; en: string; color: string }> = {
+  High: { zh: "高", en: "H", color: "var(--color-danger)" },
+  Medium: { zh: "中", en: "M", color: "var(--color-warning)" },
+  Low: { zh: "低", en: "L", color: "var(--color-success)" },
 };
 
 interface TaskCardProps {
@@ -31,7 +31,7 @@ interface TaskCardProps {
 
 export const TaskCard = React.memo(function TaskCard({ task, provided, snapshot, onEdit, onDelete, onClientClick }: TaskCardProps) {
   const { lang } = useT();
-  const prioColor = prioColorMap[task.priority] || "var(--color-text-quaternary)";
+  const prio = prioLabel[task.priority];
 
   const card = (
     <div
@@ -45,7 +45,9 @@ export const TaskCard = React.memo(function TaskCard({ task, provided, snapshot,
         <span {...provided.dragHandleProps} style={{ touchAction: "none" }} className="shrink-0 cursor-grab active:cursor-grabbing">
           <GripVertical size={14} style={{ color: "var(--color-text-quaternary)", opacity: 0.5 }} />
         </span>
-        <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: prioColor }} />
+        <span className="text-[11px] shrink-0" style={{ color: prio?.color || "var(--color-text-quaternary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
+          {prio?.[lang] || ""}
+        </span>
         <h4 className="text-[15px] truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
           {task.title}
         </h4>

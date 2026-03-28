@@ -397,7 +397,7 @@ function App() {
                       <button
                         key={i}
                         onClick={() => { item.action(); setQuickCreateOpen(false); }}
-                        className="flex items-center gap-2.5 w-full px-3 py-2 text-[15px] transition-colors hover:bg-[var(--color-bg-tertiary)]"
+                        className="flex items-center gap-3 w-full px-3 py-2 text-[15px] transition-colors hover:bg-[var(--color-bg-tertiary)]"
                         style={{ color: "var(--color-text-secondary)" }}
                       >
                         <span style={{ color: "var(--color-text-quaternary)" }}>{item.icon}</span>
@@ -424,7 +424,7 @@ function App() {
             >
               <PanelLeft size={16} />
             </button>
-            <div className="flex items-center gap-0.5 mt-0.5">
+            <div className="flex items-center gap-1 mt-0.5">
               <button
                 onClick={() => useUIStore.getState().setCommandPaletteOpen(true)}
                 className="flex items-center justify-center rounded-[var(--radius-6)] transition-colors hover:bg-[var(--color-bg-tertiary)]"
@@ -547,7 +547,7 @@ function App() {
                   {/* Settings */}
                   <button
                     onClick={() => { setActiveTab("settings" as any); setUserMenuOpen(false); }}
-                    className="flex items-center gap-2.5 w-full px-3 py-2 text-[15px] transition-colors hover:bg-[var(--color-bg-tertiary)]"
+                    className="flex items-center gap-3 w-full px-3 py-2 text-[15px] transition-colors hover:bg-[var(--color-bg-tertiary)]"
                     style={{ color: "var(--color-text-secondary)" }}
                   >
                     <SettingsIcon size={14} aria-hidden="true" style={{ color: "var(--color-text-quaternary)" }} />
@@ -558,7 +558,7 @@ function App() {
                   {/* Sign out */}
                   <button
                     onClick={() => { setUserMenuOpen(false); signOut(); }}
-                    className="flex items-center gap-2.5 w-full px-3 py-2 text-[15px] transition-colors hover:bg-[var(--color-bg-tertiary)]"
+                    className="flex items-center gap-3 w-full px-3 py-2 text-[15px] transition-colors hover:bg-[var(--color-bg-tertiary)]"
                     style={{ color: "var(--color-danger)" }}
                   >
                     <LogOut size={14} aria-hidden="true" />
@@ -674,7 +674,7 @@ function App() {
                         <button
                           key={i}
                           role="menuitem"
-                          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[15px] transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback"
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-[15px] transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback"
                           style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" }}
                           onClick={() => { setFabMenuOpen(false); item.action(); }}
                         >
@@ -795,7 +795,7 @@ const MobileNavItem = React.memo(function MobileNavItem({
     <button
       onClick={() => onClick(id)}
       aria-current={active ? "page" : undefined}
-      className={`relative flex-1 flex flex-col items-center justify-center gap-0.5 rounded-full py-1.5 min-h-[44px] transition-all press-feedback`}
+      className={`relative flex-1 flex flex-col items-center justify-center gap-1 rounded-full py-1.5 min-h-[44px] transition-all press-feedback`}
       style={{
         color: active ? "var(--color-accent)" : "var(--color-text-quaternary)",
         background: active ? "var(--color-accent-tint)" : "transparent",

@@ -195,7 +195,7 @@ export function TodayFocus({
           {showCompleted && (
             <div className="card mt-1.5 overflow-hidden divide-y divide-[var(--color-line-secondary)]">
               {[...completed, ...completedManual].map((item) => (
-                <div key={item.key} className="flex items-center gap-2.5 px-3 py-2 group">
+                <div key={item.key} className="flex items-center gap-3 px-3 py-2 group">
                   <Check size={14} style={{ color: "var(--color-success)" }} className="shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-[15px] line-through truncate" style={{ color: "var(--color-text-quaternary)" }}>{item.title}</p>
@@ -282,7 +282,7 @@ function FocusRow({ item, badgeVariant, saving, canSwap, onToggle, onSkip, onEdi
   const { t } = useT();
 
   return (
-    <div className="flex items-center gap-2.5 px-3 py-2.5 group transition-colors hover:bg-[var(--color-bg-tertiary)]">
+    <div className="flex items-center gap-3 px-3 py-2.5 group transition-colors hover:bg-[var(--color-bg-tertiary)]">
       {/* Checkbox */}
       <button
         onClick={onToggle}
@@ -307,7 +307,7 @@ function FocusRow({ item, badgeVariant, saving, canSwap, onToggle, onSkip, onEdi
       </div>
 
       {/* Actions — always visible on mobile, hover on desktop */}
-      <div className="flex items-center gap-0.5 shrink-0 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-1 shrink-0 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
         {canSwap && onSkip && (
           <button
             onClick={onSkip}

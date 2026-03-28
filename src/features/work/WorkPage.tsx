@@ -17,7 +17,7 @@ export default function WorkPage() {
 
   const COLS = useMemo<ColDef[]>(() => [
     { id: "todo", title: t("work.col.todo" as any), color: "var(--color-text-tertiary)" },
-    { id: "inProgress", title: t("work.col.inProgress" as any), color: "var(--color-accent)" },
+    { id: "inProgress", title: t("work.col.inProgress" as any), color: "var(--color-info, #3b82f6)" },
     { id: "review", title: t("work.col.review" as any), color: "var(--color-warning)" },
     { id: "done", title: t("work.col.done" as any), color: "var(--color-success)" },
   ], [t]);
@@ -44,11 +44,17 @@ export default function WorkPage() {
     try {
       const res = await fetch("/api/tasks");
       const data = await res.json();
+      const grouped = data.reduce((acc: any, t: any) => {
+        const col = t.column || "todo";
+        if (!acc[col]) acc[col] = [];
+        acc[col].push(t);
+        return acc;
+      }, {} as Record<string, any[]>);
       setTasks({
-        todo: data.filter((t: any) => t.column === "todo"),
-        inProgress: data.filter((t: any) => t.column === "inProgress"),
-        review: data.filter((t: any) => t.column === "review"),
-        done: data.filter((t: any) => t.column === "done"),
+        todo: grouped.todo || [],
+        inProgress: grouped.inProgress || [],
+        review: grouped.review || [],
+        done: grouped.done || [],
       });
     } catch {
       showToast(t("work.loadFailed" as any));
@@ -165,10 +171,13 @@ export default function WorkPage() {
 
   const handleMove = async (id: number, col: string) => {
     try {
+      const allTasks = Object.values(tasks).flat();
+      const task = allTasks.find((t) => t.id === id);
+      if (!task) return;
       await fetch(`/api/tasks/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ column: col }),
+        body: JSON.stringify({ ...task, column: col }),
       });
       fetchTasks();
     } catch {
@@ -204,7 +213,7 @@ export default function WorkPage() {
         <div className="flex flex-wrap gap-2 items-center">
           {/* Priority filter */}
           <div className="flex items-center gap-1.5">
-            <Filter size={14} style={{ color: "var(--color-text-tertiary)" }} />
+            <Filter size={16} style={{ color: "var(--color-text-tertiary)" }} />
             <select
               value={filterPriority}
               onChange={(e) => setFilterPriority(e.target.value)}
@@ -234,7 +243,7 @@ export default function WorkPage() {
           </div>
 
           <button onClick={() => openPanel(null, "todo")} className="btn-primary compact">
-            <Plus size={14} /> {t("work.new" as any)}
+            <Plus size={16} /> {t("work.new" as any)}
           </button>
         </div>
       </header>

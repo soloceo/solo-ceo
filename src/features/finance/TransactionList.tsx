@@ -63,7 +63,7 @@ export const TxRow = React.memo(function TxRow({ tx, t, lang, fmtAmt, fmtAmtColo
   const actionBtns = isSystem ? (
     <span className="btn-icon-sm" title={t("finance.locked.hint" as any)}><Lock size={14} /></span>
   ) : (
-    <div className="flex gap-0.5 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+    <div className="flex gap-1 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
       <button onClick={onEdit} className="btn-icon-sm" aria-label={t("common.edit" as any)}><Edit2 size={14} /></button>
       <button onClick={onDelete} className="btn-icon-sm" aria-label={t("common.delete" as any)}><Trash2 size={14} /></button>
     </div>

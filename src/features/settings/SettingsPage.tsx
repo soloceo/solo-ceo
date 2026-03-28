@@ -118,7 +118,7 @@ export default function SettingsPage() {
 
   /* ── Render ── */
   return (
-    <div className="mobile-page max-w-2xl lg:max-w-3xl mx-auto px-4 py-4 md:px-8 md:py-6 lg:py-8 relative">
+    <div className="mobile-page max-w-2xl lg:max-w-3xl mx-auto px-4 py-3 md:px-8 md:py-4 lg:py-5 relative">
 
       {/* Header — desktop only */}
       <header className="mb-4 md:mb-6 hidden lg:block">

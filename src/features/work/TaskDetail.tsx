@@ -161,7 +161,7 @@ export function TaskDetail({ open, onClose, editTask, columns, defaultColumn, cl
               className="flex items-center justify-between px-5 py-3 shrink-0"
               style={{ borderBottom: "1px solid var(--color-line-secondary)" }}
             >
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-3">
                 <div
                   className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-6)]"
                   style={{ background: "var(--color-accent-tint)", color: "var(--color-accent)" }}
@@ -173,7 +173,7 @@ export function TaskDetail({ open, onClose, editTask, columns, defaultColumn, cl
                 </span>
               </div>
               <button onClick={onClose} className="btn-icon">
-                {isMobile ? <X size={16} /> : <PanelRightClose size={16} />}
+                {isMobile ? <X size={18} /> : <PanelRightClose size={18} />}
               </button>
             </div>
 
