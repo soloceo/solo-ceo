@@ -34,8 +34,8 @@ export default function FinanceChart({ chartData, isMobile, t }: FinanceChartPro
         </div>
         <div className="flex items-center gap-3 text-[13px]" style={{ color: "var(--color-text-secondary)" }}>
           <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-[var(--radius-4)]" style={{ background: "var(--color-success)" }} />{t("money.chart.revenue" as any)}</span>
-          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full" style={{ background: "var(--color-danger)" }} />{t("money.chart.expense" as any)}</span>
-          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full" style={{ background: "var(--color-accent)" }} />{t("money.chart.net" as any)}</span>
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-[var(--radius-4)]" style={{ background: "var(--color-danger)" }} />{t("money.chart.expense" as any)}</span>
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-[var(--radius-4)]" style={{ background: "var(--color-accent)" }} />{t("money.chart.net" as any)}</span>
         </div>
       </div>
       <div className="h-[200px]">

@@ -229,13 +229,14 @@ export default function WorkPage() {
           {/* View mode toggle */}
           <div className="segment-switcher">
             {([
-              ["vertical", <LayoutGrid size={14} />],
-              ["horizontal", <AlignJustify size={14} />],
-            ] as [string, React.ReactNode][]).map(([mode, icon]) => (
+              ["vertical", <LayoutGrid size={14} />, "Board view"],
+              ["horizontal", <AlignJustify size={14} />, "List view"],
+            ] as [string, React.ReactNode, string][]).map(([mode, icon, label]) => (
               <button
                 key={mode}
                 onClick={() => setViewMode(mode as "vertical" | "horizontal")}
                 data-active={viewMode === mode}
+                aria-label={label}
               >
                 {icon}
               </button>

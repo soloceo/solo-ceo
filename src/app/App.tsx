@@ -419,7 +419,7 @@ function App() {
               onClick={toggleSidebar}
               className="flex items-center justify-center rounded-[var(--radius-8)] transition-all hover:bg-[var(--color-bg-tertiary)] hover:scale-105 active:scale-95"
               style={{ width: 32, height: 32, color: "var(--color-text-secondary)" }}
-              title={t("nav.pinSidebar" as any) || "展开侧边栏"}
+              title={t("nav.pinSidebar" as any) || "Expand sidebar"}
               aria-label="Expand sidebar"
             >
               <PanelLeft size={16} />

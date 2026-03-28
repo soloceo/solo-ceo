@@ -249,7 +249,7 @@ export default function EnergyBatteryWidget() {
 
             <div className="flex items-center justify-center" style={{ marginTop: s(3) }}>
               {currentEnergy <= 20 && currentEnergy > 0 ? (
-                <span className="rounded-full" style={{ fontSize: s(9), paddingInline: s(6), paddingBlock: s(1), background: "var(--color-danger-tint)", color: "var(--color-danger)", fontWeight: 500 }}>
+                <span className="rounded-[var(--radius-4)]" style={{ fontSize: s(9), paddingInline: s(6), paddingBlock: s(1), background: "var(--color-danger-tint)", color: "var(--color-danger)", fontWeight: 500 }}>
                   {t("widgets.energy.lowWarn" as any)}
                 </span>
               ) : (

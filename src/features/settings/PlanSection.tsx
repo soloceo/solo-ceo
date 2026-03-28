@@ -71,14 +71,14 @@ export default function PlanSection({ showToast }: PlanSectionProps) {
                 </div>
               </div>
               <div className="flex gap-1 shrink-0">
-                <button onClick={() => openEdit(p)} className="btn-icon" style={{ color: "var(--color-text-quaternary)" }}><Edit2 size={16} /></button>
+                <button onClick={() => openEdit(p)} className="btn-icon" style={{ color: "var(--color-text-quaternary)" }} aria-label="Edit plan"><Edit2 size={16} /></button>
                 {confirmDeleteId === p.id ? (
                   <div className="flex items-center gap-1.5">
                     <button onClick={() => del(p.id)} className="text-[14px] px-3 py-1.5 rounded-[var(--radius-6)] transition-colors" style={{ background: "var(--color-danger)", color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("common.confirm" as any)}</button>
                     <button onClick={() => setConfirmDeleteId(null)} className="text-[14px] px-3 py-1.5 rounded-[var(--radius-6)] transition-colors hover:bg-[var(--color-bg-quaternary)]" style={{ color: "var(--color-text-tertiary)" }}>{t("common.cancel" as any)}</button>
                   </div>
                 ) : (
-                  <button onClick={() => setConfirmDeleteId(p.id)} className="btn-icon" style={{ color: "var(--color-danger)" }}><Trash2 size={16} /></button>
+                  <button onClick={() => setConfirmDeleteId(p.id)} className="btn-icon" style={{ color: "var(--color-danger)" }} aria-label="Delete plan"><Trash2 size={16} /></button>
                 )}
               </div>
             </div>
@@ -93,7 +93,7 @@ export default function PlanSection({ showToast }: PlanSectionProps) {
             <div className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
               {editing === "new" ? t("common.add" as any) : t("common.edit" as any)}
             </div>
-            <button onClick={() => setEditing(null)} className="btn-icon" style={{ color: "var(--color-text-quaternary)" }}><X size={16} /></button>
+            <button onClick={() => setEditing(null)} className="btn-icon" style={{ color: "var(--color-text-quaternary)" }} aria-label="Close"><X size={16} /></button>
           </div>
           <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder={t("settings.planName" as any)} className="input-base w-full px-3 py-2 text-[15px]" />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

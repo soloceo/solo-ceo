@@ -206,7 +206,7 @@ function ScriptVault({ L, t, showToast }: { L: (o: { zh: string; en: string }) =
         </div>
 
         {/* Pricing roadmap — horizontal */}
-        <div className="flex gap-2 overflow-x-auto">
+        <div className="flex gap-2 overflow-x-auto ios-scroll">
           {PRICING_STAGES.map((s) => (
             <div key={s.id} className="card p-3 min-w-[140px] shrink-0 space-y-1">
               <div className="text-[13px]" style={{ fontWeight: "var(--font-weight-semibold)" }}>{L(s.stage)}</div>

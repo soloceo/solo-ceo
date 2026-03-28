@@ -23,6 +23,27 @@ const TX_STATUSES = ["已完成", "待收款 (应收)", "待支付 (应付)"];
 
 const CLIENTS_TABLES = ['clients', 'plans', 'payment_milestones', 'finance_transactions'] as const;
 
+const EMPTY_MS = { label: "", amount: "", percentage: "", due_date: "", note: "", alreadyPaid: false, payMethod: "bank_transfer" };
+const EMPTY_TX = { date: "", desc: "", category: "收入", amount: "", status: "已完成", taxMode: "none" as "none" | "exclusive" | "inclusive", taxRate: "" };
+const PAYMENT_METHODS = ["bank_transfer", "wechat", "alipay", "cash", "paypal", "stripe", "other"] as const;
+
+const createEmptyClient = () => ({
+  name: "", company_name: "", contact_name: "", contact_email: "", contact_phone: "",
+  billing_type: "subscription" as "subscription" | "project", plan: "", status: "Active",
+  mrr: "", project_fee: "",
+  subscription_start_date: new Date().toISOString().split("T")[0],
+  project_end_date: "", paused_at: "", resumed_at: "", cancelled_at: "",
+  mrr_effective_from: new Date().toISOString().split("T")[0],
+  tax_mode: "none" as "none" | "exclusive" | "inclusive", tax_rate: "",
+  drive_folder_url: "", payment_method: "auto" as "auto" | "manual",
+  timeline: [{ type: "start", date: new Date().toISOString().split("T")[0] }] as { type: string; date: string }[],
+});
+
+const createEmptyTx = () => ({
+  ...EMPTY_TX,
+  date: new Date().toISOString().split("T")[0],
+});
+
 /* ══════════════════════════════════════════════════════════════════
    CLIENTS VIEW
    ══════════════════════════════════════════════════════════════════ */
@@ -41,8 +62,7 @@ export function ClientsView() {
   const [plans, setPlans] = useState<any[]>([]);
   const [savingClient, setSavingClient] = useState(false);
   const [savingMs, setSavingMs] = useState(false);
-  const emptyClient = { name: "", company_name: "", contact_name: "", contact_email: "", contact_phone: "", billing_type: "subscription" as "subscription" | "project", plan: "", status: "Active", mrr: "", project_fee: "", subscription_start_date: new Date().toISOString().split("T")[0], project_end_date: "", paused_at: "", resumed_at: "", cancelled_at: "", mrr_effective_from: new Date().toISOString().split("T")[0], tax_mode: "none" as "none" | "exclusive" | "inclusive", tax_rate: "", drive_folder_url: "", payment_method: "auto" as "auto" | "manual", timeline: [{ type: "start", date: new Date().toISOString().split("T")[0] }] as { type: string; date: string }[] };
-  const [form, setForm] = useState(emptyClient);
+  const [form, setForm] = useState(createEmptyClient);
   const parentRef = useRef<HTMLDivElement>(null);
 
   /* ── Milestones state ── */
@@ -52,18 +72,14 @@ export function ClientsView() {
   const [editMsId, setEditMsId] = useState<number | null>(null);
   const [markPaidId, setMarkPaidId] = useState<number | null>(null);
   const [markPaidMethod, setMarkPaidMethod] = useState("bank_transfer");
-  const emptyMs = { label: "", amount: "", percentage: "", due_date: "", note: "", alreadyPaid: false, payMethod: "bank_transfer" };
-  const [msForm, setMsForm] = useState(emptyMs);
-
-  const PAYMENT_METHODS = ["bank_transfer", "wechat", "alipay", "cash", "paypal", "stripe", "other"] as const;
+  const [msForm, setMsForm] = useState(EMPTY_MS);
 
   const [finTxs, setFinTxs] = useState<any[]>([]);
 
   /* ── Transaction editing state ── */
   const [showTxForm, setShowTxForm] = useState(false);
   const [editTxId, setEditTxId] = useState<number | null>(null);
-  const emptyTx = { date: new Date().toISOString().split("T")[0], desc: "", category: "收入", amount: "", status: "已完成", taxMode: "none" as "none" | "exclusive" | "inclusive", taxRate: "" };
-  const [txForm, setTxForm] = useState(emptyTx);
+  const [txForm, setTxForm] = useState(createEmptyTx);
 
   const fetchPlans = async () => { try { setPlans(await (await fetch("/api/plans")).json()); } catch {} };
   const fetchClients = async () => { try { const res = await fetch("/api/clients"); setClients(await res.json()); } catch { showToast(t("pipeline.toast.clientLoadFailed" as any)); } finally { setLoading(false); } };
@@ -95,7 +111,7 @@ export function ClientsView() {
       } else {
         showToast(t("pipeline.milestones.saved" as any));
       }
-      setShowAddMs(false); setEditMsId(null); setMsForm(emptyMs);
+      setShowAddMs(false); setEditMsId(null); setMsForm(EMPTY_MS);
       fetchMilestones(editId); fetchFinance();
     } catch { showToast(t("common.saveFailed" as any)); }
     finally { setSavingMs(false); }
@@ -147,7 +163,7 @@ export function ClientsView() {
       if (editTxId) { await fetch(`/api/finance/${editTxId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(txData) }); }
       else { await fetch("/api/finance", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(txData) }); }
       showToast(t("pipeline.tx.saved" as any));
-      setShowTxForm(false); setEditTxId(null); setTxForm(emptyTx);
+      setShowTxForm(false); setEditTxId(null); setTxForm(createEmptyTx());
       fetchFinance();
     } catch { showToast(t("common.saveFailed" as any)); }
   };
@@ -182,8 +198,8 @@ export function ClientsView() {
   }, [showPanel, isMobile]);
 
   const openPanel = (c: any = null) => {
-    setMilestones([]); setShowAddMs(false); setEditMsId(null); setMarkPaidId(null); setMsForm(emptyMs);
-    setShowTxForm(false); setEditTxId(null); setTxForm(emptyTx);
+    setMilestones([]); setShowAddMs(false); setEditMsId(null); setMarkPaidId(null); setMsForm(EMPTY_MS);
+    setShowTxForm(false); setEditTxId(null); setTxForm(createEmptyTx());
     if (c) {
       setEditId(c.id);
       // Parse timeline — fallback to legacy fields
@@ -199,7 +215,7 @@ export function ClientsView() {
       setForm({ name: c.name, company_name: c.company_name || "", contact_name: c.contact_name || "", contact_email: c.contact_email || "", contact_phone: c.contact_phone || "", billing_type: c.billing_type || "subscription", plan: c.plan_tier || c.plan, status: c.status, mrr: String(c.mrr).replace(/[^0-9.-]+/g, ""), project_fee: String(c.project_fee || "").replace(/[^0-9.-]+/g, ""), subscription_start_date: tl[0]?.date || "", project_end_date: c.project_end_date || "", paused_at: c.paused_at || "", resumed_at: c.resumed_at || "", cancelled_at: c.cancelled_at || "", mrr_effective_from: tl[0]?.date || c.mrr_effective_from || "", tax_mode: (c.tax_mode || "none") as any, tax_rate: String(c.tax_rate || ""), drive_folder_url: c.drive_folder_url || "", payment_method: (c.payment_method || "auto") as any, timeline: tl });
       if ((c.billing_type || "subscription") === "project") fetchMilestones(c.id);
     }
-    else { setEditId(null); setForm(emptyClient); }
+    else { setEditId(null); setForm(createEmptyClient()); }
     setShowPanel(true);
   };
 
@@ -405,7 +421,7 @@ export function ClientsView() {
                   <div className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-6)]" style={{ background: "var(--color-accent-tint)", color: "var(--color-accent)" }}><UserPlus size={16} /></div>
                   <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{editId ? t("pipeline.panel.editClient" as any) : t("pipeline.panel.newClient" as any)}</span>
                 </div>
-                <button onClick={() => setShowPanel(false)} className="btn-icon">{isMobile ? <X size={18} /> : <PanelRightClose size={18} />}</button>
+                <button onClick={() => setShowPanel(false)} className="btn-icon" aria-label="Close panel">{isMobile ? <X size={18} /> : <PanelRightClose size={18} />}</button>
               </div>
               <div className="flex-1 overflow-y-auto overflow-x-hidden ios-scroll p-5 space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -594,7 +610,7 @@ export function ClientsView() {
                         <div className="border-t" style={{ borderColor: "var(--color-border-primary)" }} />
                         <div className="flex items-center justify-between">
                           <span className="section-label flex items-center gap-1.5"><DollarSign size={16} /> {t("pipeline.milestones.title" as any)}</span>
-                          <button onClick={() => { setShowAddMs(true); setEditMsId(null); setMsForm(emptyMs); }} className="btn-ghost text-[13px] flex items-center gap-1" style={{ color: "var(--color-accent)" }}><Plus size={16} /> {t("pipeline.milestones.add" as any)}</button>
+                          <button onClick={() => { setShowAddMs(true); setEditMsId(null); setMsForm(EMPTY_MS); }} className="btn-ghost text-[13px] flex items-center gap-1" style={{ color: "var(--color-accent)" }}><Plus size={16} /> {t("pipeline.milestones.add" as any)}</button>
                         </div>
                         <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.milestones.hint" as any)}</div>
 
@@ -677,7 +693,7 @@ export function ClientsView() {
                               <div className="rounded-[var(--radius-6)] p-3 space-y-3" style={{ background: "var(--color-bg-tertiary)", border: "1px solid var(--color-accent)", borderStyle: "dashed" }}>
                                 <div className="flex items-center justify-between">
                                   <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{editMsId ? t("common.edit" as any) : t("pipeline.milestones.add" as any)}</span>
-                                  <button onClick={() => { setShowAddMs(false); setEditMsId(null); setMsForm(emptyMs); }} className="btn-icon"><X size={18} /></button>
+                                  <button onClick={() => { setShowAddMs(false); setEditMsId(null); setMsForm(EMPTY_MS); }} className="btn-icon" aria-label="Close"><X size={18} /></button>
                                 </div>
                                 {/* Preset buttons */}
                                 {!editMsId && (
@@ -710,7 +726,7 @@ export function ClientsView() {
                                   </FL>
                                 )}
                                 <div className="flex justify-end gap-2">
-                                  <button onClick={() => { setShowAddMs(false); setEditMsId(null); setMsForm(emptyMs); }} className="btn-secondary text-[15px]">{t("common.cancel" as any)}</button>
+                                  <button onClick={() => { setShowAddMs(false); setEditMsId(null); setMsForm(EMPTY_MS); }} className="btn-secondary text-[15px]">{t("common.cancel" as any)}</button>
                                   <button onClick={saveMilestone} disabled={!msForm.label || !msForm.amount || savingMs} className="btn-primary text-[15px]" style={savingMs ? { opacity: 0.6 } : undefined}>{savingMs ? t("common.loading" as any) : msForm.alreadyPaid && !editMsId ? t("pipeline.milestones.saveAndRecord" as any) : t("common.save" as any)}</button>
                                 </div>
                               </div>
@@ -746,7 +762,7 @@ export function ClientsView() {
                     <div className="border-t" style={{ borderColor: "var(--color-border-primary)" }} />
                     <div className="flex items-center justify-between">
                       <span className="section-label flex items-center gap-1.5"><DollarSign size={16} /> {t("pipeline.tx.title" as any)}</span>
-                      <button onClick={() => { setShowTxForm(true); setEditTxId(null); setTxForm({ ...emptyTx, taxMode: (form.tax_mode || "none") as any, taxRate: form.tax_rate || "" }); }} className="btn-ghost text-[13px] flex items-center gap-1" style={{ color: "var(--color-accent)" }}><Plus size={16} /> {t("pipeline.tx.add" as any)}</button>
+                      <button onClick={() => { setShowTxForm(true); setEditTxId(null); setTxForm({ ...createEmptyTx(), taxMode: (form.tax_mode || "none") as any, taxRate: form.tax_rate || "" }); }} className="btn-ghost text-[13px] flex items-center gap-1" style={{ color: "var(--color-accent)" }}><Plus size={16} /> {t("pipeline.tx.add" as any)}</button>
                     </div>
                     <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.tx.hint" as any)}</div>
 
@@ -819,7 +835,7 @@ export function ClientsView() {
                           <div className="rounded-[var(--radius-6)] p-3 space-y-3" style={{ background: "var(--color-bg-tertiary)", border: "1px solid var(--color-accent)", borderStyle: "dashed" }}>
                             <div className="flex items-center justify-between">
                               <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{editTxId ? t("common.edit" as any) : t("pipeline.tx.add" as any)}</span>
-                              <button onClick={() => { setShowTxForm(false); setEditTxId(null); setTxForm(emptyTx); }} className="btn-icon"><X size={18} /></button>
+                              <button onClick={() => { setShowTxForm(false); setEditTxId(null); setTxForm(createEmptyTx()); }} className="btn-icon" aria-label="Close"><X size={18} /></button>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               <FL label={t("pipeline.tx.date" as any)}><input type="date" value={txForm.date} onChange={e => setTxForm(p => ({ ...p, date: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
@@ -874,7 +890,7 @@ export function ClientsView() {
                               );
                             })()}
                             <div className="flex justify-end gap-2">
-                              <button onClick={() => { setShowTxForm(false); setEditTxId(null); setTxForm(emptyTx); }} className="btn-secondary text-[15px]">{t("common.cancel" as any)}</button>
+                              <button onClick={() => { setShowTxForm(false); setEditTxId(null); setTxForm(createEmptyTx()); }} className="btn-secondary text-[15px]">{t("common.cancel" as any)}</button>
                               <button onClick={saveTx} disabled={!txForm.amount} className="btn-primary text-[15px]">{t("common.save" as any)}</button>
                             </div>
                           </div>

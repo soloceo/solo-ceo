@@ -81,7 +81,7 @@ export const TaskCard = React.memo(function TaskCard({ task, provided, snapshot,
             );
           })()}
         </div>
-        <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+        <div className="flex gap-1">
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(task.id); }}
             className="btn-icon-sm"

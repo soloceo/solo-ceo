@@ -345,7 +345,7 @@ export default function HomePage() {
             <div className="flex items-start gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full shrink-0"
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-[var(--radius-4)] shrink-0"
                     style={{ background: "var(--color-accent)", color: "#fff", fontWeight: "var(--font-weight-semibold)", letterSpacing: "0.02em" } as React.CSSProperties}>
                     {lang === "zh" ? "每日一课" : "DAILY"}
                   </span>
@@ -458,7 +458,7 @@ export default function HomePage() {
                 {lang === "zh" ? "每日协议" : "Daily Protocol"}
               </span>
               {protocolDone > 0 && (
-                <span className="text-[13px] tabular-nums px-1.5 py-0.5 rounded-full"
+                <span className="text-[13px] tabular-nums px-1.5 py-0.5 rounded-[var(--radius-4)]"
                   style={{
                     background: protocolDone === PROTOCOL_STEPS.length ? "var(--color-success)" : "var(--color-accent)",
                     color: "#fff",
@@ -474,7 +474,7 @@ export default function HomePage() {
               )}
             </div>
             {protocolStreak.count > 0 && (
-              <span className="flex items-center gap-1 text-[13px] px-2 py-0.5 rounded-full"
+              <span className="flex items-center gap-1 text-[13px] px-2 py-0.5 rounded-[var(--radius-4)]"
                 style={{
                   color: "var(--color-accent)",
                   background: "color-mix(in srgb, var(--color-accent) 10%, transparent)",
@@ -794,7 +794,7 @@ export default function HomePage() {
                           <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
                             {cat.name[lang as "zh" | "en"]}
                           </span>
-                          <span className="text-[13px] tabular-nums px-1.5 py-0.5 rounded-full" style={{ color: "var(--color-text-tertiary)", background: "var(--color-bg-tertiary)" }}>
+                          <span className="text-[13px] tabular-nums px-1.5 py-0.5 rounded-[var(--radius-4)]" style={{ color: "var(--color-text-tertiary)", background: "var(--color-bg-tertiary)" }}>
                             {cat.principles.length}
                           </span>
                         </div>
@@ -824,7 +824,7 @@ export default function HomePage() {
                                     {p.name[lang as "zh" | "en"]}
                                   </span>
                                   {isToday && (
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full shrink-0"
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-[var(--radius-4)] shrink-0"
                                       style={{ background: "var(--color-accent)", color: "#fff", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
                                       {lang === "zh" ? "今日" : "Today"}
                                     </span>

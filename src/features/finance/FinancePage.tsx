@@ -34,6 +34,8 @@ function FL({ children }: { children: React.ReactNode }) {
 }
 
 const FINANCE_TABLES = ["finance_transactions", "clients", "payment_milestones"] as const;
+const TX_CATEGORIES = ["收入", "软件支出", "外包支出", "应收", "应付", "其他支出"];
+const TX_STATUSES = ["已完成", "待收款 (应收)", "待支付 (应付)"];
 
 const createEmptyForm = () => ({
   date: new Date().toISOString().slice(0, 10),
@@ -97,8 +99,8 @@ export default function FinancePage() {
   /* ── Form state ── */
   const [formData, setFormData] = useState(createEmptyForm);
 
-  const categories = ["收入", "软件支出", "外包支出", "应收", "应付", "其他支出"];
-  const statuses = ["已完成", "待收款 (应收)", "待支付 (应付)"];
+  const categories = TX_CATEGORIES;
+  const statuses = TX_STATUSES;
 
   /* ── Fetch ── */
   const fetchFinance = useCallback(async () => {
@@ -503,13 +505,13 @@ export default function FinancePage() {
                 <p className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{t("money.filter.results" as any).replace("{count}", String(filteredTxs.length))}</p>
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={exportCSV} className="btn-ghost compact gap-1"><Download size={16} /></button>
-                <button onClick={() => setShowAll(false)} className="btn-icon"><X size={18} /></button>
+                <button onClick={exportCSV} className="btn-ghost compact gap-1" aria-label="Export CSV"><Download size={16} /></button>
+                <button onClick={() => setShowAll(false)} className="btn-icon" aria-label="Close"><X size={18} /></button>
               </div>
             </div>
 
             {/* Filters */}
-            <div className="flex items-center gap-2 px-5 py-3 border-b shrink-0 overflow-x-auto" style={{ borderColor: "var(--color-border-primary)" }}>
+            <div className="flex items-center gap-2 px-5 py-3 border-b shrink-0 overflow-x-auto ios-scroll" style={{ borderColor: "var(--color-border-primary)" }}>
               <div className="relative min-w-[140px] max-w-[240px] shrink-0">
                 <Search size={16} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: "var(--color-text-secondary)" }} />
                 <input
@@ -613,7 +615,7 @@ export default function FinancePage() {
                     </p>
                   </div>
                 </div>
-                <button onClick={() => setShowPanel(false)} className="btn-icon">
+                <button onClick={() => setShowPanel(false)} className="btn-icon" aria-label="Close panel">
                   {isMobile ? <X size={18} /> : <PanelRightClose size={18} />}
                 </button>
               </div>

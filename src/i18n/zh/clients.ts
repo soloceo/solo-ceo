@@ -1,6 +1,6 @@
 export const clients = {
   "finance.source.subscription": "订阅",
-  "finance.source.milestone": "里程碑",
+  "finance.source.milestone": "阶段款",
   "finance.source.project": "项目",
   "finance.tax": "税",
   "finance.taxIncluded": "含税",

@@ -196,7 +196,12 @@ export function LeadsView() {
         </div>
       ) : (
         <LeadSwimlane leads={leads} columns={LEAD_COLS} onAdd={openPanel} onEdit={openPanel} onDelete={(id: number) => setDeleteId(id)} emptyText={t("pipeline.emptyCol" as any)} onMove={async (id: number, col: string) => {
-          try { await fetch(`/api/leads/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ column: col }) }); fetchLeads(); } catch { showToast(t("pipeline.toast.moveFailed" as any)); }
+          try {
+            const allLeads = Object.values(leads).flat();
+            const lead = allLeads.find((l: any) => l.id === id);
+            if (!lead) return;
+            await fetch(`/api/leads/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...lead, column: col }) }); fetchLeads();
+          } catch { showToast(t("pipeline.toast.moveFailed" as any)); }
         }} />
       )}
 

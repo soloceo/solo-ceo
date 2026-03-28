@@ -23,7 +23,7 @@ interface KanbanBoardProps {
 
 export function KanbanBoard({ columns, tasks, onDragEnd, onAdd, onEdit, onDelete, onClientClick, emptyText }: KanbanBoardProps) {
   return (
-    <div className="flex-1 overflow-x-auto overflow-y-hidden pb-4 -mx-4 px-4 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 snap-x snap-mandatory lg:snap-none">
+    <div className="flex-1 overflow-x-auto overflow-y-hidden ios-scroll pb-4 -mx-4 px-4 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 snap-x snap-mandatory lg:snap-none">
       <div className="flex h-full gap-3" style={{ minWidth: "max-content" }}>
         <DragDropContext onDragEnd={onDragEnd}>
           {columns.map((col) => (

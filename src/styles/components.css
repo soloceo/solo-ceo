@@ -10,6 +10,10 @@
   .ios-scroll {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+    scrollbar-width: none;
+  }
+  .ios-scroll::-webkit-scrollbar {
+    display: none;
   }
 
   /* ── Cards ─────────────────────────────────────────────────── */
@@ -246,6 +250,15 @@
     padding-right: 32px;
   }
   input[type="date"].input-base { min-width: 0; }
+
+  /* ── Prevent iOS Safari zoom on focus (requires >= 16px) ── */
+  @media (max-width: 1023px) {
+    select.input-base,
+    input.input-base,
+    textarea.input-base {
+      font-size: max(16px, 1em);
+    }
+  }
 
   /* ── Icon-only buttons (44px mobile touch target) ──────── */
 
