@@ -84,9 +84,9 @@ export function ClientsView() {
   const [deleteTxId, setDeleteTxId] = useState<number | null>(null);
   const [txForm, setTxForm] = useState(createEmptyTx);
 
-  const fetchPlans = async () => { try { const d = await (await fetch("/api/plans")).json(); setPlans(Array.isArray(d) ? d : []); } catch {} };
+  const fetchPlans = async () => { try { const d = await (await fetch("/api/plans")).json(); setPlans(Array.isArray(d) ? d : []); } catch (e) { console.error("[fetchPlans]", e); } };
   const fetchClients = async () => { try { const res = await fetch("/api/clients"); const data = await res.json(); setClients(Array.isArray(data) ? data : []); } catch { showToast(t("pipeline.toast.clientLoadFailed" as any)); } finally { setLoading(false); } };
-  const fetchFinance = async () => { try { const res = await fetch("/api/finance"); const d = await res.json(); setFinTxs(Array.isArray(d) ? d : []); } catch {} };
+  const fetchFinance = async () => { try { const res = await fetch("/api/finance"); const d = await res.json(); setFinTxs(Array.isArray(d) ? d : []); } catch (e) { console.error("[fetchFinance]", e); } };
 
   const fetchMilestones = async (clientId: number) => {
     setMsLoading(true);

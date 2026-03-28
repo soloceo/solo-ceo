@@ -128,7 +128,7 @@ export default function FinancePage() {
   }, [showToast, t]);
 
   const fetchClients = useCallback(async () => {
-    try { const d = await (await fetch("/api/clients")).json(); setClientList(Array.isArray(d) ? d : []); } catch {}
+    try { const d = await (await fetch("/api/clients")).json(); setClientList(Array.isArray(d) ? d : []); } catch (e) { console.error("[fetchClients]", e); }
   }, []);
 
   useEffect(() => { Promise.all([fetchFinance(), fetchClients()]); }, [fetchFinance, fetchClients]);

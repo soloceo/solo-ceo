@@ -1,19 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { RefreshCw } from "lucide-react";
 import { useT } from "../i18n/context";
 
 export default function PWAUpdatePrompt() {
   const { lang } = useT();
+  const intervalRef = useRef<ReturnType<typeof setInterval>>();
+
   const {
     needRefresh: [needRefresh],
     updateServiceWorker,
   } = useRegisterSW({
     onRegisteredSW(_, r) {
-      // Check for updates every 12 hours
-      if (r) setInterval(() => r.update(), 12 * 60 * 60 * 1000);
+      if (r) {
+        intervalRef.current = setInterval(() => r.update(), 12 * 60 * 60 * 1000);
+      }
     },
   });
+
+  useEffect(() => {
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, []);
 
   if (!needRefresh) return null;
 
