@@ -482,8 +482,10 @@ export default function FinancePage() {
               onClick={() => { setFinanceTab(tab); setFilters({ type: "all", category: "all", status: "all", dateFrom: "", dateTo: "", search: "" }); }}
               className="py-1.5 px-4 text-[14px] rounded-[var(--radius-6)] transition-colors press-feedback flex items-center gap-1.5"
               style={financeTab === tab ? {
-                background: "var(--color-bg-primary)",
-                color: "var(--color-text-primary)",
+                background: tab === "business"
+                  ? "color-mix(in srgb, var(--color-accent) 12%, var(--color-bg-primary))"
+                  : "color-mix(in srgb, var(--color-info) 12%, var(--color-bg-primary))",
+                color: tab === "business" ? "var(--color-accent)" : "var(--color-info)",
                 fontWeight: "var(--font-weight-semibold)",
                 boxShadow: "var(--shadow-low)",
               } as React.CSSProperties : {
