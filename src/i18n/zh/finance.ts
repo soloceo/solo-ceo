@@ -202,4 +202,13 @@ export const finance = {
   "money.ai.parsing": "正在解析...",
   "money.ai.recorded": "已记录：{desc} {amount}",
   "money.ai.error": "AI 解析失败，请重试",
+  "money.tab.business": "公司",
+  "money.tab.personal": "个人",
+  "money.tab.bizPlaceholder": "公司记账：买了域名 $15",
+  "money.tab.personalPlaceholder": "个人记账：吃饭花了 $20",
+  "money.addShort": "记录",
+  "money.stat.monthExpense": "本月支出",
+  "money.stat.dailyAvg": "日均支出",
+  "settings.backup": "导出备份",
+  "settings.restore": "导入恢复",
 };

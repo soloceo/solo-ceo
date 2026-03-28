@@ -58,4 +58,12 @@ export const work = {
   "work.planner.generate": "生成计划",
   "work.planner.hint": "填写左侧信息生成项目计划",
   "work.planner.error": "生成计划时发生错误。",
+  "work.ai.placeholder": "AI 创建任务：给Aegis设计logo，高优先级",
+  "work.ai.created": "AI 已创建",
+  "work.ai.noKey": "请先在设置中配置 AI API Key",
+  "work.personal.aiPlaceholder": "AI 拆解：搬家，下周六之前",
+  "work.personal.aiFailed": "AI 拆解失败，请重试",
+  "work.personal.addTask": "添加任务",
+  "work.personal.taskName": "任务名称...",
+  "work.personal.empty": "用 AI 拆解大任务，或手动添加",
 };

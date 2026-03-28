@@ -80,7 +80,7 @@ export function LeadsView() {
   const handleGenerateOutreach = async () => {
     const { provider, apiKey } = getAiConfig();
     if (!provider || !apiKey) {
-      showToast(t("money.ai.noKey" as any), 5000, { label: lang === "zh" ? "去设置" : "Settings", fn: () => setActiveTab("settings" as any) });
+      showToast(t("money.ai.noKey" as any), 5000, { label: t("common.goSettings" as any), fn: () => setActiveTab("settings" as any) });
       return;
     }
     if (!form.name.trim()) { showToast(t("pipeline.ai.needName" as any)); return; }
@@ -96,7 +96,7 @@ export function LeadsView() {
   const handleAnalyzeLead = async () => {
     const { provider, apiKey } = getAiConfig();
     if (!provider || !apiKey) {
-      showToast(t("money.ai.noKey" as any), 5000, { label: lang === "zh" ? "去设置" : "Settings", fn: () => setActiveTab("settings" as any) });
+      showToast(t("money.ai.noKey" as any), 5000, { label: t("common.goSettings" as any), fn: () => setActiveTab("settings" as any) });
       return;
     }
     if (!form.name.trim()) { showToast(t("pipeline.ai.needName" as any)); return; }
@@ -111,7 +111,7 @@ export function LeadsView() {
   const handleBatchAnalyze = async () => {
     const { provider, apiKey } = getAiConfig();
     if (!provider || !apiKey) {
-      showToast(t("money.ai.noKey" as any), 5000, { label: lang === "zh" ? "去设置" : "Settings", fn: () => setActiveTab("settings" as any) });
+      showToast(t("money.ai.noKey" as any), 5000, { label: t("common.goSettings" as any), fn: () => setActiveTab("settings" as any) });
       return;
     }
     const allLeads = Object.values(leads).flat();
@@ -126,7 +126,7 @@ export function LeadsView() {
     }
     setLeadScores(prev => ({ ...prev, ...results }));
     setBatchAnalyzing(false);
-    showToast(lang === "zh" ? `已分析 ${Object.keys(results).length} 条线索` : `Analyzed ${Object.keys(results).length} leads`);
+    showToast(t("pipeline.ai.analyzed" as any).replace("{count}", String(Object.keys(results).length)));
   };
 
   const fetchPlans = async () => { try { const d = await (await fetch("/api/plans")).json(); setPlans(Array.isArray(d) ? d : []); } catch {} };
@@ -232,7 +232,7 @@ export function LeadsView() {
           className="btn-ghost compact gap-1 disabled:opacity-40"
         >
           {batchAnalyzing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-          <span className="hidden sm:inline">{lang === "zh" ? "AI 分析" : "AI Analyze"}</span>
+          <span className="hidden sm:inline">{t("pipeline.ai.analyzeAll" as any)}</span>
         </button>
         <button onClick={() => {
           const all = Object.values(leads).flat();
@@ -375,7 +375,7 @@ export function LeadsView() {
                         background: aiAnalysis.score === "high" ? "var(--color-success)" : aiAnalysis.score === "medium" ? "var(--color-warning)" : "var(--color-danger)",
                         color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)",
                       } as React.CSSProperties}>
-                        {aiAnalysis.score === "high" ? (lang === "zh" ? "高价值" : "High") : aiAnalysis.score === "medium" ? (lang === "zh" ? "中等" : "Medium") : (lang === "zh" ? "低价值" : "Low")}
+                        {aiAnalysis.score === "high" ? t("pipeline.ai.scoreHigh" as any) : aiAnalysis.score === "medium" ? t("pipeline.ai.scoreMedium" as any) : t("pipeline.ai.scoreLow" as any)}
                       </span>
                       <p style={{ color: "var(--color-text-secondary)" }}>{aiAnalysis.reason}</p>
                     </div>
@@ -395,7 +395,7 @@ export function LeadsView() {
                           className="flex-1 text-[12px] py-1 rounded-[var(--radius-4)] transition-colors"
                           style={aiTone === tone ? { background: "var(--color-accent)", color: "var(--color-brand-text)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties : { background: "var(--color-bg-tertiary)", color: "var(--color-text-tertiary)" }}
                         >
-                          {tone === "formal" ? (lang === "zh" ? "正式" : "Formal") : tone === "friendly" ? (lang === "zh" ? "友好" : "Friendly") : (lang === "zh" ? "直接" : "Direct")}
+                          {tone === "formal" ? t("pipeline.ai.toneFormal" as any) : tone === "friendly" ? t("pipeline.ai.toneFriendly" as any) : t("pipeline.ai.toneDirect" as any)}
                         </button>
                       ))}
                     </div>
@@ -425,7 +425,7 @@ export function LeadsView() {
                           <Copy size={12} /> {t("pipeline.ai.copyDraft" as any)}
                         </button>
                         <button onClick={handleGenerateOutreach} disabled={aiGenerating} className="btn-ghost compact text-[13px] gap-1 disabled:opacity-40">
-                          <RefreshCw size={12} /> {lang === "zh" ? "重新生成" : "Regenerate"}
+                          <RefreshCw size={12} /> {t("common.regenerate" as any)}
                         </button>
                       </div>
                     </div>

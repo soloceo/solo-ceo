@@ -202,4 +202,13 @@ export const finance = {
   "money.ai.parsing": "Parsing...",
   "money.ai.recorded": "Recorded: {desc} {amount}",
   "money.ai.error": "AI parsing failed, please try again",
+  "money.tab.business": "Biz",
+  "money.tab.personal": "Personal",
+  "money.tab.bizPlaceholder": "Biz: bought domain $15",
+  "money.tab.personalPlaceholder": "Personal: lunch $20",
+  "money.addShort": "Add",
+  "money.stat.monthExpense": "This Month",
+  "money.stat.dailyAvg": "Daily Avg",
+  "settings.backup": "Export Backup",
+  "settings.restore": "Import Backup",
 };

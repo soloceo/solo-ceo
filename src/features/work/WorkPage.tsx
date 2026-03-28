@@ -132,8 +132,8 @@ export default function WorkPage() {
     const apiKey = provider ? appSettings?.[keyMap[provider]] : undefined;
     if (!provider || !apiKey) {
       const lang = t("work.tab.work" as any) === "工作" ? "zh" : "en";
-      showToast(lang === "zh" ? "请先在设置中配置 AI API Key" : "Configure AI API Key in Settings first", 5000, {
-        label: lang === "zh" ? "去设置" : "Settings",
+      showToast(t("work.ai.noKey" as any), 5000, {
+        label: t("common.goSettings" as any),
         fn: () => setActiveTab("settings" as any),
       });
       return;
@@ -147,7 +147,7 @@ export default function WorkPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...parsed, scope: "work" }),
       });
-      showToast(`✓ ${lang === "zh" ? "AI 已创建" : "AI created"}: ${parsed.title}`);
+      showToast(`✓ ${t("work.ai.created" as any)}: ${parsed.title}`);
       setAiInput("");
       fetchTasks();
     } catch {
@@ -333,7 +333,7 @@ export default function WorkPage() {
                 value={aiInput}
                 onChange={e => setAiInput(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAiTask(); }}
-                placeholder={t("work.tab.work" as any) === "工作" ? "AI 创建任务：给Aegis设计logo，高优先级" : "AI: design logo for Aegis, high priority"}
+                placeholder={t("work.ai.placeholder" as any)}
                 disabled={aiParsing}
                 className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]"
               />

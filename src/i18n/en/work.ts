@@ -58,4 +58,12 @@ export const work = {
   "work.planner.generate": "Generate Plan",
   "work.planner.hint": "Fill in project details to generate a plan",
   "work.planner.error": "An error occurred while generating the plan.",
+  "work.ai.placeholder": "AI: design logo for Aegis, high priority",
+  "work.ai.created": "AI created",
+  "work.ai.noKey": "Configure AI API Key in Settings first",
+  "work.personal.aiPlaceholder": "AI: move house, by next Saturday",
+  "work.personal.aiFailed": "AI breakdown failed, try again",
+  "work.personal.addTask": "Add task",
+  "work.personal.taskName": "Task name...",
+  "work.personal.empty": "Break down big tasks with AI, or add manually",
 };

@@ -96,14 +96,14 @@ export default function AccountSection({ user, isOnline, pendingOps, signOut }: 
             style={{ color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-primary)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}
           >
             <Download size={16} />
-            {t("settings.backup" as any) || (lang === "zh" ? "导出备份" : "Export Backup")}
+            {t("settings.backup" as any)}
           </button>
           <label
             className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-[var(--radius-6)] text-[14px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
             style={{ color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-primary)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}
           >
             <Upload size={16} />
-            {t("settings.restore" as any) || (lang === "zh" ? "导入恢复" : "Import Backup")}
+            {t("settings.restore" as any)}
             <input type="file" accept=".json" className="hidden" onChange={async (e) => {
               const file = e.target.files?.[0];
               if (!file) return;

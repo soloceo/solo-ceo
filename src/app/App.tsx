@@ -189,15 +189,15 @@ function App() {
   }, [quickCreateOpen]);
 
   const quickCreateGroups = [
-    { label: lang === "zh" ? "工作" : "Work", items: [
-      { icon: <ListTodo size={14} aria-hidden="true" />, label: lang === "zh" ? "新建工作任务" : "New Work Task", action: () => { setActiveTab("work"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "task" } })), 100); } },
-      { icon: <UserPlus size={14} aria-hidden="true" />, label: lang === "zh" ? "添加销售线索" : "Add Lead", action: () => { setActiveTab("leads" as any); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "lead" } })), 100); } },
-      { icon: <Users size={14} aria-hidden="true" />, label: lang === "zh" ? "添加签约客户" : "Add Client", action: () => { setActiveTab("clients"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "client" } })), 100); } },
-      { icon: <FileText size={14} aria-hidden="true" />, label: lang === "zh" ? "记录公司收支" : "Log Biz Finance", action: () => { setActiveTab("finance"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "biz-transaction" } })), 100); } },
+    { label: t("app.quickCreate.groupWork" as any), items: [
+      { icon: <ListTodo size={14} aria-hidden="true" />, label: t("app.quickCreate.task" as any), action: () => { setActiveTab("work"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "task" } })), 100); } },
+      { icon: <UserPlus size={14} aria-hidden="true" />, label: t("app.quickCreate.lead" as any), action: () => { setActiveTab("leads" as any); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "lead" } })), 100); } },
+      { icon: <Users size={14} aria-hidden="true" />, label: t("app.quickCreate.client" as any), action: () => { setActiveTab("clients"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "client" } })), 100); } },
+      { icon: <FileText size={14} aria-hidden="true" />, label: t("app.quickCreate.bizFinance" as any), action: () => { setActiveTab("finance"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "biz-transaction" } })), 100); } },
     ]},
-    { label: lang === "zh" ? "个人" : "Personal", items: [
-      { icon: <ListTodo size={14} aria-hidden="true" />, label: lang === "zh" ? "新建个人待办" : "New Personal Todo", action: () => { setActiveTab("work"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "personal-task" } })), 100); } },
-      { icon: <FileText size={14} aria-hidden="true" />, label: lang === "zh" ? "记录个人支出" : "Log Personal Expense", action: () => { setActiveTab("finance"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "personal-transaction" } })), 100); } },
+    { label: t("app.quickCreate.groupPersonal" as any), items: [
+      { icon: <ListTodo size={14} aria-hidden="true" />, label: t("app.quickCreate.personalTask" as any), action: () => { setActiveTab("work"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "personal-task" } })), 100); } },
+      { icon: <FileText size={14} aria-hidden="true" />, label: t("app.quickCreate.personalFinance" as any), action: () => { setActiveTab("finance"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "personal-transaction" } })), 100); } },
     ]},
   ];
   const quickCreateActions = quickCreateGroups.flatMap(g => g.items);

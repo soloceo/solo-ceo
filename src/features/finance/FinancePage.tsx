@@ -355,7 +355,7 @@ export default function FinancePage() {
     const apiKey = provider ? appSettings?.[keyMap[provider]] : undefined;
     if (!provider || !apiKey) {
       showToast(t("money.ai.noKey" as any), 5000, {
-        label: lang === "zh" ? "去设置" : "Settings",
+        label: t("common.goSettings" as any),
         fn: () => setActiveTab("settings" as any),
       });
       return;
@@ -495,7 +495,7 @@ export default function FinancePage() {
               } as React.CSSProperties}
             >
               {tab === "business" ? <Building2 size={14} /> : <UserIcon size={14} />}
-              {tab === "business" ? (lang === "zh" ? "公司" : "Biz") : (lang === "zh" ? "个人" : "Personal")}
+              {tab === "business" ? t("money.tab.business" as any) : t("money.tab.personal" as any)}
             </button>
           ))}
         </div>
@@ -504,7 +504,7 @@ export default function FinancePage() {
           <Download size={16} /> <span className="hidden sm:inline">{t("money.export.csv" as any)}</span>
         </button>
         <button onClick={() => openPanel()} className="btn-primary compact">
-          <Plus size={16} /> <span className="hidden sm:inline">{t("finance.addRecord" as any)}</span><span className="sm:hidden">{lang === "zh" ? "记录" : "Add"}</span>
+          <Plus size={16} /> <span className="hidden sm:inline">{t("finance.addRecord" as any)}</span><span className="sm:hidden">{t("money.addShort" as any)}</span>
         </button>
       </div>
 
@@ -523,10 +523,7 @@ export default function FinancePage() {
             value={aiInput}
             onChange={e => setAiInput(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAiRecord(); }}
-            placeholder={financeTab === "business"
-              ? (lang === "zh" ? "公司记账：买了域名 $15" : "Biz: bought domain $15")
-              : (lang === "zh" ? "个人记账：吃饭花了 $20" : "Personal: lunch $20")
-            }
+            placeholder={financeTab === "business" ? t("money.tab.bizPlaceholder" as any) : t("money.tab.personalPlaceholder" as any)}
             disabled={aiParsing}
             className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]"
           />
@@ -584,14 +581,14 @@ export default function FinancePage() {
       ) : (
         <div className="grid grid-cols-2 gap-3 mb-4">
           <StatCard
-            label={lang === "zh" ? "本月支出" : "This Month"}
+            label={t("money.stat.monthExpense" as any)}
             value={`$${personalStats.monthTotal.toLocaleString()}`}
             sub=""
             icon={<TrendingDown size={16} />}
             color="var(--color-danger)"
           />
           <StatCard
-            label={lang === "zh" ? "日均支出" : "Daily Avg"}
+            label={t("money.stat.dailyAvg" as any)}
             value={`$${Math.round(personalStats.dailyAvg).toLocaleString()}`}
             sub=""
             icon={<Wallet size={16} />}

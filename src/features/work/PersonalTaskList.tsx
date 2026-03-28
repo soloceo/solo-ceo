@@ -86,7 +86,7 @@ export default function PersonalTaskList({ tasks, onRefresh }: PersonalTaskListP
     const apiKey = provider ? settings?.[keyMap[provider]] : undefined;
     if (!provider || !apiKey) {
       showToast(t("money.ai.noKey" as any), 5000, {
-        label: lang === "zh" ? "去设置" : "Settings",
+        label: t("common.goSettings" as any),
         fn: () => setActiveTab("settings" as any),
       });
       return;
@@ -97,7 +97,7 @@ export default function PersonalTaskList({ tasks, onRefresh }: PersonalTaskListP
       setPreview(result);
       setAiInput("");
     } catch {
-      showToast(lang === "zh" ? "AI 拆解失败，请重试" : "AI breakdown failed, try again");
+      showToast(t("work.personal.aiFailed" as any));
     } finally {
       setAiParsing(false);
     }
@@ -140,7 +140,7 @@ export default function PersonalTaskList({ tasks, onRefresh }: PersonalTaskListP
             value={aiInput}
             onChange={e => setAiInput(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAiBreakdown(); }}
-            placeholder={lang === "zh" ? "AI 拆解：搬家，下周六之前" : "AI: move house, by next Saturday"}
+            placeholder={t("work.personal.aiPlaceholder" as any)}
             disabled={aiParsing}
             className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]"
           />
@@ -229,12 +229,12 @@ export default function PersonalTaskList({ tasks, onRefresh }: PersonalTaskListP
               value={simpleTitle}
               onChange={e => setSimpleTitle(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") addSimpleTask(); if (e.key === "Escape") setAddingSimple(false); }}
-              placeholder={lang === "zh" ? "任务名称..." : "Task name..."}
+              placeholder={t("work.personal.taskName" as any)}
               className="input-base flex-1 px-2 py-1.5 text-[15px]"
               autoFocus
             />
             <button onClick={addSimpleTask} disabled={!simpleTitle.trim()} className="btn-primary compact text-[13px] disabled:opacity-40">
-              {lang === "zh" ? "添加" : "Add"}
+              {t("common.add" as any)}
             </button>
             <button onClick={() => { setAddingSimple(false); setSimpleTitle(""); }} className="btn-icon-sm">
               <X size={14} />
@@ -247,7 +247,7 @@ export default function PersonalTaskList({ tasks, onRefresh }: PersonalTaskListP
             style={{ color: "var(--color-text-quaternary)" }}
           >
             <Plus size={14} />
-            {lang === "zh" ? "添加任务" : "Add task"}
+            {t("work.personal.addTask" as any)}
           </button>
         )}
       </div>
@@ -255,7 +255,7 @@ export default function PersonalTaskList({ tasks, onRefresh }: PersonalTaskListP
       {/* Empty state */}
       {parentTasks.length === 0 && !addingSimple && (
         <div className="text-center py-8 text-[14px]" style={{ color: "var(--color-text-quaternary)" }}>
-          {lang === "zh" ? "用 AI 拆解大任务，或手动添加" : "Break down big tasks with AI, or add manually"}
+          {t("work.personal.empty" as any)}
         </div>
       )}
 
@@ -276,10 +276,10 @@ export default function PersonalTaskList({ tasks, onRefresh }: PersonalTaskListP
             </div>
             <div className="flex justify-end gap-2">
               <button onClick={() => setPreview(null)} className="btn-ghost text-[15px]">
-                {lang === "zh" ? "取消" : "Cancel"}
+                {t("common.cancel" as any)}
               </button>
               <button onClick={confirmBreakdown} className="btn-primary text-[15px]">
-                {lang === "zh" ? "确认创建" : "Create"}
+                {t("common.confirm" as any)}
               </button>
             </div>
           </div>
