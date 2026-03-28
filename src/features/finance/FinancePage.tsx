@@ -501,7 +501,7 @@ export default function FinancePage() {
           <Download size={16} /> <span className="hidden sm:inline">{t("money.export.csv" as any)}</span>
         </button>
         <button onClick={() => openPanel()} className="btn-primary compact">
-          <Plus size={16} /> {t("finance.addRecord" as any)}
+          <Plus size={16} /> <span className="hidden sm:inline">{t("finance.addRecord" as any)}</span><span className="sm:hidden">{lang === "zh" ? "记录" : "Add"}</span>
         </button>
       </div>
 
@@ -514,7 +514,7 @@ export default function FinancePage() {
             value={aiInput}
             onChange={e => setAiInput(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAiRecord(); }}
-            placeholder={t("money.ai.placeholder" as any)}
+            placeholder={`[${financeTab === "business" ? (lang === "zh" ? "公司" : "Biz") : (lang === "zh" ? "个人" : "Personal")}] ${t("money.ai.placeholder" as any)}`}
             disabled={aiParsing}
             className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]"
           />
