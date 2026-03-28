@@ -12,6 +12,7 @@
     /* CJK: Windows */   'Microsoft YaHei UI', 'Microsoft YaHei',
     /* CJK: Linux */     'Noto Sans CJK SC',
     /* CJK: fallback */  'Source Han Sans SC',
+    /* CJK: web font */ 'Noto Sans SC',
     'Segoe UI', 'Roboto', 'Helvetica Neue',
     system-ui, sans-serif;
 
