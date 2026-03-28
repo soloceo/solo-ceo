@@ -2,7 +2,7 @@
   "name": "solo-ceo",
   "productName": "一人CEO",
   "private": true,
-  "version": "2.3.3",
+  "version": "2.3.4",
   "type": "module",
   "main": "electron-dist/main.cjs",
   "scripts": {
@@ -76,6 +76,7 @@
     "@capacitor/cli": "^8.2.0",
     "@capacitor/core": "^8.2.0",
     "@capacitor/ios": "^8.2.0",
+    "@fontsource/noto-sans-sc": "^5.2.9",
     "@google/genai": "^1.29.0",
     "@hello-pangea/dnd": "^18.0.1",
     "@supabase/supabase-js": "^2.99.1",
