@@ -167,14 +167,14 @@ export default function PomodoroWidget() {
   const filledDots = sessions.count % SESSIONS_FOR_LONG_BREAK || (sessions.count > 0 && mode !== "work" ? SESSIONS_FOR_LONG_BREAK : 0);
 
   /* Ring */
-  const RING_SIZE = s(68);
-  const RING_R = s(27);
+  const RING_SIZE = s(80);
+  const RING_R = s(35);
   const RING_C = 2 * Math.PI * RING_R;
-  const STROKE_W = parseFloat((3.5 * scale).toFixed(1));
+  const STROKE_W = parseFloat((2.5 * scale).toFixed(1));
   const offset = RING_C * (1 - timeLeft / total);
 
   return (
-    <div ref={rootRef} className="h-full flex flex-col overflow-hidden" style={{ padding: `${s(12)}px ${s(6)}px ${s(6)}px` }}>
+    <div ref={rootRef} className="h-full flex flex-col overflow-hidden" style={{ padding: `${s(8)}px ${s(6)}px ${s(4)}px` }}>
       {/* Header: mode label + controls */}
       <div className="flex items-center shrink-0" style={{ marginBottom: s(2), gap: s(2), paddingInline: s(4) }}>
         <span className="flex-1 truncate" style={{ fontSize: s(13), fontWeight: 700, color: ringColor, lineHeight: 1 }}>
