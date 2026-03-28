@@ -219,11 +219,13 @@ function initSchema(db: Database) {
       client TEXT,
       priority TEXT,
       due TEXT,
-      column TEXT DEFAULT 'todo',
+      "column" TEXT DEFAULT 'todo',
       originalRequest TEXT,
       aiBreakdown TEXT,
       aiMjPrompts TEXT,
       aiStory TEXT,
+      scope TEXT DEFAULT 'work',
+      parent_id INTEGER,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE IF NOT EXISTS plans (
@@ -712,11 +714,11 @@ export async function handleApiRequest(
   }
 
   if (path === '/api/tasks' && method === 'POST') {
-    const { title, client, priority, due, column, originalRequest, aiBreakdown, aiMjPrompts, aiStory } = body;
-    const res = run(db, `INSERT INTO tasks (title, client, priority, due, column, originalRequest, aiBreakdown, aiMjPrompts, aiStory)
-      VALUES (?,?,?,?,?,?,?,?,?)`,
+    const { title, client, priority, due, column, originalRequest, aiBreakdown, aiMjPrompts, aiStory, scope, parent_id } = body;
+    const res = run(db, `INSERT INTO tasks (title, client, priority, due, "column", originalRequest, aiBreakdown, aiMjPrompts, aiStory, scope, parent_id)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
       [title||'', client||'', priority||'Medium', due||'', column||'todo',
-       originalRequest||'', aiBreakdown||'', aiMjPrompts||'', aiStory||'']);
+       originalRequest||'', aiBreakdown||'', aiMjPrompts||'', aiStory||'', scope||'work', parent_id||null]);
     logActivity(db, 'task', 'created', `新增任务：${title||'未命名任务'}`, client ? `客户：${client}` : '', res.lastInsertRowid);
     await saveDb();
     return ok({ id: res.lastInsertRowid });
@@ -726,12 +728,12 @@ export async function handleApiRequest(
   if (taskMatch) {
     const id = taskMatch[1];
     if (method === 'PUT') {
-      const { title, client, priority, due, column, originalRequest, aiBreakdown, aiMjPrompts, aiStory } = body;
-      const prev = get(db, 'SELECT title, column FROM tasks WHERE id=?', [id]) as any;
-      run(db, `UPDATE tasks SET title=?,client=?,priority=?,due=?,column=?,
-        originalRequest=?,aiBreakdown=?,aiMjPrompts=?,aiStory=? WHERE id=?`,
+      const { title, client, priority, due, column, originalRequest, aiBreakdown, aiMjPrompts, aiStory, scope, parent_id } = body;
+      const prev = get(db, 'SELECT title, "column" FROM tasks WHERE id=?', [id]) as any;
+      run(db, `UPDATE tasks SET title=?,client=?,priority=?,due=?,"column"=?,
+        originalRequest=?,aiBreakdown=?,aiMjPrompts=?,aiStory=?,scope=?,parent_id=? WHERE id=?`,
         [title||'', client||'', priority||'Medium', due||'', column||'todo',
-         originalRequest||'', aiBreakdown||'', aiMjPrompts||'', aiStory||'', id]);
+         originalRequest||'', aiBreakdown||'', aiMjPrompts||'', aiStory||'', scope||'work', parent_id??null, id]);
       const detail = prev?.column && prev.column !== (column||'todo')
         ? `看板：${prev.column} → ${column||'todo'}` : '任务内容已更新';
       logActivity(db, 'task', 'updated', `更新任务：${title||prev?.title||'未命名任务'}`, detail, id);
