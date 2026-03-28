@@ -718,66 +718,73 @@ export default function HomePage() {
                       <ChevronRight size={12} style={{ transform: "rotate(180deg)" }} />
                       {lang === "zh" ? "返回列表" : "Back"}
                     </button>
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 mb-1">
                       <span className="text-[18px]">{selectedPrinciple.catEmoji}</span>
-                      <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
+                      <h3 className="text-[17px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
                         {selectedPrinciple.name[lang as "zh" | "en"]}
                       </h3>
                     </div>
-                    <p className="text-[15px] mb-3" style={{ color: "var(--color-text-secondary)", lineHeight: 1.6 }}>
+                    <p className="text-[14px] mb-3" style={{ color: "var(--color-text-tertiary)", lineHeight: 1.5 }}>
                       {selectedPrinciple.core[lang as "zh" | "en"]}
                     </p>
-                    {selectedPrinciple.explanation && (
-                      <div className="text-[14px] leading-relaxed mb-4 rounded-[var(--radius-8)] p-3"
-                        style={{ color: "var(--color-text-secondary)", background: "var(--color-bg-secondary)" }}>
-                        {selectedPrinciple.explanation[lang as "zh" | "en"]}
-                      </div>
-                    )}
-                    {selectedPrinciple.actionSteps && selectedPrinciple.actionSteps.length > 0 && (
-                      <div className="mb-3 rounded-[var(--radius-8)] p-3" style={{ background: "var(--color-bg-secondary)" }}>
-                        <h4 className="text-[13px] mb-2 flex items-center gap-1.5" style={{ color: "var(--color-accent)", fontWeight: "var(--font-weight-semibold)", textTransform: "uppercase", letterSpacing: "0.03em" } as React.CSSProperties}>
-                          <span>→</span> {lang === "zh" ? "行动指南" : "Action Steps"}
-                        </h4>
-                        <div className="flex flex-col gap-2">
-                          {selectedPrinciple.actionSteps.map((s, i) => (
-                            <div key={i} className="flex items-start gap-2 text-[14px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
-                              <span className="shrink-0 text-[12px] mt-0.5" style={{ color: "var(--color-accent)" }}>{i + 1}.</span>
-                              <span>{s[lang as "zh" | "en"]}</span>
-                            </div>
-                          ))}
+
+                    {/* Single card with all sections */}
+                    <div className="card overflow-hidden divide-y divide-[var(--color-line-secondary)]">
+                      {/* Explanation */}
+                      {selectedPrinciple.explanation && (
+                        <div className="px-3 py-3 text-[14px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+                          {selectedPrinciple.explanation[lang as "zh" | "en"]}
                         </div>
-                      </div>
-                    )}
-                    {selectedPrinciple.checks && selectedPrinciple.checks.length > 0 && (
-                      <div className="mb-3 rounded-[var(--radius-8)] p-3" style={{ background: "color-mix(in srgb, var(--color-success) 6%, var(--color-bg-secondary))" }}>
-                        <h4 className="text-[13px] mb-2 flex items-center gap-1.5" style={{ color: "var(--color-success)", fontWeight: "var(--font-weight-semibold)", textTransform: "uppercase", letterSpacing: "0.03em" } as React.CSSProperties}>
-                          <span>✓</span> {lang === "zh" ? "自检清单" : "Self-Check"}
-                        </h4>
-                        <div className="flex flex-col gap-2">
-                          {selectedPrinciple.checks.map((c, i) => (
-                            <div key={i} className="flex items-start gap-2 text-[14px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
-                              <span className="shrink-0 mt-0.5" style={{ color: "var(--color-success)" }}>☐</span>
-                              <span>{c[lang as "zh" | "en"]}</span>
-                            </div>
-                          ))}
+                      )}
+                      {/* Action Steps */}
+                      {selectedPrinciple.actionSteps && selectedPrinciple.actionSteps.length > 0 && (
+                        <div className="px-3 py-3">
+                          <h4 className="text-[12px] mb-2 flex items-center gap-1" style={{ color: "var(--color-accent)", fontWeight: "var(--font-weight-semibold)", textTransform: "uppercase", letterSpacing: "0.05em" } as React.CSSProperties}>
+                            <span>→</span> {lang === "zh" ? "行动指南" : "Action Steps"}
+                          </h4>
+                          <div className="flex flex-col gap-1.5">
+                            {selectedPrinciple.actionSteps.map((s, i) => (
+                              <div key={i} className="flex items-start gap-2 text-[14px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+                                <span className="shrink-0 text-[12px] mt-0.5 tabular-nums" style={{ color: "var(--color-accent)" }}>{i + 1}.</span>
+                                <span>{s[lang as "zh" | "en"]}</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                    {selectedPrinciple.antiPatterns && selectedPrinciple.antiPatterns.length > 0 && (
-                      <div className="rounded-[var(--radius-8)] p-3" style={{ background: "color-mix(in srgb, var(--color-danger) 5%, var(--color-bg-secondary))" }}>
-                        <h4 className="text-[13px] mb-2 flex items-center gap-1.5" style={{ color: "var(--color-danger)", fontWeight: "var(--font-weight-semibold)", textTransform: "uppercase", letterSpacing: "0.03em" } as React.CSSProperties}>
-                          <span>✗</span> {lang === "zh" ? "常见误区" : "Anti-Patterns"}
-                        </h4>
-                        <div className="flex flex-col gap-2">
-                          {selectedPrinciple.antiPatterns.map((a, i) => (
-                            <div key={i} className="flex items-start gap-2 text-[14px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
-                              <span className="shrink-0 mt-0.5" style={{ color: "var(--color-danger)" }}>✗</span>
-                              <span>{a[lang as "zh" | "en"]}</span>
-                            </div>
-                          ))}
+                      )}
+                      {/* Self-Check */}
+                      {selectedPrinciple.checks && selectedPrinciple.checks.length > 0 && (
+                        <div className="px-3 py-3">
+                          <h4 className="text-[12px] mb-2 flex items-center gap-1" style={{ color: "var(--color-success)", fontWeight: "var(--font-weight-semibold)", textTransform: "uppercase", letterSpacing: "0.05em" } as React.CSSProperties}>
+                            <span>✓</span> {lang === "zh" ? "自检清单" : "Self-Check"}
+                          </h4>
+                          <div className="flex flex-col gap-1.5">
+                            {selectedPrinciple.checks.map((c, i) => (
+                              <div key={i} className="flex items-start gap-2 text-[14px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+                                <span className="shrink-0 mt-0.5" style={{ color: "var(--color-success)" }}>☐</span>
+                                <span>{c[lang as "zh" | "en"]}</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+                      {/* Anti-Patterns */}
+                      {selectedPrinciple.antiPatterns && selectedPrinciple.antiPatterns.length > 0 && (
+                        <div className="px-3 py-3">
+                          <h4 className="text-[12px] mb-2 flex items-center gap-1" style={{ color: "var(--color-danger)", fontWeight: "var(--font-weight-semibold)", textTransform: "uppercase", letterSpacing: "0.05em" } as React.CSSProperties}>
+                            <span>✗</span> {lang === "zh" ? "常见误区" : "Anti-Patterns"}
+                          </h4>
+                          <div className="flex flex-col gap-1.5">
+                            {selectedPrinciple.antiPatterns.map((a, i) => (
+                              <div key={i} className="flex items-start gap-2 text-[14px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+                                <span className="shrink-0 mt-0.5" style={{ color: "var(--color-danger)" }}>✗</span>
+                                <span>{a[lang as "zh" | "en"]}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   /* ── Principle list by category ── */
