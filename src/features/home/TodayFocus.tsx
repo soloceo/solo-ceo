@@ -293,16 +293,17 @@ function FocusRow({ item, badgeVariant, saving, canSwap, onToggle, onSkip, onEdi
   const { t } = useT();
 
   return (
-    <div className="flex items-center gap-3 px-3 py-2.5 group transition-colors hover:bg-[var(--color-bg-tertiary)]">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onToggle}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggle(); } }}
+      className="flex items-center gap-3 px-3 py-2.5 group cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback"
+    >
       {/* Checkbox */}
-      <button
-        onClick={onToggle}
-        disabled={saving}
-        className="btn-icon-sm transition-colors disabled:opacity-50"
-        aria-label="Mark as complete"
-      >
+      <div className="btn-icon-sm shrink-0 transition-colors" style={{ opacity: saving ? 0.5 : 1 }}>
         <Circle size={16} strokeWidth={1.5} />
-      </button>
+      </div>
 
       {/* Content */}
       <div className="flex-1 min-w-0">
@@ -318,7 +319,7 @@ function FocusRow({ item, badgeVariant, saving, canSwap, onToggle, onSkip, onEdi
       </div>
 
       {/* Actions — always visible on mobile, hover on desktop */}
-      <div className="flex items-center gap-1 shrink-0  transition-opacity">
+      <div className="flex items-center gap-1 shrink-0 transition-opacity" onClick={(e) => e.stopPropagation()}>
         {canSwap && onSkip && (
           <button
             onClick={onSkip}
