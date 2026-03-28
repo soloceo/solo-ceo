@@ -52,7 +52,7 @@
   --color-text-on-color:   #ffffff;
 
   /* ── Header ──────────────────────────────────────────────────── */
-  --header-bg:             var(--color-bg-primary);
+  --header-bg:             rgba(255,255,255,0.8);
   --header-border:         rgba(0,0,0,0.06);
 
   /* ── Overlay ──────────────────────────────────────────────────── */

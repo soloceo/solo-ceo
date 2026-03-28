@@ -53,14 +53,19 @@ export const TaskCard = React.memo(function TaskCard({ task, provided, snapshot,
         </h4>
       </div>
       {task.client && (
-        <p className="text-[13px] mb-1 pl-3.5">
+        <p className="text-[13px] mb-0.5 pl-3.5">
           <button
             className="cursor-pointer hover:underline bg-transparent border-0 p-0 text-[13px]"
-            style={{ color: "var(--color-accent)", font: "inherit" }}
+            style={{ color: prio?.color || "var(--color-text-tertiary)", font: "inherit" }}
             onClick={(e) => { e.stopPropagation(); onClientClick?.(); }}
           >
             {task.client}
           </button>
+        </p>
+      )}
+      {task.originalRequest && (
+        <p className="text-[12px] pl-3.5 truncate" style={{ color: "var(--color-text-quaternary)" }}>
+          {task.originalRequest}
         </p>
       )}
       <div className="flex items-center justify-between pl-3.5 mt-1">

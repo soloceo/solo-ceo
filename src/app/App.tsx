@@ -358,22 +358,21 @@ function App() {
 
         {/* Search trigger + Quick create */}
         {isExpanded && (
-          <div className="flex items-center gap-1.5 mx-3 mb-2">
+          <div className="flex items-center gap-1 mx-3 mb-2">
             <button
               onClick={() => useUIStore.getState().setCommandPaletteOpen(true)}
-              className="flex-1 flex items-center gap-2 px-2 h-8 min-w-0 rounded-[var(--radius-6)] text-[14px] transition-colors hover:bg-[var(--color-bg-tertiary)]"
+              className="flex-1 flex items-center gap-2 px-2 h-8 min-w-0 rounded-[var(--radius-6)] text-[13px] transition-colors hover:bg-[var(--color-bg-tertiary)]"
               style={{ color: "var(--color-text-quaternary)", background: "var(--color-bg-translucent)" }}
               aria-label={t("common.search" as any)}
             >
               <Search size={14} className="shrink-0" />
-              <span className="flex-1 text-left truncate">{t("app.searchPlaceholder" as any)}</span>
-              <kbd className="hidden xl:inline-flex shrink-0 text-[11px] px-1.5 py-0.5 rounded-[var(--radius-4)]" style={{ fontFamily: "inherit", fontWeight: "var(--font-weight-medium)", color: "var(--color-text-quaternary)", background: "var(--color-bg-tertiary)", border: "1px solid var(--color-border-primary)" } as React.CSSProperties}>⌘K</kbd>
+              <span className="flex-1 text-left truncate">{t("common.search" as any)}</span>
+              <kbd className="shrink-0 text-[10px] px-1 py-px rounded-[var(--radius-2)]" style={{ fontFamily: "inherit", color: "var(--color-text-quaternary)", background: "var(--color-bg-tertiary)", border: "1px solid var(--color-border-primary)" }}>⌘K</kbd>
             </button>
-            {/* Quick create button */}
             <div className="relative" ref={quickCreateRef}>
               <button
                 onClick={() => setQuickCreateOpen((p) => !p)}
-                className="btn-icon-sm"
+                className="flex items-center justify-center w-8 h-8 shrink-0 rounded-[var(--radius-6)] transition-colors hover:bg-[var(--color-bg-tertiary)]"
                 style={{
                   color: quickCreateOpen ? "var(--color-accent)" : "var(--color-text-quaternary)",
                   background: quickCreateOpen ? "var(--color-accent-tint)" : "var(--color-bg-translucent)",
@@ -430,26 +429,15 @@ function App() {
             >
               <PanelLeft size={16} />
             </button>
-            <div className="flex items-center gap-1 mt-0.5">
-              <button
-                onClick={() => useUIStore.getState().setCommandPaletteOpen(true)}
-                className="flex items-center justify-center rounded-[var(--radius-6)] transition-colors hover:bg-[var(--color-bg-tertiary)]"
-                style={{ width: 28, height: 28, color: "var(--color-text-quaternary)" }}
-                title={`${t("common.search" as any)} (⌘K)`}
-                aria-label="Search"
-              >
-                <Search size={13} />
-              </button>
-              <button
-                onClick={() => setQuickCreateOpen((p) => !p)}
-                className="flex items-center justify-center rounded-[var(--radius-6)] transition-colors hover:bg-[var(--color-bg-tertiary)]"
-                style={{ width: 28, height: 28, color: "var(--color-text-quaternary)" }}
-                title={t("app.quickCreate" as any)}
-                aria-label={t("app.quickCreate" as any)}
-              >
-                <Plus size={13} />
-              </button>
-            </div>
+            <button
+              onClick={() => useUIStore.getState().setCommandPaletteOpen(true)}
+              className="flex items-center justify-center rounded-[var(--radius-6)] transition-colors hover:bg-[var(--color-bg-tertiary)]"
+              style={{ width: 32, height: 32, color: "var(--color-text-quaternary)" }}
+              title={`${t("common.search" as any)} (⌘K)`}
+              aria-label="Search"
+            >
+              <Search size={14} />
+            </button>
           </div>
         )}
 
@@ -477,39 +465,44 @@ function App() {
         </nav>
 
         {/* Bottom — compact Linear-style */}
-        <div className="mt-auto flex flex-col gap-px px-3 pb-3 pt-2">
-          {/* Row: sync + dark mode + settings — icon-only row */}
-          <div className={`flex items-center ${isExpanded ? "gap-1 px-1 py-1" : "flex-col gap-1 py-1"}`}>
-            <SyncIndicator isOnline={isOnline} syncStatus={syncStatus} pendingOps={pendingOps} compact />
-            <button
-              onClick={toggleDarkMode}
-              className="btn-icon-sm"
-              style={{ color: "var(--color-text-quaternary)" }}
-              title={darkMode ? t("app.lightMode" as any) : t("app.darkMode" as any)}
-              aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
-            >
-              {darkMode ? <Sun size={14} /> : <Moon size={14} />}
-            </button>
-            <button
-              onClick={() => setActiveTab("settings" as any)}
-              className="btn-icon-sm"
-              style={{ color: activeTab === "settings" ? "var(--color-text-primary)" : "var(--color-text-quaternary)" }}
-              title={t("nav.settings" as any)}
-              aria-label="Settings"
-            >
-              <SettingsIcon size={14} />
-            </button>
-            {isExpanded && <div className="flex-1" />}
-          </div>
+        <div className={`mt-auto flex flex-col px-3 pb-3 pt-2 ${isExpanded ? "" : "items-center gap-2"}`}>
+          {/* Collapsed: utility icons stacked */}
+          {!isExpanded && (
+            <div className="flex flex-col items-center gap-0.5 py-1" style={{ borderTop: "1px solid var(--color-line-tertiary)", paddingTop: 8 }}>
+              <SyncIndicator isOnline={isOnline} syncStatus={syncStatus} pendingOps={pendingOps} compact />
+              <button
+                onClick={toggleDarkMode}
+                className="btn-icon-sm"
+                style={{ color: "var(--color-text-quaternary)" }}
+                title={darkMode ? t("app.lightMode" as any) : t("app.darkMode" as any)}
+                aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+              >
+                {darkMode ? <Sun size={14} /> : <Moon size={14} />}
+              </button>
+              <button
+                onClick={() => setActiveTab("settings" as any)}
+                className="btn-icon-sm"
+                style={{ color: activeTab === "settings" ? "var(--color-text-primary)" : "var(--color-text-quaternary)" }}
+                title={t("nav.settings" as any)}
+                aria-label="Settings"
+              >
+                <SettingsIcon size={14} />
+              </button>
+            </div>
+          )}
 
-          {/* User — click opens menu, NOT sign out */}
+
+          {/* User */}
           <div className="relative" ref={userMenuRef}>
             <button
               onClick={() => setUserMenuOpen((p) => !p)}
               title={isExpanded ? undefined : operatorDisplayName}
               className={`flex items-center w-full rounded-[var(--radius-6)] py-1.5 transition-colors hover:bg-[var(--color-bg-tertiary)] ${isExpanded ? "gap-2 px-2" : "justify-center"}`}
             >
-              <Avatar src={operatorAvatar || undefined} name={operatorDisplayName} size="sm" />
+              <span className="relative">
+                <Avatar src={operatorAvatar || undefined} name={operatorDisplayName} size="sm" />
+                <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-[var(--color-bg-panel)]" style={{ background: isOnline ? "var(--color-success)" : "var(--color-text-quaternary)" }} />
+              </span>
               {isExpanded && (
                 <>
                   <span className="text-[14px] truncate flex-1 text-left" style={{ fontWeight: "var(--font-weight-medium)", color: "var(--color-text-secondary)" } as React.CSSProperties}>
@@ -550,6 +543,20 @@ function App() {
                       </div>
                     )}
                   </div>
+                  {/* Cloud status */}
+                  <div className="flex items-center gap-3 px-3 py-2 text-[14px]" style={{ color: "var(--color-text-tertiary)" }}>
+                    <SyncIndicator isOnline={isOnline} syncStatus={syncStatus} pendingOps={pendingOps} compact />
+                    <span>{isOnline ? t("app.cloudConnected" as any) : t("app.offline" as any)}</span>
+                  </div>
+                  {/* Dark mode toggle */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); toggleDarkMode(); }}
+                    className="flex items-center gap-3 w-full px-3 py-2 text-[15px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
+                    style={{ color: "var(--color-text-secondary)" }}
+                  >
+                    {darkMode ? <Sun size={14} aria-hidden="true" style={{ color: "var(--color-text-quaternary)" }} /> : <Moon size={14} aria-hidden="true" style={{ color: "var(--color-text-quaternary)" }} />}
+                    {darkMode ? t("app.lightMode" as any) : t("app.darkMode" as any)}
+                  </button>
                   {/* Settings */}
                   <button
                     onClick={() => { setActiveTab("settings" as any); setUserMenuOpen(false); }}
@@ -728,14 +735,13 @@ const SidebarItem = React.memo(function SidebarItem({
   id: string; icon: React.ReactNode; label: string; active: boolean; expanded: boolean;
   onClick: (id: any) => void; badge?: number; badgeSegments?: BadgeSegment[];
 }) {
-  const titleText = expanded ? undefined : label;
+  // No native title — we use a custom tooltip for collapsed state
   const hasSegments = badgeSegments && badgeSegments.some(s => s.count > 0);
 
   return (
     <button
       onClick={() => onClick(id)}
       aria-current={active ? "page" : undefined}
-      title={titleText}
       className={`group relative flex items-center select-none cursor-pointer rounded-[var(--radius-12)] text-[15px] ${expanded ? "gap-2 px-2 py-1.5" : "justify-center w-9 h-9 mx-auto"}`}
       style={{
         color: active ? "var(--color-text-primary)" : "var(--color-text-tertiary)",
@@ -757,6 +763,13 @@ const SidebarItem = React.memo(function SidebarItem({
           />
         )}
       </span>
+      {/* Collapsed tooltip — shows on hover */}
+      {!expanded && (
+        <span className="absolute left-full ml-2 px-2 py-1 text-[13px] whitespace-nowrap rounded-[var(--radius-4)] opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity"
+          style={{ background: "var(--color-text-primary)", color: "var(--color-bg-primary)", fontWeight: "var(--font-weight-medium)", boxShadow: "var(--shadow-medium)", zIndex: 50 } as React.CSSProperties}>
+          {label}
+        </span>
+      )}
       {expanded && (
         <>
           <span className="whitespace-nowrap truncate flex-1 text-left">{label}</span>

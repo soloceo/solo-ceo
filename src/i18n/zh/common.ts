@@ -1,4 +1,6 @@
 export const common = {
+  "app.cloudConnected": "云端已连接",
+  "app.offline": "离线模式",
   "nav.home": "总览",
   "nav.work": "任务",
   "nav.leads": "线索",

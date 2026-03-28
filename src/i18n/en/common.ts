@@ -1,4 +1,6 @@
 export const common = {
+  "app.cloudConnected": "Cloud Connected",
+  "app.offline": "Offline",
   "nav.home": "Home",
   "nav.work": "Tasks",
   "nav.leads": "Leads",
