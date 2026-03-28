@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bot, Eye, EyeOff, Check, X, Loader2, ExternalLink, Save } from 'lucide-react';
+import { Bot, Eye, EyeOff, Check, X, Loader2, ExternalLink, Save, Trash2 } from 'lucide-react';
 import { useT } from '../../i18n/context';
 import { testApiKey, type AIProvider } from '../../lib/ai-client';
 
@@ -140,6 +140,21 @@ export default function AISection({ settings, save }: AISectionProps) {
                 >
                   {testing === id ? <Loader2 size={14} className="animate-spin" /> : t("settings.ai.test" as any)}
                 </button>
+                {currentKey && !isDirty && (
+                  <button
+                    onClick={async () => {
+                      setLocalKeys(p => ({ ...p, [keyName]: "" }));
+                      await save(keyName, "");
+                      setTestResult(p => ({ ...p, [id]: null }));
+                      if (activeProvider === id) await save("ai_provider", "");
+                    }}
+                    className="btn-icon-sm shrink-0"
+                    aria-label="Clear API key"
+                    title={t("settings.ai.clear" as any)}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
                 {result !== undefined && result !== null && (
                   <span className="shrink-0">
                     {result

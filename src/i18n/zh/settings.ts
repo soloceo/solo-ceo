@@ -167,6 +167,7 @@ export const settings = {
   "settings.ai.test": "测试",
   "settings.ai.save": "保存",
   "settings.ai.getKey": "获取 Key",
+  "settings.ai.clear": "清除",
   "settings.ai.testOk": "测试成功",
   "settings.ai.testFail": "测试失败",
   "settings.accountSecurity": "账号安全",

@@ -165,6 +165,7 @@ export const settings = {
   "settings.ai.test": "Test",
   "settings.ai.save": "Save",
   "settings.ai.getKey": "Get Key",
+  "settings.ai.clear": "Clear",
   "settings.ai.testOk": "Test passed",
   "settings.ai.testFail": "Test failed",
   "settings.accountSecurity": "Account Security",

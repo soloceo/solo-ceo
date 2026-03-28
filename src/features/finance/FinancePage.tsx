@@ -21,6 +21,7 @@ import {
   Loader2,
   Building2,
   User as UserIcon,
+  Send,
 } from "lucide-react";
 
 import { calcTaxAmount, catLabel, STATUS_I18N } from "../../lib/tax";
@@ -523,7 +524,13 @@ export default function FinancePage() {
             className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]"
           />
         </div>
-        {aiParsing && <Loader2 size={16} className="animate-spin shrink-0" style={{ color: "var(--color-accent)" }} />}
+        <button
+          onClick={handleAiRecord}
+          disabled={!aiInput.trim() || aiParsing}
+          className="btn-primary compact text-[14px] shrink-0 disabled:opacity-40"
+        >
+          {aiParsing ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+        </button>
       </div>
 
       {/* ── KPI Stat Cards ── */}
