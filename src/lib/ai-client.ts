@@ -125,6 +125,78 @@ export async function parseExpense(
   return result;
 }
 
+/* ── Lead AI functions ──────────────────────────────── */
+
+export async function generateOutreach(
+  lead: { name: string; industry: string; needs: string; website: string },
+  tone: "formal" | "friendly" | "direct",
+  lang: "zh" | "en",
+  provider: AIProvider,
+  apiKey: string
+): Promise<string> {
+  const toneDesc = { formal: "professional and formal", friendly: "warm and friendly", direct: "concise and direct" };
+  const systemPrompt = `You are a sales copywriter for a solo entrepreneur/freelance designer.
+Write a cold outreach email to a potential client.
+
+Lead info:
+- Name/Company: ${lead.name}
+- Industry: ${lead.industry || "unknown"}
+- Needs: ${lead.needs || "not specified"}
+- Website/Bio: ${lead.website || "none"}
+
+Rules:
+- Tone: ${toneDesc[tone]}
+- Language: ${lang === "zh" ? "Chinese" : "English"}
+- Keep it under 200 words
+- Show you understand their business
+- End with a clear call to action
+- Do NOT use markdown formatting, write plain text email only
+- Include a subject line at the top`;
+
+  const callers = { gemini: callGemini, claude: callClaude, openai: callOpenAI };
+  const result = await callers[provider](apiKey, systemPrompt, `Write an outreach email for ${lead.name}`);
+  return typeof result === "string" ? result : JSON.stringify(result);
+}
+
+export interface LeadAnalysis {
+  score: "high" | "medium" | "low";
+  reason: string;
+}
+
+export async function analyzeLeadQuality(
+  lead: { name: string; industry: string; needs: string; website: string },
+  lang: string,
+  provider: AIProvider,
+  apiKey: string
+): Promise<LeadAnalysis> {
+  const systemPrompt = `You are a sales advisor for a solo entrepreneur who does design/web development.
+Analyze this lead and rate its quality.
+
+Lead info:
+- Name/Company: ${lead.name}
+- Industry: ${lead.industry || "unknown"}
+- Needs: ${lead.needs || "not specified"}
+- Website/Bio: ${lead.website || "none"}
+
+Rate as "high", "medium", or "low" based on:
+- How well the needs match design/web services
+- Industry potential (budget likelihood)
+- How actionable the lead info is
+
+Language: ${lang === "zh" ? "Chinese" : "English"}
+
+Respond with ONLY a JSON object:
+{"score": "high|medium|low", "reason": "one sentence explanation"}`;
+
+  const callers = { gemini: callGemini, claude: callClaude, openai: callOpenAI };
+  const result = await callers[provider](apiKey, systemPrompt, `Analyze lead: ${lead.name}`) as unknown as LeadAnalysis;
+  if (!["high", "medium", "low"].includes(result.score)) result.score = "medium";
+  if (!result.reason) result.reason = "";
+  return result;
+}
+
+/* ── Task AI functions ──────────────────────────────── */
+
 export interface TaskBreakdown {
   title: string;
   steps: string[];

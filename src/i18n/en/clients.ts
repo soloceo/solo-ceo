@@ -61,6 +61,8 @@ export const clients = {
   "pipeline.ai.copyDraft": "Copy Draft",
   "pipeline.ai.needName": "Please enter a client name first",
   "pipeline.ai.genFailed": "Generation failed",
+  "pipeline.ai.analysis": "AI Lead Analysis",
+  "pipeline.ai.analyze": "Analyze",
   "pipeline.convert.title": "Convert to Client",
   "pipeline.convert.plan": "Subscription Plan",
   "pipeline.convert.planBasic": "Basic",

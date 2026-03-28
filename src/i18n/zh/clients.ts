@@ -59,6 +59,8 @@ export const clients = {
   "pipeline.ai.copyDraft": "复制草稿",
   "pipeline.ai.needName": "请先填写客户名称",
   "pipeline.ai.genFailed": "生成失败",
+  "pipeline.ai.analysis": "AI 线索分析",
+  "pipeline.ai.analyze": "分析质量",
   "pipeline.convert.title": "转为客户",
   "pipeline.convert.plan": "订阅计划",
   "pipeline.convert.planBasic": "基础版",

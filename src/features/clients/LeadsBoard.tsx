@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Plus, Trash2, Edit2, X, Mail, UserPlus, LayoutGrid, AlignJustify,
-  ChevronDown, GripVertical, PanelRightClose,
+  ChevronDown, GripVertical, PanelRightClose, Sparkles, Search, Copy, RefreshCw, Loader2,
 } from "lucide-react";
+import { useAppSettings } from "../../hooks/useAppSettings";
+import { generateOutreach, analyzeLeadQuality, type AIProvider, type LeadAnalysis } from "../../lib/ai-client";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { motion, AnimatePresence } from "motion/react";
 import { createPortal } from "react-dom";
@@ -34,8 +36,9 @@ export function FL({ label, children, className }: { label: string; children: Re
    LEADS VIEW
    ══════════════════════════════════════════════════════════════════ */
 export function LeadsView() {
-  const { t } = useT();
+  const { t, lang } = useT();
   const showToast = useUIStore((s) => s.showToast);
+  const setActiveTab = useUIStore((s) => s.setActiveTab);
   const LEAD_COLS = useMemo(() => LEAD_COL_IDS.map(c => ({
     ...c,
     title: t(`pipeline.col.${c.id}` as any),
@@ -54,6 +57,53 @@ export function LeadsView() {
   const [convertForm, setConvertForm] = useState({ plan_tier: "", status: "Active", mrr: "", subscription_start_date: new Date().toISOString().split("T")[0] });
   const [plans, setPlans] = useState<any[]>([]);
   const [form, setForm] = useState(EMPTY_LEAD);
+  const { settings: appSettings } = useAppSettings();
+
+  // AI state
+  const [aiTone, setAiTone] = useState<"formal" | "friendly" | "direct">("friendly");
+  const [aiLang, setAiLang] = useState<"zh" | "en">(lang as "zh" | "en");
+  const [aiDraft, setAiDraft] = useState("");
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<LeadAnalysis | null>(null);
+  const [aiAnalyzing, setAiAnalyzing] = useState(false);
+
+  const getAiConfig = () => {
+    const provider = appSettings?.ai_provider as AIProvider | undefined;
+    const keyMap: Record<string, string> = { gemini: "gemini_api_key", claude: "claude_api_key", openai: "openai_api_key" };
+    const apiKey = provider ? appSettings?.[keyMap[provider]] : undefined;
+    return { provider, apiKey };
+  };
+
+  const handleGenerateOutreach = async () => {
+    const { provider, apiKey } = getAiConfig();
+    if (!provider || !apiKey) {
+      showToast(t("money.ai.noKey" as any), 5000, { label: lang === "zh" ? "去设置" : "Settings", fn: () => setActiveTab("settings" as any) });
+      return;
+    }
+    if (!form.name.trim()) { showToast(t("pipeline.ai.needName" as any)); return; }
+    setAiGenerating(true);
+    try {
+      const draft = await generateOutreach(form, aiTone, aiLang, provider, apiKey);
+      setAiDraft(draft);
+      showToast(t("pipeline.ai.generated" as any));
+    } catch { showToast(t("pipeline.ai.genFailed" as any)); }
+    finally { setAiGenerating(false); }
+  };
+
+  const handleAnalyzeLead = async () => {
+    const { provider, apiKey } = getAiConfig();
+    if (!provider || !apiKey) {
+      showToast(t("money.ai.noKey" as any), 5000, { label: lang === "zh" ? "去设置" : "Settings", fn: () => setActiveTab("settings" as any) });
+      return;
+    }
+    if (!form.name.trim()) { showToast(t("pipeline.ai.needName" as any)); return; }
+    setAiAnalyzing(true);
+    try {
+      const result = await analyzeLeadQuality(form, lang, provider, apiKey);
+      setAiAnalysis(result);
+    } catch { showToast(t("pipeline.ai.genFailed" as any)); }
+    finally { setAiAnalyzing(false); }
+  };
 
   const fetchPlans = async () => { try { const d = await (await fetch("/api/plans")).json(); setPlans(Array.isArray(d) ? d : []); } catch {} };
 
@@ -88,8 +138,16 @@ export function LeadsView() {
   }, []);
 
   const openPanel = (lead: any = null, col = "new") => {
-    if (lead) { setEditId(lead.id); setForm({ name: lead.name, industry: lead.industry, needs: lead.needs, website: lead.website || "", column: lead.column || col, source: lead.source || "" }); }
-    else { setEditId(null); setForm({ ...EMPTY_LEAD, column: col }); }
+    if (lead) {
+      setEditId(lead.id);
+      setForm({ name: lead.name, industry: lead.industry, needs: lead.needs, website: lead.website || "", column: lead.column || col, source: lead.source || "" });
+      setAiDraft(lead.aiDraft || "");
+    } else {
+      setEditId(null);
+      setForm({ ...EMPTY_LEAD, column: col });
+      setAiDraft("");
+    }
+    setAiAnalysis(null);
     setShowPanel(true);
   };
 
@@ -257,6 +315,84 @@ export function LeadsView() {
                 </div>
                 <div className="border-t" style={{ borderColor: "var(--color-border-primary)" }} />
                 <FL label={t("pipeline.form.website" as any)}><textarea value={form.website} onChange={e => setForm(p => ({ ...p, website: e.target.value }))} placeholder={t("pipeline.form.websitePlaceholder" as any)} className="input-base w-full h-16 px-3 py-2 text-[15px] resize-none" /></FL>
+
+                {/* ── AI Lead Analysis ── */}
+                <div className="border-t pt-3" style={{ borderColor: "var(--color-border-primary)" }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[13px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
+                      {t("pipeline.ai.analysis" as any)}
+                    </span>
+                    <button onClick={handleAnalyzeLead} disabled={aiAnalyzing} className="btn-ghost compact text-[13px] gap-1 disabled:opacity-40">
+                      {aiAnalyzing ? <Loader2 size={12} className="animate-spin" /> : <Search size={12} />}
+                      {t("pipeline.ai.analyze" as any)}
+                    </button>
+                  </div>
+                  {aiAnalysis && (
+                    <div className="rounded-[var(--radius-6)] p-2.5 text-[13px] mb-2" style={{
+                      background: aiAnalysis.score === "high" ? "color-mix(in srgb, var(--color-success) 8%, transparent)"
+                        : aiAnalysis.score === "medium" ? "color-mix(in srgb, var(--color-warning) 8%, transparent)"
+                        : "color-mix(in srgb, var(--color-danger) 8%, transparent)",
+                    }}>
+                      <span className="inline-block px-1.5 py-0.5 rounded-[var(--radius-4)] text-[11px] mb-1" style={{
+                        background: aiAnalysis.score === "high" ? "var(--color-success)" : aiAnalysis.score === "medium" ? "var(--color-warning)" : "var(--color-danger)",
+                        color: "#fff", fontWeight: "var(--font-weight-semibold)",
+                      } as React.CSSProperties}>
+                        {aiAnalysis.score === "high" ? (lang === "zh" ? "高价值" : "High") : aiAnalysis.score === "medium" ? (lang === "zh" ? "中等" : "Medium") : (lang === "zh" ? "低价值" : "Low")}
+                      </span>
+                      <p style={{ color: "var(--color-text-secondary)" }}>{aiAnalysis.reason}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* ── AI Outreach Email ── */}
+                <div className="border-t pt-3" style={{ borderColor: "var(--color-border-primary)" }}>
+                  <span className="text-[13px] block mb-2" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
+                    {t("pipeline.ai.generate" as any)}
+                  </span>
+                  <div className="flex items-center gap-2 mb-2">
+                    {/* Tone */}
+                    <div className="flex gap-1 flex-1">
+                      {(["formal", "friendly", "direct"] as const).map(tone => (
+                        <button key={tone} onClick={() => setAiTone(tone)}
+                          className="flex-1 text-[12px] py-1 rounded-[var(--radius-4)] transition-colors"
+                          style={aiTone === tone ? { background: "var(--color-accent)", color: "var(--color-brand-text)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties : { background: "var(--color-bg-tertiary)", color: "var(--color-text-tertiary)" }}
+                        >
+                          {tone === "formal" ? (lang === "zh" ? "正式" : "Formal") : tone === "friendly" ? (lang === "zh" ? "友好" : "Friendly") : (lang === "zh" ? "直接" : "Direct")}
+                        </button>
+                      ))}
+                    </div>
+                    {/* Language */}
+                    <div className="flex gap-1">
+                      {(["zh", "en"] as const).map(l => (
+                        <button key={l} onClick={() => setAiLang(l)}
+                          className="text-[12px] px-2 py-1 rounded-[var(--radius-4)] transition-colors"
+                          style={aiLang === l ? { background: "var(--color-accent)", color: "var(--color-brand-text)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties : { background: "var(--color-bg-tertiary)", color: "var(--color-text-tertiary)" }}
+                        >
+                          {l === "zh" ? "中文" : "EN"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <button onClick={handleGenerateOutreach} disabled={aiGenerating} className="btn-primary compact w-full text-[14px] gap-1.5 mb-2 disabled:opacity-40">
+                    {aiGenerating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                    {aiGenerating ? t("pipeline.ai.generating" as any) : t("pipeline.ai.generate" as any)}
+                  </button>
+                  {aiDraft && (
+                    <div>
+                      <pre className="text-[13px] leading-relaxed whitespace-pre-wrap rounded-[var(--radius-6)] p-3 mb-2" style={{ background: "var(--color-bg-tertiary)", color: "var(--color-text-secondary)", fontFamily: "inherit" }}>
+                        {aiDraft}
+                      </pre>
+                      <div className="flex gap-2">
+                        <button onClick={() => { navigator.clipboard.writeText(aiDraft); showToast(t("pipeline.ai.copyDraft" as any)); }} className="btn-ghost compact text-[13px] gap-1">
+                          <Copy size={12} /> {t("pipeline.ai.copyDraft" as any)}
+                        </button>
+                        <button onClick={handleGenerateOutreach} disabled={aiGenerating} className="btn-ghost compact text-[13px] gap-1 disabled:opacity-40">
+                          <RefreshCw size={12} /> {lang === "zh" ? "重新生成" : "Regenerate"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="flex items-center justify-between px-5 py-3 border-t pb-safe" style={{ borderColor: "var(--color-border-primary)" }}>
                 <div className="flex gap-2">
