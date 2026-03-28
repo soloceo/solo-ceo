@@ -51,7 +51,7 @@ export function useAppSettings() {
     await fetch('/api/settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key, value }),
+      body: JSON.stringify({ [key]: value }),
     });
     // Update local cache immediately — create new object to avoid shared mutation
     cache = cache ? { ...cache, [key]: value } : { [key]: value };
