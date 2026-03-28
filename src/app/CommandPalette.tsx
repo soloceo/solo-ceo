@@ -16,6 +16,8 @@ import {
   FileText,
   Briefcase,
   Target,
+  DollarSign,
+  UserSearch,
 } from "lucide-react";
 import { useUIStore } from "../store/useUIStore";
 import { useT } from "../i18n/context";
@@ -56,26 +58,39 @@ export function CommandPalette() {
     const controller = new AbortController();
     const search = async () => {
       try {
-        const [tasksRes, clientsRes] = await Promise.all([
+        const [tasksRes, clientsRes, leadsRes, financeRes] = await Promise.all([
           fetch("/api/tasks", { signal: controller.signal }),
           fetch("/api/clients", { signal: controller.signal }),
+          fetch("/api/leads", { signal: controller.signal }),
+          fetch("/api/finance", { signal: controller.signal }),
         ]);
-        const [tasks, clients] = await Promise.all([tasksRes.json(), clientsRes.json()]);
+        const [tasks, clients, leads, finance] = await Promise.all([tasksRes.json(), clientsRes.json(), leadsRes.json(), financeRes.json()]);
         const q = query.toLowerCase();
         const matched: SearchResult[] = [];
 
-        for (const task of tasks) {
+        for (const task of (Array.isArray(tasks) ? tasks : [])) {
           if (task.title?.toLowerCase().includes(q) || task.client?.toLowerCase().includes(q)) {
             matched.push({ type: "task", id: task.id, title: task.title, sub: task.client });
           }
         }
-        for (const client of clients) {
+        for (const client of (Array.isArray(clients) ? clients : [])) {
           const name = client.company_name || client.name || "";
           if (name.toLowerCase().includes(q) && !client.soft_deleted) {
             matched.push({ type: "client", id: client.id, title: name, sub: client.contact_name });
           }
         }
-        setResults(matched.slice(0, 8));
+        for (const lead of (Array.isArray(leads) ? leads : [])) {
+          if (lead.name?.toLowerCase().includes(q) || lead.industry?.toLowerCase().includes(q) || lead.needs?.toLowerCase().includes(q)) {
+            matched.push({ type: "lead", id: lead.id, title: lead.name, sub: lead.industry });
+          }
+        }
+        for (const tx of (Array.isArray(finance) ? finance : [])) {
+          const desc = tx.description || tx.desc || tx.client_name || "";
+          if (desc.toLowerCase().includes(q) || tx.category?.toLowerCase().includes(q)) {
+            matched.push({ type: "finance", id: tx.id, title: desc || tx.category, sub: tx.category });
+          }
+        }
+        setResults(matched.slice(0, 10));
       } catch { /* abort or network error */ }
     };
 
@@ -171,18 +186,22 @@ export function CommandPalette() {
                         key={`${r.type}-${r.id}`}
                         value={`${r.type} ${r.title} ${r.sub || ""}`}
                         onSelect={() => {
-                          go(r.type === "task" ? "work" : "clients");
+                          const tabMap: Record<string, string> = { task: "work", client: "clients", lead: "leads", finance: "finance" };
+                          go(tabMap[r.type] || "home");
                         }}
                         className={itemClass}
                         style={{ color: "var(--color-text-primary)" }}
                       >
-                        {r.type === "task" ? <Target size={16} style={{ color: "var(--color-text-tertiary)" }} /> : <Briefcase size={16} style={{ color: "var(--color-text-tertiary)" }} />}
+                        {r.type === "task" ? <Target size={16} style={{ color: "var(--color-text-tertiary)" }} />
+                          : r.type === "lead" ? <UserSearch size={16} style={{ color: "var(--color-text-tertiary)" }} />
+                          : r.type === "finance" ? <DollarSign size={16} style={{ color: "var(--color-text-tertiary)" }} />
+                          : <Briefcase size={16} style={{ color: "var(--color-text-tertiary)" }} />}
                         <div className="flex-1 min-w-0">
                           <span className="truncate block">{r.title}</span>
                           {r.sub && <span className="text-[13px] truncate block" style={{ color: "var(--color-text-quaternary)" }}>{r.sub}</span>}
                         </div>
                         <span className="text-[10px] shrink-0 px-1.5 py-0.5 rounded-[var(--radius-4)]" style={{ background: "var(--color-bg-tertiary)", color: "var(--color-text-quaternary)" }}>
-                          {r.type === "task" ? t("nav.work" as any) : t("nav.clients" as any)}
+                          {r.type === "task" ? t("nav.work" as any) : r.type === "lead" ? t("nav.leads" as any) : r.type === "finance" ? t("nav.finance" as any) : t("nav.clients" as any)}
                         </span>
                       </Command.Item>
                     ))}

@@ -146,7 +146,7 @@ export default function WorkPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...parsed, scope: "work" }),
       });
-      showToast(`${t("pipeline.toast.leadAdded" as any)}: ${parsed.title}`);
+      showToast(`✓ ${lang === "zh" ? "AI 已创建" : "AI created"}: ${parsed.title}`);
       setAiInput("");
       fetchTasks();
     } catch {

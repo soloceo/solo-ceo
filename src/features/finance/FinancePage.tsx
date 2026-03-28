@@ -380,7 +380,7 @@ export default function FinancePage() {
           tax_amount: 0,
         }),
       });
-      showToast(t("money.ai.recorded" as any).replace("{desc}", parsed.description).replace("{amount}", `$${parsed.amount}`));
+      showToast(`✓ ${t("money.ai.recorded" as any).replace("{desc}", parsed.description).replace("{amount}", `$${parsed.amount}`)}`);
       setAiInput("");
       fetchFinance();
     } catch {

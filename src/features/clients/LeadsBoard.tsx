@@ -87,7 +87,7 @@ export function LeadsView() {
     try {
       const draft = await generateOutreach(form, aiTone, aiLang, provider, apiKey);
       setAiDraft(draft);
-      showToast(t("pipeline.ai.generated" as any));
+      showToast(`✓ ${t("pipeline.ai.generated" as any)}`);
     } catch { showToast(t("pipeline.ai.genFailed" as any)); }
     finally { setAiGenerating(false); }
   };
