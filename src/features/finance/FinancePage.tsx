@@ -506,15 +506,24 @@ export default function FinancePage() {
       </div>
 
       {/* ── AI Chat Input ── */}
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-4 rounded-[var(--radius-8)] p-1.5" style={{
+        background: financeTab === "business"
+          ? "color-mix(in srgb, var(--color-accent) 6%, transparent)"
+          : "color-mix(in srgb, var(--color-info) 6%, transparent)",
+      }}>
         <div className="relative flex-1">
-          <Bot size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: aiParsing ? "var(--color-accent)" : "var(--color-text-quaternary)" }} />
+          <Bot size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{
+            color: aiParsing ? "var(--color-accent)" : financeTab === "business" ? "var(--color-accent)" : "var(--color-info)",
+          }} />
           <input
             type="text"
             value={aiInput}
             onChange={e => setAiInput(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAiRecord(); }}
-            placeholder={`[${financeTab === "business" ? (lang === "zh" ? "公司" : "Biz") : (lang === "zh" ? "个人" : "Personal")}] ${t("money.ai.placeholder" as any)}`}
+            placeholder={financeTab === "business"
+              ? (lang === "zh" ? "公司记账：买了域名 $15" : "Biz: bought domain $15")
+              : (lang === "zh" ? "个人记账：吃饭花了 $20" : "Personal: lunch $20")
+            }
             disabled={aiParsing}
             className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]"
           />
