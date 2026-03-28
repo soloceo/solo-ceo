@@ -473,51 +473,40 @@ export default function FinancePage() {
   return (
     <div className="mobile-page max-w-[960px] mx-auto min-h-full flex flex-col px-4 py-3 md:px-6 md:py-4 lg:px-8 lg:py-5 relative">
 
-      {/* ── Tab switcher (top) ── */}
-      <div className="flex gap-1 mb-3 p-1 rounded-[var(--radius-8)]" style={{ background: "var(--color-bg-tertiary)" }}>
-        {(["business", "personal"] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => { setFinanceTab(tab); setFilters({ type: "all", category: "all", status: "all", dateFrom: "", dateTo: "", search: "" }); }}
-            className="flex-1 py-2 text-[14px] rounded-[var(--radius-6)] transition-colors press-feedback flex items-center justify-center gap-1.5"
-            style={financeTab === tab ? {
-              background: "var(--color-bg-primary)",
-              color: "var(--color-text-primary)",
-              fontWeight: "var(--font-weight-semibold)",
-              boxShadow: "var(--shadow-low)",
-            } as React.CSSProperties : {
-              color: "var(--color-text-tertiary)",
-              fontWeight: "var(--font-weight-medium)",
-            } as React.CSSProperties}
-          >
-            {tab === "business" ? <Building2 size={14} /> : <UserIcon size={14} />}
-            {tab === "business" ? (lang === "zh" ? "公司" : "Business") : (lang === "zh" ? "个人" : "Personal")}
-          </button>
-        ))}
-      </div>
-
-      {/* Header */}
-      <header className="flex items-center justify-between mb-4">
-        <h1 className="page-title">{t("finance.pageTitle" as any)}</h1>
-        <div className="flex items-center gap-2">
-          <button onClick={exportCSV} className="btn-ghost compact gap-1.5">
-            <Download size={16} /> <span className="hidden sm:inline">{t("money.export.csv" as any)}</span>
-          </button>
-          <button onClick={() => openPanel()} className="btn-primary compact">
-            <Plus size={16} /> {t("finance.addRecord" as any)}
-          </button>
+      {/* ── Header: Tab + Actions ── */}
+      <div className="flex items-center gap-3 mb-3">
+        <div className="flex gap-1 p-1 rounded-[var(--radius-8)] shrink-0" style={{ background: "var(--color-bg-tertiary)" }}>
+          {(["business", "personal"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => { setFinanceTab(tab); setFilters({ type: "all", category: "all", status: "all", dateFrom: "", dateTo: "", search: "" }); }}
+              className="py-1.5 px-4 text-[14px] rounded-[var(--radius-6)] transition-colors press-feedback flex items-center gap-1.5"
+              style={financeTab === tab ? {
+                background: "var(--color-bg-primary)",
+                color: "var(--color-text-primary)",
+                fontWeight: "var(--font-weight-semibold)",
+                boxShadow: "var(--shadow-low)",
+              } as React.CSSProperties : {
+                color: "var(--color-text-tertiary)",
+                fontWeight: "var(--font-weight-medium)",
+              } as React.CSSProperties}
+            >
+              {tab === "business" ? <Building2 size={14} /> : <UserIcon size={14} />}
+              {tab === "business" ? (lang === "zh" ? "公司" : "Biz") : (lang === "zh" ? "个人" : "Personal")}
+            </button>
+          ))}
         </div>
-      </header>
+        <div className="flex-1" />
+        <button onClick={exportCSV} className="btn-ghost compact gap-1.5">
+          <Download size={16} /> <span className="hidden sm:inline">{t("money.export.csv" as any)}</span>
+        </button>
+        <button onClick={() => openPanel()} className="btn-primary compact">
+          <Plus size={16} /> {t("finance.addRecord" as any)}
+        </button>
+      </div>
 
       {/* ── AI Chat Input ── */}
       <div className="flex items-center gap-2 mb-4">
-        <span className="text-[12px] px-2 py-1 rounded-[var(--radius-4)] shrink-0" style={{
-          background: financeTab === "business" ? "color-mix(in srgb, var(--color-accent) 12%, transparent)" : "color-mix(in srgb, var(--color-info) 12%, transparent)",
-          color: financeTab === "business" ? "var(--color-accent)" : "var(--color-info)",
-          fontWeight: "var(--font-weight-semibold)",
-        } as React.CSSProperties}>
-          {financeTab === "business" ? (lang === "zh" ? "公司" : "Biz") : (lang === "zh" ? "个人" : "Personal")}
-        </span>
         <div className="relative flex-1">
           <Bot size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: aiParsing ? "var(--color-accent)" : "var(--color-text-quaternary)" }} />
           <input
