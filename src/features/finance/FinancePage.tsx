@@ -19,6 +19,8 @@ import {
   Receipt,
   Bot,
   Loader2,
+  Building2,
+  User as UserIcon,
 } from "lucide-react";
 
 import { calcTaxAmount, catLabel, STATUS_I18N } from "../../lib/tax";
@@ -464,6 +466,29 @@ export default function FinancePage() {
   return (
     <div className="mobile-page max-w-[960px] mx-auto min-h-full flex flex-col px-4 py-3 md:px-6 md:py-4 lg:px-8 lg:py-5 relative">
 
+      {/* ── Tab switcher (top) ── */}
+      <div className="flex gap-1 mb-3 p-1 rounded-[var(--radius-8)]" style={{ background: "var(--color-bg-tertiary)" }}>
+        {(["business", "personal"] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => { setFinanceTab(tab); setFilters({ type: "all", category: "all", status: "all", dateFrom: "", dateTo: "", search: "" }); }}
+            className="flex-1 py-2 text-[14px] rounded-[var(--radius-6)] transition-colors press-feedback flex items-center justify-center gap-1.5"
+            style={financeTab === tab ? {
+              background: "var(--color-bg-primary)",
+              color: "var(--color-text-primary)",
+              fontWeight: "var(--font-weight-semibold)",
+              boxShadow: "var(--shadow-low)",
+            } as React.CSSProperties : {
+              color: "var(--color-text-tertiary)",
+              fontWeight: "var(--font-weight-medium)",
+            } as React.CSSProperties}
+          >
+            {tab === "business" ? <Building2 size={14} /> : <UserIcon size={14} />}
+            {tab === "business" ? (lang === "zh" ? "公司" : "Business") : (lang === "zh" ? "个人" : "Personal")}
+          </button>
+        ))}
+      </div>
+
       {/* Header */}
       <header className="flex items-center justify-between mb-4">
         <h1 className="page-title">{t("finance.pageTitle" as any)}</h1>
@@ -476,28 +501,6 @@ export default function FinancePage() {
           </button>
         </div>
       </header>
-
-      {/* ── Tab switcher ── */}
-      <div className="flex gap-1 mb-4 p-1 rounded-[var(--radius-8)]" style={{ background: "var(--color-bg-tertiary)" }}>
-        {(["business", "personal"] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => { setFinanceTab(tab); setFilters({ type: "all", category: "all", status: "all", dateFrom: "", dateTo: "", search: "" }); }}
-            className="flex-1 py-2 text-[14px] rounded-[var(--radius-6)] transition-colors press-feedback"
-            style={financeTab === tab ? {
-              background: "var(--color-bg-primary)",
-              color: "var(--color-text-primary)",
-              fontWeight: "var(--font-weight-semibold)",
-              boxShadow: "var(--shadow-low)",
-            } as React.CSSProperties : {
-              color: "var(--color-text-tertiary)",
-              fontWeight: "var(--font-weight-medium)",
-            } as React.CSSProperties}
-          >
-            {tab === "business" ? (lang === "zh" ? "公司" : "Business") : (lang === "zh" ? "个人" : "Personal")}
-          </button>
-        ))}
-      </div>
 
       {/* ── AI Chat Input ── */}
       <div className="flex items-center gap-2 mb-4">
