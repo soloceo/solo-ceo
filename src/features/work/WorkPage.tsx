@@ -209,68 +209,68 @@ export default function WorkPage() {
 
   return (
     <div className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col px-4 py-3 md:px-6 md:py-4 lg:px-8 lg:py-5 relative">
-      {/* Tab switcher */}
-      <div className="flex items-center gap-3 mb-3">
-        <div className="flex gap-1 p-1 rounded-[var(--radius-8)] shrink-0" style={{ background: "var(--color-bg-tertiary)" }}>
-          {(["work", "personal"] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setWorkTab(tab)}
-              className="py-1.5 px-4 text-[14px] rounded-[var(--radius-6)] transition-colors press-feedback flex items-center gap-1.5"
-              style={workTab === tab ? {
-                background: tab === "work"
-                  ? "color-mix(in srgb, var(--color-accent) 12%, var(--color-bg-primary))"
-                  : "color-mix(in srgb, var(--color-info) 12%, var(--color-bg-primary))",
-                color: tab === "work" ? "var(--color-accent)" : "var(--color-info)",
-                fontWeight: "var(--font-weight-semibold)",
-                boxShadow: "var(--shadow-low)",
-              } as React.CSSProperties : {
-                color: "var(--color-text-tertiary)",
-                fontWeight: "var(--font-weight-medium)",
-              } as React.CSSProperties}
-            >
-              {tab === "work" ? <Building2 size={14} /> : <UserIcon size={14} />}
-              {tab === "work" ? (t("work.tab.work" as any)) : (t("work.tab.personal" as any))}
-            </button>
-          ))}
-        </div>
-        <div className="flex-1" />
-        {workTab === "work" && (
-          <>
-            <div className="flex items-center gap-1.5">
-              <Filter size={16} style={{ color: "var(--color-text-tertiary)" }} />
-              <select
-                value={filterPriority}
-                onChange={(e) => setFilterPriority(e.target.value)}
-                className="input-base compact px-2 text-[15px]"
-              >
-                <option value="All">{t("work.filter.all" as any)}</option>
-                <option value="High">{t("work.filter.high" as any)}</option>
-                <option value="Medium">{t("work.filter.medium" as any)}</option>
-                <option value="Low">{t("work.filter.low" as any)}</option>
-              </select>
-            </div>
-            <div className="segment-switcher">
-              {([
-                ["vertical", <LayoutGrid size={14} />, "Board view"],
-                ["horizontal", <AlignJustify size={14} />, "List view"],
-              ] as [string, React.ReactNode, string][]).map(([mode, icon, label]) => (
-                <button
-                  key={mode}
-                  onClick={() => setViewMode(mode as "vertical" | "horizontal")}
-                  data-active={viewMode === mode}
-                  aria-label={label}
-                >
-                  {icon}
-                </button>
-              ))}
-            </div>
-            <button onClick={() => openPanel(null, "todo")} className="btn-primary compact">
-              <Plus size={16} /> {t("work.new" as any)}
-            </button>
-          </>
-        )}
+      {/* Row 1: Tab switcher */}
+      <div className="flex gap-1 p-1 mb-2 rounded-[var(--radius-8)]" style={{ background: "var(--color-bg-tertiary)" }}>
+        {(["work", "personal"] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setWorkTab(tab)}
+            className="flex-1 py-1.5 text-[14px] rounded-[var(--radius-6)] transition-colors press-feedback flex items-center justify-center gap-1.5"
+            style={workTab === tab ? {
+              background: tab === "work"
+                ? "color-mix(in srgb, var(--color-accent) 12%, var(--color-bg-primary))"
+                : "color-mix(in srgb, var(--color-info) 12%, var(--color-bg-primary))",
+              color: tab === "work" ? "var(--color-accent)" : "var(--color-info)",
+              fontWeight: "var(--font-weight-semibold)",
+              boxShadow: "var(--shadow-low)",
+            } as React.CSSProperties : {
+              color: "var(--color-text-tertiary)",
+              fontWeight: "var(--font-weight-medium)",
+            } as React.CSSProperties}
+          >
+            {tab === "work" ? <Building2 size={14} /> : <UserIcon size={14} />}
+            {tab === "work" ? (t("work.tab.work" as any)) : (t("work.tab.personal" as any))}
+          </button>
+        ))}
       </div>
+
+      {/* Row 2: Toolbar (work tab only) */}
+      {workTab === "work" && (
+        <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-1.5">
+            <Filter size={16} style={{ color: "var(--color-text-tertiary)" }} />
+            <select
+              value={filterPriority}
+              onChange={(e) => setFilterPriority(e.target.value)}
+              className="input-base compact px-2 text-[15px]"
+            >
+              <option value="All">{t("work.filter.all" as any)}</option>
+              <option value="High">{t("work.filter.high" as any)}</option>
+              <option value="Medium">{t("work.filter.medium" as any)}</option>
+              <option value="Low">{t("work.filter.low" as any)}</option>
+            </select>
+          </div>
+          <div className="segment-switcher">
+            {([
+              ["vertical", <LayoutGrid size={14} />, "Board view"],
+              ["horizontal", <AlignJustify size={14} />, "List view"],
+            ] as [string, React.ReactNode, string][]).map(([mode, icon, label]) => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode as "vertical" | "horizontal")}
+                data-active={viewMode === mode}
+                aria-label={label}
+              >
+                {icon}
+              </button>
+            ))}
+          </div>
+          <div className="flex-1" />
+          <button onClick={() => openPanel(null, "todo")} className="btn-primary compact">
+            <Plus size={16} /> <span className="hidden sm:inline">{t("work.new" as any)}</span>
+          </button>
+        </div>
+      )}
 
       {workTab === "work" ? (
         <>
