@@ -189,12 +189,12 @@ function App() {
   }, [quickCreateOpen]);
 
   const quickCreateActions = [
-    { icon: <ListTodo size={14} aria-hidden="true" />, label: lang === "zh" ? "工作 · 任务" : "Work · Task", action: () => { setActiveTab("work"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "task" } })), 100); } },
-    { icon: <ListTodo size={14} aria-hidden="true" />, label: lang === "zh" ? "个人 · 待办" : "Personal · Todo", action: () => { setActiveTab("work"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "personal-task" } })), 100); } },
-    { icon: <UserPlus size={14} aria-hidden="true" />, label: lang === "zh" ? "销售 · 线索" : "Sales · Lead", action: () => { setActiveTab("leads" as any); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "lead" } })), 100); } },
-    { icon: <Users size={14} aria-hidden="true" />, label: lang === "zh" ? "签约 · 客户" : "Signed · Client", action: () => { setActiveTab("clients"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "client" } })), 100); } },
-    { icon: <FileText size={14} aria-hidden="true" />, label: lang === "zh" ? "公司 · 记账" : "Biz · Finance", action: () => { setActiveTab("finance"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "biz-transaction" } })), 100); } },
-    { icon: <FileText size={14} aria-hidden="true" />, label: lang === "zh" ? "个人 · 记账" : "Personal · Finance", action: () => { setActiveTab("finance"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "personal-transaction" } })), 100); } },
+    { icon: <ListTodo size={14} aria-hidden="true" />, label: lang === "zh" ? "新建工作任务" : "New Work Task", action: () => { setActiveTab("work"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "task" } })), 100); } },
+    { icon: <ListTodo size={14} aria-hidden="true" />, label: lang === "zh" ? "新建个人待办" : "New Personal Todo", action: () => { setActiveTab("work"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "personal-task" } })), 100); } },
+    { icon: <UserPlus size={14} aria-hidden="true" />, label: lang === "zh" ? "添加销售线索" : "Add Lead", action: () => { setActiveTab("leads" as any); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "lead" } })), 100); } },
+    { icon: <Users size={14} aria-hidden="true" />, label: lang === "zh" ? "添加签约客户" : "Add Client", action: () => { setActiveTab("clients"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "client" } })), 100); } },
+    { icon: <FileText size={14} aria-hidden="true" />, label: lang === "zh" ? "记录公司收支" : "Log Biz Finance", action: () => { setActiveTab("finance"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "biz-transaction" } })), 100); } },
+    { icon: <FileText size={14} aria-hidden="true" />, label: lang === "zh" ? "记录个人支出" : "Log Personal Expense", action: () => { setActiveTab("finance"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "personal-transaction" } })), 100); } },
   ];
 
   /* ── Mobile FAB menu ── */
