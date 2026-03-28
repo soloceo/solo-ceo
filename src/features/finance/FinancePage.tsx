@@ -352,7 +352,13 @@ export default function FinancePage() {
     const provider = appSettings?.ai_provider as AIProvider | undefined;
     const keyMap: Record<string, string> = { gemini: "gemini_api_key", claude: "claude_api_key", openai: "openai_api_key" };
     const apiKey = provider ? appSettings?.[keyMap[provider]] : undefined;
-    if (!provider || !apiKey) { showToast(t("money.ai.noKey" as any)); return; }
+    if (!provider || !apiKey) {
+      showToast(t("money.ai.noKey" as any), 5000, {
+        label: lang === "zh" ? "去设置" : "Settings",
+        fn: () => setActiveTab("settings" as any),
+      });
+      return;
+    }
 
     setAiParsing(true);
     try {
