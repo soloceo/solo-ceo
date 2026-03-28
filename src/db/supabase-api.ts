@@ -389,7 +389,21 @@ export async function handleSupabaseRequest(
       return ok({ success: true });
     }
     if (method === 'DELETE') {
-      const { data: prev } = await supabase.from('clients').select('name').eq('id', id).single();
+      const { data: prev } = await supabase.from('clients').select('name, company_name').eq('id', id).single();
+
+      // Fix Bug 1: Clean up related records before soft-deleting the client
+      const clientCompanyName = prev?.company_name || prev?.name || '';
+
+      // Unlink tasks - find all tasks with matching company_name and set client to empty string
+      await supabase.from('tasks').update({ client: '' }).eq('client', clientCompanyName).eq('user_id', userId);
+
+      // Unlink finance transactions - set client_id to null for all matching transactions
+      await supabase.from('finance_transactions').update({ client_id: null }).eq('client_id', id).eq('user_id', userId);
+
+      // Soft-delete payment milestones - mark as soft_deleted instead of hard delete
+      await supabase.from('payment_milestones').update({ soft_deleted: true }).eq('client_id', id).eq('user_id', userId);
+
+      // Soft-delete the client
       await supabase.from('clients').update({ soft_deleted: true }).eq('id', id);
       syncClientSubscriptionLedger(userId).catch(() => {});
       await logActivity(userId, 'client', 'deleted', `删除客户：${prev?.name || '未命名客户'}`, '', id);
@@ -497,6 +511,12 @@ export async function handleSupabaseRequest(
 
     const { data: milestone } = await supabase.from('payment_milestones').select('*').eq('id', id).single();
     if (!milestone) return err(404, 'Milestone not found');
+
+    // Fix Bug 2: Check idempotency - if milestone is already marked as paid, return early
+    if (milestone.status === 'paid') {
+      return ok({ success: true, financeId: milestone.finance_tx_id, alreadyPaid: true });
+    }
+
     const { data: client } = await supabase.from('clients').select('name, company_name, tax_mode, tax_rate').eq('id', milestone.client_id).single();
     const clientName = client?.company_name || client?.name || '';
 
@@ -980,7 +1000,7 @@ export async function handleSupabaseRequest(
       reason: l.column === 'proposal' ? '它已经接近成交，今天推进最有机会带来收入。' : '这是当前最值得跟进的销售机会。',
       actionHint: l.column === 'proposal' ? '发提案跟进 / 促成确认' : '发送开发信或安排跟进',
     }));
-    if (!revenueCandidates.length) revenueCandidates.push({ key: 'revenue-fallback', type: '收入', title: '跟进一位潜在客户', reason: '今天至少推进一件直接指向收入的动作。', actionHint: '去销售看板处理最高意向线索' });
+    if (!revenueCandidates.length) revenueCandidates.push({ key: 'revenue-fallback', type: '收入', title: '跟进一位潜在客户', reason: '今天至少推进一件直接指向收入的动作。', actionHint: 'home.focus.hint.leads' });
 
     const deliveryCandidates: any[] = tasks.map((t: any) => ({
       key: `delivery-task-${t.id}`, type: '交付',
@@ -988,7 +1008,7 @@ export async function handleSupabaseRequest(
       reason: t.priority === 'High' ? '高优先级任务最容易影响客户满意度和交付节奏。' : '先推进当前最接近交付的任务。',
       actionHint: t.client ? `关联客户：${t.client}` : '打开任务卡继续执行',
     }));
-    if (!deliveryCandidates.length) deliveryCandidates.push({ key: 'delivery-fallback', type: '交付', title: '完成一个关键交付', reason: '每天至少推进一件真实交付，避免系统只转不产出。', actionHint: '去任务看板推进进行中任务' });
+    if (!deliveryCandidates.length) deliveryCandidates.push({ key: 'delivery-fallback', type: '交付', title: '完成一个关键交付', reason: '每天至少推进一件真实交付，避免系统只转不产出。', actionHint: 'home.focus.hint.tasks' });
 
     const systemCandidates: any[] = [];
     if (overdueMs) systemCandidates.push({ key: `system-overdue-ms-${overdueMs.id}`, type: '系统', title: `催收逾期款：${overdueMs.clients?.name || '客户'} — ${overdueMs.label} $${Number(overdueMs.amount||0).toLocaleString()}`, reason: `该笔款项已于 ${overdueMs.due_date} 到期，需要尽快催收。`, actionHint: '去客户面板确认收款并标记已付' });

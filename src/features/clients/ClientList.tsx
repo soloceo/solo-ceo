@@ -150,14 +150,20 @@ export function ClientsView() {
   const [deleteTxId, setDeleteTxId] = useState<number | null>(null);
   const [txForm, setTxForm] = useState(createEmptyTx);
 
-  const fetchPlans = async () => { try { const d = await (await fetch("/api/plans")).json(); setPlans(Array.isArray(d) ? d : []); } catch (e) { console.error("[fetchPlans]", e); } };
+  /* ── Billing type confirmation modal ── */
+  const [billingConfirm, setBillingConfirm] = useState<{type: "subscription"|"project", message: string}|null>(null);
+
+  /* ── Form validation ── */
+  const [formErrors, setFormErrors] = useState<Record<string, boolean>>({});
+
+  const fetchPlans = async () => { try { const d = await (await fetch("/api/plans")).json(); setPlans(Array.isArray(d) ? d : []); } catch (e) { console.warn("Failed to fetch plans:", e); showToast(t("common.loadFailed" as any) || "Load failed"); } };
   const fetchClients = async () => { try { const res = await fetch("/api/clients"); const data = await res.json(); setClients(Array.isArray(data) ? data : []); } catch { showToast(t("pipeline.toast.clientLoadFailed" as any)); } finally { setLoading(false); } };
-  const fetchFinance = async () => { try { const res = await fetch("/api/finance"); const d = await res.json(); setFinTxs(Array.isArray(d) ? d : []); } catch (e) { console.error("[fetchFinance]", e); } };
+  const fetchFinance = async () => { try { const res = await fetch("/api/finance"); const d = await res.json(); setFinTxs(Array.isArray(d) ? d : []); } catch (e) { console.warn("Failed to fetch finance:", e); showToast(t("common.loadFailed" as any) || "Load failed"); } };
 
   const fetchMilestones = async (clientId: number) => {
     setMsLoading(true);
     try { const res = await fetch(`/api/clients/${clientId}/milestones`); setMilestones(await res.json()); }
-    catch { setMilestones([]); }
+    catch (e) { console.warn("Failed to fetch milestones:", e); setMilestones([]); }
     finally { setMsLoading(false); }
   };
 
@@ -273,7 +279,7 @@ export function ClientsView() {
       setEditId(c.id);
       // Parse timeline — fallback to legacy fields
       let tl: { type: string; date: string }[] = [];
-      try { tl = JSON.parse(c.subscription_timeline || '[]'); } catch { tl = []; }
+      try { tl = JSON.parse(c.subscription_timeline || '[]'); } catch (e) { console.warn("Failed to parse subscription timeline:", e); tl = []; }
       if (!tl.length) {
         const sd = c.subscription_start_date || (c.joined_at ? String(c.joined_at).split("T")[0].split(" ")[0] : "");
         if (sd) tl.push({ type: "start", date: sd });
@@ -290,6 +296,19 @@ export function ClientsView() {
 
   const saveClient = async () => {
     if (savingClient) return;
+
+    // Validate required fields
+    const errors: Record<string, boolean> = {};
+    if (!form.company_name || form.company_name.trim() === "") {
+      errors.company_name = true;
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      showToast(t("common.validationFailed" as any) || "Please fill in all required fields");
+      return;
+    }
+
     setSavingClient(true);
     const startEvt = form.timeline.find(e => e.type === "start");
     const d = { name: form.name, company_name: form.company_name, contact_name: form.contact_name, contact_email: form.contact_email, contact_phone: form.contact_phone, billing_type: form.billing_type, plan_tier: form.billing_type === "subscription" ? form.plan : "", status: form.status, mrr: form.billing_type === "subscription" ? (Number(form.mrr) || 0) : 0, project_fee: form.billing_type === "project" ? (Number(form.project_fee) || 0) : 0, subscription_start_date: startEvt?.date || form.subscription_start_date, project_end_date: form.project_end_date, paused_at: form.timeline.filter(e => e.type === "pause").pop()?.date || "", resumed_at: form.timeline.filter(e => e.type === "resume").pop()?.date || "", cancelled_at: form.timeline.find(e => e.type === "cancel")?.date || "", mrr_effective_from: startEvt?.date || form.subscription_start_date, subscription_timeline: JSON.stringify(form.timeline), tax_mode: form.tax_mode, tax_rate: Number(form.tax_rate) || 0, drive_folder_url: form.drive_folder_url, payment_method: form.payment_method };
@@ -495,7 +514,14 @@ export function ClientsView() {
               </div>
               <div className="flex-1 overflow-y-auto overflow-x-hidden ios-scroll p-5 space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <FL label={t("pipeline.clients.companyName" as any)}><input required value={form.company_name} onChange={e => setForm(p => ({ ...p, company_name: e.target.value, name: e.target.value || p.contact_name }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+                  <div>
+                    <FL label={t("pipeline.clients.companyName" as any)}>
+                      <div>
+                        <input required value={form.company_name} onChange={e => { setForm(p => ({ ...p, company_name: e.target.value, name: e.target.value || p.contact_name })); setFormErrors(prev => ({...prev, company_name: false})); }} className="input-base w-full px-3 py-2 text-[15px]" style={{ borderColor: formErrors.company_name ? 'var(--color-danger)' : undefined }} />
+                        {formErrors.company_name && <span style={{ color: 'var(--color-danger)', fontSize: 12 }}>必填项</span>}
+                      </div>
+                    </FL>
+                  </div>
                   <FL label={t("pipeline.clients.contactName" as any)}><input value={form.contact_name} onChange={e => setForm(p => ({ ...p, contact_name: e.target.value, name: p.company_name || e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -524,26 +550,10 @@ export function ClientsView() {
                       <button key={bt} onClick={() => {
                         if (editId && bt !== form.billing_type) {
                           // Switching billing type on existing client — confirm first
-                          if (!window.confirm(bt === "project"
+                          const message = bt === "project"
                             ? t("pipeline.clients.switchToProjectConfirm" as any)
-                            : t("pipeline.clients.switchToSubConfirm" as any))) return;
-                          // Auto-cleanup when switching
-                          if (bt === "project") {
-                            // Subscription → Project: add cancel event to timeline, zero MRR
-                            const today = new Date().toISOString().split("T")[0];
-                            const hasCancelled = form.timeline.some(e => e.type === "cancel");
-                            setForm(p => ({
-                              ...p, billing_type: bt, mrr: "0", status: "Active",
-                              timeline: hasCancelled ? p.timeline : [...p.timeline, { type: "cancel", date: today }],
-                            }));
-                          } else {
-                            // Project → Subscription: keep milestones as-is, setup subscription fields
-                            const today = new Date().toISOString().split("T")[0];
-                            setForm(p => ({
-                              ...p, billing_type: bt, project_fee: "0",
-                              timeline: [{ type: "start", date: today }],
-                            }));
-                          }
+                            : t("pipeline.clients.switchToSubConfirm" as any);
+                          setBillingConfirm({ type: bt, message });
                         } else {
                           setForm(p => ({ ...p, billing_type: bt }));
                         }
@@ -992,6 +1002,40 @@ export function ClientsView() {
           </>
         )}
       </AnimatePresence>, document.body)}
+
+      {/* Billing type confirmation modal */}
+      {billingConfirm !== null && createPortal(
+        <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 710, background: "var(--color-overlay-primary)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 16px)" }}>
+          <div className="card-elevated w-full max-w-sm p-5" role="dialog" aria-modal="true" aria-label="Confirm billing type change">
+            <h3 className="text-[15px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("common.confirm" as any)}</h3>
+            <p className="text-[15px] mb-4" style={{ color: "var(--color-text-secondary)" }}>{billingConfirm.message}</p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setBillingConfirm(null)} className="btn-secondary text-[15px]">{t("common.cancel" as any)}</button>
+              <button onClick={() => {
+                const bt = billingConfirm.type;
+                // Auto-cleanup when switching
+                if (bt === "project") {
+                  // Subscription → Project: add cancel event to timeline, zero MRR
+                  const today = new Date().toISOString().split("T")[0];
+                  const hasCancelled = form.timeline.some(e => e.type === "cancel");
+                  setForm(p => ({
+                    ...p, billing_type: bt, mrr: "0", status: "Active",
+                    timeline: hasCancelled ? p.timeline : [...p.timeline, { type: "cancel", date: today }],
+                  }));
+                } else {
+                  // Project → Subscription: keep milestones as-is, setup subscription fields
+                  const today = new Date().toISOString().split("T")[0];
+                  setForm(p => ({
+                    ...p, billing_type: bt, project_fee: "0",
+                    timeline: [{ type: "start", date: today }],
+                  }));
+                }
+                setBillingConfirm(null);
+              }} className="text-[15px] px-4 py-2 rounded-[var(--radius-6)]" style={{ background: "var(--color-warning)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("common.confirm" as any)}</button>
+            </div>
+          </div>
+        </div>
+      , document.body)}
 
       {/* Delete client confirmation */}
       {deleteClientId !== null && createPortal(

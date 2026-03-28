@@ -10,7 +10,7 @@ interface Task {
   column: string;
 }
 
-export default function MiniCalendarWidget() {
+function MiniCalendarWidget() {
   const { t, lang } = useT();
   const [viewDate, setViewDate] = useState(() => new Date());
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -249,3 +249,5 @@ export default function MiniCalendarWidget() {
     </div>
   );
 }
+
+export default React.memo(MiniCalendarWidget);

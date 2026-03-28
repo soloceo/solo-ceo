@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Plus, Trash2, ChevronRight } from "lucide-react";
 import { useT } from "../../i18n/context";
@@ -131,8 +132,10 @@ const prioLabel: Record<string, { zh: string; en: string; color: string }> = {
 
 export function SwimlaneView({ columns, tasks, onAdd, onEdit, onDelete, onMove, emptyText }: SwimlaneProps) {
   const { t, lang } = useT();
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   return (
+    <>
     <div className="space-y-3 pb-4">
       {columns.map((col) => {
         const items = tasks[col.id] || [];
@@ -211,13 +214,36 @@ export function SwimlaneView({ columns, tasks, onAdd, onEdit, onDelete, onMove, 
                         <option key={c.id} value={c.id}>{c.title}</option>
                       ))}
                     </select>
-                    <button
-                      onClick={() => onDelete(task.id)}
-                      className="btn-icon-sm"
-                      aria-label="Delete task"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    {confirmDeleteId === task.id ? (
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => {
+                            onDelete(task.id);
+                            setConfirmDeleteId(null);
+                          }}
+                          className="btn-icon-sm"
+                          aria-label="Confirm delete"
+                          style={{ color: "var(--color-danger)" }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                        <button
+                          onClick={() => setConfirmDeleteId(null)}
+                          className="btn-icon-sm"
+                          aria-label="Cancel delete"
+                        >
+                          <span style={{ color: "var(--color-text-quaternary)", fontSize: "12px" }}>×</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDeleteId(task.id)}
+                        className="btn-icon-sm"
+                        aria-label="Delete task"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </div>
 
                   {/* Chevron */}
@@ -229,5 +255,22 @@ export function SwimlaneView({ columns, tasks, onAdd, onEdit, onDelete, onMove, 
         );
       })}
     </div>
+    {confirmDeleteId !== null && createPortal(
+      <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 710, background: "var(--color-overlay-primary)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 16px)" }}>
+        <div className="card-elevated w-full max-w-sm p-5 rounded-[var(--radius-6)]" role="dialog" aria-modal="true" aria-label="Confirm delete">
+          <h3 className="text-[15px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("common.confirmDelete" as any)}</h3>
+          <p className="text-[14px] mb-4" style={{ color: "var(--color-text-secondary)" }}>{t("common.cannotUndo" as any)}</p>
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setConfirmDeleteId(null)} className="btn-secondary text-[14px]">{t("common.cancel" as any)}</button>
+            <button onClick={() => {
+              onDelete(confirmDeleteId);
+              setConfirmDeleteId(null);
+            }} className="text-[14px] px-4 py-2 rounded-[var(--radius-6)]" style={{ background: "var(--color-danger)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("common.confirm" as any)}</button>
+          </div>
+        </div>
+      </div>,
+      document.body,
+    )}
+    </>
   );
 }

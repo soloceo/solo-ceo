@@ -133,7 +133,7 @@ function BatteryShape({ level, color, s }: { level: number; color: string; s: (p
 }
 
 /* ── Main Widget ── */
-export default function EnergyBatteryWidget() {
+function EnergyBatteryWidget() {
   const { t } = useT();
   const title = t("widgets.energy" as any);
   const [data, setData] = useState<StorageData>(() => loadData());
@@ -317,3 +317,5 @@ export default function EnergyBatteryWidget() {
     </div>
   );
 }
+
+export default React.memo(EnergyBatteryWidget);

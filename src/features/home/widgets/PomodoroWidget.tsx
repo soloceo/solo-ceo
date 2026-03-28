@@ -10,6 +10,26 @@ const LONG_BREAK_S = 15 * 60;
 const SESSIONS_FOR_LONG_BREAK = 4;
 const SESSION_STORAGE_KEY = "solo-ceo-pomodoro-sessions";
 
+/* ── Style constants (prevent recreation on every render) ── */
+const RING_SVG_CIRCLE_STYLE: React.CSSProperties = {
+  transition: "stroke-dashoffset 0.4s",
+  transform: "rotate(-90deg)",
+  transformOrigin: "50% 50%",
+};
+
+const TIME_DISPLAY_STYLE: React.CSSProperties = {
+  letterSpacing: "-0.02em",
+  lineHeight: 1,
+};
+
+const DOT_STYLE_FILLED: React.CSSProperties = {
+  transition: "background 0.3s",
+};
+
+const DOT_STYLE_EMPTY: React.CSSProperties = {
+  transition: "background 0.3s",
+};
+
 interface SessionData { date: string; count: number; totalMinutes: number; }
 
 function todayStr(): string { return new Date().toISOString().slice(0, 10); }
@@ -70,7 +90,7 @@ function PlayPauseIcon({ running, color, s }: { running: boolean; color: string;
   );
 }
 
-export default function PomodoroWidget() {
+function PomodoroWidget() {
   const { t } = useT();
   const rootRef = useRef<HTMLDivElement>(null);
   const { scale, s } = useWidgetScale(rootRef);
@@ -213,13 +233,13 @@ export default function PomodoroWidget() {
               cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_R} fill="none"
               stroke={ringColor} strokeWidth={STROKE_W} strokeLinecap="round"
               strokeDasharray={RING_C} strokeDashoffset={offset}
-              style={{ transition: "stroke-dashoffset 0.4s", transform: "rotate(-90deg)", transformOrigin: "50% 50%" }}
+              style={RING_SVG_CIRCLE_STYLE}
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span
               className="tabular-nums"
-              style={{ fontSize: s(15), fontWeight: 700, color: "var(--color-text-primary)", letterSpacing: "-0.02em", lineHeight: 1 }}
+              style={{ fontSize: s(15), fontWeight: 700, color: "var(--color-text-primary)", ...TIME_DISPLAY_STYLE }}
             >
               {mm}:{ss}
             </span>
@@ -237,7 +257,7 @@ export default function PomodoroWidget() {
               style={{
                 width: s(4), height: s(4), borderRadius: s(2),
                 background: n <= filledDots ? "var(--color-accent)" : "var(--color-bg-quaternary)",
-                transition: "background 0.3s",
+                ...DOT_STYLE_FILLED,
               }}
             />
           ))}
@@ -250,3 +270,5 @@ export default function PomodoroWidget() {
     </div>
   );
 }
+
+export default React.memo(PomodoroWidget);

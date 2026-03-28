@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { BarChart3, TrendingUp, TrendingDown, Users, UserPlus, CheckCircle2, X, DollarSign } from "lucide-react";
 import { useT } from "../../i18n/context";
+import { EmptyState } from "../../components/ui/EmptyState";
 
 interface ReportData {
   weekStart: string;
@@ -115,9 +116,7 @@ export function WeeklyReport({ open, onClose }: WeeklyReportProps) {
               ))}
             </div>
           ) : !data ? (
-            <div className="py-8 text-center text-[15px]" style={{ color: "var(--color-text-quaternary)" }}>
-              {t("home.report.noData" as any)}
-            </div>
+            <EmptyState title={t("home.report.noData" as any)} />
           ) : (
             <>
               {/* Period badge */}

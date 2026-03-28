@@ -60,13 +60,16 @@ export function Modal({ open, onClose, onSubmit, title, children, className, siz
     if (!open) return;
     document.addEventListener("keydown", trapFocus);
     // Auto-focus first focusable element
-    requestAnimationFrame(() => {
+    const timer = setTimeout(() => {
       const el = dialogRef.current?.querySelector<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        'input:not([type="hidden"]), textarea, select, button:not([disabled]), [tabindex]:not([tabindex="-1"])'
       );
       el?.focus();
-    });
-    return () => document.removeEventListener("keydown", trapFocus);
+    }, 50);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("keydown", trapFocus);
+    };
   }, [open, trapFocus]);
 
   return createPortal(

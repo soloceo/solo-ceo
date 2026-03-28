@@ -38,6 +38,8 @@ export const home = {
   "home.focus.revenue": "Revenue",
   "home.focus.delivery": "Delivery",
   "home.focus.system": "System",
+  "home.focus.hint.leads": "Go to leads board to handle top prospects",
+  "home.focus.hint.tasks": "Go to task board to advance in-progress tasks",
   "home.completed.title": "Completed ({count})",
   "home.completed.empty": "Nothing completed yet",
   "home.events.title": "Event Log ({count})",

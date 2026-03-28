@@ -5,6 +5,7 @@ import { useT } from "../../i18n/context";
 import { useAppSettings } from "../../hooks/useAppSettings";
 import { useUIStore } from "../../store/useUIStore";
 import { parseTaskBreakdown, AI_KEY_MAP, type AIProvider, type TaskBreakdown } from "../../lib/ai-client";
+import { EmptyState } from "../../components/ui/EmptyState";
 import type { Task } from "./TaskCard";
 
 interface PersonalTaskListProps {
@@ -24,6 +25,7 @@ export default function PersonalTaskList({ tasks, onRefresh }: PersonalTaskListP
   const [addingSimple, setAddingSimple] = useState(false);
   const [simpleTitle, setSimpleTitle] = useState("");
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   // Filter personal tasks
   const personalTasks = useMemo(() => tasks.filter(t => t.scope === "personal"), [tasks]);
@@ -190,7 +192,7 @@ export default function PersonalTaskList({ tasks, onRefresh }: PersonalTaskListP
                     {doneCount}/{children.length}
                   </span>
                 )}
-                <button onClick={e => { e.stopPropagation(); deleteTask(task.id); }} className="btn-icon-sm shrink-0">
+                <button onClick={e => { e.stopPropagation(); setConfirmDeleteId(task.id); }} className="btn-icon-sm shrink-0">
                   <Trash2 size={14} />
                 </button>
               </div>
@@ -254,8 +256,8 @@ export default function PersonalTaskList({ tasks, onRefresh }: PersonalTaskListP
 
       {/* Empty state */}
       {parentTasks.length === 0 && !addingSimple && (
-        <div className="text-center py-8 text-[14px]" style={{ color: "var(--color-text-quaternary)" }}>
-          {t("work.personal.empty" as any)}
+        <div className="card">
+          <EmptyState title={t("work.personal.empty" as any)} />
         </div>
       )}
 
@@ -285,6 +287,24 @@ export default function PersonalTaskList({ tasks, onRefresh }: PersonalTaskListP
           </div>
         </div>
       , document.body)}
+
+      {/* Delete confirmation dialog */}
+      {confirmDeleteId !== null && createPortal(
+        <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 710, background: "var(--color-overlay-primary)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 16px)" }}>
+          <div className="card-elevated w-full max-w-sm p-5 rounded-[var(--radius-6)]" role="dialog" aria-modal="true" aria-label="Confirm delete">
+            <h3 className="text-[15px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("common.confirmDelete" as any)}</h3>
+            <p className="text-[14px] mb-4" style={{ color: "var(--color-text-secondary)" }}>{t("common.cannotUndo" as any)}</p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setConfirmDeleteId(null)} className="btn-secondary text-[14px]">{t("common.cancel" as any)}</button>
+              <button onClick={() => {
+                deleteTask(confirmDeleteId);
+                setConfirmDeleteId(null);
+              }} className="text-[14px] px-4 py-2 rounded-[var(--radius-6)]" style={{ background: "var(--color-danger)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("common.confirm" as any)}</button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
     </div>
   );
 }

@@ -137,6 +137,7 @@ function CompactItem({ item, onRemove, onEdit, t, s }: {
         onClick={(e) => { e.stopPropagation(); onRemove(item.id); }}
         className=" shrink-0 press-feedback p-0.5 rounded-full"
         style={{ color: "var(--color-text-quaternary)" }}
+        aria-label={t("common.delete" as any)}
       >
         <X size={s(9)} />
       </button>
@@ -170,6 +171,7 @@ function LargeItem({ item, onRemove, onEdit, t, s }: {
         onClick={() => onRemove(item.id)}
         className="absolute top-0 right-0  press-feedback p-0.5 rounded-full"
         style={{ color: "var(--color-text-quaternary)" }}
+        aria-label={t("common.delete" as any)}
       >
         <X size={s(9)} />
       </button>
@@ -221,7 +223,7 @@ function EditForm({ initialName, initialDate, isNew, onSave, onCancel, t, s }: {
 }
 
 /* ── Main Widget ── */
-export default function CountdownWidget() {
+function CountdownWidget() {
   const { t } = useT();
   const [items, setItems] = useState<CountdownItem[]>(loadItems);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -320,3 +322,5 @@ export default function CountdownWidget() {
     </div>
   );
 }
+
+export default React.memo(CountdownWidget);

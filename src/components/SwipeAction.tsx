@@ -10,11 +10,13 @@ export default function SwipeAction({
   onDelete,
   disabled = false,
   label,
+  ariaLabel,
 }: {
   children: React.ReactNode;
   onDelete: () => void;
   disabled?: boolean;
   label?: string;
+  ariaLabel?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const startX = useRef(0);
@@ -57,6 +59,15 @@ export default function SwipeAction({
     setShowAction(false);
   }, []);
 
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (disabled) return;
+    if (e.key === "Delete" || e.key === "Backspace") {
+      e.preventDefault();
+      onDelete();
+      close();
+    }
+  }, [disabled, onDelete, close]);
+
   return (
     <div className="relative overflow-hidden">
       {/* Delete action behind */}
@@ -81,10 +92,14 @@ export default function SwipeAction({
       {/* Content layer */}
       <div
         ref={ref}
+        role="group"
+        tabIndex={0}
+        aria-label={ariaLabel}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
         onClick={showAction ? close : undefined}
+        onKeyDown={handleKeyDown}
         style={{
           transform: `translateX(${offset}px)`,
           transition: swiping.current ? "none" : "transform 0.2s ease-out",

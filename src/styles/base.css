@@ -31,6 +31,15 @@ html, body, #root {
   -webkit-overflow-scrolling: touch;
 }
 
+/* ── Grid background pattern (matches Claude.ai / Cowork) ────── */
+.app-grid-bg {
+  background-color: var(--color-bg-primary);
+  background-image:
+    linear-gradient(to right, var(--grid-line-color) 1px, transparent 1px),
+    linear-gradient(var(--grid-line-color) 1px, transparent 1px);
+  background-size: var(--grid-size) var(--grid-size);
+}
+
 @media (prefers-reduced-motion: no-preference) {
   html { scroll-behavior: smooth; }
 }
@@ -101,4 +110,17 @@ button:disabled {
 * {
   -ms-overflow-style: none;   /* IE / Edge */
   scrollbar-width: none;      /* Firefox */
+}
+
+/* ── Screen reader only text ─────────────────────────────────── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }

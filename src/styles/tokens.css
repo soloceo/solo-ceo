@@ -5,7 +5,7 @@
 
 :root {
   /* ── Backgrounds (warm neutral palette) ────────────────────── */
-  --color-bg-primary:      #ffffff;
+  --color-bg-primary:      #faf9f5;
   --color-bg-secondary:    #faf9f7;
   --color-bg-tertiary:     #f5f3f0;
   --color-bg-quaternary:   #eeece8;
@@ -19,7 +19,7 @@
   /* ── Borders ─────────────────────────────────────────────────── */
   --color-border-primary:             #e8e5e1;
   --color-border-secondary:           #e0ddd8;
-  --color-border-translucent:         rgba(0,0,0,0.05);
+  --color-border-translucent:         rgba(0,0,0,0.10);
 
   /* ── Text (4-level hierarchy) ────────────────────────────────── */
   --color-text-primary:    #1a1a1a;
@@ -30,7 +30,7 @@
   /* ── Brand / Accent — Solo CEO Yellow ─────────────────────────── */
   --color-accent:          #f5c518;
   --color-accent-hover:    #e6b800;
-  --color-accent-tint:     #fef9e7;
+  --color-accent-tint:     #fefcf2;
   --color-brand-text:      #1a1400;
 
   /* ── Semantic ────────────────────────────────────────────────── */
@@ -106,6 +106,10 @@
   /* ── Spring Animation Curves ───────────────────────────────────── */
   --spring-bounce:        cubic-bezier(0.34, 1.56, 0.64, 1);
 
+  /* ── Grid background ────────────────────────────────────────── */
+  --grid-line-color:       #f5f4ed;
+  --grid-size:             32px;
+
   color-scheme: light;
 }
 
@@ -123,7 +127,7 @@
 
   --color-border-primary:             #23252a;
   --color-border-secondary:           #34343a;
-  --color-border-translucent:         rgba(255,255,255,0.05);
+  --color-border-translucent:         rgba(255,255,255,0.10);
 
   --color-text-primary:    #f7f8f8;
   --color-text-secondary:  #d0d6e0;
@@ -156,6 +160,10 @@
   --shadow-low:            0px 2px 4px rgba(0,0,0,0.1);
   --shadow-medium:         0px 4px 24px rgba(0,0,0,0.2);
   --shadow-high:           0px 7px 32px rgba(0,0,0,0.35);
+
+  /* ── Grid background ────────────────────────────────────────── */
+  --grid-line-color:       rgba(255, 235, 180, 0.04);
+  --grid-size:             48px;
 
   color-scheme: dark;
 }

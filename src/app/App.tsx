@@ -149,7 +149,9 @@ function App() {
           leadsProposal: data.leadsProposal || 0,
           monthIncome: data.todayIncome || 0,
         });
-      } catch {}
+      } catch (e) {
+        console.warn("Failed to fetch badges:", e);
+      }
     };
     fetchBadges();
     // Refresh every 60s
@@ -195,7 +197,9 @@ function App() {
         if (s.OPERATOR_NAME) setOperator(s.OPERATOR_NAME, s.OPERATOR_AVATAR || undefined);
         if (s.protocol_streak) setProtocolStreakRaw(s.protocol_streak);
       })
-      .catch(() => {});
+      .catch((e) => {
+        console.warn("Failed to sync operator profile:", e);
+      });
   }, [user, setOperator]);
 
   const streak = useMemo(() => {
@@ -205,7 +209,9 @@ function App() {
       const today = new Date().toISOString().split("T")[0];
       const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
       if (s.lastDate === today || s.lastDate === yesterday) return s.count || 0;
-    } catch {}
+    } catch (e) {
+      console.warn("Failed to parse protocol streak:", e);
+    }
     return 0;
   }, [protocolStreakRaw]);
 
@@ -439,9 +445,9 @@ function App() {
 
       {/* ═══════════ Main Content — floating panel ═══════════ */}
       <div
-        className="flex flex-1 flex-col overflow-hidden lg:my-2 lg:mr-2 content-panel"
+        className="flex flex-1 flex-col overflow-hidden lg:my-2 lg:mr-2 content-panel app-grid-bg"
         style={{
-          background: "var(--color-bg-primary)",
+          backgroundColor: "var(--color-bg-primary)",
         }}
       >
         {/* Mobile header */}
@@ -452,7 +458,6 @@ function App() {
             paddingBottom: "8px",
             paddingLeft: "max(env(safe-area-inset-left), 16px)",
             paddingRight: "max(env(safe-area-inset-right), 16px)",
-            background: "var(--color-bg-primary)",
             borderBottom: "1px solid var(--color-line-tertiary)",
           }}
         >

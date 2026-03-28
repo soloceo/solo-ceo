@@ -4,6 +4,7 @@ import {
   Trash2, RefreshCw, FileText, Package, Activity,
 } from "lucide-react";
 import { useT } from "../../i18n/context";
+import { EmptyState } from "../../components/ui/EmptyState";
 
 export interface ActivityItem {
   activity: string;
@@ -64,10 +65,8 @@ export function ActivityTimeline({ items, loading }: ActivityTimelineProps) {
             {t("home.activity.title" as any)}
           </h3>
         </div>
-        <div className="card px-4 py-6 text-center">
-          <span className="text-[14px]" style={{ color: "var(--color-text-quaternary)" }}>
-            {t("home.activity.empty" as any)}
-          </span>
+        <div className="card">
+          <EmptyState title={t("home.activity.empty" as any)} />
         </div>
       </section>
     );

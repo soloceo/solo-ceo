@@ -51,27 +51,35 @@ function ago(iso: string, t: (k: any) => string) {
 function groupItems(items: ActivityItem[]): GroupedItem[] {
   if (!items.length) return [];
   const sorted = [...items].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
-  const groups: GroupedItem[] = [];
+  const groupMap = new Map<string, GroupedItem>();
 
   for (const item of sorted) {
     const ts = new Date(item.time).getTime();
-    const existing = groups.find(
-      (g) =>
-        g.type === item.type &&
-        g.action === item.action &&
-        Math.abs(new Date(g.time).getTime() - ts) <= GROUP_WINDOW_MS
-    );
+    // Create a time bucket key (round to GROUP_WINDOW_MS intervals)
+    const bucket = Math.floor(ts / GROUP_WINDOW_MS);
+    const key = `${item.type}|${item.action}|${bucket}`;
+
+    const existing = groupMap.get(key);
     if (existing) {
       existing.count++;
       if (ts > new Date(existing.time).getTime()) existing.time = item.time;
     } else {
-      groups.push({ activity: item.activity, type: item.type, action: item.action, time: item.time, count: 1 });
+      groupMap.set(key, {
+        activity: item.activity,
+        type: item.type,
+        action: item.action,
+        time: item.time,
+        count: 1,
+      });
     }
   }
-  return groups;
+
+  return Array.from(groupMap.values()).sort(
+    (a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()
+  );
 }
 
-export default function ActivityWidget() {
+function ActivityWidget() {
   const { t, lang } = useT();
   const [rawItems, setRawItems] = useState<ActivityItem[]>([]);
   const [, setTick] = useState(0);
@@ -181,3 +189,5 @@ export default function ActivityWidget() {
     </div>
   );
 }
+
+export default React.memo(ActivityWidget);

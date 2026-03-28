@@ -602,7 +602,21 @@ export async function handleApiRequest(
       return ok({ success: true });
     }
     if (method === 'DELETE') {
-      const prev = get(db, 'SELECT name FROM clients WHERE id=?', [id]) as DbRow;
+      const prev = get(db, 'SELECT name, company_name FROM clients WHERE id=?', [id]) as DbRow;
+
+      // Fix Bug 1: Clean up related records before deleting the client
+      const clientCompanyName = prev?.company_name || prev?.name || '';
+
+      // Unlink tasks - find all tasks with matching company_name and set client to empty string
+      run(db, "UPDATE tasks SET client='' WHERE client=?", [clientCompanyName]);
+
+      // Unlink finance transactions - set client_id to null for all matching transactions
+      run(db, 'UPDATE finance_transactions SET client_id=NULL WHERE client_id=?', [id]);
+
+      // Delete payment milestones - these are meaningless without the client
+      run(db, 'DELETE FROM payment_milestones WHERE client_id=?', [id]);
+
+      // Delete the client
       run(db, 'DELETE FROM clients WHERE id=?', [id]);
       syncClientSubscriptionLedger(db);
       logActivity(db, 'client', 'deleted', `删除客户：${prev?.name||'未命名客户'}`, '', id);
@@ -668,6 +682,12 @@ export async function handleApiRequest(
     const actualDate = paid_date || new Date().toISOString().split('T')[0];
     const milestone = get(db, 'SELECT * FROM payment_milestones WHERE id=?', [id]) as DbRow;
     if (!milestone) return err(404, 'Milestone not found');
+
+    // Fix Bug 2: Check idempotency - if milestone is already marked as paid, return early
+    if (milestone.status === 'paid') {
+      return ok({ success: true, financeId: milestone.finance_tx_id, alreadyPaid: true });
+    }
+
     const client = get(db, 'SELECT name, tax_mode, tax_rate FROM clients WHERE id=?', [milestone.client_id]) as DbRow;
     const clientName = client?.name || '';
     const txTaxMode = client?.tax_mode || 'none';
@@ -724,7 +744,7 @@ export async function handleApiRequest(
         [title||'', client||'', priority||'Medium', due||'', column||'todo',
          originalRequest||'', aiBreakdown||'', aiMjPrompts||'', aiStory||'', scope||'work', parent_id??null, id]);
       const detail = prev?.column && prev.column !== (column||'todo')
-        ? `看板：${prev.column} → ${column||'todo'}` : '任务内容已更新';
+        ? `kanban:${prev.column}→${column||'todo'}` : 'content-updated';
       logActivity(db, 'task', 'updated', `更新任务：${title||prev?.title||'未命名任务'}`, detail, id);
       await saveDb();
       return ok({ success: true });
@@ -985,10 +1005,10 @@ export async function handleApiRequest(
     const autoFocus = [
       bestLead
         ? { key: `revenue-lead-${bestLead.id||'fallback'}`, type: '收入', title: `推进线索：${bestLead.name||'未命名线索'}`, reason: bestLead.column==='proposal' ? '它已经接近成交，今天推进最有机会带来收入。' : '这是当前最值得跟进的销售机会。', actionHint: bestLead.column==='proposal' ? '发提案跟进 / 促成确认' : '发送开发信或安排跟进' }
-        : { key: 'revenue-fallback', type: '收入', title: '跟进一位潜在客户', reason: '今天至少推进一件直接指向收入的动作。', actionHint: '去销售看板处理最高意向线索' },
+        : { key: 'revenue-fallback', type: '收入', title: '跟进一位潜在客户', reason: '今天至少推进一件直接指向收入的动作。', actionHint: 'home.focus.hint.leads' },
       urgentTask
         ? { key: `delivery-task-${urgentTask.id||'fallback'}`, type: '交付', title: `推进任务：${urgentTask.title||'未命名任务'}`, reason: urgentTask.priority==='High' ? '高优先级任务最容易影响客户满意度和交付节奏。' : '先推进当前最接近交付的任务。', actionHint: urgentTask.client ? `关联客户：${urgentTask.client}` : '打开任务卡继续执行' }
-        : { key: 'delivery-fallback', type: '交付', title: '完成一个关键交付', reason: '每天至少推进一件真实交付，避免系统只转不产出。', actionHint: '去任务看板推进进行中任务' },
+        : { key: 'delivery-fallback', type: '交付', title: '完成一个关键交付', reason: '每天至少推进一件真实交付，避免系统只转不产出。', actionHint: 'home.focus.hint.tasks' },
       systemTask,
     ];
 

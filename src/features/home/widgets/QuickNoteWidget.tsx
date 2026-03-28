@@ -43,7 +43,7 @@ function saveNotes(data: NotesData) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
 }
 
-export default function QuickNoteWidget() {
+function QuickNoteWidget() {
   const { t } = useT();
   const [data, setData] = useState<NotesData>(loadNotes);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -155,3 +155,5 @@ export default function QuickNoteWidget() {
     </div>
   );
 }
+
+export default React.memo(QuickNoteWidget);

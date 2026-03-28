@@ -505,7 +505,7 @@ export function LeadsView() {
             <div className="flex justify-end gap-2 pt-2">
               <button onClick={() => setShowConvert(false)} className="btn-secondary text-[15px]">{t("common.cancel" as any)}</button>
               <button onClick={convertLead} disabled={converting} className="text-[15px] px-4 py-2 rounded-[var(--radius-6)] flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed" style={{ background: "var(--color-success)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
-                <UserPlus size={16} /> {t("common.confirm" as any)}
+                <UserPlus size={16} /> {t("common.confirmCreate" as any)}
               </button>
             </div>
           </div>

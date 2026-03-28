@@ -38,6 +38,8 @@ export const home = {
   "home.focus.revenue": "收入",
   "home.focus.delivery": "交付",
   "home.focus.system": "系统",
+  "home.focus.hint.leads": "去销售看板处理最高意向线索",
+  "home.focus.hint.tasks": "去任务看板推进进行中任务",
   "home.completed.title": "已完成 ({count})",
   "home.completed.empty": "暂无已完成项",
   "home.events.title": "事件记录 ({count})",

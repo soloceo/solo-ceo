@@ -72,13 +72,15 @@ const PERSONAL_CATEGORIES_LIST = ["餐饮", "交通", "房租", "娱乐", "个�
 const TX_CATEGORIES = [...BIZ_CATEGORIES, ...PERSONAL_CATEGORIES_LIST];
 const PERSONAL_CATEGORIES = new Set(PERSONAL_CATEGORIES_LIST);
 const TX_STATUSES = ["已完成", "待收款 (应收)", "待支付 (应付)"];
+// Categories that are treated as income (for amount sign and type determination)
+const INCOME_CATEGORIES = ["收入", "应收", "项目收入"];
 
 const createEmptyForm = () => ({
   date: new Date().toISOString().slice(0, 10),
   desc: "",
-  category: "收入",
+  category: BIZ_CATEGORIES[0], // "收入"
   amount: "",
-  status: "已完成",
+  status: TX_STATUSES[0], // "已完成"
   taxMode: "none" as "none" | "exclusive" | "inclusive",
   taxRate: "",
   client_id: "" as string | number,
@@ -154,10 +156,10 @@ export default function FinancePage() {
   }, [showToast, t]);
 
   const fetchClients = useCallback(async () => {
-    try { const d = await (await fetch("/api/clients")).json(); setClientList(Array.isArray(d) ? d : []); } catch (e) { console.error("[fetchClients]", e); }
+    try { const d = await (await fetch("/api/clients")).json(); setClientList(Array.isArray(d) ? d : []); } catch (e) { console.warn("Failed to fetch clients:", e); }
   }, []);
 
-  useEffect(() => { Promise.all([fetchFinance(), fetchClients()]); }, [fetchFinance, fetchClients]);
+  useEffect(() => { Promise.allSettled([fetchFinance(), fetchClients()]); }, [fetchFinance, fetchClients]);
   useRealtimeRefresh(FINANCE_TABLES, fetchFinance);
 
   useEffect(() => {
@@ -240,9 +242,11 @@ export default function FinancePage() {
   const chartData = useMemo(() => {
     const months: Record<string, { month: string; income: number; expense: number; net: number }> = {};
     const now = new Date();
+    const nowYear = now.getFullYear();
+    const nowMonth = now.getMonth();
 
     for (let i = 11; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const d = new Date(nowYear, nowMonth - i, 1);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       months[key] = { month: key, income: 0, expense: 0, net: 0 };
     }
@@ -251,13 +255,14 @@ export default function FinancePage() {
       if (!tx.date) continue;
       const m = tx.date.slice(0, 7);
       if (!months[m]) continue;
-      const amt = Math.abs(Number(tx.amount || 0));
-      const isIncome = tx.type === "income" || Number(tx.amount) > 0;
-
       if (tx.status === "待收款 (应收)" || tx.status === "待支付 (应付)") continue;
-
+      const amt = Math.abs(Number(tx.amount || 0));
+      const tax = Math.abs(Number(tx.tax_amount || 0));
+      const isIncome = tx.type === "income" || Number(tx.amount) > 0;
+      const txMode = tx.tax_mode || 'none';
+      const expenseTotal = txMode === 'exclusive' ? amt + tax : amt;
       if (isIncome) months[m].income += amt;
-      else months[m].expense += amt;
+      else months[m].expense += expenseTotal;
     }
 
     return Object.values(months).map(m => ({
@@ -303,9 +308,9 @@ export default function FinancePage() {
       setFormData({
         date: tx.date || "",
         desc: tx.description || tx.desc || "",
-        category: tx.category || "收入",
+        category: tx.category || BIZ_CATEGORIES[0], // fallback to "收入"
         amount: String(Math.abs(Number(tx.amount || 0))),
-        status: tx.status || "已完成",
+        status: tx.status || TX_STATUSES[0], // fallback to "已完成"
         taxMode: tx.tax_mode || "none",
         taxRate: tx.tax_rate ? String(tx.tax_rate) : "",
         client_id: tx.client_id || "",
@@ -315,8 +320,8 @@ export default function FinancePage() {
       setEditingTx(null);
       const form = createEmptyForm();
       if (financeTab === "personal") {
-        form.category = "餐饮";
-        form.status = "已完成";
+        form.category = PERSONAL_CATEGORIES_LIST[0]; // "餐饮"
+        form.status = TX_STATUSES[0]; // "已完成"
         form.taxMode = "none";
       }
       setFormData(form);
@@ -330,7 +335,7 @@ export default function FinancePage() {
     const amt = Number(formData.amount);
     if (!amt) return;
 
-    const isIncome = ["收入", "应收", "项目收入"].includes(formData.category);
+    const isIncome = INCOME_CATEGORIES.includes(formData.category);
     const rate = Number(formData.taxRate) || 0;
     const taxAmount = calcTaxAmount(amt, formData.taxMode, rate);
     const selectedClient = clientList.find(c => String(c.id) === String(formData.client_id));
@@ -389,7 +394,10 @@ export default function FinancePage() {
 
     setAiParsing(true);
     try {
-      const parsed = await parseExpense(text, financeTab, lang, provider, apiKey);
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('AI parsing timeout')), 15000)
+      );
+      const parsed = await Promise.race([parseExpense(text, financeTab, lang, provider, apiKey), timeoutPromise]);
       const isIncome = financeTab === "business" && parsed.category === "收入";
       await fetch("/api/finance", {
         method: "POST",
@@ -499,23 +507,24 @@ export default function FinancePage() {
 
   return (
     <div className="mobile-page max-w-[960px] mx-auto min-h-full flex flex-col px-4 py-3 md:px-6 md:py-4 lg:px-8 lg:py-5 relative">
+      <h1 className="sr-only">{t("nav.finance" as any)}</h1>
 
       {/* ── Header: Tab + Actions ── */}
       <div className="flex items-center gap-3 mb-3">
-        <div className="flex gap-1 p-1 rounded-[var(--radius-8)] shrink-0" style={{ background: "var(--color-bg-tertiary)" }}>
+        <div className="flex gap-2 shrink-0">
           {(["business", "personal"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => { setFinanceTab(tab); setFilters({ type: "all", category: "all", status: "all", dateFrom: "", dateTo: "", search: "" }); }}
-              className="py-1.5 px-4 text-[14px] rounded-[var(--radius-6)] transition-colors press-feedback flex items-center gap-1.5"
+              className="py-1.5 px-4 text-[14px] rounded-[var(--radius-12)] transition-all press-feedback flex items-center gap-1.5 border"
               style={financeTab === tab ? {
-                background: tab === "business"
-                  ? "color-mix(in srgb, var(--color-accent) 12%, var(--color-bg-primary))"
-                  : "color-mix(in srgb, var(--color-info) 12%, var(--color-bg-primary))",
-                color: tab === "business" ? "var(--color-accent)" : "var(--color-info)",
+                background: "var(--color-bg-primary)",
+                borderColor: "var(--color-border-primary)",
+                color: "var(--color-text-primary)",
                 fontWeight: "var(--font-weight-semibold)",
-                boxShadow: "var(--shadow-low)",
               } as React.CSSProperties : {
+                background: "transparent",
+                borderColor: "var(--color-border-translucent)",
                 color: "var(--color-text-tertiary)",
                 fontWeight: "var(--font-weight-medium)",
               } as React.CSSProperties}
@@ -535,29 +544,26 @@ export default function FinancePage() {
       </div>
 
       {/* ── AI Chat Input ── */}
-      <div className="flex items-center gap-2 mb-4 rounded-[var(--radius-8)] p-1.5" style={{
-        background: financeTab === "business"
-          ? "color-mix(in srgb, var(--color-accent) 6%, transparent)"
-          : "color-mix(in srgb, var(--color-info) 6%, transparent)",
+      <div className="flex items-center gap-2 mb-4 rounded-[var(--radius-12)] px-3 py-2 border" style={{
+        background: "var(--color-bg-primary)",
+        borderColor: "var(--color-border-primary)",
       }}>
-        <div className="relative flex-1">
-          <Bot size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{
-            color: aiParsing ? "var(--color-accent)" : financeTab === "business" ? "var(--color-accent)" : "var(--color-info)",
-          }} />
-          <input
-            type="text"
-            value={aiInput}
-            onChange={e => setAiInput(e.target.value)}
-            onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAiRecord(); }}
-            placeholder={financeTab === "business" ? t("money.tab.bizPlaceholder" as any) : t("money.tab.personalPlaceholder" as any)}
-            disabled={aiParsing}
-            className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]"
-          />
-        </div>
+        <Bot size={16} className="shrink-0" style={{ color: "var(--color-text-quaternary)" }} />
+        <input
+          type="text"
+          value={aiInput}
+          onChange={e => setAiInput(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAiRecord(); }}
+          placeholder={financeTab === "business" ? t("money.tab.bizPlaceholder" as any) : t("money.tab.personalPlaceholder" as any)}
+          disabled={aiParsing}
+          className="flex-1 bg-transparent text-[15px] outline-none placeholder:text-[var(--color-text-quaternary)]"
+          style={{ color: "var(--color-text-primary)" }}
+        />
         <button
           onClick={handleAiRecord}
           disabled={!aiInput.trim() || aiParsing}
-          className="btn-primary compact text-[14px] shrink-0 disabled:opacity-40"
+          className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full disabled:opacity-30 transition-colors"
+          style={{ background: "var(--color-accent)", color: "var(--color-brand-text)" }}
         >
           {aiParsing ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
         </button>
