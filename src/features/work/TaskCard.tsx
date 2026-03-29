@@ -1,13 +1,16 @@
 import React, { useState } from "react";
 import { createPortal } from "react-dom";
-import { Clock, GripVertical, Trash2 } from "lucide-react";
+import { Clock, Trash2, ChevronRight, Calendar } from "lucide-react";
 import { fmtDate } from "../../lib/format";
 import { useT } from "../../i18n/context";
+import SwipeAction from "../../components/SwipeAction";
+import { InlinePopover, PopoverOption } from "../../components/ui/InlinePopover";
 
 export interface Task {
   id: number;
   title: string;
   client?: string;
+  client_id?: number | null;
   priority: "High" | "Medium" | "Low";
   due?: string;
   column: string;
@@ -15,6 +18,12 @@ export interface Task {
   scope?: string;
   parent_id?: number | null;
 }
+
+const PRIO_OPTIONS: { value: Task["priority"]; zh: string; en: string; color: string }[] = [
+  { value: "High", zh: "高", en: "High", color: "var(--color-danger)" },
+  { value: "Medium", zh: "中", en: "Medium", color: "var(--color-warning)" },
+  { value: "Low", zh: "低", en: "Low", color: "var(--color-success)" },
+];
 
 const prioLabel: Record<string, { zh: string; en: string; color: string }> = {
   High: { zh: "高", en: "H", color: "var(--color-danger)" },
@@ -29,35 +38,75 @@ interface TaskCardProps {
   onEdit: (task: Task) => void;
   onDelete: (id: number) => void;
   onClientClick?: () => void;
+  /** Move task to next column (swipe right) */
+  onAdvance?: (id: number) => void;
+  /** Inline priority change */
+  onPriorityChange?: (id: number, priority: Task["priority"]) => void;
+  /** Inline due date change */
+  onDueChange?: (id: number, due: string) => void;
+  /** Next column label for swipe hint */
+  advanceLabel?: string;
 }
 
-export const TaskCard = React.memo(function TaskCard({ task, provided, snapshot, onEdit, onDelete, onClientClick }: TaskCardProps) {
+export const TaskCard = React.memo(function TaskCard({
+  task, provided, snapshot, onEdit, onDelete, onClientClick,
+  onAdvance, onPriorityChange, onDueChange, advanceLabel,
+}: TaskCardProps) {
   const { lang, t } = useT();
   const prio = prioLabel[task.priority];
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
-  const card = (
+  const cardContent = (
     <div
       ref={provided.innerRef}
       {...provided.draggableProps}
+      {...provided.dragHandleProps}
       role="listitem"
       style={{ ...(provided.draggableProps.style as React.CSSProperties), touchAction: snapshot.isDragging ? "none" : "auto", ...(snapshot.isDragging ? { boxShadow: "var(--shadow-high)" } : {}) }}
       onClick={() => onEdit(task)}
-      className={`group card-interactive cursor-pointer p-3 press-feedback ${snapshot.isDragging ? "rotate-[2deg] scale-[1.02] z-[1100]" : ""}`}
+      className={`group card-interactive cursor-grab active:cursor-grabbing p-3 press-feedback ${snapshot.isDragging ? "rotate-[2deg] scale-[1.02] z-[1100]" : ""}`}
     >
       <div className="flex items-center gap-2 mb-1 min-w-0">
-        <span {...provided.dragHandleProps} style={{ touchAction: "none" }} className="shrink-0 cursor-grab active:cursor-grabbing">
-          <GripVertical size={14} style={{ color: "var(--color-text-quaternary)", opacity: 0.5 }} />
-        </span>
-        <span className="text-[11px] shrink-0" style={{ color: prio?.color || "var(--color-text-quaternary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-          {prio?.[lang] || ""}
-        </span>
-        <h3 className="text-[15px] truncate min-w-0" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
+        {/* Inline priority editor */}
+        {onPriorityChange ? (
+          <InlinePopover
+            align="start"
+            trigger={
+              <span
+                className="text-[11px] shrink-0 px-1.5 py-0.5 rounded-[var(--radius-4)] transition-colors hover:bg-[var(--color-bg-quaternary)]"
+                style={{ color: prio?.color || "var(--color-text-quaternary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
+              >
+                {prio?.[lang] || ""}
+              </span>
+            }
+          >
+            {PRIO_OPTIONS.map(opt => (
+              <PopoverOption
+                key={opt.value}
+                selected={task.priority === opt.value}
+                color={opt.color}
+                onClick={(e) => { e.stopPropagation(); onPriorityChange(task.id, opt.value); }}
+              >
+                <span className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full" style={{ background: opt.color }} />
+                  {opt[lang as "zh" | "en"]}
+                </span>
+              </PopoverOption>
+            ))}
+          </InlinePopover>
+        ) : (
+          <span className="text-[11px] shrink-0" style={{ color: prio?.color || "var(--color-text-quaternary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
+            {prio?.[lang] || ""}
+          </span>
+        )}
+
+        <h3 className="text-[15px] truncate min-w-0 flex-1" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
           {task.title}
         </h3>
       </div>
+
       {task.client && (
-        <p className="text-[13px] mb-0.5 pl-3.5">
+        <p className="text-[13px] mb-0.5">
           <button
             className="cursor-pointer hover:underline bg-transparent border-0 p-0 text-[13px]"
             style={{ color: prio?.color || "var(--color-text-tertiary)", font: "inherit" }}
@@ -68,36 +117,77 @@ export const TaskCard = React.memo(function TaskCard({ task, provided, snapshot,
         </p>
       )}
       {task.originalRequest && (
-        <p className="text-[12px] pl-3.5 truncate" style={{ color: "var(--color-text-quaternary)" }}>
+        <p className="text-[12px] truncate" style={{ color: "var(--color-text-quaternary)" }}>
           {task.originalRequest}
         </p>
       )}
-      <div className="flex items-center justify-between pl-3.5 mt-1">
+
+      <div className="flex items-center justify-between mt-1">
         <div className="flex items-center gap-1">
-          {task.due && (() => {
-            const today = new Date().toISOString().split("T")[0];
-            const isOverdue = task.due < today;
-            const isToday = task.due === today;
-            const dueSt = isOverdue
-              ? { background: "var(--color-danger-light)", color: "var(--color-danger)" }
-              : isToday
-              ? { background: "var(--color-warning-light)", color: "var(--color-warning)" }
-              : undefined;
-            return (
-              <span className="badge text-[13px]" style={dueSt}>
-                <Clock size={12} /> {fmtDate(task.due!, lang)}
-              </span>
-            );
-          })()}
+          {/* Inline date editor */}
+          {onDueChange ? (
+            <span
+              className="inline-flex items-center gap-1 cursor-pointer rounded-[var(--radius-4)] transition-colors hover:bg-[var(--color-bg-quaternary)]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {task.due ? (() => {
+                const today = new Date().toISOString().split("T")[0];
+                const isOverdue = task.due < today;
+                const isToday = task.due === today;
+                const dueSt = isOverdue
+                  ? { background: "var(--color-danger-light)", color: "var(--color-danger)" }
+                  : isToday
+                  ? { background: "var(--color-warning-light)", color: "var(--color-warning)" }
+                  : undefined;
+                return (
+                  <label className="badge text-[13px] cursor-pointer relative" style={dueSt}>
+                    <Clock size={12} /> {fmtDate(task.due!, lang)}
+                    <input
+                      type="date"
+                      value={task.due}
+                      onChange={(e) => { e.stopPropagation(); onDueChange(task.id, e.target.value); }}
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                      style={{ width: "100%", height: "100%" }}
+                    />
+                  </label>
+                );
+              })() : (
+                <label className="badge text-[13px] cursor-pointer relative" style={{ color: "var(--color-text-quaternary)" }}>
+                  <Calendar size={12} />
+                  <input
+                    type="date"
+                    value=""
+                    onChange={(e) => { e.stopPropagation(); onDueChange(task.id, e.target.value); }}
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    style={{ width: "100%", height: "100%" }}
+                  />
+                </label>
+              )}
+            </span>
+          ) : (
+            task.due && (() => {
+              const today = new Date().toISOString().split("T")[0];
+              const isOverdue = task.due < today;
+              const isToday = task.due === today;
+              const dueSt = isOverdue
+                ? { background: "var(--color-danger-light)", color: "var(--color-danger)" }
+                : isToday
+                ? { background: "var(--color-warning-light)", color: "var(--color-warning)" }
+                : undefined;
+              return (
+                <span className="badge text-[13px]" style={dueSt}>
+                  <Clock size={12} /> {fmtDate(task.due!, lang)}
+                </span>
+              );
+            })()
+          )}
         </div>
+
         <div className="flex gap-1">
           {confirmDeleteId === task.id ? (
             <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
               <button
-                onClick={() => {
-                  onDelete(task.id);
-                  setConfirmDeleteId(null);
-                }}
+                onClick={() => { onDelete(task.id); setConfirmDeleteId(null); }}
                 className="btn-icon-sm"
                 aria-label="Confirm delete"
                 style={{ color: "var(--color-danger)" }}
@@ -126,9 +216,21 @@ export const TaskCard = React.memo(function TaskCard({ task, provided, snapshot,
     </div>
   );
 
+  // Wrap in SwipeAction for mobile swipe gestures
+  const swipeable = (onAdvance || onDelete) && !snapshot.isDragging ? (
+    <SwipeAction
+      onAdvance={onAdvance ? () => onAdvance(task.id) : undefined}
+      onDelete={() => { onDelete(task.id); }}
+      advanceLabel={advanceLabel || t("common.next" as any) || "Next"}
+      deleteLabel={t("common.delete" as any) || "Delete"}
+    >
+      {cardContent}
+    </SwipeAction>
+  ) : cardContent;
+
   const cardWithConfirm = confirmDeleteId === task.id ? (
     <>
-      {card}
+      {swipeable}
       {createPortal(
         <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 710, background: "var(--color-overlay-primary)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 16px)" }}>
           <div className="card-elevated w-full max-w-sm p-5 rounded-[var(--radius-6)]" role="dialog" aria-modal="true" aria-label="Confirm delete">
@@ -146,7 +248,7 @@ export const TaskCard = React.memo(function TaskCard({ task, provided, snapshot,
         document.body,
       )}
     </>
-  ) : card;
+  ) : swipeable;
 
-  return snapshot.isDragging ? createPortal(cardWithConfirm, document.body) : cardWithConfirm;
+  return snapshot.isDragging ? createPortal(cardContent, document.body) : cardWithConfirm;
 });

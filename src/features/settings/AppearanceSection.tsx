@@ -1,14 +1,16 @@
 import React from 'react';
-import { Moon, Sun, Globe, DollarSign, Clock } from 'lucide-react';
+import { Moon, Sun, Monitor, Globe, DollarSign, Clock } from 'lucide-react';
 import { useT, type Lang } from '../../i18n/context';
+
+type ThemeMode = 'light' | 'dark' | 'auto';
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return <h3 className="section-label mb-3">{children}</h3>;
 }
 
 interface AppearanceSectionProps {
-  darkMode: boolean;
-  toggleDarkMode: () => void;
+  themeMode: ThemeMode;
+  setThemeMode: (mode: ThemeMode) => void;
   lang: Lang;
   setLang: (lang: Lang) => void;
   currency: string;
@@ -17,7 +19,13 @@ interface AppearanceSectionProps {
   setTimezone: (timezone: string) => void;
 }
 
-export default function AppearanceSection({ darkMode, toggleDarkMode, lang, setLang, currency, setCurrency, timezone, setTimezone }: AppearanceSectionProps) {
+const themeModes: { value: ThemeMode; icon: typeof Sun; labelKey: string }[] = [
+  { value: 'light', icon: Sun, labelKey: 'settings.themeLight' },
+  { value: 'dark', icon: Moon, labelKey: 'settings.themeDark' },
+  { value: 'auto', icon: Monitor, labelKey: 'settings.themeAuto' },
+];
+
+export default function AppearanceSection({ themeMode, setThemeMode, lang, setLang, currency, setCurrency, timezone, setTimezone }: AppearanceSectionProps) {
   const { t } = useT();
 
   return (
@@ -25,21 +33,43 @@ export default function AppearanceSection({ darkMode, toggleDarkMode, lang, setL
       <SectionLabel>{t("settings.appearance" as any)}</SectionLabel>
       <div className="card overflow-hidden divide-y divide-[var(--color-line-secondary)]">
 
-        {/* Dark mode toggle */}
-        <button onClick={toggleDarkMode} className="w-full flex items-center justify-between px-4 py-3 text-left cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]">
+        {/* Theme mode — 3-way segmented control */}
+        <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-8)]" style={{ background: 'color-mix(in srgb, var(--color-accent) 10%, transparent)', color: 'var(--color-accent)' }}>
-              {darkMode ? <Moon size={20} /> : <Sun size={20} />}
+              {themeMode === 'dark' ? <Moon size={20} /> : themeMode === 'auto' ? <Monitor size={20} /> : <Sun size={20} />}
             </div>
             <div>
-              <div className="text-[15px]" style={{ color: 'var(--color-text-primary)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>{t("settings.darkMode" as any)}</div>
-              <div className="text-[13px] mt-0.5" style={{ color: 'var(--color-text-tertiary)' }}>{darkMode ? t("settings.darkModeOn" as any) : t("settings.darkModeOff" as any)}</div>
+              <div className="text-[15px]" style={{ color: 'var(--color-text-primary)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>{t("settings.colorMode" as any)}</div>
+              <div className="text-[13px] mt-0.5" style={{ color: 'var(--color-text-tertiary)' }}>
+                {themeMode === 'auto'
+                  ? t("settings.themeAutoDesc" as any)
+                  : themeMode === 'dark'
+                  ? t("settings.darkModeOn" as any)
+                  : t("settings.darkModeOff" as any)}
+              </div>
             </div>
           </div>
-          <div className="relative w-11 h-[26px] rounded-full transition-colors shrink-0" style={{ background: darkMode ? 'var(--color-accent)' : 'var(--color-bg-quaternary)' }}>
-            <div className="absolute top-[3px] w-5 h-5 rounded-full bg-[var(--color-bg-primary)] transition-transform" style={{ left: darkMode ? '22px' : '3px', boxShadow: 'var(--shadow-tiny)' }} />
+          <div className="flex rounded-[var(--radius-6)] overflow-hidden" style={{ border: '1px solid var(--color-border-primary)' }}>
+            {themeModes.map(({ value, icon: Icon }) => (
+              <button
+                key={value}
+                onClick={() => setThemeMode(value)}
+                className="px-3 py-2 cursor-pointer transition-colors flex items-center gap-1.5"
+                style={{
+                  background: themeMode === value ? 'var(--color-accent)' : 'transparent',
+                  color: themeMode === value ? 'var(--color-text-on-color)' : 'var(--color-text-tertiary)',
+                  fontWeight: 'var(--font-weight-medium)',
+                  fontSize: '13px',
+                } as React.CSSProperties}
+                aria-label={value}
+              >
+                <Icon size={15} />
+                <span className="hidden sm:inline">{t(`settings.theme${value.charAt(0).toUpperCase() + value.slice(1)}` as any)}</span>
+              </button>
+            ))}
           </div>
-        </button>
+        </div>
 
         {/* Language switcher */}
         <div className="flex items-center justify-between px-4 py-3">
@@ -57,7 +87,7 @@ export default function AppearanceSection({ darkMode, toggleDarkMode, lang, setL
                 className="px-3.5 py-2 text-[14px] cursor-pointer transition-colors"
                 style={{
                   background: lang === l ? 'var(--color-accent)' : 'transparent',
-                  color: lang === l ? 'var(--color-brand-text)' : 'var(--color-text-tertiary)',
+                  color: lang === l ? 'var(--color-text-on-color)' : 'var(--color-text-tertiary)',
                   fontWeight: 'var(--font-weight-medium)',
                 } as React.CSSProperties}
               >

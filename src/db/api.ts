@@ -328,6 +328,7 @@ function initSchema(db: Database) {
     )`,
     `ALTER TABLE clients ADD COLUMN drive_folder_url TEXT DEFAULT ''`,
     `ALTER TABLE clients ADD COLUMN subscription_timeline TEXT DEFAULT '[]'`,
+    `ALTER TABLE tasks ADD COLUMN client_id INTEGER`,
   ];
   for (const m of migrations) {
     try { db.run(m); } catch { /* already exists */ }
@@ -515,15 +516,18 @@ export async function handleApiRequest(
     const id = convertMatch[1];
     const lead = get(db, 'SELECT * FROM leads WHERE id=?', [id]) as DbRow;
     if (!lead) return err(404, 'Lead not found');
-    const { plan_tier, status, mrr, subscription_start_date, mrr_effective_from } = body || {};
+    const { plan_tier, status, mrr, subscription_start_date, mrr_effective_from, billing_type, project_fee } = body || {};
     const np = normalizePlanTier(plan_tier || '');
+    const bt = billing_type || 'subscription';
     const today = new Date().toISOString().split('T')[0];
     const res = run(db, `INSERT INTO clients (name, industry, plan_tier, status, brand_context, mrr,
-        subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+        subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from,
+        billing_type, project_fee)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [lead.name||'', lead.industry||'', np, status||'Active', lead.needs||'',
-       Number(mrr||0), subscription_start_date||today, '', '', '',
-       mrr_effective_from||subscription_start_date||today]);
+       bt === 'subscription' ? Number(mrr||0) : 0, subscription_start_date||today, '', '', '',
+       mrr_effective_from||subscription_start_date||today,
+       bt, bt === 'project' ? Number(project_fee||0) : 0]);
     run(db, `UPDATE leads SET column='won' WHERE id=?`, [id]);
     syncClientSubscriptionLedger(db);
     logActivity(db, 'lead', 'converted', `线索转客户：${lead.name||'未命名线索'}`, np ? `方案：${np}` : '已转为客户', id);
@@ -607,8 +611,9 @@ export async function handleApiRequest(
       // Fix Bug 1: Clean up related records before deleting the client
       const clientCompanyName = prev?.company_name || prev?.name || '';
 
-      // Unlink tasks - find all tasks with matching company_name and set client to empty string
-      run(db, "UPDATE tasks SET client='' WHERE client=?", [clientCompanyName]);
+      // Unlink tasks by client_id (reliable), fallback to name match for legacy data
+      run(db, "UPDATE tasks SET client='', client_id=NULL WHERE client_id=?", [id]);
+      run(db, "UPDATE tasks SET client='' WHERE client=? AND client_id IS NULL", [clientCompanyName]);
 
       // Unlink finance transactions - set client_id to null for all matching transactions
       run(db, 'UPDATE finance_transactions SET client_id=NULL WHERE client_id=?', [id]);
@@ -723,10 +728,10 @@ export async function handleApiRequest(
   }
 
   if (path === '/api/tasks' && method === 'POST') {
-    const { title, client, priority, due, column, originalRequest, aiBreakdown, aiMjPrompts, aiStory, scope, parent_id } = body;
-    const res = run(db, `INSERT INTO tasks (title, client, priority, due, "column", originalRequest, aiBreakdown, aiMjPrompts, aiStory, scope, parent_id)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
-      [title||'', client||'', priority||'Medium', due||'', column||'todo',
+    const { title, client, client_id, priority, due, column, originalRequest, aiBreakdown, aiMjPrompts, aiStory, scope, parent_id } = body;
+    const res = run(db, `INSERT INTO tasks (title, client, client_id, priority, due, "column", originalRequest, aiBreakdown, aiMjPrompts, aiStory, scope, parent_id)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [title||'', client||'', client_id||null, priority||'Medium', due||'', column||'todo',
        originalRequest||'', aiBreakdown||'', aiMjPrompts||'', aiStory||'', scope||'work', parent_id||null]);
     logActivity(db, 'task', 'created', `新增任务：${title||'未命名任务'}`, client ? `客户：${client}` : '', res.lastInsertRowid);
     await saveDb();
@@ -737,11 +742,11 @@ export async function handleApiRequest(
   if (taskMatch) {
     const id = taskMatch[1];
     if (method === 'PUT') {
-      const { title, client, priority, due, column, originalRequest, aiBreakdown, aiMjPrompts, aiStory, scope, parent_id } = body;
+      const { title, client, client_id, priority, due, column, originalRequest, aiBreakdown, aiMjPrompts, aiStory, scope, parent_id } = body;
       const prev = get(db, 'SELECT title, "column" FROM tasks WHERE id=?', [id]) as DbRow;
-      run(db, `UPDATE tasks SET title=?,client=?,priority=?,due=?,"column"=?,
+      run(db, `UPDATE tasks SET title=?,client=?,client_id=?,priority=?,due=?,"column"=?,
         originalRequest=?,aiBreakdown=?,aiMjPrompts=?,aiStory=?,scope=?,parent_id=? WHERE id=?`,
-        [title||'', client||'', priority||'Medium', due||'', column||'todo',
+        [title||'', client||'', client_id||null, priority||'Medium', due||'', column||'todo',
          originalRequest||'', aiBreakdown||'', aiMjPrompts||'', aiStory||'', scope||'work', parent_id??null, id]);
       const detail = prev?.column && prev.column !== (column||'todo')
         ? `kanban:${prev.column}→${column||'todo'}` : 'content-updated';
@@ -945,7 +950,10 @@ export async function handleApiRequest(
   if (path === '/api/dashboard' && method === 'GET') {
     syncClientSubscriptionLedger(db);
     const clientsCount = Number(get(db, `SELECT COUNT(*) as c FROM clients WHERE status='Active'`)?.c || 0);
-    const mrr = Number(get(db, `SELECT SUM(mrr) as s FROM clients WHERE status='Active'`)?.s || 0);
+    // Derive MRR from ledger for current month (accurate with proration), fallback to static field
+    const cm = currentMonth();
+    const ledgerMrr = get(db, `SELECT SUM(amount) as s FROM client_subscription_ledger WHERE ledger_month=?`, [cm]);
+    const mrr = Number(ledgerMrr?.s || 0) || Number(get(db, `SELECT SUM(mrr) as s FROM clients WHERE status='Active'`)?.s || 0);
     const activeTasks = Number(get(db, `SELECT COUNT(*) as c FROM tasks WHERE column != 'done'`)?.c || 0);
     const leadsCount = Number(get(db, `SELECT COUNT(*) as c FROM leads`)?.c || 0);
 

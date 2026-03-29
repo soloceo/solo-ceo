@@ -1,8 +1,6 @@
-import React, { useState } from "react";
-import { createPortal } from "react-dom";
+import React from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import { Plus, Trash2, ChevronRight } from "lucide-react";
-import { useT } from "../../i18n/context";
+import { Plus } from "lucide-react";
 import { TaskCard, type Task } from "./TaskCard";
 
 export interface ColDef {
@@ -20,14 +18,20 @@ interface KanbanBoardProps {
   onDelete: (id: number) => void;
   onClientClick?: () => void;
   emptyText: string;
+  /** Move task to next column */
+  onAdvance?: (id: number, currentCol: string) => void;
+  /** Inline priority change */
+  onPriorityChange?: (id: number, priority: Task["priority"]) => void;
+  /** Inline due date change */
+  onDueChange?: (id: number, due: string) => void;
 }
 
-export function KanbanBoard({ columns, tasks, onDragEnd, onAdd, onEdit, onDelete, onClientClick, emptyText }: KanbanBoardProps) {
+export function KanbanBoard({ columns, tasks, onDragEnd, onAdd, onEdit, onDelete, onClientClick, emptyText, onAdvance, onPriorityChange, onDueChange }: KanbanBoardProps) {
   return (
     <div className="flex-1 overflow-x-auto overflow-y-hidden ios-scroll pb-4 -mx-4 px-4 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 snap-x snap-mandatory lg:snap-none">
       <div className="flex h-full gap-3" style={{ minWidth: "max-content" }}>
         <DragDropContext onDragEnd={onDragEnd}>
-          {columns.map((col) => (
+          {columns.map((col, colIdx) => (
             <Column
               key={col.id}
               col={col}
@@ -37,6 +41,10 @@ export function KanbanBoard({ columns, tasks, onDragEnd, onAdd, onEdit, onDelete
               onDelete={onDelete}
               onClientClick={onClientClick}
               emptyText={emptyText}
+              onAdvance={onAdvance}
+              onPriorityChange={onPriorityChange}
+              onDueChange={onDueChange}
+              nextColTitle={colIdx < columns.length - 1 ? columns[colIdx + 1].title : undefined}
             />
           ))}
         </DragDropContext>
@@ -45,7 +53,7 @@ export function KanbanBoard({ columns, tasks, onDragEnd, onAdd, onEdit, onDelete
   );
 }
 
-function Column({ col, items, onAdd, onEdit, onDelete, onClientClick, emptyText }: {
+function Column({ col, items, onAdd, onEdit, onDelete, onClientClick, emptyText, onAdvance, onPriorityChange, onDueChange, nextColTitle }: {
   col: ColDef;
   items: Task[];
   onAdd: () => void;
@@ -53,6 +61,10 @@ function Column({ col, items, onAdd, onEdit, onDelete, onClientClick, emptyText 
   onDelete: (id: number) => void;
   onClientClick?: () => void;
   emptyText: string;
+  onAdvance?: (id: number, currentCol: string) => void;
+  onPriorityChange?: (id: number, priority: Task["priority"]) => void;
+  onDueChange?: (id: number, due: string) => void;
+  nextColTitle?: string;
 }) {
   return (
     <div className="flex flex-col min-w-[240px] flex-1 max-w-[320px] h-full snap-start" role="region" aria-label={col.title}>
@@ -77,7 +89,7 @@ function Column({ col, items, onAdd, onEdit, onDelete, onClientClick, emptyText 
           <div
             {...provided.droppableProps}
             ref={provided.innerRef}
-            className="flex flex-col flex-1 min-h-0 rounded-[var(--radius-12)] overflow-hidden"
+            className="flex flex-col flex-1 min-h-0 rounded-[var(--radius-8)] overflow-hidden"
             role="list"
             style={{
               background: snapshot.isDraggingOver ? "var(--color-accent-tint)" : "var(--color-bg-tertiary)",
@@ -89,10 +101,10 @@ function Column({ col, items, onAdd, onEdit, onDelete, onClientClick, emptyText 
               {!items.length && (
                 <button
                   onClick={onAdd}
-                  className="py-8 w-full text-center text-[13px] transition-colors hover:bg-[var(--color-bg-quaternary)] rounded-[var(--radius-6)]"
-                  style={{ color: "var(--color-text-quaternary)" }}
+                  className="py-6 w-full text-center text-[13px] transition-colors hover:bg-[var(--color-bg-quaternary)] rounded-[var(--radius-6)] mx-auto my-1.5"
+                  style={{ color: "var(--color-text-quaternary)", border: "1px dashed var(--color-border-primary)", background: "transparent" }}
                 >
-                  <Plus size={16} className="mx-auto mb-1" style={{ opacity: 0.5 }} />
+                  <Plus size={15} className="mx-auto mb-0.5" style={{ opacity: 0.4 }} />
                   {emptyText}
                 </button>
               )}
@@ -100,7 +112,14 @@ function Column({ col, items, onAdd, onEdit, onDelete, onClientClick, emptyText 
                 // @ts-expect-error React 19 type issue with Draggable
                 <Draggable key={task.id.toString()} draggableId={task.id.toString()} index={i}>
                   {(prov: any, snap: any) => (
-                    <TaskCard task={task} provided={prov} snapshot={snap} onEdit={onEdit} onDelete={onDelete} onClientClick={onClientClick} />
+                    <TaskCard
+                      task={task} provided={prov} snapshot={snap}
+                      onEdit={onEdit} onDelete={onDelete} onClientClick={onClientClick}
+                      onAdvance={onAdvance && nextColTitle ? (id) => onAdvance(id, col.id) : undefined}
+                      onPriorityChange={onPriorityChange}
+                      onDueChange={onDueChange}
+                      advanceLabel={nextColTitle}
+                    />
                   )}
                 </Draggable>
               ))}
@@ -113,32 +132,28 @@ function Column({ col, items, onAdd, onEdit, onDelete, onClientClick, emptyText 
   );
 }
 
-/* ── Swimlane View — Linear list-row style ───────────────────── */
+/* ── Swimlane View — reuses TaskCard with drag-and-drop ── */
 interface SwimlaneProps {
   columns: ColDef[];
   tasks: Record<string, Task[]>;
+  onDragEnd: (result: any) => void;
   onAdd: (col: string) => void;
   onEdit: (task: Task) => void;
   onDelete: (id: number) => void;
   onMove: (id: number, col: string) => void;
   emptyText: string;
+  onAdvance?: (id: number, currentCol: string) => void;
+  onPriorityChange?: (id: number, priority: Task["priority"]) => void;
+  onDueChange?: (id: number, due: string) => void;
 }
 
-const prioLabel: Record<string, { zh: string; en: string; color: string }> = {
-  High: { zh: "高", en: "H", color: "var(--color-danger)" },
-  Medium: { zh: "中", en: "M", color: "var(--color-warning)" },
-  Low: { zh: "低", en: "L", color: "var(--color-success)" },
-};
-
-export function SwimlaneView({ columns, tasks, onAdd, onEdit, onDelete, onMove, emptyText }: SwimlaneProps) {
-  const { t, lang } = useT();
-  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
-
+export function SwimlaneView({ columns, tasks, onDragEnd, onAdd, onEdit, onDelete, onMove, emptyText, onAdvance, onPriorityChange, onDueChange }: SwimlaneProps) {
   return (
-    <>
+    <DragDropContext onDragEnd={onDragEnd}>
     <div className="space-y-3 pb-4">
-      {columns.map((col) => {
+      {columns.map((col, colIdx) => {
         const items = tasks[col.id] || [];
+        const nextColTitle = colIdx < columns.length - 1 ? columns[colIdx + 1].title : undefined;
         return (
           <section key={col.id}>
             {/* Section header */}
@@ -157,120 +172,55 @@ export function SwimlaneView({ columns, tasks, onAdd, onEdit, onDelete, onMove, 
               </button>
             </div>
 
-            {/* List rows */}
-            <div className="card overflow-hidden divide-y divide-[var(--color-line-secondary)]">
-              {!items.length ? (
-                <div className="px-4 py-4 text-[14px] text-center" style={{ color: "var(--color-text-quaternary)" }}>
-                  {emptyText}
-                </div>
-              ) : items.map((task) => (
+            {/* Droppable list */}
+            <Droppable droppableId={col.id}>
+              {(droppableProvided, droppableSnapshot) => (
                 <div
-                  key={task.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => onEdit(task)}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onEdit(task); } }}
-                  className="flex items-center gap-3 px-3 py-2.5 group cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback"
+                  {...droppableProvided.droppableProps}
+                  ref={droppableProvided.innerRef}
+                  className="rounded-[var(--radius-8)] overflow-hidden"
+                  style={{
+                    background: droppableSnapshot.isDraggingOver ? "var(--color-accent-tint)" : "var(--color-bg-tertiary)",
+                    borderTop: `2px solid ${col.color}`,
+                    transition: "background var(--speed-quick) var(--ease-out-quad)",
+                  }}
                 >
-                  {/* Priority label */}
-                  <span className="text-[11px] shrink-0" style={{ color: prioLabel[task.priority]?.color || "var(--color-text-quaternary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-                    {prioLabel[task.priority]?.[lang as "zh" | "en"] || ""}
-                  </span>
-
-                  {/* Title + client */}
-                  <div className="flex-1 min-w-0">
-                    <span className="text-[15px] truncate block" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-                      {task.title}
-                    </span>
-                    {task.client && (
-                      <span className="text-[13px] truncate block" style={{ color: "var(--color-text-tertiary)" }}>{task.client}</span>
-                    )}
-                  </div>
-
-                  {/* Due date badge */}
-                  {task.due && (() => {
-                    const today = new Date().toISOString().split("T")[0];
-                    const isOverdue = task.due < today;
-                    const isToday = task.due === today;
-                    return (
-                      <span
-                        className="badge text-[13px] shrink-0"
-                        style={isOverdue ? { background: "var(--color-danger-light)", color: "var(--color-danger)" } : isToday ? { background: "var(--color-warning-light)", color: "var(--color-warning)" } : undefined}
-                      >
-                        {task.due}
-                      </span>
-                    );
-                  })()}
-
-                  {/* Move selector + delete — always visible on mobile, hover on desktop */}
-                  <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-                    <select
-                      value={col.id}
-                      onChange={(e) => onMove(task.id, e.target.value)}
-                      className="input-base compact cursor-pointer text-[15px] px-2"
-                      style={{ fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
+                  {!items.length ? (
+                    <button
+                      onClick={() => onAdd(col.id)}
+                      className="py-6 w-full text-center text-[13px] transition-colors hover:bg-[var(--color-bg-quaternary)] rounded-[var(--radius-6)] mx-auto my-1.5"
+                      style={{ color: "var(--color-text-quaternary)", border: "1px dashed var(--color-border-primary)", background: "transparent" }}
                     >
-                      {columns.map((c) => (
-                        <option key={c.id} value={c.id}>{c.title}</option>
+                      <Plus size={15} className="mx-auto mb-0.5" style={{ opacity: 0.4 }} />
+                      {emptyText}
+                    </button>
+                  ) : (
+                    <div className="p-1.5 space-y-1">
+                      {items.map((task, i) => (
+                        // @ts-expect-error React 19 type issue with Draggable
+                        <Draggable key={task.id.toString()} draggableId={task.id.toString()} index={i}>
+                          {(provided: any, snapshot: any) => (
+                            <TaskCard
+                              task={task} provided={provided} snapshot={snapshot}
+                              onEdit={onEdit} onDelete={onDelete}
+                              onAdvance={onAdvance && nextColTitle ? (id) => onAdvance(id, col.id) : undefined}
+                              onPriorityChange={onPriorityChange}
+                              onDueChange={onDueChange}
+                              advanceLabel={nextColTitle}
+                            />
+                          )}
+                        </Draggable>
                       ))}
-                    </select>
-                    {confirmDeleteId === task.id ? (
-                      <div className="flex gap-1">
-                        <button
-                          onClick={() => {
-                            onDelete(task.id);
-                            setConfirmDeleteId(null);
-                          }}
-                          className="btn-icon-sm"
-                          aria-label="Confirm delete"
-                          style={{ color: "var(--color-danger)" }}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                        <button
-                          onClick={() => setConfirmDeleteId(null)}
-                          className="btn-icon-sm"
-                          aria-label="Cancel delete"
-                        >
-                          <span style={{ color: "var(--color-text-quaternary)", fontSize: "12px" }}>×</span>
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setConfirmDeleteId(task.id)}
-                        className="btn-icon-sm"
-                        aria-label="Delete task"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Chevron */}
-                  <ChevronRight size={14} className="shrink-0" style={{ color: "var(--color-text-quaternary)", opacity: 0.5 }} />
+                    </div>
+                  )}
+                  {droppableProvided.placeholder}
                 </div>
-              ))}
-            </div>
+              )}
+            </Droppable>
           </section>
         );
       })}
     </div>
-    {confirmDeleteId !== null && createPortal(
-      <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 710, background: "var(--color-overlay-primary)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 16px)" }}>
-        <div className="card-elevated w-full max-w-sm p-5 rounded-[var(--radius-6)]" role="dialog" aria-modal="true" aria-label="Confirm delete">
-          <h3 className="text-[15px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("common.confirmDelete" as any)}</h3>
-          <p className="text-[14px] mb-4" style={{ color: "var(--color-text-secondary)" }}>{t("common.cannotUndo" as any)}</p>
-          <div className="flex justify-end gap-2">
-            <button onClick={() => setConfirmDeleteId(null)} className="btn-secondary text-[14px]">{t("common.cancel" as any)}</button>
-            <button onClick={() => {
-              onDelete(confirmDeleteId);
-              setConfirmDeleteId(null);
-            }} className="text-[14px] px-4 py-2 rounded-[var(--radius-6)]" style={{ background: "var(--color-danger)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("common.confirm" as any)}</button>
-          </div>
-        </div>
-      </div>,
-      document.body,
-    )}
-    </>
+    </DragDropContext>
   );
 }

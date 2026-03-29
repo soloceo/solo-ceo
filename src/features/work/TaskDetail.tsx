@@ -27,6 +27,7 @@ interface TaskDetailProps {
 export interface TaskForm {
   title: string;
   client: string;
+  client_id: number | null;
   priority: string;
   due: string;
   column: string;
@@ -52,6 +53,7 @@ function quickDates(t: (k: any) => string) {
 const emptyForm: TaskForm = {
   title: "",
   client: "",
+  client_id: null,
   priority: "Medium",
   due: "",
   column: "todo",
@@ -71,6 +73,7 @@ export function TaskDetail({ open, onClose, editTask, columns, defaultColumn, cl
       setForm({
         title: editTask.title,
         client: editTask.client || "",
+        client_id: editTask.client_id ?? null,
         priority: editTask.priority,
         due: editTask.due || "",
         column: editTask.column || defaultColumn,
@@ -203,13 +206,21 @@ export function TaskDetail({ open, onClose, editTask, columns, defaultColumn, cl
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <FieldLabel label={t("work.form.client" as any)}>
                     <select
-                      value={form.client}
-                      onChange={(e) => setForm((p) => ({ ...p, client: e.target.value }))}
+                      value={form.client_id ? String(form.client_id) : ""}
+                      onChange={(e) => {
+                        const selectedId = e.target.value ? Number(e.target.value) : null;
+                        const selected = clientList.find((c) => c.id === selectedId);
+                        setForm((p) => ({
+                          ...p,
+                          client_id: selectedId,
+                          client: selected ? (selected.company_name || selected.name) : "",
+                        }));
+                      }}
                       className="input-base w-full px-3 py-2 text-[15px]"
                     >
                       <option value="">{t("work.form.clientNone" as any)}</option>
                       {clientList.map((c) => (
-                        <option key={c.id} value={c.company_name || c.name}>
+                        <option key={c.id} value={String(c.id)}>
                           {c.company_name || c.name}
                         </option>
                       ))}

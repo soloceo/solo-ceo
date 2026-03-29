@@ -18,8 +18,8 @@ export default function SettingsPage() {
   const { t, lang, setLang } = useT();
   const { user, signOut } = useAuth();
   const showToast = useUIStore((s) => s.showToast);
-  const darkMode = useUIStore((s) => s.darkMode);
-  const toggleDarkMode = useUIStore((s) => s.toggleDarkMode);
+  const themeMode = useUIStore((s) => s.themeMode);
+  const setThemeMode = useUIStore((s) => s.setThemeMode);
 
   const { settings: appSettings, save: saveAppSetting } = useAppSettings();
   const operatorName = useSettingsStore((s) => s.operatorName) || 'Andy';
@@ -123,10 +123,7 @@ export default function SettingsPage() {
   return (
     <div className="mobile-page max-w-2xl lg:max-w-3xl mx-auto px-4 py-3 md:px-8 md:py-4 lg:py-5 relative">
 
-      {/* Header — desktop only */}
-      <header className="mb-4 md:mb-6 hidden lg:block">
-        <h1 className="page-title">{t("settings.title" as any)}</h1>
-      </header>
+      <h1 className="sr-only">{t("settings.title" as any)}</h1>
 
       <div className="space-y-6 md:space-y-8">
 
@@ -142,8 +139,8 @@ export default function SettingsPage() {
 
         {/* 2. Appearance — theme, language, currency */}
         <AppearanceSection
-          darkMode={darkMode}
-          toggleDarkMode={toggleDarkMode}
+          themeMode={themeMode}
+          setThemeMode={setThemeMode}
           lang={lang}
           setLang={setLang}
           currency={currency}

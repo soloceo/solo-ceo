@@ -3,11 +3,22 @@ import { persist } from "zustand/middleware";
 
 type TabId = "home" | "work" | "leads" | "clients" | "finance" | "settings";
 type ViewMode = "vertical" | "horizontal";
+type ThemeMode = "light" | "dark" | "auto";
+
+/** Apply the .dark class to <html> based on resolved theme */
+function applyTheme(mode: ThemeMode) {
+  const isDark =
+    mode === "dark" ||
+    (mode === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  document.documentElement.classList.toggle("dark", isDark);
+}
 
 interface UIState {
   activeTab: TabId;
   sidebarExpanded: boolean;
+  /** @deprecated — use themeMode instead. Kept for migration. */
   darkMode: boolean;
+  themeMode: ThemeMode;
   commandPaletteOpen: boolean;
   hideMobileNav: boolean;
   tasksViewMode: ViewMode;
@@ -21,7 +32,9 @@ interface UIState {
 
   setActiveTab: (tab: TabId) => void;
   toggleSidebar: () => void;
+  /** @deprecated — use setThemeMode instead */
   toggleDarkMode: () => void;
+  setThemeMode: (mode: ThemeMode) => void;
   setCommandPaletteOpen: (open: boolean) => void;
   setHideMobileNav: (hidden: boolean) => void;
   setTasksViewMode: (mode: ViewMode) => void;
@@ -34,12 +47,16 @@ interface UIState {
 let toastCounter = 0;
 let toastTimer: ReturnType<typeof setTimeout> | undefined;
 
+// System preference listener (set up once after store creation)
+let mediaQueryCleanup: (() => void) | undefined;
+
 export const useUIStore = create<UIState>()(
   persist(
     (set, get) => ({
       activeTab: "home",
       sidebarExpanded: false,
       darkMode: false,
+      themeMode: "auto" as ThemeMode,
       commandPaletteOpen: false,
       hideMobileNav: false,
       tasksViewMode: "vertical",
@@ -51,12 +68,22 @@ export const useUIStore = create<UIState>()(
 
       setActiveTab: (tab) => set({ activeTab: tab }),
       toggleSidebar: () => set((s) => ({ sidebarExpanded: !s.sidebarExpanded })),
-      toggleDarkMode: () =>
-        set((s) => {
-          const next = !s.darkMode;
-          document.documentElement.classList.toggle("dark", next);
-          return { darkMode: next };
-        }),
+
+      toggleDarkMode: () => {
+        // Legacy compat: cycle light → dark → light
+        const current = get().themeMode;
+        const next: ThemeMode = current === "dark" ? "light" : "dark";
+        applyTheme(next);
+        set({ themeMode: next, darkMode: next === "dark" });
+      },
+
+      setThemeMode: (mode) => {
+        applyTheme(mode);
+        set({ themeMode: mode, darkMode: mode === "dark" });
+        // Re-register or remove system listener
+        setupSystemListener(mode);
+      },
+
       setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
       setHideMobileNav: (hidden) => set({ hideMobileNav: hidden }),
       setTasksViewMode: (mode) => set({ tasksViewMode: mode }),
@@ -86,17 +113,45 @@ export const useUIStore = create<UIState>()(
       name: "solo-ceo-ui",
       partialize: (state) => ({
         darkMode: state.darkMode,
+        themeMode: state.themeMode,
         sidebarExpanded: state.sidebarExpanded,
         tasksViewMode: state.tasksViewMode,
         salesViewMode: state.salesViewMode,
       }),
-      onRehydrate: (_state, _options) => {
-        return (rehydratedState) => {
-          if (rehydratedState?.darkMode) {
-            document.documentElement.classList.add("dark");
+      onRehydrateStorage: () => {
+        return (rehydratedState: UIState | undefined) => {
+          if (!rehydratedState) return;
+
+          // Migration: if themeMode doesn't exist yet, derive from darkMode
+          let mode: ThemeMode = rehydratedState.themeMode;
+          if (!mode) {
+            mode = rehydratedState.darkMode ? "dark" : "auto";
+            rehydratedState.themeMode = mode;
           }
+
+          applyTheme(mode);
+          setupSystemListener(mode);
         };
       },
     },
   ),
 );
+
+/** Set up or tear down the system preference change listener */
+function setupSystemListener(mode: ThemeMode) {
+  // Clean up any existing listener
+  mediaQueryCleanup?.();
+  mediaQueryCleanup = undefined;
+
+  if (mode === "auto") {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const handler = () => {
+      // Only react if still in auto mode
+      if (useUIStore.getState().themeMode === "auto") {
+        applyTheme("auto");
+      }
+    };
+    mq.addEventListener("change", handler);
+    mediaQueryCleanup = () => mq.removeEventListener("change", handler);
+  }
+}

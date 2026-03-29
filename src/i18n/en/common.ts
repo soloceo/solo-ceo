@@ -30,6 +30,7 @@ export const common = {
   "common.all": "All",
   "common.test": "Test",
   "common.undo": "Undo",
+  "common.next": "Next",
   "common.complete": "Done",
   "common.completed": "Completed",
   "common.active": "Active",

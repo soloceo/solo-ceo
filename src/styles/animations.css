@@ -71,3 +71,8 @@
 .celebrate-bounce {
   animation: celebrate-bounce 0.5s var(--spring-bounce);
 }
+
+@keyframes popoverIn {
+  from { opacity: 0; transform: translateY(-4px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}

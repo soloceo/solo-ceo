@@ -30,6 +30,7 @@ export const common = {
   "common.all": "全部",
   "common.test": "测试",
   "common.undo": "撤回",
+  "common.next": "下一步",
   "common.complete": "完成",
   "common.completed": "已完成",
   "common.active": "活跃",

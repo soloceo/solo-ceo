@@ -11,6 +11,7 @@ import {
   Search,
   Moon,
   Sun,
+  Monitor,
   ListTodo,
   UserPlus,
   FileText,
@@ -33,7 +34,7 @@ const NAV_ITEMS = [
 type SearchResult = { type: "task" | "client"; id: number; title: string; sub?: string };
 
 export function CommandPalette() {
-  const { commandPaletteOpen, setCommandPaletteOpen, setActiveTab, darkMode, toggleDarkMode } = useUIStore();
+  const { commandPaletteOpen, setCommandPaletteOpen, setActiveTab, themeMode, setThemeMode } = useUIStore();
   const { t } = useT();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -239,16 +240,24 @@ export function CommandPalette() {
                 </Command.Group>
 
                 {/* Actions */}
-                <Command.Group heading={<span className="section-label px-2 py-1">{t("app.actions" as any) || "Actions"}</span>}>
-                  <Command.Item
-                    value="toggle dark mode theme"
-                    onSelect={() => { toggleDarkMode(); setCommandPaletteOpen(false); }}
-                    className={itemClass}
-                    style={{ color: "var(--color-text-primary)" }}
-                  >
-                    {darkMode ? <Sun size={16} style={{ color: "var(--color-text-tertiary)" }} /> : <Moon size={16} style={{ color: "var(--color-text-tertiary)" }} />}
-                    {darkMode ? (t("app.lightMode" as any) || "Light Mode") : (t("app.darkMode" as any) || "Dark Mode")}
-                  </Command.Item>
+                <Command.Group heading={<span className="section-label px-2 py-1">{t("settings.colorMode" as any) || "Color Mode"}</span>}>
+                  {([
+                    { value: "light" as const, icon: Sun, labelKey: "settings.themeLight", fallback: "Light" },
+                    { value: "dark" as const, icon: Moon, labelKey: "settings.themeDark", fallback: "Dark" },
+                    { value: "auto" as const, icon: Monitor, labelKey: "settings.themeAuto", fallback: "Auto" },
+                  ] as const).map(({ value, icon: Icon, labelKey, fallback }) => (
+                    <Command.Item
+                      key={value}
+                      value={`theme ${value} mode`}
+                      onSelect={() => { setThemeMode(value); setCommandPaletteOpen(false); }}
+                      className={itemClass}
+                      style={{ color: "var(--color-text-primary)" }}
+                    >
+                      <Icon size={16} style={{ color: themeMode === value ? "var(--color-accent)" : "var(--color-text-tertiary)" }} />
+                      <span>{t(labelKey as any) || fallback}</span>
+                      {themeMode === value && <span className="ml-auto text-[12px]" style={{ color: "var(--color-accent)" }}>✓</span>}
+                    </Command.Item>
+                  ))}
                 </Command.Group>
               </Command.List>
 

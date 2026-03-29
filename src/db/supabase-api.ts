@@ -266,8 +266,9 @@ export async function handleSupabaseRequest(
     const id = Number(convertMatch[1]);
     const { data: lead } = await supabase.from('leads').select('*').eq('id', id).single();
     if (!lead) return err(404, 'Lead not found');
-    const { plan_tier, status, mrr, subscription_start_date, mrr_effective_from } = body || {};
+    const { plan_tier, status, mrr, subscription_start_date, mrr_effective_from, billing_type, project_fee } = body || {};
     const np = normalizePlanTier(plan_tier || '');
+    const bt = billing_type || 'subscription';
     const today = todayDateKey();
     const { data: newClient, error: e } = await supabase
       .from('clients')
@@ -275,7 +276,9 @@ export async function handleSupabaseRequest(
         user_id: userId,
         name: lead.name || '', industry: lead.industry || '',
         plan_tier: np, status: status || 'Active', brand_context: lead.needs || '',
-        mrr: Number(mrr || 0),
+        mrr: bt === 'subscription' ? Number(mrr || 0) : 0,
+        billing_type: bt,
+        project_fee: bt === 'project' ? Number(project_fee || 0) : 0,
         subscription_start_date: subscription_start_date || today,
         paused_at: '', resumed_at: '', cancelled_at: '',
         mrr_effective_from: mrr_effective_from || subscription_start_date || today,
@@ -394,8 +397,9 @@ export async function handleSupabaseRequest(
       // Fix Bug 1: Clean up related records before soft-deleting the client
       const clientCompanyName = prev?.company_name || prev?.name || '';
 
-      // Unlink tasks - find all tasks with matching company_name and set client to empty string
-      await supabase.from('tasks').update({ client: '' }).eq('client', clientCompanyName).eq('user_id', userId);
+      // Unlink tasks by client_id (reliable), fallback to name match for legacy data
+      await supabase.from('tasks').update({ client: '', client_id: null }).eq('client_id', id).eq('user_id', userId);
+      await supabase.from('tasks').update({ client: '' }).eq('client', clientCompanyName).is('client_id', null).eq('user_id', userId);
 
       // Unlink finance transactions - set client_id to null for all matching transactions
       await supabase.from('finance_transactions').update({ client_id: null }).eq('client_id', id).eq('user_id', userId);
@@ -587,12 +591,13 @@ export async function handleSupabaseRequest(
   }
 
   if (path === '/api/tasks' && method === 'POST') {
-    const { title, client, priority, due, column, originalRequest, aiBreakdown, aiMjPrompts, aiStory, scope, parent_id } = body;
+    const { title, client, client_id, priority, due, column, originalRequest, aiBreakdown, aiMjPrompts, aiStory, scope, parent_id } = body;
     const { data, error: e } = await supabase
       .from('tasks')
       .insert({
         user_id: userId,
-        title: title || '', client: client || '', priority: priority || 'Medium',
+        title: title || '', client: client || '', client_id: client_id || null,
+        priority: priority || 'Medium',
         due: due || '', column: column || 'todo',
         originalRequest: originalRequest || '', aiBreakdown: aiBreakdown || '',
         aiMjPrompts: aiMjPrompts || '', aiStory: aiStory || '',
@@ -609,11 +614,12 @@ export async function handleSupabaseRequest(
   if (taskMatch) {
     const id = Number(taskMatch[1]);
     if (method === 'PUT') {
-      const { title, client, priority, due, column, originalRequest, aiBreakdown, aiMjPrompts, aiStory, scope, parent_id } = body;
+      const { title, client, client_id, priority, due, column, originalRequest, aiBreakdown, aiMjPrompts, aiStory, scope, parent_id } = body;
       const { error: e } = await supabase
         .from('tasks')
         .update({
-          title: title || '', client: client || '', priority: priority || 'Medium',
+          title: title || '', client: client || '', client_id: client_id || null,
+          priority: priority || 'Medium',
           due: due || '', column: column || 'todo',
           originalRequest: originalRequest || '', aiBreakdown: aiBreakdown || '',
           aiMjPrompts: aiMjPrompts || '', aiStory: aiStory || '',
@@ -944,7 +950,12 @@ export async function handleSupabaseRequest(
     ]);
 
     const clientsCount = activeClients?.length || 0;
-    const mrr = (activeClients || []).reduce((s, r) => s + Number(r.mrr || 0), 0);
+    // Derive MRR from current month's income transactions (more accurate than static client.mrr)
+    const currentMonthStr = `${currentYear}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+    const currentMonthIncome = (ledgerSeries || [])
+      .filter((r: any) => String(r.date || '').startsWith(currentMonthStr))
+      .reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+    const mrr = currentMonthIncome || (activeClients || []).reduce((s, r) => s + Number(r.mrr || 0), 0);
     const activeTasks = taskData?.length || 0;
     const todoCount = (taskData || []).filter((t: any) => t.column === 'todo').length;
     const inProgressCount = (taskData || []).filter((t: any) => t.column === 'inProgress').length;

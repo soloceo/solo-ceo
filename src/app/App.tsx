@@ -9,6 +9,7 @@ import {
   Loader2,
   Moon,
   Sun,
+  Monitor,
   PanelLeftClose,
   PanelLeft,
   Search,
@@ -106,9 +107,18 @@ function App() {
   const {
     activeTab, setActiveTab,
     sidebarExpanded, toggleSidebar,
-    darkMode, toggleDarkMode,
+    themeMode, setThemeMode, toggleDarkMode,
     hideMobileNav,
   } = useUIStore();
+
+  // Cycle: light → auto → dark → light
+  const cycleTheme = () => {
+    const next = themeMode === "light" ? "auto" : themeMode === "auto" ? "dark" : "light";
+    setThemeMode(next);
+  };
+  const themeIcon = themeMode === "dark" ? <Moon size={14} /> : themeMode === "auto" ? <Monitor size={14} /> : <Sun size={14} />;
+  const themeMobileIcon = themeMode === "dark" ? <Moon size={16} /> : themeMode === "auto" ? <Monitor size={16} /> : <Sun size={16} />;
+  const themeLabel = t(`settings.theme${themeMode.charAt(0).toUpperCase() + themeMode.slice(1)}` as any) || themeMode;
 
   const {
     operatorName, operatorAvatar,
@@ -404,13 +414,13 @@ function App() {
             <div className="flex flex-col items-center gap-0.5 py-1" style={{ borderTop: "1px solid var(--color-line-tertiary)", paddingTop: 8 }}>
               <SyncIndicator isOnline={isOnline} syncStatus={syncStatus} pendingOps={pendingOps} compact />
               <button
-                onClick={toggleDarkMode}
+                onClick={cycleTheme}
                 className="btn-icon-sm"
                 style={{ color: "var(--color-text-quaternary)" }}
-                title={darkMode ? t("app.lightMode" as any) : t("app.darkMode" as any)}
-                aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+                title={themeLabel}
+                aria-label={`Theme: ${themeMode}`}
               >
-                {darkMode ? <Sun size={14} /> : <Moon size={14} />}
+                {themeIcon}
               </button>
               <button
                 onClick={() => setActiveTab("settings")}
@@ -435,8 +445,8 @@ function App() {
             pendingOps={pendingOps}
             isExpanded={isExpanded}
             user={user}
-            darkMode={darkMode}
-            toggleDarkMode={toggleDarkMode}
+            themeMode={themeMode}
+            setThemeMode={setThemeMode}
             setActiveTab={setActiveTab}
             onSignOut={signOut}
           />
@@ -473,12 +483,12 @@ function App() {
             )}
             <SyncIndicator isOnline={isOnline} syncStatus={syncStatus} pendingOps={pendingOps} compact />
             <button
-              onClick={toggleDarkMode}
+              onClick={cycleTheme}
               className="btn-icon"
               style={{ color: "var(--color-text-tertiary)" }}
-              aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+              aria-label={`Theme: ${themeMode}`}
             >
-              {darkMode ? <Sun size={16} /> : <Moon size={16} />}
+              {themeMobileIcon}
             </button>
             <button
               onClick={() => setActiveTab("settings")}

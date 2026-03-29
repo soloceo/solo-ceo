@@ -491,7 +491,7 @@ export default function FinancePage() {
   /* ── Loading ── */
   if (isLoading) {
     return (
-      <div className="mobile-page max-w-[960px] mx-auto min-h-full px-4 py-3 md:px-6 md:py-4 lg:px-8 lg:py-5">
+      <div className="mobile-page max-w-[1680px] mx-auto min-h-full px-4 py-3 md:px-6 md:py-4 lg:px-8 lg:py-5">
         <div className="space-y-4 animate-skeleton-in">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[1,2,3,4].map(i => <Skeleton key={i} className="h-[80px] rounded-[var(--radius-12)]" />)}
@@ -506,17 +506,17 @@ export default function FinancePage() {
   }
 
   return (
-    <div className="mobile-page max-w-[960px] mx-auto min-h-full flex flex-col px-4 py-3 md:px-6 md:py-4 lg:px-8 lg:py-5 relative">
+    <div className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col px-4 py-3 md:px-6 md:py-4 lg:px-8 lg:py-5 relative">
       <h1 className="sr-only">{t("nav.finance" as any)}</h1>
 
       {/* ── Header: Tab + Actions ── */}
-      <div className="flex items-center gap-3 mb-3">
-        <div className="flex gap-2 shrink-0">
+      <div className="flex items-center gap-2 mb-2 flex-wrap">
+        <div className="flex gap-1.5 shrink-0">
           {(["business", "personal"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => { setFinanceTab(tab); setFilters({ type: "all", category: "all", status: "all", dateFrom: "", dateTo: "", search: "" }); }}
-              className="py-1.5 px-4 text-[14px] rounded-[var(--radius-8)] transition-colors press-feedback flex items-center gap-1.5"
+              className="py-1.5 px-3 text-[14px] rounded-[var(--radius-8)] transition-colors press-feedback flex items-center gap-1.5"
               style={financeTab === tab ? {
                 border: `1.5px solid ${tab === "business" ? "var(--color-accent)" : "var(--color-info)"}`,
                 color: tab === "business" ? "var(--color-accent)" : "var(--color-info)",
@@ -535,7 +535,7 @@ export default function FinancePage() {
           ))}
         </div>
         <div className="flex-1" />
-        <button onClick={exportCSV} className="btn-ghost compact gap-1.5">
+        <button onClick={exportCSV} className="btn-ghost compact">
           <Download size={16} /> <span className="hidden sm:inline">{t("money.export.csv" as any)}</span>
         </button>
         <button onClick={() => openPanel()} className="btn-primary compact">
@@ -544,7 +544,7 @@ export default function FinancePage() {
       </div>
 
       {/* ── AI Chat Input ── */}
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-3">
         <div className="relative flex-1">
           <Bot size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{
             color: financeTab === "business" ? "var(--color-accent)" : "var(--color-info)",
@@ -782,7 +782,7 @@ export default function FinancePage() {
               aria-label="Transaction form"
               className={isMobile
                 ? "fixed inset-0 flex flex-col"
-                : "fixed top-0 right-0 h-full w-full max-w-[480px] border-l flex flex-col"
+                : "fixed top-0 right-0 h-full w-full max-w-[440px] lg:max-w-[520px] border-l flex flex-col"
               }
               style={{ zIndex: 700, background: "var(--color-bg-primary)", borderColor: "var(--color-border-primary)" }}
             >

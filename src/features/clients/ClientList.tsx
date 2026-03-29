@@ -382,40 +382,39 @@ export function ClientsView() {
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-            <div className="stat-card"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-4)]" style={{ background: "color-mix(in srgb, var(--color-success) 12%, transparent)" }}><PlayCircle size={16} style={{ color: "var(--color-success)" }} /></div><span className="text-[13px]" style={{ color: "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("common.active" as any)}</span></div><span className="text-xl tabular-nums" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{activeN}</span></div>
-            <div className="stat-card"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-4)]" style={{ background: "color-mix(in srgb, var(--color-warning) 12%, transparent)" }}><PauseCircle size={16} style={{ color: "var(--color-warning)" }} /></div><span className="text-[13px]" style={{ color: "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("common.paused" as any)}</span></div><span className="text-xl tabular-nums" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{pausedN}</span></div>
-            <div className="stat-card"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-4)]" style={{ background: "color-mix(in srgb, var(--color-accent) 12%, transparent)" }}><Layers size={16} style={{ color: "var(--color-accent)" }} /></div><span className="text-[13px]" style={{ color: "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("pipeline.clients.contractTotal" as any)}</span></div><span className="text-xl tabular-nums" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>${contractTotal.toLocaleString()}</span></div>
-            <div className="stat-card"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-4)]" style={{ background: "color-mix(in srgb, var(--color-success) 12%, transparent)" }}><CircleCheck size={16} style={{ color: "var(--color-success)" }} /></div><span className="text-[13px]" style={{ color: "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("pipeline.clients.totalReceived" as any)}</span></div><span className="text-xl tabular-nums" style={{ color: "var(--color-success)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>${totalReceived.toLocaleString()}</span></div>
+            <div className="stat-card"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-4)]" style={{ background: "color-mix(in srgb, var(--color-success) 12%, transparent)" }}><PlayCircle size={16} style={{ color: "var(--color-success)" }} /></div><span className="text-[13px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("common.active" as any)}</span></div><span className="text-[18px] tabular-nums tracking-tight" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{activeN}</span></div>
+            <div className="stat-card"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-4)]" style={{ background: "color-mix(in srgb, var(--color-warning) 12%, transparent)" }}><PauseCircle size={16} style={{ color: "var(--color-warning)" }} /></div><span className="text-[13px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("common.paused" as any)}</span></div><span className="text-[18px] tabular-nums tracking-tight" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{pausedN}</span></div>
+            <div className="stat-card"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-4)]" style={{ background: "color-mix(in srgb, var(--color-accent) 12%, transparent)" }}><Layers size={16} style={{ color: "var(--color-accent)" }} /></div><span className="text-[13px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("pipeline.clients.contractTotal" as any)}</span></div><span className="text-[18px] tabular-nums tracking-tight" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>${contractTotal.toLocaleString()}</span></div>
+            <div className="stat-card"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-4)]" style={{ background: "color-mix(in srgb, var(--color-success) 12%, transparent)" }}><CircleCheck size={16} style={{ color: "var(--color-success)" }} /></div><span className="text-[13px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("pipeline.clients.totalReceived" as any)}</span></div><span className="text-[18px] tabular-nums tracking-tight" style={{ color: "var(--color-success)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>${totalReceived.toLocaleString()}</span></div>
           </div>
 
-          <div className="space-y-3 mb-4">
-            {/* Search + Actions row */}
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1">
-                <label htmlFor="client-search" className="sr-only">{t("pipeline.clients.search" as any)}</label>
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={16} style={{ color: "var(--color-text-secondary)" }} aria-hidden="true" />
-                <input id="client-search" value={search} onChange={e => setSearch(e.target.value)} placeholder={t("pipeline.clients.search" as any)} className="input-base compact w-full pl-9 pr-3 text-[15px]" />
-              </div>
-              <button onClick={exportClientsCSV} className="btn-ghost compact shrink-0" style={{ border: "1px solid var(--color-border-primary)" }}><Download size={16} /> CSV</button>
-              <button onClick={() => openPanel()} className="btn-primary compact shrink-0"><Plus size={16} /> {t("pipeline.addClient" as any)}</button>
-            </div>
-            {/* Filters row */}
+          <div className="space-y-2 mb-3">
+            {/* Unified toolbar row */}
             <div className="flex items-center gap-2 flex-wrap">
-              <Filter size={16} className="shrink-0" style={{ color: "var(--color-text-secondary)" }} aria-hidden="true" />
-              <select value={filterSt} onChange={e => setFilterSt(e.target.value)} aria-label="Filter by status" className="input-base compact px-2 text-[15px]">
+              <div className="relative flex-1 min-w-[140px]">
+                <label htmlFor="client-search" className="sr-only">{t("pipeline.clients.search" as any)}</label>
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={14} style={{ color: "var(--color-text-tertiary)" }} aria-hidden="true" />
+                <input id="client-search" value={search} onChange={e => setSearch(e.target.value)} placeholder={t("pipeline.clients.search" as any)} className="input-base compact w-full pl-9 pr-3 text-[14px]" />
+              </div>
+              <div className="w-px h-5 shrink-0 hidden sm:block" style={{ background: "var(--color-border-primary)" }} />
+              <Filter size={14} className="shrink-0" style={{ color: "var(--color-text-tertiary)" }} aria-hidden="true" />
+              <select value={filterSt} onChange={e => setFilterSt(e.target.value)} aria-label="Filter by status" className="input-base compact px-2 text-[14px]">
                 <option value="All">{t("common.all" as any)}</option><option value="Active">{t("common.active" as any)}</option><option value="Paused">{t("common.paused" as any)}</option>
               </select>
-              <select value={filterBilling} onChange={e => setFilterBilling(e.target.value)} aria-label="Filter by billing type" className="input-base compact px-2 text-[15px]">
+              <select value={filterBilling} onChange={e => setFilterBilling(e.target.value)} aria-label="Filter by billing type" className="input-base compact px-2 text-[14px]">
                 <option value="All">{t("pipeline.filter.billingAll" as any)}</option>
                 <option value="subscription">{t("pipeline.clients.billingSubscription" as any)}</option>
                 <option value="project">{t("pipeline.clients.billingProject" as any)}</option>
               </select>
               {uniquePlanTiers.length > 0 && (
-                <select value={filterPlan} onChange={e => setFilterPlan(e.target.value)} aria-label="Filter by plan" className="input-base compact px-2 text-[15px]">
+                <select value={filterPlan} onChange={e => setFilterPlan(e.target.value)} aria-label="Filter by plan" className="input-base compact px-2 text-[14px]">
                   <option value="All">{t("pipeline.filter.planAll" as any)}</option>
                   {uniquePlanTiers.map(p => <option key={p} value={p}>{p === "Basic" ? t("pipeline.convert.planBasic" as any) : p === "Pro" ? t("pipeline.convert.planPro" as any) : p === "Enterprise" ? t("pipeline.convert.planEnterprise" as any) : p}</option>)}
                 </select>
               )}
+              <div className="flex-1" />
+              <button onClick={exportClientsCSV} className="btn-ghost compact shrink-0"><Download size={16} /></button>
+              <button onClick={() => openPanel()} className="btn-primary compact shrink-0"><Plus size={16} /> <span className="hidden sm:inline">{t("pipeline.addClient" as any)}</span></button>
             </div>
           </div>
 
@@ -498,11 +497,11 @@ export function ClientsView() {
               initial={{ x: isMobile ? 0 : "100%", y: isMobile ? "100%" : 0 }}
               animate={{ x: 0, y: 0 }}
               exit={{ x: isMobile ? 0 : "100%", y: isMobile ? "100%" : 0 }}
-              transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
               role="dialog"
               aria-modal="true"
               aria-label="Client detail"
-              className={isMobile ? "fixed inset-0 flex flex-col" : "fixed top-0 right-0 h-full w-full max-w-[480px] flex flex-col border-l"}
+              className={isMobile ? "fixed inset-0 flex flex-col" : "fixed top-0 right-0 h-full w-full max-w-[440px] lg:max-w-[520px] flex flex-col border-l"}
               style={{ zIndex: 700, background: "var(--color-bg-primary)", borderColor: "var(--color-border-primary)", boxShadow: "var(--shadow-high)", paddingTop: isMobile ? "var(--mobile-header-pt, env(safe-area-inset-top, 0px))" : undefined }}
             >
               <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: "var(--color-border-primary)" }}>

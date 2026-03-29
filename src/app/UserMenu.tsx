@@ -1,10 +1,12 @@
 import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Moon, Sun, SettingsIcon, LogOut } from "lucide-react";
+import { Moon, Sun, Monitor, SettingsIcon, LogOut } from "lucide-react";
 import { useT } from "../i18n/context";
 import { Avatar } from "../components/ui";
 import { SyncIndicator } from "./SyncIndicator";
 import { useClickOutside } from "./useClickOutside";
+
+type ThemeMode = "light" | "dark" | "auto";
 
 export interface UserMenuProps {
   operatorDisplayName: string;
@@ -15,11 +17,17 @@ export interface UserMenuProps {
   pendingOps: number;
   isExpanded: boolean;
   user: any;
-  darkMode: boolean;
-  toggleDarkMode: () => void;
+  themeMode: ThemeMode;
+  setThemeMode: (mode: ThemeMode) => void;
   setActiveTab: (tab: string) => void;
   onSignOut: () => void;
 }
+
+const themeModes: { value: ThemeMode; icon: typeof Sun; labelKey: string }[] = [
+  { value: "light", icon: Sun, labelKey: "settings.themeLight" },
+  { value: "auto", icon: Monitor, labelKey: "settings.themeAuto" },
+  { value: "dark", icon: Moon, labelKey: "settings.themeDark" },
+];
 
 export function UserMenu({
   operatorDisplayName,
@@ -30,8 +38,8 @@ export function UserMenu({
   pendingOps,
   isExpanded,
   user,
-  darkMode,
-  toggleDarkMode,
+  themeMode,
+  setThemeMode,
   setActiveTab,
   onSignOut,
 }: UserMenuProps) {
@@ -159,33 +167,46 @@ export function UserMenu({
                   : t("app.offline" as any)}
               </span>
             </div>
-            {/* Dark mode toggle */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleDarkMode();
-              }}
-              role="menuitem"
-              className="flex items-center gap-3 w-full px-3 py-2 text-[15px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
-              style={{ color: "var(--color-text-secondary)" }}
-            >
-              {darkMode ? (
-                <Sun
-                  size={14}
-                  aria-hidden="true"
-                  style={{ color: "var(--color-text-quaternary)" }}
-                />
-              ) : (
-                <Moon
-                  size={14}
-                  aria-hidden="true"
-                  style={{ color: "var(--color-text-quaternary)" }}
-                />
-              )}
-              {darkMode
-                ? t("app.lightMode" as any)
-                : t("app.darkMode" as any)}
-            </button>
+            {/* Theme mode — 3-way segmented control */}
+            <div className="px-3 py-2">
+              <div
+                className="text-[12px] mb-1.5"
+                style={{ color: "var(--color-text-quaternary)" }}
+              >
+                {t("settings.colorMode" as any) || "Color Mode"}
+              </div>
+              <div
+                className="flex rounded-[var(--radius-6)] overflow-hidden"
+                style={{ border: "1px solid var(--color-border-primary)" }}
+              >
+                {themeModes.map(({ value, icon: Icon }) => (
+                  <button
+                    key={value}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setThemeMode(value);
+                    }}
+                    className="flex-1 flex items-center justify-center gap-1 py-1.5 cursor-pointer transition-colors"
+                    style={{
+                      background:
+                        themeMode === value
+                          ? "var(--color-accent)"
+                          : "transparent",
+                      color:
+                        themeMode === value
+                          ? "var(--color-text-on-color)"
+                          : "var(--color-text-tertiary)",
+                      fontSize: "12px",
+                      fontWeight: "var(--font-weight-medium)",
+                    } as React.CSSProperties}
+                    title={t(`settings.theme${value.charAt(0).toUpperCase() + value.slice(1)}` as any) || value}
+                  >
+                    <Icon size={13} />
+                    <span>{t(`settings.theme${value.charAt(0).toUpperCase() + value.slice(1)}` as any) || value}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
             {/* Settings */}
             <button
               onClick={handleSettingsClick}

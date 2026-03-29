@@ -134,7 +134,7 @@ export function WeeklyReport({ open, onClose }: WeeklyReportProps) {
                   >
                     <div className="flex items-center gap-1.5 mb-2">
                       <div
-                        className="flex h-5 w-5 items-center justify-center rounded-[var(--radius-4)]"
+                        className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-4)]"
                         style={{ background: `color-mix(in srgb, ${s.color} 10%, transparent)`, color: s.color }}
                       >
                         {s.icon}
@@ -144,8 +144,8 @@ export function WeeklyReport({ open, onClose }: WeeklyReportProps) {
                       </span>
                     </div>
                     <div
-                      className="text-[17px] tabular-nums tracking-tight"
-                      style={{ color: s.highlight ? s.color : "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}
+                      className="text-[18px] tabular-nums tracking-tight"
+                      style={{ color: s.highlight ? s.color : "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}
                     >
                       {s.value}
                     </div>

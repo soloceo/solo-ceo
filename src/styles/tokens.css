@@ -1,15 +1,15 @@
 /* ══════════════════════════════════════════════════════════════════
    Design Tokens — Solo CEO V2
-   100% Linear Design System · Inter Variable · LCH-based palette
+   Claude-matched backgrounds · Original accent & semantic palette
    ══════════════════════════════════════════════════════════════════ */
 
 :root {
-  /* ── Backgrounds (warm neutral palette) ────────────────────── */
+  /* ── Backgrounds — Light (sidebar white, content warm cream) ───── */
   --color-bg-primary:      #faf9f5;
-  --color-bg-secondary:    #faf9f7;
-  --color-bg-tertiary:     #f5f3f0;
-  --color-bg-quaternary:   #eeece8;
-  --color-bg-panel:        #f6f4f1;
+  --color-bg-secondary:    #f5f4ed;
+  --color-bg-tertiary:     #f0eee6;
+  --color-bg-quaternary:   #e8e6dc;
+  --color-bg-panel:        #ffffff;
   --color-bg-translucent:  rgba(0,0,0,0.02);
 
   /* ── Lines / Dividers ────────────────────────────────────────── */
@@ -113,20 +113,21 @@
   color-scheme: light;
 }
 
-/* ── Dark Theme — Linear exact values ─────────────────────────── */
+/* ── Dark Theme — Claude Dark backgrounds + original palette ──── */
 .dark {
-  --color-bg-primary:      #111214;
-  --color-bg-secondary:    #1c1c1f;
-  --color-bg-tertiary:     #232326;
-  --color-bg-quaternary:   #28282c;
-  --color-bg-panel:        #08090a;
+  /* ── Backgrounds — Dark (deeper, matching your preference) ────── */
+  --color-bg-primary:      #1f1e1d;
+  --color-bg-secondary:    #191918;
+  --color-bg-tertiary:     #141413;
+  --color-bg-quaternary:   #0f0f0e;
+  --color-bg-panel:        #141413;
   --color-bg-translucent:  rgba(255,255,255,0.05);
 
-  --color-line-secondary:  #202122;
-  --color-line-tertiary:   #18191a;
+  --color-line-secondary:  rgba(222,220,209,0.08);
+  --color-line-tertiary:   rgba(222,220,209,0.05);
 
-  --color-border-primary:             #23252a;
-  --color-border-secondary:           #34343a;
+  --color-border-primary:             rgba(222,220,209,0.10);
+  --color-border-secondary:           rgba(222,220,209,0.16);
   --color-border-translucent:         rgba(255,255,255,0.10);
 
   --color-text-primary:    #f7f8f8;
@@ -151,7 +152,7 @@
   --color-info:            #60a5fa;
   --color-info-light:      #0c1a2e;
 
-  --header-bg:             rgba(11,11,11,0.6);
+  --header-bg:             rgba(20,20,19,0.6);
   --header-border:         rgba(255,255,255,0.06);
 
   --color-overlay-primary: rgba(0,0,0,0.85);
@@ -162,7 +163,7 @@
   --shadow-high:           0px 7px 32px rgba(0,0,0,0.35);
 
   /* ── Grid background ────────────────────────────────────────── */
-  --grid-line-color:       rgba(255, 235, 180, 0.04);
+  --grid-line-color:       rgba(250,249,245,0.03);
   --grid-size:             48px;
 
   color-scheme: dark;
