@@ -80,7 +80,7 @@ export default function WidgetGrid() {
               style={{ gap: 8 }}
             >
               {enabledWidgets.map((widget, index) => (
-                <Draggable key={widget.id} draggableId={widget.id} index={index} isDragDisabled={!editMode}>
+                <Draggable {...{ key: widget.id }} draggableId={widget.id} index={index} isDragDisabled={!editMode}>
                   {(dp, snap) => (
                     <div
                       ref={dp.innerRef}

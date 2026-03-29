@@ -103,6 +103,7 @@ export function PopoverOption({
   children,
   color,
 }: {
+  key?: React.Key;
   selected?: boolean;
   onClick: (e: React.MouseEvent) => void;
   children: React.ReactNode;

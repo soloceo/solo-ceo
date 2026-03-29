@@ -123,8 +123,8 @@ export function TodayFocus({
   const revenueLabel = t("home.focus.revenue" as any);
   const deliveryLabel = t("home.focus.delivery" as any);
 
-  const badgeVariant = (type: string) =>
-    type === revenueLabel ? "success" as const : type === deliveryLabel ? "blue" as const : "default" as const;
+  const badgeVariant = (type: string): "success" | "warning" | "accent" =>
+    type === revenueLabel ? "success" : type === deliveryLabel ? "accent" : "warning";
 
   return (
     <section>
@@ -281,6 +281,7 @@ export function TodayFocus({
 
 /* ── Focus Row (Linear issue-list style) ──────────────────────── */
 function FocusRow({ item, badgeVariant, saving, canSwap, onToggle, onSkip, onEdit, onDelete }: {
+  key?: React.Key;
   item: FocusItem;
   badgeVariant: "success" | "warning" | "accent";
   saving: boolean;

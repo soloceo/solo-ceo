@@ -10,11 +10,14 @@ const variants = {
   blue: "text-[var(--color-blue)]",
 };
 
-export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
+export interface BadgeProps {
   variant?: keyof typeof variants;
+  className?: string;
+  children?: React.ReactNode;
+  style?: React.CSSProperties;
 }
 
-export function Badge({ variant = "default", className, children, style, ...props }: BadgeProps) {
+export function Badge({ variant = "default", className, children, style }: BadgeProps) {
   const baseStyle: React.CSSProperties = { fontWeight: "var(--font-weight-medium)" } as React.CSSProperties;
   if (variant === "blue") {
     baseStyle.background = "color-mix(in srgb, var(--color-blue) 10%, transparent)";
@@ -27,7 +30,6 @@ export function Badge({ variant = "default", className, children, style, ...prop
         className,
       )}
       style={{ ...baseStyle, ...style }}
-      {...props}
     >
       {children}
     </span>

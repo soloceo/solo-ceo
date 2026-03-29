@@ -141,13 +141,13 @@ export function LeadsView() {
       showToast(t("money.ai.noKey" as any), 5000, { label: t("common.goSettings" as any), fn: () => setActiveTab("settings" as any) });
       return;
     }
-    const allLeads = Object.values(leads).flat();
+    const allLeads: Lead[] = (Object.values(leads) as Lead[][]).flat();
     if (!allLeads.length) return;
     setBatchAnalyzing(true);
     const results: Record<number, LeadAnalysis> = {};
     for (const lead of allLeads) {
       try {
-        const result = await analyzeLeadQuality(lead as Lead, lang, provider, apiKey);
+        const result = await analyzeLeadQuality(lead, lang, provider, apiKey);
         results[lead.id] = result;
       } catch { /* skip failed */ }
     }
@@ -523,7 +523,7 @@ export function LeadsView() {
 }
 
 /* ── Lead column (kanban) ───────────────────────────────────────── */
-function LeadColumn({ col, items, onAdd, onEdit, onDelete, emptyText, leadScores }: { col: { id: string; title: string; color: string }; items: any[]; onAdd: () => void; onEdit: (l: any) => void; onDelete: (id: number) => void; emptyText: string; leadScores?: Record<number, LeadAnalysis> }) {
+function LeadColumn({ col, items, onAdd, onEdit, onDelete, emptyText, leadScores }: { key?: React.Key; col: { id: string; title: string; color: string }; items: any[]; onAdd: () => void; onEdit: (l: any) => void; onDelete: (id: number) => void; emptyText: string; leadScores?: Record<number, LeadAnalysis> }) {
   return (
     <div className="flex flex-col min-w-[240px] flex-1 max-w-[320px] shrink-0 h-full snap-start">
       <div className="flex items-center justify-between mb-2 px-1">

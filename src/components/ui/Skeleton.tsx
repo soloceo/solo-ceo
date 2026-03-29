@@ -1,8 +1,9 @@
 import React from "react";
 import { cn } from "../../lib/cn";
 
-interface SkeletonProps {
+export interface SkeletonProps {
   className?: string;
+  key?: React.Key;
 }
 
 export function Skeleton({ className }: SkeletonProps) {

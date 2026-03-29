@@ -205,7 +205,7 @@ export default function WorkPage() {
 
   const handleDelete = async (id: number) => {
     // Cache task data before deleting for undo
-    const allTasks = Object.values(tasks).flat();
+    const allTasks: Task[] = (Object.values(tasks) as Task[][]).flat();
     const cached = allTasks.find(t => t.id === id);
     try {
       await fetch(`/api/tasks/${id}`, { method: "DELETE" });
@@ -238,7 +238,7 @@ export default function WorkPage() {
 
   const handleMove = async (id: number, col: string) => {
     try {
-      const allTasks = Object.values(tasks).flat();
+      const allTasks: Task[] = (Object.values(tasks) as Task[][]).flat();
       const task = allTasks.find((t) => t.id === id);
       if (!task) return;
       await fetch(`/api/tasks/${id}`, {
@@ -307,7 +307,7 @@ export default function WorkPage() {
   const filteredTasks = applyFilter(tasks);
 
   /* ── Progress stats ── */
-  const totalTasks = Object.values(tasks).flat().length;
+  const totalTasks = (Object.values(tasks) as Task[][]).flat().length;
   const counts = COLS.map((c) => ({ ...c, count: (tasks[c.id] || []).length }));
 
   return (
@@ -376,7 +376,7 @@ export default function WorkPage() {
         {workTab === "work" && (
           <>
             <button onClick={() => {
-              const all = Object.values(tasks).flat();
+              const all: Task[] = (Object.values(tasks) as Task[][]).flat();
               exportCSV(all.map(t => ({ title: t.title, client: t.client, priority: t.priority, due: t.due, column: t.column })), "tasks", [
                 { key: "title", label: "Title" }, { key: "client", label: "Client" }, { key: "priority", label: "Priority" }, { key: "due", label: "Due" }, { key: "column", label: "Status" },
               ]);

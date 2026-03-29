@@ -43,23 +43,24 @@ export function KPIGrid({ mrr, ytdRevenue, todayIncome, clientsCount, leadsCount
   ];
 
   return (
-    <div
-      className="card flex items-stretch divide-x divide-[var(--color-line-secondary)]"
-    >
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
       {stats.map((s) => (
-        <div key={s.label} className="flex-1 px-4 py-3 min-w-0">
-          <div className="text-[13px] mb-0.5 truncate" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
+        <div
+          key={s.label}
+          className="card px-3.5 py-3 min-w-0"
+        >
+          <div className="text-[13px] mb-1 truncate" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
             {s.label}
           </div>
-          <div className="flex items-baseline gap-1.5">
+          <div className="flex items-baseline gap-1.5 flex-wrap">
             <span
-              className="text-[18px] tracking-tight tabular-nums select-all"
+              className="text-[20px] tracking-tight tabular-nums select-all"
               style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}
             >
               {s.value}
             </span>
             {s.sub && (
-              <span className="text-[13px] truncate" style={{ color: s.color, fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
+              <span className="text-[12px] truncate" style={{ color: s.color, fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
                 {s.sub}
               </span>
             )}

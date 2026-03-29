@@ -119,7 +119,7 @@ function useDisplayText(item: CountdownItem, t: (key: string) => string) {
 
 /* ── Compact row ── */
 function CompactItem({ item, onRemove, onEdit, t, s }: {
-  item: CountdownItem; onRemove: (id: string) => void; onEdit: (item: CountdownItem) => void; t: (key: string) => string; s: (px: number) => number;
+  key?: React.Key; item: CountdownItem; onRemove: (id: string) => void; onEdit: (item: CountdownItem) => void; t: (key: string) => string; s: (px: number) => number;
 }) {
   const d = useDisplayText(item, t);
   return (

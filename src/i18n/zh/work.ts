@@ -42,7 +42,7 @@ export const work = {
   "work.ai.tab.breakdown": "任务拆解",
   "work.ai.tab.mj": "MJ 提示词",
   "work.ai.tab.story": "品牌故事",
-  "work.ai.placeholder": "AI 生成内容...",
+  "work.ai.genPlaceholder": "AI 生成内容...",
   "work.ai.done": "AI 生成完成",
   "work.ai.needRequest": "请先填写客户需求",
   "work.ai.genFailed": "生成失败",

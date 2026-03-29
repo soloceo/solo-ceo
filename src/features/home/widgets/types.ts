@@ -1,3 +1,5 @@
+import type React from "react";
+
 export interface WidgetDef {
   id: string;
   nameKey: string;       // i18n key for name

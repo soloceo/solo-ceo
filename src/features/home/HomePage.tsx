@@ -304,6 +304,49 @@ export default function HomePage() {
   const [reportOpen, setReportOpen] = useState(false);
   const displayName = operatorName.trim() || "Solo CEO";
 
+  /* ── Dual-panel swipe state ── */
+  const [homeView, setHomeView] = useState<"dashboard" | "widgets">("dashboard");
+  const swipeRef = useRef<HTMLDivElement>(null);
+  const touchStartRef = useRef<{ x: number; y: number; decided: boolean; isHorizontal: boolean }>({ x: 0, y: 0, decided: false, isHorizontal: false });
+
+  // Sync tab indicator when user swipes on mobile
+  const handleSwipeScroll = useCallback(() => {
+    const el = swipeRef.current;
+    if (!el) return;
+    const ratio = el.scrollLeft / el.clientWidth;
+    setHomeView(ratio > 0.5 ? "widgets" : "dashboard");
+  }, []);
+
+  // Tab button click → scroll to panel
+  const switchPanel = useCallback((panel: "dashboard" | "widgets") => {
+    setHomeView(panel);
+    const el = swipeRef.current;
+    if (!el) return;
+    el.scrollTo({ left: panel === "widgets" ? el.clientWidth : 0, behavior: "smooth" });
+  }, []);
+
+  // Touch gesture handlers — decide horizontal vs vertical intent
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const t = e.touches[0];
+    touchStartRef.current = { x: t.clientX, y: t.clientY, decided: false, isHorizontal: false };
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    const ref = touchStartRef.current;
+    if (ref.decided) {
+      // If we decided this is a horizontal swipe, prevent vertical scroll
+      if (ref.isHorizontal) e.preventDefault();
+      return;
+    }
+    const t = e.touches[0];
+    const dx = Math.abs(t.clientX - ref.x);
+    const dy = Math.abs(t.clientY - ref.y);
+    // Need at least 8px of movement to decide direction
+    if (dx + dy < 8) return;
+    ref.decided = true;
+    ref.isHorizontal = dx > dy * 1.2; // bias slightly toward vertical (natural scroll)
+  }, []);
+
   return (
     <div ref={scrollRef} className="mobile-page page-wrap">
       <div className="page-stack">
@@ -332,31 +375,62 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* ── KPI Stat Bar ── */}
-        <KPIGrid
-          mrr={data.mrr || 0}
-          ytdRevenue={data.ytdRevenue || 0}
-          todayIncome={data.todayIncome || 0}
-          clientsCount={data.clientsCount || 0}
-          leadsCount={data.leadsCount || 0}
-          activeTasks={data.activeTasks || 0}
-          loading={loading}
-          mrrSeries={(data as any).mrrSeries}
-        />
+        {/* ── Panel Tabs ── */}
+        <div className="flex items-center gap-1 p-0.5 rounded-[var(--radius-8)]" style={{ background: "var(--color-bg-tertiary)" }}>
+          {(["dashboard", "widgets"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => switchPanel(tab)}
+              className="flex-1 text-center py-1.5 px-3 rounded-[var(--radius-6)] text-[13px] transition-all"
+              style={{
+                background: homeView === tab ? "var(--color-bg-primary)" : "transparent",
+                color: homeView === tab ? "var(--color-text-primary)" : "var(--color-text-tertiary)",
+                fontWeight: homeView === tab ? "var(--font-weight-semibold)" : "var(--font-weight-medium)",
+                boxShadow: homeView === tab ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+              } as React.CSSProperties}
+            >
+              {tab === "dashboard"
+                ? (lang === "zh" ? "仪表盘" : "Dashboard")
+                : (lang === "zh" ? "小工具" : "Widgets")}
+            </button>
+          ))}
+        </div>
 
-        {/* ── Monthly Revenue Goal ── */}
-        <MonthlyGoal monthlyIncome={data.monthlyIncome || 0} loading={loading} />
+        {/* ── Swipeable Panel Container ── */}
+        <div
+          ref={swipeRef}
+          onScroll={handleSwipeScroll}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          className="home-swipe-container"
+        >
+            {/* ── Panel 1: Dashboard ── */}
+            <div className="home-swipe-panel">
+              <div className="flex flex-col" style={{ gap: 20 }}>
+              {/* ── KPI Stat Bar ── */}
+              <KPIGrid
+                mrr={data.mrr || 0}
+                ytdRevenue={data.ytdRevenue || 0}
+                todayIncome={data.todayIncome || 0}
+                clientsCount={data.clientsCount || 0}
+                leadsCount={data.leadsCount || 0}
+                activeTasks={data.activeTasks || 0}
+                loading={loading}
+              />
 
-        {/* ── Today's Focus (list style) ── */}
-        <TodayFocus
-          todayFocus={data.todayFocus}
-          manualEvents={data.manualTodayEvents}
-          loading={loading}
-          onUpdateStatus={handleUpdateStatus}
-          onSaveManual={handleSaveManual}
-          onDeleteManual={handleDeleteManual}
-          openFormTrigger={fabTrigger}
-        />
+              {/* ── Monthly Revenue Goal ── */}
+              <MonthlyGoal monthlyIncome={data.monthlyIncome || 0} loading={loading} />
+
+              {/* ── Today's Focus (list style) ── */}
+              <TodayFocus
+                todayFocus={data.todayFocus}
+                manualEvents={data.manualTodayEvents}
+                loading={loading}
+                onUpdateStatus={handleUpdateStatus}
+                onSaveManual={handleSaveManual}
+                onDeleteManual={handleDeleteManual}
+                openFormTrigger={fabTrigger}
+              />
 
         {/* ═══════════════════════════════════════════════════════════
             Growth System — 三位一体：原则 → 协议 → 突围
@@ -610,10 +684,33 @@ export default function HomePage() {
           </AnimatePresence>
         </section>
 
-        {/* ── Widgets ── */}
-        <Suspense fallback={null}>
-          <WidgetGrid />
-        </Suspense>
+            </div>
+          </div>
+
+          {/* ── Panel 2: Widgets ── */}
+          <div className="home-swipe-panel">
+            <div style={{ minHeight: 200 }}>
+              <Suspense fallback={null}>
+                <WidgetGrid />
+              </Suspense>
+            </div>
+          </div>
+        </div>
+
+        {/* Swipe dots indicator (mobile only) */}
+        <div className="flex items-center justify-center gap-1.5 md:hidden" style={{ marginTop: -8 }}>
+          {(["dashboard", "widgets"] as const).map((p) => (
+            <div
+              key={p}
+              className="rounded-full transition-all"
+              style={{
+                width: homeView === p ? 16 : 6,
+                height: 6,
+                background: homeView === p ? "var(--color-accent)" : "var(--color-bg-quaternary)",
+              }}
+            />
+          ))}
+        </div>
       </div>
 
       {/* ── All Principles Sheet ── */}

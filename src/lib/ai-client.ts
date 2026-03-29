@@ -134,7 +134,7 @@ export async function parseExpense(
 /* ── Lead AI functions ──────────────────────────────── */
 
 export async function generateOutreach(
-  lead: { name: string; industry: string; needs: string; website: string },
+  lead: { name: string; industry?: string; needs?: string; website?: string },
   tone: "formal" | "friendly" | "direct",
   lang: "zh" | "en",
   provider: AIProvider,
@@ -170,7 +170,7 @@ export interface LeadAnalysis {
 }
 
 export async function analyzeLeadQuality(
-  lead: { name: string; industry: string; needs: string; website: string },
+  lead: { name: string; industry?: string; needs?: string; website?: string },
   lang: string,
   provider: AIProvider,
   apiKey: string

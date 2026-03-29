@@ -42,7 +42,7 @@ export const work = {
   "work.ai.tab.breakdown": "Task Breakdown",
   "work.ai.tab.mj": "MJ Prompts",
   "work.ai.tab.story": "Brand Story",
-  "work.ai.placeholder": "AI generated content...",
+  "work.ai.genPlaceholder": "AI generated content...",
   "work.ai.done": "AI generation complete",
   "work.ai.needRequest": "Please fill in the client brief first",
   "work.ai.genFailed": "Generation failed",

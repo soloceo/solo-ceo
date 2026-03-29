@@ -91,6 +91,24 @@
     .page-stack { gap: 24px; }
   }
 
+  /* ── Home swipe panels ─────────────────────────────────────── */
+  .home-swipe-container {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+  }
+  .home-swipe-container::-webkit-scrollbar { display: none; }
+
+  .home-swipe-panel {
+    flex: 0 0 100%;
+    min-width: 0;
+    scroll-snap-align: start;
+  }
+
   /* ── Segment switcher (28px inner → 32px total) ──────────── */
 
   .segment-switcher {

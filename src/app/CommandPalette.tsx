@@ -31,7 +31,7 @@ const NAV_ITEMS = [
   { id: "finance" as const, icon: Wallet, labelKey: "nav.finance" },
 ] as const;
 
-type SearchResult = { type: "task" | "client"; id: number; title: string; sub?: string };
+type SearchResult = { type: "task" | "client" | "lead" | "finance"; id: number; title: string; sub?: string };
 
 export function CommandPalette() {
   const { commandPaletteOpen, setCommandPaletteOpen, setActiveTab, themeMode, setThemeMode } = useUIStore();

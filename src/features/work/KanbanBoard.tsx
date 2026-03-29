@@ -54,6 +54,7 @@ export function KanbanBoard({ columns, tasks, onDragEnd, onAdd, onEdit, onDelete
 }
 
 function Column({ col, items, onAdd, onEdit, onDelete, onClientClick, emptyText, onAdvance, onPriorityChange, onDueChange, nextColTitle }: {
+  key?: React.Key;
   col: ColDef;
   items: Task[];
   onAdd: () => void;
