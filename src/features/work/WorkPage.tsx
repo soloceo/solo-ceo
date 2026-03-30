@@ -11,6 +11,7 @@ import { useUIStore } from "../../store/useUIStore";
 import { KanbanBoard, SwimlaneView, type ColDef } from "./KanbanBoard";
 import { TaskDetail, type TaskForm } from "./TaskDetail";
 import PersonalTaskList from "./PersonalTaskList";
+import WorkMemoList from "./WorkMemoList";
 import type { Task } from "./TaskCard";
 
 type TaskMap = Record<string, Task[]>;
@@ -64,8 +65,8 @@ export default function WorkPage() {
       const raw = await res.json();
       const data = Array.isArray(raw) ? raw : [];
       setAllTasks(data);
-      // Group work tasks only (exclude personal) for kanban
-      const workData = data.filter((t: any) => t.scope !== "personal");
+      // Group work tasks only (exclude personal + work-memo) for kanban
+      const workData = data.filter((t: any) => t.scope !== "personal" && t.scope !== "work-memo");
       const grouped = workData.reduce((acc: any, t: any) => {
         const col = t.column || "todo";
         if (!acc[col]) acc[col] = [];
@@ -387,6 +388,9 @@ export default function WorkPage() {
               {aiParsing ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
             </button>
           </div>
+
+          {/* Work Memo */}
+          <WorkMemoList tasks={allTasks} onRefresh={fetchTasks} />
 
           {/* Progress bar */}
           {!isLoading && totalTasks > 0 && (

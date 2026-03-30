@@ -28,8 +28,8 @@ interface KanbanBoardProps {
 
 export function KanbanBoard({ columns, tasks, onDragEnd, onAdd, onEdit, onDelete, onClientClick, emptyText, onPriorityChange, onDueChange, onColumnChange }: KanbanBoardProps) {
   return (
-    <div className="flex-1 overflow-x-auto overflow-y-hidden ios-scroll pb-4 -mx-4 px-4 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 snap-x snap-mandatory lg:snap-none">
-      <div className="flex h-full gap-3" style={{ minWidth: "max-content" }}>
+    <div className="flex-1 overflow-x-auto overflow-y-hidden ios-scroll pb-4 -mx-4 px-4 md:-mx-6 md:px-6 lg:mx-0 lg:px-0 snap-x snap-mandatory lg:snap-none lg:overflow-x-visible">
+      <div className="flex h-full gap-3 min-w-max lg:min-w-0">
         <DragDropContext onDragEnd={onDragEnd}>
           {columns.map((col, colIdx) => (
             <Column
@@ -68,7 +68,7 @@ function Column({ col, items, onAdd, onEdit, onDelete, onClientClick, emptyText,
   onColumnChange?: (id: number, col: string) => void;
 }) {
   return (
-    <div className="flex flex-col min-w-[240px] flex-1 max-w-[320px] h-full snap-start" role="region" aria-label={col.title}>
+    <div className="flex flex-col flex-1 min-w-[240px] lg:min-w-0 h-full snap-start lg:snap-align-none" role="region" aria-label={col.title}>
       {/* Column header */}
       <div className="flex items-center justify-between mb-2 px-1">
         <div className="flex items-center gap-2">

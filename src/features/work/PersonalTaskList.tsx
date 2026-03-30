@@ -228,7 +228,7 @@ export default function PersonalTaskList({ tasks, onRefresh }: PersonalTaskListP
               type="text"
               value={simpleTitle}
               onChange={e => setSimpleTitle(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") addSimpleTask(); if (e.key === "Escape") setAddingSimple(false); }}
+              onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) addSimpleTask(); if (e.key === "Escape") setAddingSimple(false); }}
               placeholder={t("work.personal.taskName" as any)}
               className="input-base flex-1 px-2 py-1.5 text-[15px]"
               autoFocus

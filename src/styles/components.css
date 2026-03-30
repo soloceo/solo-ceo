@@ -16,6 +16,28 @@
     display: none;
   }
 
+  /* ── Kanban: show thin scrollbar on desktop for mouse users ── */
+  @media (pointer: fine) {
+    .kanban-scroll.kanban-scroll {
+      scrollbar-width: thin !important;
+      scrollbar-color: var(--color-border-subtle) transparent;
+    }
+    .kanban-scroll::-webkit-scrollbar {
+      display: block !important;
+      height: 6px;
+    }
+    .kanban-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .kanban-scroll::-webkit-scrollbar-thumb {
+      background: var(--color-border-subtle);
+      border-radius: 3px;
+    }
+    .kanban-scroll::-webkit-scrollbar-thumb:hover {
+      background: var(--color-text-tertiary);
+    }
+  }
+
   /* ── Cards ─────────────────────────────────────────────────── */
 
   .card {
@@ -112,6 +134,8 @@
   .home-swipe-panel {
     flex: 0 0 100%;
     min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
     scroll-snap-align: start;
   }
 

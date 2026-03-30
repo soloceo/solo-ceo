@@ -310,7 +310,7 @@ export function LeadsView() {
       {loading ? (
         <div className="flex-1 flex gap-3 animate-skeleton-in">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="flex-1 min-w-[220px] max-w-[320px] space-y-2">
+            <div key={i} className="flex-1 min-w-0 space-y-2">
               <Skeleton className="h-4 w-20" />
               <div className="space-y-1.5 p-1.5 rounded-[var(--radius-12)]" style={{ background: "var(--color-bg-tertiary)" }}>
                 <Skeleton className="h-[72px] rounded-[var(--radius-12)]" />
@@ -320,8 +320,8 @@ export function LeadsView() {
           ))}
         </div>
       ) : viewMode === "vertical" ? (
-        <div className="flex-1 overflow-x-auto overflow-y-hidden ios-scroll pb-4 -mx-4 px-4 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 snap-x snap-mandatory lg:snap-none">
-          <div className="flex h-full gap-3 min-w-max">
+        <div className="flex-1 overflow-x-auto overflow-y-hidden ios-scroll pb-4 -mx-4 px-4 md:-mx-6 md:px-6 lg:mx-0 lg:px-0 snap-x snap-mandatory lg:snap-none lg:overflow-x-visible">
+          <div className="flex h-full gap-3 min-w-max lg:min-w-0">
             <DragDropContext onDragEnd={onDragEnd}>
               {LEAD_COLS.map(col => <LeadColumn key={col.id} col={col} items={leads[col.id]} onAdd={() => openPanel(null, col.id)} onEdit={(l: any) => openPanel(l, col.id)} onDelete={(id: number) => setDeleteId(id)} emptyText={t("pipeline.emptyCol" as any)} leadScores={leadScores} />)}
             </DragDropContext>
@@ -527,7 +527,7 @@ export function LeadsView() {
 /* ── Lead column (kanban) ───────────────────────────────────────── */
 function LeadColumn({ col, items, onAdd, onEdit, onDelete, emptyText, leadScores }: { key?: React.Key; col: { id: string; title: string; color: string }; items: any[]; onAdd: () => void; onEdit: (l: any) => void; onDelete: (id: number) => void; emptyText: string; leadScores?: Record<number, LeadAnalysis> }) {
   return (
-    <div className="flex flex-col min-w-[240px] flex-1 max-w-[320px] shrink-0 h-full snap-start">
+    <div className="flex flex-col flex-1 min-w-[240px] lg:min-w-0 h-full snap-start lg:snap-align-none">
       <div className="flex items-center justify-between mb-2 px-1">
         <div className="flex items-center gap-2">
           <div className="w-2.5 h-2.5 rounded-[var(--radius-2)]" style={{ background: col.color }} />
