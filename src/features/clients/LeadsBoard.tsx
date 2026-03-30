@@ -6,6 +6,7 @@ import {
 import { useAppSettings } from "../../hooks/useAppSettings";
 import { generateOutreach, analyzeLeadQuality, AI_KEY_MAP, type AIProvider, type LeadAnalysis } from "../../lib/ai-client";
 import { exportCSV } from "../../lib/csv-export";
+import { todayDateKey } from "../../lib/date-utils";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { motion, AnimatePresence } from "motion/react";
 import { createPortal } from "react-dom";
@@ -82,7 +83,7 @@ export function LeadsView() {
   const isMobile = useIsMobile();
   const viewMode = useUIStore((s) => s.salesViewMode);
   const setViewMode = useUIStore((s) => s.setSalesViewMode);
-  const [convertForm, setConvertForm] = useState({ plan_tier: "", status: "Active", mrr: "", subscription_start_date: new Date().toISOString().split("T")[0], billing_type: "subscription" as "subscription" | "project", project_fee: "" });
+  const [convertForm, setConvertForm] = useState({ plan_tier: "", status: "Active", mrr: "", subscription_start_date: todayDateKey(), billing_type: "subscription" as "subscription" | "project", project_fee: "" });
   const [plans, setPlans] = useState<PlanRow[]>([]);
   const [form, setForm] = useState(EMPTY_LEAD);
   const { settings: appSettings } = useAppSettings();
@@ -235,7 +236,8 @@ export function LeadsView() {
   const convertLead = async () => {
     if (!editId) return; setConverting(true);
     try {
-      await fetch(`/api/leads/${editId}/convert`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan_tier: convertForm.plan_tier, status: convertForm.status, mrr: Number(convertForm.mrr || 0), subscription_start_date: convertForm.subscription_start_date, billing_type: convertForm.billing_type, project_fee: Number(convertForm.project_fee || 0) }) });
+      const mrrVal = parseFloat(convertForm.mrr); const projVal = parseFloat(convertForm.project_fee);
+      await fetch(`/api/leads/${editId}/convert`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan_tier: convertForm.plan_tier, status: convertForm.status, mrr: isNaN(mrrVal) ? 0 : mrrVal, subscription_start_date: convertForm.subscription_start_date, billing_type: convertForm.billing_type, project_fee: isNaN(projVal) ? 0 : projVal }) });
       setShowConvert(false); setShowPanel(false); showToast(t("pipeline.convert.success" as any)); fetchLeads();
     } catch { showToast(t("pipeline.convert.failed" as any)); }
     finally { setConverting(false); }
@@ -462,7 +464,7 @@ export function LeadsView() {
               <div className="flex items-center justify-between px-5 py-3 border-t pb-safe" style={{ borderColor: "var(--color-border-primary)" }}>
                 <div className="flex gap-2">
                   {editId && <button type="button" onClick={() => setDeleteId(editId)} className="btn-ghost text-[15px]" style={{ color: "var(--color-danger)" }}><Trash2 size={16} /> {t("common.delete" as any)}</button>}
-                  {editId && <button type="button" onClick={() => { setConvertForm({ plan_tier: "", status: "Active", mrr: "", subscription_start_date: new Date().toISOString().split("T")[0] }); setShowConvert(true); }} className="btn-ghost text-[15px]" style={{ color: "var(--color-success)" }}><UserPlus size={16} /> {t("pipeline.convert.btn" as any)}</button>}
+                  {editId && <button type="button" onClick={() => { setConvertForm({ plan_tier: "", status: "Active", mrr: "", subscription_start_date: todayDateKey() }); setShowConvert(true); }} className="btn-ghost text-[15px]" style={{ color: "var(--color-success)" }}><UserPlus size={16} /> {t("pipeline.convert.btn" as any)}</button>}
                 </div>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setShowPanel(false)} className="btn-secondary text-[15px]">{t("common.cancel" as any)}</button>

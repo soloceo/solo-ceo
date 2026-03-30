@@ -19,6 +19,7 @@ import type { Principle } from "../../data/evolution-knowledge";
 import { PROTOCOL_STEPS } from "../../data/evolution-protocol";
 import type { ProtocolStep } from "../../data/evolution-protocol";
 import { PHASES } from "../../data/breakthrough-tasks";
+import { todayDateKey, dateToKey } from "../../lib/date-utils";
 
 const WidgetGrid = lazy(() => import("./widgets/WidgetGrid"));
 
@@ -100,7 +101,7 @@ function ProgressRing({ completed, total }: { completed: number; total: number }
 /* ── Component ──────────────────────────────────────────────────── */
 export default function HomePage() {
   const { t, lang } = useT();
-  useDueReminders(lang);
+  useDueReminders(lang, t as any);
   const { operatorName } = useSettingsStore();
   const showToast = useUIStore((s) => s.showToast);
   const setHideMobileNav = useUIStore((s) => s.setHideMobileNav);
@@ -236,10 +237,10 @@ export default function HomePage() {
   const protocolState: { date: string; checks: Record<string, boolean> } = useMemo(() => {
     try {
       const raw = settings?.evolution_protocol ? JSON.parse(settings.evolution_protocol) : null;
-      const today = new Date().toISOString().slice(0, 10);
+      const today = todayDateKey();
       if (raw && raw.date === today) return raw;
       return { date: today, checks: {} };
-    } catch { return { date: new Date().toISOString().slice(0, 10), checks: {} }; }
+    } catch { return { date: todayDateKey(), checks: {} }; }
   }, [settings?.evolution_protocol]);
 
   const protocolStreak: { count: number; lastDate: string } = useMemo(() => {
@@ -249,7 +250,7 @@ export default function HomePage() {
   const protocolDone = PROTOCOL_STEPS.filter((s) => protocolState.checks[s.id]).length;
 
   const toggleProtocolStep = async (stepId: string) => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayDateKey();
     const newChecks = { ...protocolState.checks, [stepId]: !protocolState.checks[stepId] };
     const newState = { date: today, checks: newChecks };
     await save("evolution_protocol", JSON.stringify(newState));
@@ -258,7 +259,7 @@ export default function HomePage() {
     const allDone = PROTOCOL_STEPS.every((s) => newChecks[s.id]);
     let newStreak = { ...protocolStreak };
     if (allDone) {
-      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      const yesterday = dateToKey(new Date(Date.now() - 86400000));
       newStreak = {
         count: protocolStreak.lastDate === yesterday ? protocolStreak.count + 1 : 1,
         lastDate: today,
@@ -392,8 +393,8 @@ export default function HomePage() {
               } as React.CSSProperties}
             >
               {tab === "dashboard"
-                ? (lang === "zh" ? "仪表盘" : "Dashboard")
-                : (lang === "zh" ? "小工具" : "Widgets")}
+                ? t("home.tab.dashboard" as any)
+                : t("home.tab.widgets" as any)}
             </button>
           ))}
         </div>
@@ -446,7 +447,7 @@ export default function HomePage() {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
-                {lang === "zh" ? "每日一课" : "Daily Lesson"}
+                {t("home.dailyLesson" as any)}
               </span>
               <span className="text-[11px] px-1.5 py-0.5 rounded-[var(--radius-4)]"
                 style={{ background: "var(--color-bg-tertiary)", color: "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
@@ -459,7 +460,7 @@ export default function HomePage() {
               style={{ color: "var(--color-accent)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
             >
               <BookOpen size={12} />
-              {lang === "zh" ? `浏览全部原则 ${allPrinciples.length}条` : `All ${allPrinciples.length} Principles`}
+              {t("home.browseAllPrinciples" as any).replace("{count}", String(allPrinciples.length))}
             </button>
           </div>
 
@@ -491,7 +492,7 @@ export default function HomePage() {
                 style={{ color: "var(--color-accent)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
               >
                 <BookOpen size={12} />
-                {lang === "zh" ? "学了" : "Studied"}
+                {t("home.studied" as any)}
                 {(studyCounts[todayPrinciple.id] || 0) > 0 && (
                   <span className="text-[12px] tabular-nums" style={{ color: "var(--color-text-quaternary)" }}>
                     ×{studyCounts[todayPrinciple.id]}
@@ -519,7 +520,7 @@ export default function HomePage() {
                     {todayPrinciple.actionSteps && todayPrinciple.actionSteps.length > 0 && (
                       <div className="px-3 py-3">
                         <h4 className="text-[12px] mb-2 flex items-center gap-1" style={{ color: "var(--color-accent)", fontWeight: "var(--font-weight-semibold)", textTransform: "uppercase", letterSpacing: "0.05em" } as React.CSSProperties}>
-                          <span>→</span> {lang === "zh" ? "行动指南" : "Action Steps"}
+                          <span>→</span> {t("home.actionSteps" as any)}
                         </h4>
                         <div className="flex flex-col gap-1.5">
                           {todayPrinciple.actionSteps.map((s, i) => (
@@ -535,7 +536,7 @@ export default function HomePage() {
                     {todayPrinciple.checks && todayPrinciple.checks.length > 0 && (
                       <div className="px-3 py-3">
                         <h4 className="text-[12px] mb-2 flex items-center gap-1" style={{ color: "var(--color-success)", fontWeight: "var(--font-weight-semibold)", textTransform: "uppercase", letterSpacing: "0.05em" } as React.CSSProperties}>
-                          <span>✓</span> {lang === "zh" ? "自检清单" : "Self-Check"}
+                          <span>✓</span> {t("home.selfCheck" as any)}
                         </h4>
                         <div className="flex flex-col gap-1.5">
                           {todayPrinciple.checks.map((c, i) => (
@@ -551,7 +552,7 @@ export default function HomePage() {
                     {todayPrinciple.antiPatterns && todayPrinciple.antiPatterns.length > 0 && (
                       <div className="px-3 py-3">
                         <h4 className="text-[12px] mb-2 flex items-center gap-1" style={{ color: "var(--color-danger)", fontWeight: "var(--font-weight-semibold)", textTransform: "uppercase", letterSpacing: "0.05em" } as React.CSSProperties}>
-                          <span>✗</span> {lang === "zh" ? "常见误区" : "Anti-Patterns"}
+                          <span>✗</span> {t("home.antiPatterns" as any)}
                         </h4>
                         <div className="flex flex-col gap-1.5">
                           {todayPrinciple.antiPatterns.map((a, i) => (
@@ -572,7 +573,7 @@ export default function HomePage() {
 
         {/* ── 每日协议 ── */}
         <ProtocolSection
-          title={lang === "zh" ? "每日协议" : "Daily Protocol"}
+          title={t("home.dailyProtocol" as any)}
           steps={PROTOCOL_STEPS}
           state={protocolState}
           streak={protocolStreak}
@@ -593,7 +594,7 @@ export default function HomePage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
-                    {lang === "zh" ? "突围" : "Breakthrough"} · {activePhase.label[lang as "zh" | "en"]}
+                    {t("home.breakthroughPhase" as any)} · {activePhase.label[lang as "zh" | "en"]}
                   </span>
                   <span className="text-[13px] tabular-nums" style={{ color: "var(--color-text-quaternary)" }}>
                     {phaseDone}/{phaseTotal}
@@ -744,7 +745,7 @@ export default function HomePage() {
                   <X size={18} />
                 </button>
                 <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
-                  {lang === "zh" ? "全部原则" : "All Principles"}
+                  {t("home.allPrinciples" as any)}
                 </span>
                 <span style={{ width: 18 }} />
               </div>
@@ -760,7 +761,7 @@ export default function HomePage() {
                       style={{ color: "var(--color-accent)" }}
                     >
                       <ChevronRight size={12} style={{ transform: "rotate(180deg)" }} />
-                      {lang === "zh" ? "返回列表" : "Back"}
+                      {t("home.back" as any)}
                     </button>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-[18px]">{selectedPrinciple.catEmoji}</span>
@@ -784,7 +785,7 @@ export default function HomePage() {
                       {selectedPrinciple.actionSteps && selectedPrinciple.actionSteps.length > 0 && (
                         <div className="px-3 py-3">
                           <h4 className="text-[12px] mb-2 flex items-center gap-1" style={{ color: "var(--color-accent)", fontWeight: "var(--font-weight-semibold)", textTransform: "uppercase", letterSpacing: "0.05em" } as React.CSSProperties}>
-                            <span>→</span> {lang === "zh" ? "行动指南" : "Action Steps"}
+                            <span>→</span> {t("home.actionSteps" as any)}
                           </h4>
                           <div className="flex flex-col gap-1.5">
                             {selectedPrinciple.actionSteps.map((s, i) => (
@@ -800,7 +801,7 @@ export default function HomePage() {
                       {selectedPrinciple.checks && selectedPrinciple.checks.length > 0 && (
                         <div className="px-3 py-3">
                           <h4 className="text-[12px] mb-2 flex items-center gap-1" style={{ color: "var(--color-success)", fontWeight: "var(--font-weight-semibold)", textTransform: "uppercase", letterSpacing: "0.05em" } as React.CSSProperties}>
-                            <span>✓</span> {lang === "zh" ? "自检清单" : "Self-Check"}
+                            <span>✓</span> {t("home.selfCheck" as any)}
                           </h4>
                           <div className="flex flex-col gap-1.5">
                             {selectedPrinciple.checks.map((c, i) => (
@@ -816,7 +817,7 @@ export default function HomePage() {
                       {selectedPrinciple.antiPatterns && selectedPrinciple.antiPatterns.length > 0 && (
                         <div className="px-3 py-3">
                           <h4 className="text-[12px] mb-2 flex items-center gap-1" style={{ color: "var(--color-danger)", fontWeight: "var(--font-weight-semibold)", textTransform: "uppercase", letterSpacing: "0.05em" } as React.CSSProperties}>
-                            <span>✗</span> {lang === "zh" ? "常见误区" : "Anti-Patterns"}
+                            <span>✗</span> {t("home.antiPatterns" as any)}
                           </h4>
                           <div className="flex flex-col gap-1.5">
                             {selectedPrinciple.antiPatterns.map((a, i) => (
@@ -869,7 +870,7 @@ export default function HomePage() {
                                   {isToday && (
                                     <span className="text-[10px] px-1.5 py-0.5 rounded-[var(--radius-4)] shrink-0"
                                       style={{ background: "var(--color-accent)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-                                      {lang === "zh" ? "今日" : "Today"}
+                                      {t("home.today" as any)}
                                     </span>
                                   )}
                                   {(studyCounts[p.id] || 0) > 0 && (
@@ -912,6 +913,7 @@ function ProtocolSection({ title, steps, state, streak, doneCount, onToggle, lan
   onToggle: (id: string) => void;
   lang: string;
 }) {
+  const { t } = useT();
   const h = new Date().getHours();
   return (
     <section>
@@ -938,7 +940,7 @@ function ProtocolSection({ title, steps, state, streak, doneCount, onToggle, lan
               background: "color-mix(in srgb, var(--color-accent) 10%, transparent)",
               fontWeight: "var(--font-weight-semibold)",
             } as React.CSSProperties}>
-            <Flame size={11} /> {streak.count} {lang === "zh" ? "天连续" : "day streak"}
+            <Flame size={11} /> {streak.count} {t("home.dayStreak" as any)}
           </span>
         )}
       </div>

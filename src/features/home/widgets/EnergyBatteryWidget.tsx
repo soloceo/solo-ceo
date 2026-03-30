@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Coffee, Footprints, Moon, Zap, RotateCcw } from "lucide-react";
 import { useT } from "../../../i18n/context";
+import { todayDateKey } from "../../../lib/date-utils";
 import { useWidgetScale } from "./useWidgetScale";
 
 /* ── Constants ── */
@@ -61,7 +62,7 @@ interface RechargeEvent { time: string; type: string; amount: number; }
 interface DayState { date: string; startEnergy: number; wakeTimestamp: string; recharges: RechargeEvent[]; }
 interface StorageData { today: DayState | null; history: { date: string; curve: number[] }[]; }
 
-function todayStr(): string { return new Date().toISOString().slice(0, 10); }
+function todayStr(): string { return todayDateKey(); }
 
 function sampleDayCurve(state: DayState): number[] {
   const curve: number[] = [];

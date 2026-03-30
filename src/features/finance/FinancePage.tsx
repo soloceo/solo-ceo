@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 
 import { calcTaxAmount, catLabel, STATUS_I18N } from "../../lib/tax";
+import { todayDateKey } from "../../lib/date-utils";
 import { parseExpense, AI_KEY_MAP, type AIProvider } from "../../lib/ai-client";
 import { useAppSettings } from "../../hooks/useAppSettings";
 import { useSwipeTabs } from "../../hooks/useSwipeTabs";
@@ -77,7 +78,7 @@ const TX_STATUSES = ["已完成", "待收款 (应收)", "待支付 (应付)"];
 const INCOME_CATEGORIES = ["收入", "应收", "项目收入"];
 
 const createEmptyForm = () => ({
-  date: new Date().toISOString().slice(0, 10),
+  date: todayDateKey(),
   desc: "",
   category: BIZ_CATEGORIES[0], // "收入"
   amount: "",
@@ -105,6 +106,7 @@ export default function FinancePage() {
   const [clientList, setClientList] = useState<ClientItem[]>([]);
   const [aiInput, setAiInput] = useState("");
   const [aiParsing, setAiParsing] = useState(false);
+  const [savingTx, setSavingTx] = useState(false);
 
   /* ── UI state ── */
   const FIN_TABS = ["business", "personal"] as const;
@@ -334,11 +336,13 @@ export default function FinancePage() {
   /* ── Save ── */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const amt = Number(formData.amount);
-    if (!amt) return;
+    if (savingTx) return;
+    const amt = parseFloat(formData.amount);
+    if (isNaN(amt) || amt === 0) return;
+    setSavingTx(true);
 
     const isIncome = INCOME_CATEGORIES.includes(formData.category);
-    const rate = Number(formData.taxRate) || 0;
+    const rate = parseFloat(formData.taxRate) || 0;
     const taxAmount = calcTaxAmount(amt, formData.taxMode, rate);
     const selectedClient = clientList.find(c => String(c.id) === String(formData.client_id));
 
@@ -376,6 +380,8 @@ export default function FinancePage() {
       fetchFinance();
     } catch {
       showToast(t("money.saveFail" as any));
+    } finally {
+      setSavingTx(false);
     }
   };
 
@@ -955,7 +961,7 @@ export default function FinancePage() {
               {/* Footer */}
               <div className="flex items-center justify-end gap-2 px-5 py-3 border-t pb-safe shrink-0" style={{ borderColor: "var(--color-border-primary)" }}>
                 <button type="button" onClick={() => setShowPanel(false)} className="btn-ghost text-[15px]">{t("money.cancel" as any)}</button>
-                <button type="submit" form="finance-form" className="btn-primary text-[15px]">{t("money.saveRecord" as any)}</button>
+                <button type="submit" form="finance-form" disabled={savingTx} className="btn-primary text-[15px]">{savingTx ? t("common.loading" as any) : t("money.saveRecord" as any)}</button>
               </div>
             </motion.div>
           </>

@@ -96,7 +96,7 @@ export const useClientStore = create<ClientState>((set, get) => ({
       if (!created || created.error || !created.id) return null;
       set({ leads: [created, ...get().leads] });
       return created;
-    } catch { return null; }
+    } catch (err) { console.warn('[ClientStore] createLead failed:', err); return null; }
   },
 
   updateLead: async (id, updates) => {
@@ -107,7 +107,7 @@ export const useClientStore = create<ClientState>((set, get) => ({
         body: JSON.stringify({ action: "update", id, ...updates }),
       });
       set({ leads: get().leads.map((l) => (l.id === id ? { ...l, ...updates } : l)) });
-    } catch { /* handled */ }
+    } catch (err) { console.warn('[ClientStore] updateLead failed:', err); }
   },
 
   deleteLead: async (id) => {
@@ -118,7 +118,7 @@ export const useClientStore = create<ClientState>((set, get) => ({
         body: JSON.stringify({ action: "delete", id }),
       });
       set({ leads: get().leads.filter((l) => l.id !== id) });
-    } catch { /* handled */ }
+    } catch (err) { console.warn('[ClientStore] deleteLead failed:', err); }
   },
 
   createClient: async (client) => {
@@ -133,7 +133,7 @@ export const useClientStore = create<ClientState>((set, get) => ({
       if (!created || created.error || !created.id) return null;
       set({ clients: [created, ...get().clients] });
       return created;
-    } catch { return null; }
+    } catch (err) { console.warn('[ClientStore] createClient failed:', err); return null; }
   },
 
   updateClient: async (id, updates) => {
@@ -144,7 +144,7 @@ export const useClientStore = create<ClientState>((set, get) => ({
         body: JSON.stringify({ action: "update", id, ...updates }),
       });
       set({ clients: get().clients.map((c) => (c.id === id ? { ...c, ...updates } : c)) });
-    } catch { /* handled */ }
+    } catch (err) { console.warn('[ClientStore] updateClient failed:', err); }
   },
 
   deleteClient: async (id) => {
@@ -155,6 +155,6 @@ export const useClientStore = create<ClientState>((set, get) => ({
         body: JSON.stringify({ action: "delete", id }),
       });
       set({ clients: get().clients.filter((c) => c.id !== id) });
-    } catch { /* handled */ }
+    } catch (err) { console.warn('[ClientStore] deleteClient failed:', err); }
   },
 }));

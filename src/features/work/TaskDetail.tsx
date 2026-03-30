@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Plus, Edit2, Trash2, X, PanelRightClose } from "lucide-react";
 import { useT } from "../../i18n/context";
 import { useIsMobile } from "../../hooks/useIsMobile";
+import { dateToKey } from "../../lib/date-utils";
 import { Button } from "../../components/ui";
 import type { Task } from "./TaskCard";
 
@@ -35,7 +36,6 @@ export interface TaskForm {
 }
 
 function quickDates(t: (k: any) => string) {
-  const fmt = (d: Date) => d.toISOString().split("T")[0];
   const today = new Date();
   const tomorrow = new Date(today);
   tomorrow.setDate(today.getDate() + 1);
@@ -44,9 +44,9 @@ function quickDates(t: (k: any) => string) {
   const nextMon = new Date(today);
   nextMon.setDate(today.getDate() + daysUntilMon);
   return [
-    { label: t("common.today" as any), value: fmt(today) },
-    { label: t("common.tomorrow" as any), value: fmt(tomorrow) },
-    { label: t("common.nextMonday" as any), value: fmt(nextMon) },
+    { label: t("common.today" as any), value: dateToKey(today) },
+    { label: t("common.tomorrow" as any), value: dateToKey(tomorrow) },
+    { label: t("common.nextMonday" as any), value: dateToKey(nextMon) },
   ];
 }
 

@@ -16,7 +16,7 @@ interface State {
 // Detect language from localStorage (can't use hooks in class components)
 const getLabel = (zh: string, en: string) => {
   try {
-    return localStorage.getItem("APP_LANG") === "en" ? en : zh;
+    return localStorage.getItem("APP_LANGUAGE") === "en" ? en : zh;
   } catch {
     return zh;
   }

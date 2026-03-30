@@ -65,7 +65,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
       if (!created || created.error || !created.id) return null;
       set({ transactions: [created, ...get().transactions] });
       return created;
-    } catch { return null; }
+    } catch (err) { console.warn('[FinanceStore] createTransaction failed:', err); return null; }
   },
 
   updateTransaction: async (id, updates) => {
@@ -80,7 +80,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
           t.id === id ? { ...t, ...updates } : t,
         ),
       });
-    } catch { /* handled */ }
+    } catch (err) { console.warn('[FinanceStore] updateTransaction failed:', err); }
   },
 
   deleteTransaction: async (id) => {
@@ -91,7 +91,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         body: JSON.stringify({ action: "delete", id }),
       });
       set({ transactions: get().transactions.filter((t) => t.id !== id) });
-    } catch { /* handled */ }
+    } catch (err) { console.warn('[FinanceStore] deleteTransaction failed:', err); }
   },
 
   setFilters: (filters) =>

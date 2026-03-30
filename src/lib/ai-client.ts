@@ -3,6 +3,8 @@
  * Supports Gemini, Claude, and OpenAI.
  */
 
+import { todayDateKey } from "./date-utils";
+
 export type AIProvider = "gemini" | "claude" | "openai";
 
 export const AI_KEY_MAP: Record<string, string> = {
@@ -149,7 +151,7 @@ export async function parseExpense(
   provider: AIProvider, apiKey: string
 ): Promise<ParsedTx> {
   const cats = tab === "business" ? BIZ_CATS : PERSONAL_CATS;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayDateKey();
 
   const prompt = `You are a bookkeeping assistant. Parse natural language into a transaction.
 

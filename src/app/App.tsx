@@ -25,11 +25,12 @@ import { useT } from "../i18n/context";
 import { useAuth } from "../auth/AuthProvider";
 import LoginPage from "../auth/LoginPage";
 import { startRealtime, stopRealtime } from "../db/realtime";
-import { ErrorBoundary } from "../components/ErrorBoundary";
+import { PageErrorBoundary } from "../components/PageErrorBoundary";
 import { OfflineBanner } from "../components/OfflineBanner";
 import { Avatar, PageSkeleton, GlobalToast } from "../components/ui";
 import { useUIStore } from "../store/useUIStore";
 import { useSettingsStore } from "../store/useSettingsStore";
+import { todayDateKey, dateToKey } from "../lib/date-utils";
 import { CommandPalette } from "./CommandPalette";
 import { QuickCreateMenu } from "./QuickCreateMenu";
 import { UserMenu } from "./UserMenu";
@@ -87,13 +88,13 @@ type NavBadges = {
 const Content = React.memo(({ activeTab }: { activeTab: string }) => {
   const Page = TAB_MAP[activeTab]?.component ?? HomePage;
   return (
-    <ErrorBoundary key={activeTab}>
+    <PageErrorBoundary key={activeTab} pageName={activeTab}>
       <Suspense fallback={<PageSkeleton />}>
         <div className="page-enter">
           <Page />
         </div>
       </Suspense>
-    </ErrorBoundary>
+    </PageErrorBoundary>
   );
 });
 
@@ -205,6 +206,8 @@ function App() {
       .then((r) => r.json())
       .then((s: Record<string, string>) => {
         if (s.OPERATOR_NAME) setOperator(s.OPERATOR_NAME, s.OPERATOR_AVATAR || undefined);
+        if (s.CURRENCY) useSettingsStore.getState().setCurrency(s.CURRENCY);
+        if (s.TIMEZONE) useSettingsStore.getState().setTimezone(s.TIMEZONE);
         if (s.protocol_streak) setProtocolStreakRaw(s.protocol_streak);
       })
       .catch((e) => {
@@ -216,8 +219,8 @@ function App() {
     try {
       if (!protocolStreakRaw) return 0;
       const s = JSON.parse(protocolStreakRaw);
-      const today = new Date().toISOString().split("T")[0];
-      const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+      const today = todayDateKey();
+      const yesterday = dateToKey(new Date(Date.now() - 86400000));
       if (s.lastDate === today || s.lastDate === yesterday) return s.count || 0;
     } catch (e) {
       console.warn("Failed to parse protocol streak:", e);

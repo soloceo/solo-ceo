@@ -27,7 +27,8 @@ export function MonthlyGoal({ monthlyIncome, loading }: MonthlyGoalProps) {
   }, [editing]);
 
   const handleSave = () => {
-    const val = Math.max(0, Math.round(Number(draft) || 0));
+    const parsed = parseFloat(draft);
+    const val = isNaN(parsed) ? 0 : Math.max(0, Math.round(parsed));
     save(GOAL_KEY, String(val));
     setEditing(false);
   };

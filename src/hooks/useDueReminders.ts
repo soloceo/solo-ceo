@@ -1,10 +1,11 @@
 import { useEffect, useRef } from "react";
+import { todayDateKey } from "../lib/date-utils";
 
 /**
  * Check for overdue/due-today items and show browser notifications.
  * Runs once per app session on mount.
  */
-export function useDueReminders(lang: string) {
+export function useDueReminders(lang: string, t?: (key: string) => string) {
   const notified = useRef(false);
 
   useEffect(() => {
@@ -18,7 +19,7 @@ export function useDueReminders(lang: string) {
           fetch("/api/clients"), // milestones are embedded in client data
         ]);
         const tasks = await tasksRes.json();
-        const today = new Date().toISOString().slice(0, 10);
+        const today = todayDateKey();
 
         // Find overdue/due-today tasks
         const dueTasks = (Array.isArray(tasks) ? tasks : []).filter((t: any) =>
@@ -29,9 +30,9 @@ export function useDueReminders(lang: string) {
         if (total === 0) return;
 
         notified.current = true;
-        const title = lang === "zh" ? "一人CEO · 提醒" : "Solo CEO · Reminder";
-        const body = lang === "zh"
-          ? `${dueTasks.length} 个任务已到期或即将到期`
+        const title = t ? t("app.reminder.title") : (lang === "zh" ? "一人CEO · 提醒" : "Solo CEO · Reminder");
+        const body = t
+          ? t("app.reminder.tasksDue").replace("{n}", String(dueTasks.length))
           : `${dueTasks.length} task(s) due or overdue`;
 
         if (Notification.permission === "granted") {

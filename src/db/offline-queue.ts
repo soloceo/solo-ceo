@@ -22,7 +22,7 @@ interface QueuedOp {
 const DB_NAME = 'soloceo-offline-queue';
 const STORE_NAME = 'ops';
 const MAX_RETRIES = 3;
-const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 let replaying = false;
 
 // ── IndexedDB helpers ─────────────────────────────────────────────
@@ -111,10 +111,14 @@ export async function replayQueue(): Promise<{ replayed: number; failed: number 
     const validOps = [];
     for (const op of ops) {
       if (now - op.timestamp > MAX_AGE_MS) {
+        const ageDays = Math.round((now - op.timestamp) / 86400000);
+        console.warn(`[OfflineQueue] Discarding stale op (${ageDays} days old): ${op.method} ${op.path}`);
+        window.dispatchEvent(new CustomEvent('sync-status', { detail: { warning: `离线操作已过期(${ageDays}天)：${op.path}`, pending: ops.length } }));
         await removeOp(op.id);
         continue;
       }
       if ((op.retryCount || 0) >= MAX_RETRIES) {
+        console.warn(`[OfflineQueue] Discarding op after ${MAX_RETRIES} retries: ${op.method} ${op.path}`);
         await removeOp(op.id);
         failed++;
         continue;

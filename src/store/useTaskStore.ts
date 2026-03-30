@@ -52,7 +52,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       if (!created || created.error || !created.id) return null;
       set({ tasks: [created, ...get().tasks] });
       return created;
-    } catch {
+    } catch (err) {
+      console.warn('[TaskStore] createTask failed:', err);
       return null;
     }
   },
@@ -67,7 +68,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       set({
         tasks: get().tasks.map((t) => (t.id === id ? { ...t, ...updates } : t)),
       });
-    } catch { /* handled by interceptor */ }
+    } catch (err) { console.warn('[TaskStore] updateTask failed:', err); }
   },
 
   deleteTask: async (id) => {
@@ -78,10 +79,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         body: JSON.stringify({ action: "delete", id }),
       });
       set({ tasks: get().tasks.filter((t) => t.id !== id) });
-    } catch { /* handled by interceptor */ }
+    } catch (err) { console.warn('[TaskStore] deleteTask failed:', err); }
   },
 
   moveTask: async (id, status) => {
+    const previousTasks = get().tasks;
     // Optimistic update
     set({
       tasks: get().tasks.map((t) => (t.id === id ? { ...t, status } : t)),
@@ -92,9 +94,9 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "update", id, status }),
       });
-    } catch {
-      // Revert on error
-      get().fetchTasks();
+    } catch (err) {
+      console.warn('[TaskStore] moveTask failed, reverting:', err);
+      set({ tasks: previousTasks });
     }
   },
 }));

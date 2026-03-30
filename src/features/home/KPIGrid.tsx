@@ -41,8 +41,8 @@ export function KPIGrid({ mrr, ytdRevenue, todayIncome, clientsCount, leadsCount
       value: null,
       color: "var(--color-accent)",
       lines: [
-        { label: lang === "zh" ? "工作任务" : "Work Tasks", count: workTasks, color: "var(--color-accent)" },
-        { label: lang === "zh" ? "个人任务" : "Personal Tasks", count: personalTasks, color: "var(--color-info)" },
+        { label: t("home.kpi.workTasks" as any), count: workTasks, color: "var(--color-accent)" },
+        { label: t("home.kpi.personalTasks" as any), count: personalTasks, color: "var(--color-info)" },
       ],
     },
   ];

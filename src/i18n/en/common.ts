@@ -68,4 +68,8 @@ export const common = {
   "app.cmdFooter.navigate": "navigate",
   "app.cmdFooter.select": "select",
   "app.cmdFooter.close": "close",
+  "app.pwa.newVersion": "New version available",
+  "app.pwa.update": "Update",
+  "app.reminder.title": "Solo CEO · Reminder",
+  "app.reminder.tasksDue": "{n} task(s) due or overdue",
 };

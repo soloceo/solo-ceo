@@ -15,6 +15,7 @@ import { useUIStore } from "../../store/useUIStore";
 import { Skeleton } from "../../components/ui";
 import { FL } from "./LeadsBoard";
 import { calcTaxAmount, CATEGORY_I18N, STATUS_I18N, catLabel } from "../../lib/tax";
+import { todayDateKey } from "../../lib/date-utils";
 
 /* ── Type definitions ── */
 interface ClientRow {
@@ -97,17 +98,17 @@ const createEmptyClient = () => ({
   name: "", company_name: "", contact_name: "", contact_email: "", contact_phone: "",
   billing_type: "subscription" as "subscription" | "project", plan: "", status: "Active",
   mrr: "", project_fee: "",
-  subscription_start_date: new Date().toISOString().split("T")[0],
+  subscription_start_date: todayDateKey(),
   project_end_date: "", paused_at: "", resumed_at: "", cancelled_at: "",
-  mrr_effective_from: new Date().toISOString().split("T")[0],
+  mrr_effective_from: todayDateKey(),
   tax_mode: "none" as "none" | "exclusive" | "inclusive", tax_rate: "",
   drive_folder_url: "", payment_method: "auto" as "auto" | "manual",
-  timeline: [{ type: "start", date: new Date().toISOString().split("T")[0] }] as { type: string; date: string }[],
+  timeline: [{ type: "start", date: todayDateKey() }] as { type: string; date: string }[],
 });
 
 const createEmptyTx = () => ({
   ...EMPTY_TX,
-  date: new Date().toISOString().split("T")[0],
+  date: todayDateKey(),
 });
 
 /* ══════════════════════════════════════════════════════════════════
@@ -170,7 +171,8 @@ export function ClientsView() {
   const saveMilestone = async () => {
     if (!editId || savingMs) return;
     setSavingMs(true);
-    const body = { label: msForm.label, amount: Number(msForm.amount) || 0, percentage: Number(msForm.percentage) || 0, due_date: msForm.due_date || null, note: msForm.note };
+    const msAmt = parseFloat(msForm.amount); const msPct = parseFloat(msForm.percentage);
+    const body = { label: msForm.label, amount: isNaN(msAmt) ? 0 : msAmt, percentage: isNaN(msPct) ? 0 : msPct, due_date: msForm.due_date || null, note: msForm.note };
     try {
       let newMsId = editMsId;
       if (editMsId) { await fetch(`/api/milestones/${editMsId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); }
@@ -230,8 +232,9 @@ export function ClientsView() {
   const saveTx = async () => {
     if (!editId) return;
     const isIncome = txForm.category === "收入" || txForm.category === "应收";
-    const amt = Math.abs(Number(txForm.amount));
-    const rate = Number(txForm.taxRate) || 0;
+    const amt = Math.abs(parseFloat(txForm.amount));
+    if (isNaN(amt) || amt === 0) return;
+    const rate = parseFloat(txForm.taxRate) || 0;
     const taxAmount = calcTaxAmount(amt, txForm.taxMode, rate);
     const txData = { date: txForm.date, description: txForm.desc, category: txForm.category, amount: amt, type: isIncome ? "income" : "expense", status: txForm.status, tax_mode: txForm.taxMode, tax_rate: rate, tax_amount: taxAmount, client_id: editId, client_name: form.company_name || form.name };
     try {
@@ -356,7 +359,7 @@ export function ClientsView() {
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = `clients-${new Date().toISOString().split("T")[0]}.csv`;
+    a.href = url; a.download = `clients-${todayDateKey()}.csv`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
     showToast(t("pipeline.clients.csvExported" as any));
@@ -628,7 +631,7 @@ export function ClientsView() {
                           const last = form.timeline[form.timeline.length - 1];
                           const hasCancelled = form.timeline.some(e => e.type === "cancel");
                           if (hasCancelled) return null;
-                          const today = new Date().toISOString().split("T")[0];
+                          const today = todayDateKey();
                           if (!last || last.type === "start" || last.type === "resume") {
                             return (<>
                               <button type="button" onClick={() => setForm(p => ({ ...p, timeline: [...p.timeline, { type: "pause", date: today }] }))} className="btn-ghost text-[13px] flex items-center gap-1" style={{ color: "var(--color-warning)" }}><Plus size={12} /> {t("pipeline.clients.pause" as any)}</button>
@@ -1015,7 +1018,7 @@ export function ClientsView() {
                 // Auto-cleanup when switching
                 if (bt === "project") {
                   // Subscription → Project: add cancel event to timeline, zero MRR
-                  const today = new Date().toISOString().split("T")[0];
+                  const today = todayDateKey();
                   const hasCancelled = form.timeline.some(e => e.type === "cancel");
                   setForm(p => ({
                     ...p, billing_type: bt, mrr: "0", status: "Active",
@@ -1023,7 +1026,7 @@ export function ClientsView() {
                   }));
                 } else {
                   // Project → Subscription: keep milestones as-is, setup subscription fields
-                  const today = new Date().toISOString().split("T")[0];
+                  const today = todayDateKey();
                   setForm(p => ({
                     ...p, billing_type: bt, project_fee: "0",
                     timeline: [{ type: "start", date: today }],

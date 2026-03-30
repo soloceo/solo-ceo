@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Check, Circle, Undo2, ChevronDown, ChevronRight, Pencil, Trash2, Plus } from "lucide-react";
 import { useT } from "../../i18n/context";
+import { todayDateKey } from "../../lib/date-utils";
 import { Button, Badge, Modal } from "../../components/ui";
 
 /* ── Types ──────────────────────────────────────────────────────── */
@@ -44,7 +45,7 @@ export function TodayFocus({
   const emptyForm: ManualForm = { type: t("home.form.type.system" as any), title: "", note: "" };
   const [form, setForm] = useState<ManualForm>(emptyForm);
 
-  const skipKey = `today-focus-skipped-${new Date().toISOString().split("T")[0]}`;
+  const skipKey = `today-focus-skipped-${todayDateKey()}`;
   const [skipped, setSkipped] = useState<string[]>(() => {
     try { const s = localStorage.getItem(skipKey); return s ? JSON.parse(s) : []; } catch { return []; }
   });
@@ -140,7 +141,7 @@ export function TodayFocus({
               className="text-[12px] px-1.5 py-0.5 rounded-[var(--radius-4)] transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback"
               style={{ color: "var(--color-text-quaternary)" }}
             >
-              {lang === "zh" ? "重置" : "Reset"}
+              {t("home.focus.reset" as any)}
             </button>
           )}
         </div>

@@ -37,13 +37,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Get initial session — with timeout + error handling for offline
     const sessionTimeout = setTimeout(() => {
-      // If getSession hasn't resolved in 2.5s, we're likely offline
+      // If getSession hasn't resolved in 6s, we're likely offline or on slow network
       if (loading) {
         console.warn('[Auth] Session check timed out — entering offline mode');
         setOfflineMode(true);
         setLoading(false);
       }
-    }, 2500);
+    }, 6000);
 
     supabase.auth.getSession()
       .then(({ data: { session: s } }) => {
@@ -67,7 +67,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth state changes
     try {
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        (_event, s) => {
+        (event, s) => {
+          if (event === 'SIGNED_OUT') {
+            console.warn('[Auth] User signed out');
+            setSession(null);
+            setUser(null);
+            setOfflineMode(true);
+          } else if (event === 'TOKEN_REFRESHED') {
+            console.info('[Auth] Token refreshed');
+          }
           setSession(s);
           setUser(s?.user ?? null);
           if (s?.user) setOfflineMode(false);
@@ -81,16 +89,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for online/offline to toggle offline mode
     const handleOnline = () => {
-      // When back online, try to restore session
-      supabase.auth.getSession()
+      // When back online, try to refresh session first (handles expired tokens)
+      supabase.auth.refreshSession()
         .then(({ data: { session: s } }) => {
           if (s) {
             setSession(s);
             setUser(s.user);
             setOfflineMode(false);
+          } else {
+            // Token couldn't be refreshed — try getSession as fallback
+            return supabase.auth.getSession().then(({ data: { session: s2 } }) => {
+              if (s2) {
+                setSession(s2);
+                setUser(s2.user);
+                setOfflineMode(false);
+              } else {
+                console.warn('[Auth] Session expired — user needs to re-login');
+              }
+            });
           }
         })
-        .catch(() => { /* still offline or session expired */ });
+        .catch((err) => { console.warn('[Auth] Session refresh failed:', err); });
     };
     const handleOffline = () => {
       if (!user) setOfflineMode(true);

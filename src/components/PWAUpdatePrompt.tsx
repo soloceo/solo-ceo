@@ -4,7 +4,7 @@ import { RefreshCw } from "lucide-react";
 import { useT } from "../i18n/context";
 
 export default function PWAUpdatePrompt() {
-  const { lang } = useT();
+  const { t } = useT();
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
 
   const {
@@ -39,7 +39,7 @@ export default function PWAUpdatePrompt() {
       >
         <RefreshCw size={16} className="shrink-0" />
         <span className="text-[14px]" style={{ fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-          {lang === "zh" ? "发现新版本" : "New version available"}
+          {t("app.pwa.newVersion" as any)}
         </span>
         <button
           onClick={() => updateServiceWorker(true)}
@@ -50,7 +50,7 @@ export default function PWAUpdatePrompt() {
             fontWeight: "var(--font-weight-semibold)",
           } as React.CSSProperties}
         >
-          {lang === "zh" ? "立即更新" : "Update"}
+          {t("app.pwa.update" as any)}
         </button>
       </div>
     </div>

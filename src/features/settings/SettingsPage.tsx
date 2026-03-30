@@ -29,10 +29,20 @@ export default function SettingsPage() {
   const isOnline = useSettingsStore((s) => s.isOnline);
   const pendingOps = useSettingsStore((s) => s.pendingOps);
   const setOperator = useSettingsStore((s) => s.setOperator);
-  const setCurrency = useSettingsStore((s) => s.setCurrency);
-  const setTimezone = useSettingsStore((s) => s.setTimezone);
+  const setCurrencyLocal = useSettingsStore((s) => s.setCurrency);
+  const setTimezoneLocal = useSettingsStore((s) => s.setTimezone);
   const setOnline = useSettingsStore((s) => s.setOnline);
   const setPendingOps = useSettingsStore((s) => s.setPendingOps);
+
+  // Wrap setCurrency / setTimezone to also persist to Supabase
+  const setCurrency = (v: string) => {
+    setCurrencyLocal(v);
+    saveAppSetting('CURRENCY', v);
+  };
+  const setTimezone = (v: string) => {
+    setTimezoneLocal(v);
+    saveAppSetting('TIMEZONE', v);
+  };
 
   useEffect(() => {
     getQueueLength().then(setPendingOps).catch(() => {});

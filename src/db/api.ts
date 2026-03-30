@@ -4,7 +4,7 @@
  */
 import { Database } from 'sql.js';
 import { getDb, saveDb, all, get, run, exec } from './index';
-import { todayDateKey, monthKey, currentMonth } from '../lib/date-utils';
+import { todayDateKey, dateToKey, monthKey, currentMonth } from '../lib/date-utils';
 
 // ── Type definitions ────────────────────────────────────────────────────────
 type DbRow = Record<string, any>;
@@ -121,7 +121,7 @@ function syncClientSubscriptionLedger(db: Database) {
 
   // Soft-delete removed
   for (const id of existingMap.values()) {
-    run(db, `DELETE FROM finance_transactions WHERE id=?`, [id]);
+    run(db, `UPDATE finance_transactions SET soft_deleted=1 WHERE id=?`, [id]);
   }
 }
 
@@ -329,6 +329,15 @@ function initSchema(db: Database) {
     `ALTER TABLE clients ADD COLUMN drive_folder_url TEXT DEFAULT ''`,
     `ALTER TABLE clients ADD COLUMN subscription_timeline TEXT DEFAULT '[]'`,
     `ALTER TABLE tasks ADD COLUMN client_id INTEGER`,
+    // soft_deleted columns for offline/online consistency
+    `ALTER TABLE leads ADD COLUMN soft_deleted INTEGER DEFAULT 0`,
+    `ALTER TABLE clients ADD COLUMN soft_deleted INTEGER DEFAULT 0`,
+    `ALTER TABLE tasks ADD COLUMN soft_deleted INTEGER DEFAULT 0`,
+    `ALTER TABLE plans ADD COLUMN soft_deleted INTEGER DEFAULT 0`,
+    `ALTER TABLE finance_transactions ADD COLUMN soft_deleted INTEGER DEFAULT 0`,
+    `ALTER TABLE content_drafts ADD COLUMN soft_deleted INTEGER DEFAULT 0`,
+    `ALTER TABLE today_focus_manual ADD COLUMN soft_deleted INTEGER DEFAULT 0`,
+    `ALTER TABLE payment_milestones ADD COLUMN soft_deleted INTEGER DEFAULT 0`,
   ];
   for (const m of migrations) {
     try { db.run(m); } catch { /* already exists */ }
@@ -503,7 +512,7 @@ export async function handleApiRequest(
       dirty = true;
     } else if (method === 'DELETE') {
       const prev = get(db, 'SELECT name FROM leads WHERE id=?', [id]) as DbRow;
-      run(db, 'DELETE FROM leads WHERE id=?', [id]);
+      run(db, 'UPDATE leads SET soft_deleted=1 WHERE id=?', [id]);
       logActivity(db, 'lead', 'deleted', `删除线索：${prev?.name||'未命名线索'}`, '', id);
       dirty = true;
     }
@@ -519,7 +528,7 @@ export async function handleApiRequest(
     const { plan_tier, status, mrr, subscription_start_date, mrr_effective_from, billing_type, project_fee } = body || {};
     const np = normalizePlanTier(plan_tier || '');
     const bt = billing_type || 'subscription';
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayDateKey();
     const res = run(db, `INSERT INTO clients (name, industry, plan_tier, status, brand_context, mrr,
         subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from,
         billing_type, project_fee)
@@ -619,10 +628,10 @@ export async function handleApiRequest(
       run(db, 'UPDATE finance_transactions SET client_id=NULL WHERE client_id=?', [id]);
 
       // Delete payment milestones - these are meaningless without the client
-      run(db, 'DELETE FROM payment_milestones WHERE client_id=?', [id]);
+      run(db, 'UPDATE payment_milestones SET soft_deleted=1 WHERE client_id=?', [id]);
 
       // Delete the client
-      run(db, 'DELETE FROM clients WHERE id=?', [id]);
+      run(db, 'UPDATE clients SET soft_deleted=1 WHERE id=?', [id]);
       syncClientSubscriptionLedger(db);
       logActivity(db, 'client', 'deleted', `删除客户：${prev?.name||'未命名客户'}`, '', id);
       await saveDb();
@@ -635,7 +644,7 @@ export async function handleApiRequest(
   if (milestoneListMatch) {
     const clientId = milestoneListMatch[1];
     if (method === 'GET') {
-      const today = new Date().toISOString().split('T')[0];
+      const today = todayDateKey();
       const rows = all(db, 'SELECT * FROM payment_milestones WHERE client_id=? ORDER BY sort_order ASC, created_at ASC', [clientId]);
       const result = rows.map((m) => ({
         ...m,
@@ -670,9 +679,9 @@ export async function handleApiRequest(
     }
     if (method === 'DELETE') {
       const prev = get(db, 'SELECT label, finance_tx_id FROM payment_milestones WHERE id=?', [id]) as DbRow;
-      run(db, 'DELETE FROM payment_milestones WHERE id=?', [id]);
+      run(db, 'UPDATE payment_milestones SET soft_deleted=1 WHERE id=?', [id]);
       if (prev?.finance_tx_id) {
-        run(db, 'DELETE FROM finance_transactions WHERE id=?', [prev.finance_tx_id]);
+        run(db, 'UPDATE finance_transactions SET soft_deleted=1 WHERE id=?', [prev.finance_tx_id]);
       }
       logActivity(db, 'milestone', 'deleted', `删除付款节点：${prev?.label||''}`, '', id);
       await saveDb();
@@ -684,7 +693,7 @@ export async function handleApiRequest(
   if (markPaidMatch && method === 'POST') {
     const id = markPaidMatch[1];
     const { payment_method, paid_date } = body || {};
-    const actualDate = paid_date || new Date().toISOString().split('T')[0];
+    const actualDate = paid_date || todayDateKey();
     const milestone = get(db, 'SELECT * FROM payment_milestones WHERE id=?', [id]) as DbRow;
     if (!milestone) return err(404, 'Milestone not found');
 
@@ -756,7 +765,7 @@ export async function handleApiRequest(
     }
     if (method === 'DELETE') {
       const prev = get(db, 'SELECT title FROM tasks WHERE id=?', [id]) as DbRow;
-      run(db, 'DELETE FROM tasks WHERE id=?', [id]);
+      run(db, 'UPDATE tasks SET soft_deleted=1 WHERE id=?', [id]);
       logActivity(db, 'task', 'deleted', `删除任务：${prev?.title||'未命名任务'}`, '', id);
       await saveDb();
       return ok({ success: true });
@@ -805,7 +814,7 @@ export async function handleApiRequest(
     }
     if (method === 'DELETE') {
       const prev = get(db, 'SELECT name FROM plans WHERE id=?', [id]) as DbRow;
-      run(db, 'DELETE FROM plans WHERE id=?', [id]);
+      run(db, 'UPDATE plans SET soft_deleted=1 WHERE id=?', [id]);
       logActivity(db, 'plan', 'deleted', `删除方案：${prev?.name||'未命名方案'}`, '', id);
       await saveDb();
       return ok({ success: true });
@@ -859,7 +868,7 @@ export async function handleApiRequest(
       return ok({ success: true });
     }
     if (method === 'DELETE') {
-      run(db, 'DELETE FROM finance_transactions WHERE id=?', [id]);
+      run(db, 'UPDATE finance_transactions SET soft_deleted=1 WHERE id=?', [id]);
       logActivity(db, 'finance', 'deleted', `删除交易：${txRow.description||'未命名交易'}`, '', id);
       await saveDb();
       return ok({ success: true });
@@ -891,7 +900,7 @@ export async function handleApiRequest(
   if (contentMatch && method === 'DELETE') {
     const id = contentMatch[1];
     const prev = get(db, 'SELECT topic FROM content_drafts WHERE id=?', [id]) as DbRow;
-    run(db, 'DELETE FROM content_drafts WHERE id=?', [id]);
+    run(db, 'UPDATE content_drafts SET soft_deleted=1 WHERE id=?', [id]);
     logActivity(db, 'content', 'deleted', `删除草稿：${prev?.topic||'未命名草稿'}`, '', id);
     await saveDb();
     return ok({ success: true });
@@ -938,7 +947,7 @@ export async function handleApiRequest(
     if (method === 'DELETE') {
       const prev = get(db, 'SELECT title FROM today_focus_manual WHERE id=?', [id]) as DbRow;
       if (!prev) return err(404, 'manual event not found');
-      run(db, 'DELETE FROM today_focus_manual WHERE id=?', [id]);
+      run(db, 'UPDATE today_focus_manual SET soft_deleted=1 WHERE id=?', [id]);
       run(db, `DELETE FROM today_focus_state WHERE focus_date=? AND focus_key=?`, [todayDateKey(), `manual-${id}`]);
       logActivity(db, 'today_focus', 'manual_deleted', `删除今日事件：${prev?.title||'未命名事件'}`, '', id);
       await saveDb();
@@ -1049,8 +1058,8 @@ export async function handleApiRequest(
     monday.setDate(now.getDate() + mondayOffset);
     const sunday = new Date(monday);
     sunday.setDate(monday.getDate() + 6);
-    const weekStart = monday.toISOString().split('T')[0];
-    const weekEnd = sunday.toISOString().split('T')[0];
+    const weekStart = dateToKey(monday);
+    const weekEnd = dateToKey(sunday);
 
     const txRows = getFinanceRows(db);
     const weekTx = txRows.filter((t: any) => t.date >= weekStart && t.date <= weekEnd && (t.status || '已完成') === '已完成');
@@ -1078,6 +1087,11 @@ export async function handleApiRequest(
       newLeads,
       activities,
     });
+  }
+
+  // ── SERVER TIME (local clock) ────────────────────────────────────
+  if (path === '/api/server-time' && method === 'GET') {
+    return ok({ unixMs: Date.now() });
   }
 
   return err(404, `No handler for ${method} ${path}`);

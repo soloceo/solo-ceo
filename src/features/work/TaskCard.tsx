@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import { Clock, Trash2, Calendar, ArrowRightLeft } from "lucide-react";
 import { fmtDate } from "../../lib/format";
+import { todayDateKey } from "../../lib/date-utils";
 import { useT } from "../../i18n/context";
 import { InlinePopover, PopoverOption } from "../../components/ui/InlinePopover";
 
@@ -136,7 +137,7 @@ export const TaskCard = React.memo(function TaskCard({
               onClick={(e) => e.stopPropagation()}
             >
               {task.due ? (() => {
-                const today = new Date().toISOString().split("T")[0];
+                const today = todayDateKey();
                 const isOverdue = task.due < today;
                 const isToday = task.due === today;
                 const dueSt = isOverdue
@@ -171,7 +172,7 @@ export const TaskCard = React.memo(function TaskCard({
             </span>
           ) : (
             task.due && (() => {
-              const today = new Date().toISOString().split("T")[0];
+              const today = todayDateKey();
               const isOverdue = task.due < today;
               const isToday = task.due === today;
               const dueSt = isOverdue

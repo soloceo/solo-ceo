@@ -4,7 +4,7 @@
  * can swap between online (Supabase) and offline (sql.js) seamlessly.
  */
 import { supabase } from './supabase-client';
-import { todayDateKey, monthKey, currentMonth } from '../lib/date-utils';
+import { todayDateKey, dateToKey, monthKey, currentMonth } from '../lib/date-utils';
 
 // ── helpers ────────────────────────────────────────────────────────
 
@@ -248,14 +248,14 @@ export async function handleSupabaseRequest(
           website: website || '', column: column || 'new',
           aiDraft: aiDraft || '', source: source || '',
         })
-        .eq('id', id);
+        .eq('id', id).eq('user_id', userId);
       if (e) return err(500, e.message);
       await logActivity(userId, 'lead', 'updated', `更新线索：${name || '未命名线索'}`, '', id);
       return ok({ success: true });
     }
     if (method === 'DELETE') {
-      const { data: prev } = await supabase.from('leads').select('name').eq('id', id).single();
-      await supabase.from('leads').update({ soft_deleted: true }).eq('id', id);
+      const { data: prev } = await supabase.from('leads').select('name').eq('id', id).eq('user_id', userId).single();
+      await supabase.from('leads').update({ soft_deleted: true }).eq('id', id).eq('user_id', userId);
       await logActivity(userId, 'lead', 'deleted', `删除线索：${prev?.name || '未命名线索'}`, '', id);
       return ok({ success: true });
     }
@@ -264,7 +264,7 @@ export async function handleSupabaseRequest(
   const convertMatch = path.match(/^\/api\/leads\/(\d+)\/convert$/);
   if (convertMatch && method === 'POST') {
     const id = Number(convertMatch[1]);
-    const { data: lead } = await supabase.from('leads').select('*').eq('id', id).single();
+    const { data: lead } = await supabase.from('leads').select('*').eq('id', id).eq('user_id', userId).single();
     if (!lead) return err(404, 'Lead not found');
     const { plan_tier, status, mrr, subscription_start_date, mrr_effective_from, billing_type, project_fee } = body || {};
     const np = normalizePlanTier(plan_tier || '');
@@ -287,8 +287,8 @@ export async function handleSupabaseRequest(
       .select('id')
       .single();
     if (e) return err(500, e.message);
-    await supabase.from('leads').update({ column: 'won' }).eq('id', id);
-    syncClientSubscriptionLedger(userId).catch(() => {});
+    await supabase.from('leads').update({ column: 'won' }).eq('id', id).eq('user_id', userId);
+    syncClientSubscriptionLedger(userId).catch((err) => console.error('[SyncLedger]', err));
     await logActivity(userId, 'lead', 'converted', `线索转客户：${lead.name || '未命名线索'}`, np ? `方案：${np}` : '', id);
     await logActivity(userId, 'client', 'created', `新增客户：${lead.name || '未命名客户'}`, np ? `来自线索转化 · 方案：${np}` : '来自线索转化', newClient!.id);
     return ok({ success: true, clientId: newClient!.id });
@@ -355,7 +355,7 @@ export async function handleSupabaseRequest(
       .select('id')
       .single();
     if (e) return err(500, e.message);
-    syncClientSubscriptionLedger(userId).catch(() => {});
+    syncClientSubscriptionLedger(userId).catch((err) => console.error('[SyncLedger]', err));
     await logActivity(userId, 'client', 'created', `新增客户：${name || '未命名客户'}`, np ? `方案：${np}` : '', data!.id);
     return ok({ id: data!.id });
   }
@@ -385,14 +385,14 @@ export async function handleSupabaseRequest(
           drive_folder_url: drive_folder_url || '',
           payment_method: payment_method || 'auto',
         })
-        .eq('id', id);
+        .eq('id', id).eq('user_id', userId);
       if (e) return err(500, e.message);
-      syncClientSubscriptionLedger(userId).catch(() => {});
+      syncClientSubscriptionLedger(userId).catch((err) => console.error('[SyncLedger]', err));
       await logActivity(userId, 'client', 'updated', `更新客户：${name || '未命名客户'}`, '客户信息已更新', id);
       return ok({ success: true });
     }
     if (method === 'DELETE') {
-      const { data: prev } = await supabase.from('clients').select('name, company_name').eq('id', id).single();
+      const { data: prev } = await supabase.from('clients').select('name, company_name').eq('id', id).eq('user_id', userId).single();
 
       // Fix Bug 1: Clean up related records before soft-deleting the client
       const clientCompanyName = prev?.company_name || prev?.name || '';
@@ -408,8 +408,8 @@ export async function handleSupabaseRequest(
       await supabase.from('payment_milestones').update({ soft_deleted: true }).eq('client_id', id).eq('user_id', userId);
 
       // Soft-delete the client
-      await supabase.from('clients').update({ soft_deleted: true }).eq('id', id);
-      syncClientSubscriptionLedger(userId).catch(() => {});
+      await supabase.from('clients').update({ soft_deleted: true }).eq('id', id).eq('user_id', userId);
+      syncClientSubscriptionLedger(userId).catch((err) => console.error('[SyncLedger]', err));
       await logActivity(userId, 'client', 'deleted', `删除客户：${prev?.name || '未命名客户'}`, '', id);
       return ok({ success: true });
     }
@@ -491,13 +491,13 @@ export async function handleSupabaseRequest(
           status: status || 'pending', invoice_number: invoice_number || '',
           note: note || '', sort_order: sort_order ?? 0,
         })
-        .eq('id', id);
+        .eq('id', id).eq('user_id', userId);
       if (e) return err(500, e.message);
       return ok({ success: true });
     }
     if (method === 'DELETE') {
-      const { data: prev } = await supabase.from('payment_milestones').select('label, client_id, finance_tx_id').eq('id', id).single();
-      await supabase.from('payment_milestones').update({ soft_deleted: true }).eq('id', id);
+      const { data: prev } = await supabase.from('payment_milestones').select('label, client_id, finance_tx_id').eq('id', id).eq('user_id', userId).single();
+      await supabase.from('payment_milestones').update({ soft_deleted: true }).eq('id', id).eq('user_id', userId);
       // Also soft-delete linked finance transaction if exists
       if (prev?.finance_tx_id) {
         await supabase.from('finance_transactions').update({ soft_deleted: true }).eq('id', Number(prev.finance_tx_id));
@@ -513,7 +513,7 @@ export async function handleSupabaseRequest(
     const { payment_method, paid_date } = body || {};
     const actualDate = paid_date || todayDateKey();
 
-    const { data: milestone } = await supabase.from('payment_milestones').select('*').eq('id', id).single();
+    const { data: milestone } = await supabase.from('payment_milestones').select('*').eq('id', id).eq('user_id', userId).single();
     if (!milestone) return err(404, 'Milestone not found');
 
     // Fix Bug 2: Check idempotency - if milestone is already marked as paid, return early
@@ -528,7 +528,7 @@ export async function handleSupabaseRequest(
     if (milestone.finance_tx_id) {
       await supabase.from('finance_transactions').update({
         status: '已完成', date: actualDate,
-      }).eq('id', Number(milestone.finance_tx_id));
+      }).eq('id', Number(milestone.finance_tx_id)).eq('user_id', userId);
     } else {
       // Create new transaction (for milestones created before the refactor)
       const txAmount = Number(milestone.amount || 0);
@@ -542,14 +542,14 @@ export async function handleSupabaseRequest(
         client_id: milestone.client_id, client_name: clientName,
         tax_mode: tm, tax_rate: tr, tax_amount: calcTax(txAmount, tm, tr),
       }).select('id').single();
-      if (tx) await supabase.from('payment_milestones').update({ finance_tx_id: tx.id }).eq('id', id);
+      if (tx) await supabase.from('payment_milestones').update({ finance_tx_id: tx.id }).eq('id', id).eq('user_id', userId);
     }
 
     // Update milestone status
     await supabase.from('payment_milestones').update({
       status: 'paid', paid_date: actualDate,
       payment_method: payment_method || milestone.payment_method || '',
-    }).eq('id', id);
+    }).eq('id', id).eq('user_id', userId);
 
     await logActivity(userId, 'milestone', 'paid',
       `确认收款：${clientName} · ${milestone.label || '项目付款'}`,
@@ -562,16 +562,18 @@ export async function handleSupabaseRequest(
   const undoPaidMatch = path.match(/^\/api\/milestones\/(\d+)\/undo-paid$/);
   if (undoPaidMatch && method === 'POST') {
     const id = Number(undoPaidMatch[1]);
-    const { data: milestone } = await supabase.from('payment_milestones').select('*').eq('id', id).single();
+    const { data: milestone } = await supabase.from('payment_milestones').select('*').eq('id', id).eq('user_id', userId).single();
     if (!milestone) return err(404, 'Milestone not found');
+    // Idempotency: already pending, nothing to undo
+    if (milestone.status === 'pending') return ok({ success: true, alreadyPending: true });
     // Delete linked finance transaction
     if (milestone.finance_tx_id) {
-      await supabase.from('finance_transactions').update({ soft_deleted: true }).eq('id', Number(milestone.finance_tx_id));
+      await supabase.from('finance_transactions').update({ soft_deleted: true }).eq('id', Number(milestone.finance_tx_id)).eq('user_id', userId);
     }
     // Reset milestone to pending
     await supabase.from('payment_milestones').update({
       status: 'pending', paid_date: '', payment_method: '', finance_tx_id: null,
-    }).eq('id', id);
+    }).eq('id', id).eq('user_id', userId);
     const { data: client } = await supabase.from('clients').select('name, company_name').eq('id', milestone.client_id).single();
     await logActivity(userId, 'milestone', 'undo_paid',
       `撤销收款：${client?.company_name || client?.name || ''} · ${milestone.label || ''}`,
@@ -625,16 +627,16 @@ export async function handleSupabaseRequest(
           aiMjPrompts: aiMjPrompts || '', aiStory: aiStory || '',
           scope: scope || 'work', parent_id: parent_id ?? null,
         })
-        .eq('id', id);
+        .eq('id', id).eq('user_id', userId);
       if (e) return err(500, e.message);
       await logActivity(userId, 'task', 'updated', `更新任务：${title || '未命名任务'}`, '', id);
       return ok({ success: true });
     }
     if (method === 'DELETE') {
-      const { data: prev } = await supabase.from('tasks').select('title').eq('id', id).single();
-      await supabase.from('tasks').update({ soft_deleted: true }).eq('id', id);
+      const { data: prev } = await supabase.from('tasks').select('title').eq('id', id).eq('user_id', userId).single();
+      await supabase.from('tasks').update({ soft_deleted: true }).eq('id', id).eq('user_id', userId);
       // Also delete subtasks if this is a parent task
-      await supabase.from('tasks').update({ soft_deleted: true }).eq('parent_id', id);
+      await supabase.from('tasks').update({ soft_deleted: true }).eq('parent_id', id).eq('user_id', userId);
       await logActivity(userId, 'task', 'deleted', `删除任务：${prev?.title || '未命名任务'}`, '', id);
       return ok({ success: true });
     }
@@ -701,14 +703,14 @@ export async function handleSupabaseRequest(
           name: name || '', price: price || 0, deliverySpeed: deliverySpeed || '',
           features: JSON.stringify(features || []), clients: clients || 0,
         })
-        .eq('id', id);
+        .eq('id', id).eq('user_id', userId);
       if (e) return err(500, e.message);
       await logActivity(userId, 'plan', 'updated', `更新方案：${name || '未命名方案'}`, '', id);
       return ok({ success: true });
     }
     if (method === 'DELETE') {
-      const { data: prev } = await supabase.from('plans').select('name').eq('id', id).single();
-      await supabase.from('plans').update({ soft_deleted: true }).eq('id', id);
+      const { data: prev } = await supabase.from('plans').select('name').eq('id', id).eq('user_id', userId).single();
+      await supabase.from('plans').update({ soft_deleted: true }).eq('id', id).eq('user_id', userId);
       await logActivity(userId, 'plan', 'deleted', `删除方案：${prev?.name || '未命名方案'}`, '', id);
       return ok({ success: true });
     }
@@ -777,7 +779,7 @@ export async function handleSupabaseRequest(
   if (financeMatch) {
     const id = Number(financeMatch[1]);
     // Check source — only manual transactions can be edited/deleted
-    const { data: txRow } = await supabase.from('finance_transactions').select('source, description').eq('id', id).single();
+    const { data: txRow } = await supabase.from('finance_transactions').select('source, description').eq('id', id).eq('user_id', userId).single();
     if (!txRow) return err(404, 'Transaction not found');
     const src = txRow.source || 'manual';
     if (src === 'subscription') return err(400, '订阅流水由客户状态自动生成，请在客户管理中编辑');
@@ -794,13 +796,13 @@ export async function handleSupabaseRequest(
           tax_mode: tax_mode || 'none', tax_rate: tax_rate || 0, tax_amount: tax_amount || 0,
           client_id: client_id || null, client_name: client_name || '',
         })
-        .eq('id', id);
+        .eq('id', id).eq('user_id', userId);
       if (e) return err(500, e.message);
       await logActivity(userId, 'finance', 'updated', `更新交易：${description || '未命名交易'}`, '', id);
       return ok({ success: true });
     }
     if (method === 'DELETE') {
-      await supabase.from('finance_transactions').update({ soft_deleted: true }).eq('id', id);
+      await supabase.from('finance_transactions').update({ soft_deleted: true }).eq('id', id).eq('user_id', userId);
       await logActivity(userId, 'finance', 'deleted', `删除交易：${txRow.description || '未命名交易'}`, '', id);
       return ok({ success: true });
     }
@@ -824,7 +826,7 @@ export async function handleSupabaseRequest(
       await supabase
         .from('content_drafts')
         .update({ topic: topic || '', platform: platform || '', language: language || 'zh', content: content || '' })
-        .eq('id', Number(id));
+        .eq('id', Number(id)).eq('user_id', userId);
       await logActivity(userId, 'content', 'updated', `更新草稿：${topic || '未命名草稿'}`, platform ? `平台：${platform}` : '', id);
       return ok({ id, success: true });
     }
@@ -844,8 +846,8 @@ export async function handleSupabaseRequest(
   const contentMatch = path.match(/^\/api\/content-drafts\/(\d+)$/);
   if (contentMatch && method === 'DELETE') {
     const id = Number(contentMatch[1]);
-    const { data: prev } = await supabase.from('content_drafts').select('topic').eq('id', id).single();
-    await supabase.from('content_drafts').update({ soft_deleted: true }).eq('id', id);
+    const { data: prev } = await supabase.from('content_drafts').select('topic').eq('id', id).eq('user_id', userId).single();
+    await supabase.from('content_drafts').update({ soft_deleted: true }).eq('id', id).eq('user_id', userId);
     await logActivity(userId, 'content', 'deleted', `删除草稿：${prev?.topic || '未命名草稿'}`, '', id);
     return ok({ success: true });
   }
@@ -899,15 +901,15 @@ export async function handleSupabaseRequest(
       const { error: e } = await supabase
         .from('today_focus_manual')
         .update({ type: type || '系统', title: String(title).trim(), note: String(note || '').trim() })
-        .eq('id', id);
+        .eq('id', id).eq('user_id', userId);
       if (e) return err(500, e.message);
       await logActivity(userId, 'today_focus', 'manual_updated', `更新今日事件：${String(title).trim()}`, '', id);
       return ok({ success: true, id });
     }
     if (method === 'DELETE') {
-      const { data: prev } = await supabase.from('today_focus_manual').select('title').eq('id', id).single();
+      const { data: prev } = await supabase.from('today_focus_manual').select('title').eq('id', id).eq('user_id', userId).single();
       if (!prev) return err(404, 'manual event not found');
-      await supabase.from('today_focus_manual').update({ soft_deleted: true }).eq('id', id);
+      await supabase.from('today_focus_manual').update({ soft_deleted: true }).eq('id', id).eq('user_id', userId);
       await supabase
         .from('today_focus_state')
         .delete()
@@ -1063,8 +1065,8 @@ export async function handleSupabaseRequest(
     monday.setHours(0, 0, 0, 0);
     const sunday = new Date(monday);
     sunday.setDate(monday.getDate() + 6);
-    const weekStart = monday.toISOString().split('T')[0];
-    const weekEnd = sunday.toISOString().split('T')[0];
+    const weekStart = dateToKey(monday);
+    const weekEnd = dateToKey(sunday);
 
     const [
       { data: incomeTx },
@@ -1120,6 +1122,11 @@ export async function handleSupabaseRequest(
         );
     }
     return ok({ success: true });
+  }
+
+  // ── SERVER TIME ─────────────────────────────────────────────────
+  if (path === '/api/server-time' && method === 'GET') {
+    return ok({ unixMs: Date.now() });
   }
 
   // ── SERVER INFO (stub) ─────────────────────────────────────────
