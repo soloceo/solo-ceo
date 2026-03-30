@@ -29,6 +29,9 @@ async function bootstrap() {
       : '0px'                                      // desktop browser
   );
 
+  // Enable :active pseudo-class on iOS Safari (requires touch listener)
+  document.addEventListener('touchstart', () => {}, { passive: true });
+
   // Tag the root element so CSS can key off platform if needed
   document.documentElement.dataset.platform = platform;
 

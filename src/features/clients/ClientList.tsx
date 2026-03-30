@@ -397,7 +397,7 @@ export function ClientsView() {
               <div className="relative flex-1 min-w-[140px]">
                 <label htmlFor="client-search" className="sr-only">{t("pipeline.clients.search" as any)}</label>
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={14} style={{ color: "var(--color-text-tertiary)" }} aria-hidden="true" />
-                <input id="client-search" value={search} onChange={e => setSearch(e.target.value)} placeholder={t("pipeline.clients.search" as any)} className="input-base compact w-full pl-9 pr-3 text-[14px]" />
+                <input id="client-search" defaultValue={search} onChange={e => { const v = e.target.value; clearTimeout((window as any).__cliSearchT); (window as any).__cliSearchT = setTimeout(() => setSearch(v), 300); }} placeholder={t("pipeline.clients.search" as any)} className="input-base compact w-full pl-9 pr-3 text-[14px]" />
               </div>
               <div className="w-px h-5 shrink-0 hidden sm:block" style={{ background: "var(--color-border-primary)" }} />
               <Filter size={14} className="shrink-0" style={{ color: "var(--color-text-tertiary)" }} aria-hidden="true" />

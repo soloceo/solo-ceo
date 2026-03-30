@@ -34,7 +34,7 @@ export default function SecuritySection({ showToast }: SecuritySectionProps) {
 
   const handleChangePassword = async () => {
     setPwMsg(null);
-    if (!newPassword || newPassword.length < 6) {
+    if (!newPassword || newPassword.length < 8) {
       setPwMsg({ status: 'error', message: t('auth.passwordTooShort' as any) });
       return;
     }
@@ -55,7 +55,7 @@ export default function SecuritySection({ showToast }: SecuritySectionProps) {
 
   const handleChangeEmail = async () => {
     setEmailMsg(null);
-    if (!newEmail.trim() || !newEmail.includes('@')) {
+    if (!newEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail.trim())) {
       setEmailMsg({ status: 'error', message: t('auth.fillAll' as any) });
       return;
     }

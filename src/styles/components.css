@@ -44,11 +44,17 @@
                 box-shadow 0.2s ease,
                 transform 0.2s ease;
   }
-  .card-interactive:hover {
-    background: var(--color-bg-secondary);
-    border-color: var(--color-border-primary);
-    box-shadow: var(--shadow-low);
-    transform: translateY(-1px);
+  @media (hover: hover) {
+    .card-interactive:hover {
+      background: var(--color-bg-secondary);
+      border-color: var(--color-border-primary);
+      box-shadow: var(--shadow-low);
+      transform: translateY(-1px);
+    }
+  }
+  .card-interactive:active {
+    transform: scale(0.98);
+    transition: transform 60ms ease-out;
   }
 
   /* ── Modal backdrop ────────────────────────────────────────── */
@@ -193,7 +199,8 @@
     cursor: pointer;
     transition: background var(--transition-fast);
   }
-  .btn-primary:hover { background: var(--color-accent-hover); transform: scale(1.02); }
+  .btn-primary:hover { background: var(--color-accent-hover); }
+  @media (hover: hover) { .btn-primary:hover { transform: scale(1.02); } }
   .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
 
   .btn-secondary {
@@ -228,10 +235,10 @@
     color: var(--color-text-primary);
   }
 
-  .btn-secondary:hover { transform: scale(1.02); }
+  @media (hover: hover) { .btn-secondary:hover { transform: scale(1.02); } }
   .btn-primary:active,
   .btn-secondary:active,
-  .btn-ghost:active { transform: scale(0.95); transition: transform 0.2s var(--spring-bounce); }
+  .btn-ghost:active { transform: scale(0.97); transition: transform 60ms ease-out; }
 
   /* ── Compact size (36px — toolbar / filter bar) ──────────── */
 
@@ -321,7 +328,7 @@
   .btn-icon:active,
   .btn-icon-sm:active {
     transform: scale(0.92);
-    transition: transform 0.15s var(--spring-bounce);
+    transition: transform 60ms ease-out;
   }
 
   /* ── Focus visible (keyboard accessibility) ──────────────── */

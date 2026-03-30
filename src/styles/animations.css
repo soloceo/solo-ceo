@@ -53,11 +53,12 @@
 /* ── Press feedback ──────────────────────────────────────────── */
 
 .press-feedback {
-  transition: transform var(--transition-fast);
+  transition: transform 0.12s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  will-change: transform;
 }
 .press-feedback:active {
-  transform: scale(0.96);
-  transition: transform 0.15s var(--spring-bounce);
+  transform: scale(0.97);
+  transition: transform 60ms ease-out;
 }
 
 /* ── Celebrate bounce ──────────────────────────────────────────── */

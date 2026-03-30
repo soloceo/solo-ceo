@@ -52,34 +52,33 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       if (!created || created.error || !created.id) return null;
       set({ tasks: [created, ...get().tasks] });
       return created;
-    } catch (err) {
-      console.warn('[TaskStore] createTask failed:', err);
-      return null;
-    }
+    } catch { return null; }
   },
 
   updateTask: async (id, updates) => {
+    const prev = get().tasks;
+    set({ tasks: prev.map((t) => (t.id === id ? { ...t, ...updates } : t)) });
     try {
-      await fetch("/api/tasks", {
+      const res = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "update", id, ...updates }),
       });
-      set({
-        tasks: get().tasks.map((t) => (t.id === id ? { ...t, ...updates } : t)),
-      });
-    } catch (err) { console.warn('[TaskStore] updateTask failed:', err); }
+      if (!res.ok) set({ tasks: prev });
+    } catch (err) { set({ tasks: prev }); }
   },
 
   deleteTask: async (id) => {
+    const prev = get().tasks;
+    set({ tasks: prev.filter((t) => t.id !== id) });
     try {
-      await fetch("/api/tasks", {
+      const res = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "delete", id }),
       });
-      set({ tasks: get().tasks.filter((t) => t.id !== id) });
-    } catch (err) { console.warn('[TaskStore] deleteTask failed:', err); }
+      if (!res.ok) set({ tasks: prev });
+    } catch (err) { set({ tasks: prev }); }
   },
 
   moveTask: async (id, status) => {
@@ -94,8 +93,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "update", id, status }),
       });
-    } catch (err) {
-      console.warn('[TaskStore] moveTask failed, reverting:', err);
+    } catch {
       set({ tasks: previousTasks });
     }
   },

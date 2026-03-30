@@ -756,7 +756,7 @@ export default function FinancePage() {
               <div className="relative min-w-[140px] max-w-[240px] shrink-0">
                 <Search size={16} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: "var(--color-text-secondary)" }} />
                 <input
-                  type="text" value={filterSearch} onChange={e => setFilter("search", e.target.value)}
+                  type="text" defaultValue={filterSearch} onChange={e => { const v = e.target.value; clearTimeout((window as any).__finSearchT); (window as any).__finSearchT = setTimeout(() => setFilter("search", v), 300); }}
                   placeholder={t("finance.searchPlaceholder" as any)}
                   className="input-base compact w-full pl-8 pr-3 text-[15px]"
                 />

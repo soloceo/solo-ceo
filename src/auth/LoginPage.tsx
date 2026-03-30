@@ -40,7 +40,7 @@ export default function LoginPage() {
       return;
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       setError(t('auth.passwordTooShort' as any));
       return;
     }

@@ -65,33 +65,33 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
       if (!created || created.error || !created.id) return null;
       set({ transactions: [created, ...get().transactions] });
       return created;
-    } catch (err) { console.warn('[FinanceStore] createTransaction failed:', err); return null; }
+    } catch { return null; }
   },
 
   updateTransaction: async (id, updates) => {
+    const prev = get().transactions;
+    set({ transactions: prev.map((t) => (t.id === id ? { ...t, ...updates } : t)) });
     try {
-      await fetch("/api/finance", {
+      const res = await fetch("/api/finance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "update", id, ...updates }),
       });
-      set({
-        transactions: get().transactions.map((t) =>
-          t.id === id ? { ...t, ...updates } : t,
-        ),
-      });
-    } catch (err) { console.warn('[FinanceStore] updateTransaction failed:', err); }
+      if (!res.ok) set({ transactions: prev });
+    } catch (err) { set({ transactions: prev }); }
   },
 
   deleteTransaction: async (id) => {
+    const prev = get().transactions;
+    set({ transactions: prev.filter((t) => t.id !== id) });
     try {
-      await fetch("/api/finance", {
+      const res = await fetch("/api/finance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "delete", id }),
       });
-      set({ transactions: get().transactions.filter((t) => t.id !== id) });
-    } catch (err) { console.warn('[FinanceStore] deleteTransaction failed:', err); }
+      if (!res.ok) set({ transactions: prev });
+    } catch (err) { set({ transactions: prev }); }
   },
 
   setFilters: (filters) =>

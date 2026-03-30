@@ -49,9 +49,10 @@ export function InlinePopover({ trigger, children, align = "start", className = 
   }, [open, align]);
 
   // Close on outside click or Escape
+  // Delay listener registration to avoid the opening touch from immediately closing
   useEffect(() => {
     if (!open) return;
-    const handleClick = (e: MouseEvent) => {
+    const handleClick = (e: MouseEvent | TouchEvent) => {
       if (panelRef.current?.contains(e.target as Node)) return;
       if (triggerRef.current?.contains(e.target as Node)) return;
       setOpen(false);
@@ -60,10 +61,15 @@ export function InlinePopover({ trigger, children, align = "start", className = 
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") { setOpen(false); onOpenChange?.(false); }
     };
-    document.addEventListener("mousedown", handleClick);
-    document.addEventListener("keydown", handleKey);
+    const timer = setTimeout(() => {
+      document.addEventListener("mousedown", handleClick);
+      document.addEventListener("touchstart", handleClick);
+      document.addEventListener("keydown", handleKey);
+    }, 10);
     return () => {
+      clearTimeout(timer);
       document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("touchstart", handleClick);
       document.removeEventListener("keydown", handleKey);
     };
   }, [open, onOpenChange]);

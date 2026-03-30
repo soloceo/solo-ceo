@@ -144,7 +144,10 @@ export async function replayQueue(): Promise<{ replayed: number; failed: number 
             await removeOp(op.id);
             replayed++;
           } else if (result.status < 500) {
-            await removeOp(op.id);
+            // 4xx client error — mark as failed but keep for review
+            op.retryCount = MAX_RETRIES; // prevent further retries
+            (op as any).failReason = `HTTP ${result.status}`;
+            await updateOp(op);
             failed++;
           } else {
             op.retryCount = (op.retryCount || 0) + 1;

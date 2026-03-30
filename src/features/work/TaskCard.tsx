@@ -198,7 +198,6 @@ export const TaskCard = React.memo(function TaskCard({
                 <span
                   className="inline-flex items-center gap-1 text-[12px] px-1.5 py-0.5 rounded-[var(--radius-4)] transition-colors hover:bg-[var(--color-bg-quaternary)] cursor-pointer"
                   style={{ color: columns.find(c => c.id === task.column)?.color || "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
-                  onClick={(e) => e.stopPropagation()}
                 >
                   <ArrowRightLeft size={11} />
                   {columns.find(c => c.id === task.column)?.title || task.column}
