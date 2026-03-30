@@ -5,12 +5,20 @@ type TabId = "home" | "work" | "leads" | "clients" | "finance" | "settings";
 type ViewMode = "vertical" | "horizontal";
 type ThemeMode = "light" | "dark" | "auto";
 
-/** Apply the .dark class to <html> based on resolved theme */
+/** Apply the .dark class to <html> and update meta theme-color for iOS status bar */
 function applyTheme(mode: ThemeMode) {
   const isDark =
     mode === "dark" ||
     (mode === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   document.documentElement.classList.toggle("dark", isDark);
+
+  // Update meta theme-color so iOS status bar / browser chrome matches
+  const color = isDark ? "#1f1e1d" : "#faf9f5";
+  document
+    .querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')
+    .forEach((meta) => {
+      meta.setAttribute("content", color);
+    });
 }
 
 interface UIState {
