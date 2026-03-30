@@ -518,8 +518,8 @@ function App() {
             className="lg:hidden fixed left-0 right-0 z-30 flex items-center gap-2"
             style={{
               bottom: 0,
-              padding: "0 12px",
-              paddingBottom: "max(env(safe-area-inset-bottom, 0px), 12px)",
+              padding: "0 20px",
+              paddingBottom: "max(env(safe-area-inset-bottom, 0px), 20px)",
               pointerEvents: "none",
             }}
           >
