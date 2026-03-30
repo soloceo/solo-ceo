@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useT } from "../../i18n/context";
 import { useRealtimeRefresh } from "../../hooks/useRealtimeRefresh";
@@ -27,6 +27,7 @@ import {
 import { calcTaxAmount, catLabel, STATUS_I18N } from "../../lib/tax";
 import { parseExpense, AI_KEY_MAP, type AIProvider } from "../../lib/ai-client";
 import { useAppSettings } from "../../hooks/useAppSettings";
+import { useSwipeTabs } from "../../hooks/useSwipeTabs";
 const FinanceChart = React.lazy(() => import("./FinanceChart"));
 import { StatCard, TxRow, VirtualTxList } from "./TransactionList";
 
@@ -106,7 +107,8 @@ export default function FinancePage() {
   const [aiParsing, setAiParsing] = useState(false);
 
   /* ── UI state ── */
-  const [financeTab, setFinanceTab] = useState<"business" | "personal">("business");
+  const FIN_TABS = ["business", "personal"] as const;
+  const { activeTab: financeTab, switchTo: switchFinanceTab, swipeRef: finSwipeRef, handleScroll: handleFinScroll, onTouchStart: handleFinTouchStart, onTouchMove: handleFinTouchMove } = useSwipeTabs(FIN_TABS, "business");
   const [showPanel, setShowPanel] = useState(false);
   const [editingTx, setEditingTx] = useState<FinanceTransaction | null>(null);
   const [showAll, setShowAll] = useState(false);
@@ -172,8 +174,8 @@ export default function FinancePage() {
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      if (detail?.type === "transaction" || detail?.type === "biz-transaction") { setFinanceTab("business"); openPanel(); }
-      else if (detail?.type === "personal-transaction") { setFinanceTab("personal"); openPanel(); }
+      if (detail?.type === "transaction" || detail?.type === "biz-transaction") { switchFinanceTab("business"); openPanel(); }
+      else if (detail?.type === "personal-transaction") { switchFinanceTab("personal"); openPanel(); }
     };
     window.addEventListener("quick-create", handler);
     return () => window.removeEventListener("quick-create", handler);
@@ -509,31 +511,28 @@ export default function FinancePage() {
     <div className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col px-4 py-3 md:px-6 md:py-4 lg:px-8 lg:py-5 relative">
       <h1 className="sr-only">{t("nav.finance" as any)}</h1>
 
-      {/* ── Header: Tab + Actions ── */}
-      <div className="flex items-center gap-2 mb-2 flex-wrap">
-        <div className="flex gap-1.5 shrink-0">
-          {(["business", "personal"] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => { setFinanceTab(tab); setFilters({ type: "all", category: "all", status: "all", dateFrom: "", dateTo: "", search: "" }); }}
-              className="py-1.5 px-3 text-[14px] rounded-[var(--radius-8)] transition-colors press-feedback flex items-center gap-1.5"
-              style={financeTab === tab ? {
-                border: `1.5px solid ${tab === "business" ? "var(--color-accent)" : "var(--color-info)"}`,
-                color: tab === "business" ? "var(--color-accent)" : "var(--color-info)",
-                fontWeight: "var(--font-weight-semibold)",
-                background: "var(--color-bg-primary)",
-              } as React.CSSProperties : {
-                border: "1.5px solid var(--color-border-primary)",
-                color: "var(--color-text-tertiary)",
-                fontWeight: "var(--font-weight-medium)",
-                background: "transparent",
-              } as React.CSSProperties}
-            >
-              {tab === "business" ? <Building2 size={14} /> : <UserIcon size={14} />}
-              {tab === "business" ? t("money.tab.business" as any) : t("money.tab.personal" as any)}
-            </button>
-          ))}
-        </div>
+      {/* ── Segmented Tab Switcher ── */}
+      <div className="flex items-center gap-1 p-0.5 rounded-[var(--radius-8)] mb-2" style={{ background: "var(--color-bg-tertiary)" }}>
+        {(["business", "personal"] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => { switchFinanceTab(tab); setFilters({ type: "all", category: "all", status: "all", dateFrom: "", dateTo: "", search: "" }); }}
+            className="flex-1 text-center py-1.5 px-3 rounded-[var(--radius-6)] text-[13px] transition-all flex items-center justify-center gap-1.5"
+            style={{
+              background: financeTab === tab ? "var(--color-bg-primary)" : "transparent",
+              color: financeTab === tab ? "var(--color-text-primary)" : "var(--color-text-tertiary)",
+              fontWeight: financeTab === tab ? "var(--font-weight-semibold)" : "var(--font-weight-medium)",
+              boxShadow: financeTab === tab ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+            } as React.CSSProperties}
+          >
+            {tab === "business" ? <Building2 size={13} /> : <UserIcon size={13} />}
+            {tab === "business" ? t("money.tab.business" as any) : t("money.tab.personal" as any)}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Actions row ── */}
+      <div className="flex items-center gap-2 mb-2">
         <div className="flex-1" />
         <button onClick={exportCSV} className="btn-ghost compact">
           <Download size={16} /> <span className="hidden sm:inline">{t("money.export.csv" as any)}</span>
@@ -543,127 +542,177 @@ export default function FinancePage() {
         </button>
       </div>
 
-      {/* ── AI Chat Input ── */}
-      <div className="flex items-center gap-2 mb-3">
-        <div className="relative flex-1">
-          <Bot size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{
-            color: financeTab === "business" ? "var(--color-accent)" : "var(--color-info)",
-          }} />
-          <input
-            type="text"
-            value={aiInput}
-            onChange={e => setAiInput(e.target.value)}
-            onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAiRecord(); }}
-            placeholder={financeTab === "business" ? t("money.tab.bizPlaceholder" as any) : t("money.tab.personalPlaceholder" as any)}
-            disabled={aiParsing}
-            className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]"
-          />
-        </div>
-        <button
-          onClick={handleAiRecord}
-          disabled={!aiInput.trim() || aiParsing}
-          className="btn-primary compact text-[14px] shrink-0 disabled:opacity-40"
-        >
-          {aiParsing ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-        </button>
-      </div>
+      {/* ── Swipeable Panel Container ── */}
+      <div
+        ref={finSwipeRef}
+        onScroll={handleFinScroll}
+        onTouchStart={handleFinTouchStart}
+        onTouchMove={handleFinTouchMove}
+        className="home-swipe-container flex-1"
+      >
+        {/* Panel 1: Business */}
+        <div className="home-swipe-panel flex flex-col">
+          {/* AI Chat Input */}
+          <div className="flex items-center gap-2 mb-3">
+            <div className="relative flex-1">
+              <Bot size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--color-accent)" }} />
+              <input
+                type="text"
+                value={financeTab === "business" ? aiInput : ""}
+                onChange={e => setAiInput(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAiRecord(); }}
+                placeholder={t("money.tab.bizPlaceholder" as any)}
+                disabled={aiParsing || financeTab !== "business"}
+                className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]"
+              />
+            </div>
+            <button onClick={handleAiRecord} disabled={!aiInput.trim() || aiParsing || financeTab !== "business"} className="btn-primary compact text-[14px] shrink-0 disabled:opacity-40">
+              {aiParsing ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+            </button>
+          </div>
 
-      {/* ── KPI Stat Cards ── */}
-      {financeTab === "business" ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-          <StatCard
-            label={t("money.stat.completedRevenue" as any)}
-            value={`$${stats.totalIncome.toLocaleString()}`}
-            sub={`${t("finance.thisMonth" as any)} $${stats.monthIncome.toLocaleString()}`}
-            icon={<TrendingUp size={16} />}
-            color="var(--color-success)"
-          />
-          <StatCard
-            label={t("money.stat.completedExpense" as any)}
-            value={`$${stats.totalExpense.toLocaleString()}`}
-            sub={`${t("finance.thisMonth" as any)} $${stats.monthExpense.toLocaleString()}`}
-            icon={<TrendingDown size={16} />}
-            color="var(--color-danger)"
-          />
-          <StatCard
-            label={t("money.stat.netProfit" as any)}
-            value={stats.netProfit < 0 ? `-$${Math.abs(stats.netProfit).toLocaleString()}` : `$${stats.netProfit.toLocaleString()}`}
-            sub={`${t("money.stat.margin" as any)} ${stats.margin}%`}
-            icon={<Wallet size={16} />}
-            color={stats.netProfit >= 0 ? "var(--color-success)" : "var(--color-danger)"}
-          />
-          <StatCard
-            label={t("money.stat.receivable" as any)}
-            value={`$${stats.receivable.toLocaleString()}`}
-            sub={stats.payable > 0 ? `${t("money.st.payable" as any)} $${stats.payable.toLocaleString()}` : ""}
-            icon={<AlertCircle size={16} />}
-            color="var(--color-warning)"
-          />
-          {stats.totalTax > 0 && (
+          {/* KPI Stat Cards — Business */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
             <StatCard
-              label={t("finance.totalTax" as any)}
-              value={`$${stats.totalTax.toLocaleString()}`}
+              label={t("money.stat.completedRevenue" as any)}
+              value={`$${stats.totalIncome.toLocaleString()}`}
+              sub={`${t("finance.thisMonth" as any)} $${stats.monthIncome.toLocaleString()}`}
+              icon={<TrendingUp size={16} />}
+              color="var(--color-success)"
+            />
+            <StatCard
+              label={t("money.stat.completedExpense" as any)}
+              value={`$${stats.totalExpense.toLocaleString()}`}
+              sub={`${t("finance.thisMonth" as any)} $${stats.monthExpense.toLocaleString()}`}
+              icon={<TrendingDown size={16} />}
+              color="var(--color-danger)"
+            />
+            <StatCard
+              label={t("money.stat.netProfit" as any)}
+              value={stats.netProfit < 0 ? `-$${Math.abs(stats.netProfit).toLocaleString()}` : `$${stats.netProfit.toLocaleString()}`}
+              sub={`${t("money.stat.margin" as any)} ${stats.margin}%`}
+              icon={<Wallet size={16} />}
+              color={stats.netProfit >= 0 ? "var(--color-success)" : "var(--color-danger)"}
+            />
+            <StatCard
+              label={t("money.stat.receivable" as any)}
+              value={`$${stats.receivable.toLocaleString()}`}
+              sub={stats.payable > 0 ? `${t("money.st.payable" as any)} $${stats.payable.toLocaleString()}` : ""}
+              icon={<AlertCircle size={16} />}
+              color="var(--color-warning)"
+            />
+            {stats.totalTax > 0 && (
+              <StatCard
+                label={t("finance.totalTax" as any)}
+                value={`$${stats.totalTax.toLocaleString()}`}
+                sub=""
+                icon={<Receipt size={16} />}
+                color="var(--color-text-secondary)"
+              />
+            )}
+          </div>
+
+          <React.Suspense fallback={<div className="card p-4 mb-4 h-[200px] skeleton-bone rounded-[var(--radius-12)]" />}>
+            <FinanceChart chartData={chartData} isMobile={isMobile} t={t} />
+          </React.Suspense>
+
+          <div className="card p-4 flex-1 min-h-0">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("money.recent.title" as any)}</h3>
+              <button onClick={() => setShowAll(true)} className="btn-ghost compact">
+                {t("money.recent.viewAll" as any)} ({tabTxs.length})
+              </button>
+            </div>
+            <div className="space-y-0">
+              {recentTxs.map(tx => {
+                const isSystem = tx.source && tx.source !== 'manual';
+                return (
+                  <TxRow key={tx.id} tx={tx} t={t} fmtAmt={fmtAmt} fmtAmtColor={fmtAmtColor}
+                    onEdit={() => { if (!isSystem) openPanel(tx); }}
+                    onDelete={() => { if (!isSystem) setDeleteId(tx.id); }}
+                    isSystem={isSystem}
+                  />
+                );
+              })}
+              {recentTxs.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-12 gap-2">
+                  <Receipt size={32} style={{ color: "var(--color-text-secondary)" }} />
+                  <p className="text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{t("money.noData" as any)}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Panel 2: Personal */}
+        <div className="home-swipe-panel flex flex-col">
+          {/* AI Chat Input */}
+          <div className="flex items-center gap-2 mb-3">
+            <div className="relative flex-1">
+              <Bot size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--color-info)" }} />
+              <input
+                type="text"
+                value={financeTab === "personal" ? aiInput : ""}
+                onChange={e => setAiInput(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAiRecord(); }}
+                placeholder={t("money.tab.personalPlaceholder" as any)}
+                disabled={aiParsing || financeTab !== "personal"}
+                className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]"
+              />
+            </div>
+            <button onClick={handleAiRecord} disabled={!aiInput.trim() || aiParsing || financeTab !== "personal"} className="btn-primary compact text-[14px] shrink-0 disabled:opacity-40">
+              {aiParsing ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+            </button>
+          </div>
+
+          {/* KPI Stat Cards — Personal */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <StatCard
+              label={t("money.stat.monthExpense" as any)}
+              value={`$${personalStats.monthTotal.toLocaleString()}`}
               sub=""
-              icon={<Receipt size={16} />}
+              icon={<TrendingDown size={16} />}
+              color="var(--color-danger)"
+            />
+            <StatCard
+              label={t("money.stat.dailyAvg" as any)}
+              value={`$${Math.round(personalStats.dailyAvg).toLocaleString()}`}
+              sub=""
+              icon={<Wallet size={16} />}
               color="var(--color-text-secondary)"
             />
-          )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <StatCard
-            label={t("money.stat.monthExpense" as any)}
-            value={`$${personalStats.monthTotal.toLocaleString()}`}
-            sub=""
-            icon={<TrendingDown size={16} />}
-            color="var(--color-danger)"
-          />
-          <StatCard
-            label={t("money.stat.dailyAvg" as any)}
-            value={`$${Math.round(personalStats.dailyAvg).toLocaleString()}`}
-            sub=""
-            icon={<Wallet size={16} />}
-            color="var(--color-text-secondary)"
-          />
-        </div>
-      )}
+          </div>
 
-      {/* ── Chart ── */}
-      <React.Suspense fallback={<div className="card p-4 mb-4 h-[200px] skeleton-bone rounded-[var(--radius-12)]" />}>
-        <FinanceChart chartData={chartData} isMobile={isMobile} t={t} />
-      </React.Suspense>
+          <React.Suspense fallback={<div className="card p-4 mb-4 h-[200px] skeleton-bone rounded-[var(--radius-12)]" />}>
+            <FinanceChart chartData={chartData} isMobile={isMobile} t={t} />
+          </React.Suspense>
 
-      {/* ── Recent Transactions ── */}
-      <div className="card p-4 flex-1 min-h-0">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("money.recent.title" as any)}</h3>
-          <button onClick={() => setShowAll(true)} className="btn-ghost compact">
-            {t("money.recent.viewAll" as any)} ({transactions.length})
-          </button>
-        </div>
-
-        <div className="space-y-0">
-          {recentTxs.map(tx => {
-            const isSystem = tx.source && tx.source !== 'manual';
-            return (
-              <TxRow
-                key={tx.id}
-                tx={tx}
-                t={t}
-                fmtAmt={fmtAmt}
-                fmtAmtColor={fmtAmtColor}
-                onEdit={() => { if (!isSystem) openPanel(tx); }}
-                onDelete={() => { if (!isSystem) setDeleteId(tx.id); }}
-                isSystem={isSystem}
-              />
-            );
-          })}
-          {recentTxs.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-12 gap-2">
-              <Receipt size={32} style={{ color: "var(--color-text-secondary)" }} />
-              <p className="text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{t("money.noData" as any)}</p>
+          <div className="card p-4 flex-1 min-h-0">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("money.recent.title" as any)}</h3>
+              <button onClick={() => setShowAll(true)} className="btn-ghost compact">
+                {t("money.recent.viewAll" as any)} ({tabTxs.length})
+              </button>
             </div>
-          )}
+            <div className="space-y-0">
+              {recentTxs.map(tx => {
+                const isSystem = tx.source && tx.source !== 'manual';
+                return (
+                  <TxRow key={tx.id} tx={tx} t={t} fmtAmt={fmtAmt} fmtAmtColor={fmtAmtColor}
+                    onEdit={() => { if (!isSystem) openPanel(tx); }}
+                    onDelete={() => { if (!isSystem) setDeleteId(tx.id); }}
+                    isSystem={isSystem}
+                  />
+                );
+              })}
+              {recentTxs.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-12 gap-2">
+                  <Receipt size={32} style={{ color: "var(--color-text-secondary)" }} />
+                  <p className="text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{t("money.noData" as any)}</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 

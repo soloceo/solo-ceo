@@ -29,6 +29,8 @@ type DashboardData = {
   clientsCount: number;
   mrr: number;
   activeTasks: number;
+  workTasks: number;
+  personalTasks: number;
   leadsCount: number;
   ytdRevenue?: number;
   todayIncome?: number;
@@ -105,7 +107,7 @@ export default function HomePage() {
 
   const [data, setData] = useState<DashboardData>({
     todayFocus: [], manualTodayEvents: [],
-    clientsCount: 0, mrr: 0, activeTasks: 0, leadsCount: 0,
+    clientsCount: 0, mrr: 0, activeTasks: 0, workTasks: 0, personalTasks: 0, leadsCount: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -348,7 +350,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div ref={scrollRef} className="mobile-page page-wrap">
+    <div ref={scrollRef} className="mobile-page max-w-[1680px] mx-auto min-h-full px-4 py-3 md:px-6 md:py-4 lg:px-8 lg:py-5 relative">
       <div className="page-stack">
         {/* ── Header: Greeting + Progress Ring + Date ── */}
         <div className="flex items-center gap-3">
@@ -414,7 +416,8 @@ export default function HomePage() {
                 todayIncome={data.todayIncome || 0}
                 clientsCount={data.clientsCount || 0}
                 leadsCount={data.leadsCount || 0}
-                activeTasks={data.activeTasks || 0}
+                workTasks={data.workTasks || 0}
+                personalTasks={data.personalTasks || 0}
                 loading={loading}
               />
 

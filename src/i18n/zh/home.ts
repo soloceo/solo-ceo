@@ -30,6 +30,8 @@ export const home = {
   "home.kpi.activeClients": "活跃客户",
   "home.kpi.leads": "线索",
   "home.kpi.inProgress": "进行中",
+  "home.kpi.monthlyIncome": "本月收入",
+  "home.kpi.keyTasks": "重点任务",
   "home.focus.title": "今日重点",
   "home.focus.desc": "系统根据你的线索、任务和财务状态自动推荐",
   "home.focus.priority": "优先",

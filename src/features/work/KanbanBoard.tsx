@@ -18,15 +18,15 @@ interface KanbanBoardProps {
   onDelete: (id: number) => void;
   onClientClick?: () => void;
   emptyText: string;
-  /** Move task to next column */
-  onAdvance?: (id: number, currentCol: string) => void;
   /** Inline priority change */
   onPriorityChange?: (id: number, priority: Task["priority"]) => void;
   /** Inline due date change */
   onDueChange?: (id: number, due: string) => void;
+  /** Move task to a specific column */
+  onColumnChange?: (id: number, col: string) => void;
 }
 
-export function KanbanBoard({ columns, tasks, onDragEnd, onAdd, onEdit, onDelete, onClientClick, emptyText, onAdvance, onPriorityChange, onDueChange }: KanbanBoardProps) {
+export function KanbanBoard({ columns, tasks, onDragEnd, onAdd, onEdit, onDelete, onClientClick, emptyText, onPriorityChange, onDueChange, onColumnChange }: KanbanBoardProps) {
   return (
     <div className="flex-1 overflow-x-auto overflow-y-hidden ios-scroll pb-4 -mx-4 px-4 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 snap-x snap-mandatory lg:snap-none">
       <div className="flex h-full gap-3" style={{ minWidth: "max-content" }}>
@@ -41,10 +41,10 @@ export function KanbanBoard({ columns, tasks, onDragEnd, onAdd, onEdit, onDelete
               onDelete={onDelete}
               onClientClick={onClientClick}
               emptyText={emptyText}
-              onAdvance={onAdvance}
               onPriorityChange={onPriorityChange}
               onDueChange={onDueChange}
-              nextColTitle={colIdx < columns.length - 1 ? columns[colIdx + 1].title : undefined}
+              columns={columns}
+              onColumnChange={onColumnChange}
             />
           ))}
         </DragDropContext>
@@ -53,7 +53,7 @@ export function KanbanBoard({ columns, tasks, onDragEnd, onAdd, onEdit, onDelete
   );
 }
 
-function Column({ col, items, onAdd, onEdit, onDelete, onClientClick, emptyText, onAdvance, onPriorityChange, onDueChange, nextColTitle }: {
+function Column({ col, items, onAdd, onEdit, onDelete, onClientClick, emptyText, onPriorityChange, onDueChange, columns, onColumnChange }: {
   key?: React.Key;
   col: ColDef;
   items: Task[];
@@ -62,10 +62,10 @@ function Column({ col, items, onAdd, onEdit, onDelete, onClientClick, emptyText,
   onDelete: (id: number) => void;
   onClientClick?: () => void;
   emptyText: string;
-  onAdvance?: (id: number, currentCol: string) => void;
   onPriorityChange?: (id: number, priority: Task["priority"]) => void;
   onDueChange?: (id: number, due: string) => void;
-  nextColTitle?: string;
+  columns?: ColDef[];
+  onColumnChange?: (id: number, col: string) => void;
 }) {
   return (
     <div className="flex flex-col min-w-[240px] flex-1 max-w-[320px] h-full snap-start" role="region" aria-label={col.title}>
@@ -116,10 +116,10 @@ function Column({ col, items, onAdd, onEdit, onDelete, onClientClick, emptyText,
                     <TaskCard
                       task={task} provided={prov} snapshot={snap}
                       onEdit={onEdit} onDelete={onDelete} onClientClick={onClientClick}
-                      onAdvance={onAdvance && nextColTitle ? (id) => onAdvance(id, col.id) : undefined}
                       onPriorityChange={onPriorityChange}
                       onDueChange={onDueChange}
-                      advanceLabel={nextColTitle}
+                      columns={columns}
+                      onColumnChange={onColumnChange}
                     />
                   )}
                 </Draggable>
@@ -143,18 +143,17 @@ interface SwimlaneProps {
   onDelete: (id: number) => void;
   onMove: (id: number, col: string) => void;
   emptyText: string;
-  onAdvance?: (id: number, currentCol: string) => void;
   onPriorityChange?: (id: number, priority: Task["priority"]) => void;
   onDueChange?: (id: number, due: string) => void;
+  onColumnChange?: (id: number, col: string) => void;
 }
 
-export function SwimlaneView({ columns, tasks, onDragEnd, onAdd, onEdit, onDelete, onMove, emptyText, onAdvance, onPriorityChange, onDueChange }: SwimlaneProps) {
+export function SwimlaneView({ columns, tasks, onDragEnd, onAdd, onEdit, onDelete, onMove, emptyText, onPriorityChange, onDueChange, onColumnChange }: SwimlaneProps) {
   return (
     <DragDropContext onDragEnd={onDragEnd}>
     <div className="space-y-3 pb-4">
       {columns.map((col, colIdx) => {
         const items = tasks[col.id] || [];
-        const nextColTitle = colIdx < columns.length - 1 ? columns[colIdx + 1].title : undefined;
         return (
           <section key={col.id}>
             {/* Section header */}
@@ -204,10 +203,10 @@ export function SwimlaneView({ columns, tasks, onDragEnd, onAdd, onEdit, onDelet
                             <TaskCard
                               task={task} provided={provided} snapshot={snapshot}
                               onEdit={onEdit} onDelete={onDelete}
-                              onAdvance={onAdvance && nextColTitle ? (id) => onAdvance(id, col.id) : undefined}
                               onPriorityChange={onPriorityChange}
                               onDueChange={onDueChange}
-                              advanceLabel={nextColTitle}
+                              columns={columns}
+                              onColumnChange={onColumnChange}
                             />
                           )}
                         </Draggable>

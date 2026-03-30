@@ -8,12 +8,13 @@ interface KPIGridProps {
   todayIncome: number;
   clientsCount: number;
   leadsCount: number;
-  activeTasks: number;
+  workTasks: number;
+  personalTasks: number;
   loading: boolean;
 }
 
-export function KPIGrid({ mrr, ytdRevenue, todayIncome, clientsCount, leadsCount, activeTasks, loading }: KPIGridProps) {
-  const { t } = useT();
+export function KPIGrid({ mrr, ytdRevenue, todayIncome, clientsCount, leadsCount, workTasks, personalTasks, loading }: KPIGridProps) {
+  const { t, lang } = useT();
   const animMrr = useCountUp(mrr);
   const animYtd = useCountUp(ytdRevenue);
 
@@ -36,9 +37,13 @@ export function KPIGrid({ mrr, ytdRevenue, todayIncome, clientsCount, leadsCount
       sub: leadsCount > 0 ? `+${leadsCount} ${t("home.kpi.leads" as any)}` : undefined,
     },
     {
-      label: t("home.kpi.inProgress" as any),
-      value: loading ? "—" : String(activeTasks),
-      color: "var(--color-warning)",
+      label: null,
+      value: null,
+      color: "var(--color-accent)",
+      lines: [
+        { label: lang === "zh" ? "工作任务" : "Work Tasks", count: workTasks, color: "var(--color-accent)" },
+        { label: lang === "zh" ? "个人任务" : "Personal Tasks", count: personalTasks, color: "var(--color-info)" },
+      ],
     },
   ];
 
@@ -49,22 +54,36 @@ export function KPIGrid({ mrr, ytdRevenue, todayIncome, clientsCount, leadsCount
           key={s.label}
           className="card px-3.5 py-3 min-w-0"
         >
-          <div className="text-[13px] mb-1 truncate" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
+          {s.label && <div className="text-[13px] mb-1 truncate" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
             {s.label}
-          </div>
-          <div className="flex items-baseline gap-1.5 flex-wrap">
-            <span
-              className="text-[20px] tracking-tight tabular-nums select-all"
-              style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}
-            >
-              {s.value}
-            </span>
-            {s.sub && (
-              <span className="text-[12px] truncate" style={{ color: s.color, fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-                {s.sub}
+          </div>}
+          {s.lines ? (
+            <div className="flex items-center">
+              {s.lines.map((l: any, i: number) => (
+                <React.Fragment key={l.label}>
+                  {i > 0 && <div className="mx-2.5 self-stretch" style={{ width: 1, background: "var(--color-border-primary)" }} />}
+                  <div className="flex-1 text-center">
+                    <div className="text-[13px] mb-0.5" style={{ color: "var(--color-text-tertiary)" }}>{l.label}</div>
+                    <div className="text-[20px] tabular-nums" style={{ color: l.color, fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>{loading ? "—" : l.count}</div>
+                  </div>
+                </React.Fragment>
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-baseline gap-1.5 flex-wrap">
+              <span
+                className="text-[20px] tracking-tight tabular-nums select-all"
+                style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}
+              >
+                {s.value}
               </span>
-            )}
-          </div>
+              {s.sub && (
+                <span className="text-[12px] truncate" style={{ color: s.color, fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
+                  {s.sub}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       ))}
     </div>

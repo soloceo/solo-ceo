@@ -30,6 +30,8 @@ export const home = {
   "home.kpi.activeClients": "Active Clients",
   "home.kpi.leads": "Leads",
   "home.kpi.inProgress": "In Progress",
+  "home.kpi.monthlyIncome": "This Month",
+  "home.kpi.keyTasks": "Key Tasks",
   "home.focus.title": "Today's Focus",
   "home.focus.desc": "Auto-recommended based on your leads, tasks, and finances",
   "home.focus.priority": "Priority",

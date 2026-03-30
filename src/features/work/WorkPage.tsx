@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Plus, Filter, LayoutGrid, AlignJustify, Building2, User as UserIcon, Bot, Send, Loader2, Download } from "lucide-react";
+import { useSwipeTabs } from "../../hooks/useSwipeTabs";
 import { exportCSV } from "../../lib/csv-export";
 import { useAppSettings } from "../../hooks/useAppSettings";
 import { parseWorkTask, AI_KEY_MAP, type AIProvider } from "../../lib/ai-client";
@@ -34,7 +35,8 @@ export default function WorkPage() {
   ], [t]);
 
   const { settings: appSettings } = useAppSettings();
-  const [workTab, setWorkTab] = useState<"work" | "personal">("work");
+  const TABS = ["work", "personal"] as const;
+  const { activeTab: workTab, setActiveTab: setWorkTab, switchTo: switchWorkTab, swipeRef: workSwipeRef, handleScroll: handleWorkScroll, onTouchStart: handleWorkTouchStart, onTouchMove: handleWorkTouchMove } = useSwipeTabs(TABS, "work");
   const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [aiInput, setAiInput] = useState("");
   const [aiParsing, setAiParsing] = useState(false);
@@ -93,10 +95,10 @@ export default function WorkPage() {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       if (detail?.type === "task") {
-        setWorkTab("work");
+        switchWorkTab("work");
         openPanel(null, "todo");
       } else if (detail?.type === "personal-task") {
-        setWorkTab("personal");
+        switchWorkTab("personal");
       }
     };
     window.addEventListener("quick-create", handler);
@@ -252,25 +254,6 @@ export default function WorkPage() {
     }
   };
 
-  /** Advance task to next column (swipe right) */
-  const handleAdvance = async (id: number, currentCol: string) => {
-    const colIds = COLS.map(c => c.id);
-    const idx = colIds.indexOf(currentCol);
-    if (idx < 0 || idx >= colIds.length - 1) return;
-    const nextCol = colIds[idx + 1];
-    // Optimistic update
-    const src = [...(tasks[currentCol] || [])];
-    const taskIdx = src.findIndex(t => t.id === id);
-    if (taskIdx < 0) return;
-    const [moved] = src.splice(taskIdx, 1);
-    moved.column = nextCol;
-    const dst = [...(tasks[nextCol] || []), moved];
-    setTasks({ ...tasks, [currentCol]: src, [nextCol]: dst });
-    try {
-      await fetch(`/api/tasks/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(moved) });
-    } catch { showToast(t("common.updateFailed" as any)); fetchTasks(); }
-  };
-
   /** Inline priority change */
   const handlePriorityChange = async (id: number, priority: string) => {
     const allTasks = (Object.values(tasks) as Task[][]).flat();
@@ -313,35 +296,39 @@ export default function WorkPage() {
   return (
     <div className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col px-4 py-3 md:px-6 md:py-4 lg:px-8 lg:py-5 relative">
       <h1 className="sr-only">{t("nav.work" as any)}</h1>
-      {/* Row 1: Tab switcher + actions (unified toolbar) */}
-      <div className="flex items-center gap-2 mb-2 flex-wrap">
-        <div className="flex gap-1.5 shrink-0">
-          {(["work", "personal"] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setWorkTab(tab)}
-              className="py-1.5 px-3 text-[14px] rounded-[var(--radius-8)] transition-colors press-feedback flex items-center gap-1.5"
-              style={workTab === tab ? {
-                border: `1.5px solid ${tab === "work" ? "var(--color-accent)" : "var(--color-info)"}`,
-                color: tab === "work" ? "var(--color-accent)" : "var(--color-info)",
-                fontWeight: "var(--font-weight-semibold)",
-                background: "var(--color-bg-primary)",
-              } as React.CSSProperties : {
-                border: "1.5px solid var(--color-border-primary)",
-                color: "var(--color-text-tertiary)",
-                fontWeight: "var(--font-weight-medium)",
-                background: "transparent",
-              } as React.CSSProperties}
-            >
-              {tab === "work" ? <Building2 size={14} /> : <UserIcon size={14} />}
-              {tab === "work" ? (t("work.tab.work" as any)) : (t("work.tab.personal" as any))}
-            </button>
-          ))}
-        </div>
 
-        {workTab === "work" && (
-          <>
-            <div className="w-px h-5 shrink-0" style={{ background: "var(--color-border-primary)" }} />
+      {/* ── Segmented Tab Switcher ── */}
+      <div className="flex items-center gap-1 p-0.5 rounded-[var(--radius-8)] mb-2" style={{ background: "var(--color-bg-tertiary)" }}>
+        {(["work", "personal"] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => switchWorkTab(tab)}
+            className="flex-1 text-center py-1.5 px-3 rounded-[var(--radius-6)] text-[13px] transition-all flex items-center justify-center gap-1.5"
+            style={{
+              background: workTab === tab ? "var(--color-bg-primary)" : "transparent",
+              color: workTab === tab ? "var(--color-text-primary)" : "var(--color-text-tertiary)",
+              fontWeight: workTab === tab ? "var(--font-weight-semibold)" : "var(--font-weight-medium)",
+              boxShadow: workTab === tab ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+            } as React.CSSProperties}
+          >
+            {tab === "work" ? <Building2 size={13} /> : <UserIcon size={13} />}
+            {tab === "work" ? t("work.tab.work" as any) : t("work.tab.personal" as any)}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Swipeable Panel Container ── */}
+      <div
+        ref={workSwipeRef}
+        onScroll={handleWorkScroll}
+        onTouchStart={handleWorkTouchStart}
+        onTouchMove={handleWorkTouchMove}
+        className="home-swipe-container flex-1"
+      >
+        {/* Panel 1: Work */}
+        <div className="home-swipe-panel flex flex-col">
+          {/* Toolbar */}
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
             <div className="flex items-center gap-1.5 shrink-0">
               <Filter size={14} style={{ color: "var(--color-text-tertiary)" }} />
               <select
@@ -370,11 +357,7 @@ export default function WorkPage() {
                 </button>
               ))}
             </div>
-          </>
-        )}
-        <div className="flex-1" />
-        {workTab === "work" && (
-          <>
+            <div className="flex-1" />
             <button onClick={() => {
               const all: Task[] = (Object.values(tasks) as Task[][]).flat();
               exportCSV(all.map(t => ({ title: t.title, client: t.client, priority: t.priority, due: t.due, column: t.column })), "tasks", [
@@ -384,12 +367,8 @@ export default function WorkPage() {
             <button onClick={() => openPanel(null, "todo")} className="btn-primary compact">
               <Plus size={16} /> <span className="hidden sm:inline">{t("work.new" as any)}</span>
             </button>
-          </>
-        )}
-      </div>
+          </div>
 
-      {workTab === "work" ? (
-        <>
           {/* AI task input */}
           <div className="flex items-center gap-2 mb-3">
             <div className="relative flex-1">
@@ -458,9 +437,9 @@ export default function WorkPage() {
               onDelete={handleDelete}
               onClientClick={() => setActiveTab("clients")}
               emptyText={t("work.empty" as any)}
-              onAdvance={handleAdvance}
               onPriorityChange={handlePriorityChange}
               onDueChange={handleDueChange}
+              onColumnChange={handleMove}
             />
           ) : (
             <SwimlaneView
@@ -472,15 +451,18 @@ export default function WorkPage() {
               onDelete={handleDelete}
               onMove={handleMove}
               emptyText={t("work.empty" as any)}
-              onAdvance={handleAdvance}
               onPriorityChange={handlePriorityChange}
               onDueChange={handleDueChange}
+              onColumnChange={handleMove}
             />
           )}
-        </>
-      ) : (
-        <PersonalTaskList tasks={allTasks} onRefresh={fetchTasks} />
-      )}
+        </div>
+
+        {/* Panel 2: Personal */}
+        <div className="home-swipe-panel">
+          <PersonalTaskList tasks={allTasks} onRefresh={fetchTasks} />
+        </div>
+      </div>
 
       {/* Task Detail Panel */}
       <TaskDetail

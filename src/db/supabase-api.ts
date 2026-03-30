@@ -633,6 +633,8 @@ export async function handleSupabaseRequest(
     if (method === 'DELETE') {
       const { data: prev } = await supabase.from('tasks').select('title').eq('id', id).single();
       await supabase.from('tasks').update({ soft_deleted: true }).eq('id', id);
+      // Also delete subtasks if this is a parent task
+      await supabase.from('tasks').update({ soft_deleted: true }).eq('parent_id', id);
       await logActivity(userId, 'task', 'deleted', `删除任务：${prev?.title || '未命名任务'}`, '', id);
       return ok({ success: true });
     }
@@ -923,42 +925,45 @@ export async function handleSupabaseRequest(
     const focusDate = todayDateKey();
     const currentYear = new Date().getFullYear();
 
+    // Merged queries: 7 parallel instead of 11 (tasks, leads, finance each merged)
     const [
       { data: activeClients },
-      { data: taskData },
-      { data: leadData },
-      { data: ledgerSeries },
+      { data: allTasks },
+      { data: allLeads },
+      { data: allFinance },
       { data: recentActivityRows },
       { data: focusStates },
-      { data: receivablesData },
-      { data: bestLeadArr },
-      { data: urgentTaskArr },
       { data: overdueMsArr },
       { data: manualFocusRows },
     ] = await Promise.all([
       supabase.from('clients').select('id, mrr').eq('user_id', userId).eq('status', 'Active').eq('soft_deleted', false),
-      supabase.from('tasks').select('id, column').eq('user_id', userId).neq('column', 'done').eq('soft_deleted', false),
-      supabase.from('leads').select('id, column').eq('user_id', userId).eq('soft_deleted', false),
-      supabase.from('finance_transactions').select('date, amount').eq('user_id', userId).eq('type', 'income').eq('status', '已完成').eq('soft_deleted', false),
+      supabase.from('tasks').select('id, title, client, priority, due, column, scope, parent_id').eq('user_id', userId).eq('soft_deleted', false),
+      supabase.from('leads').select('id, name, industry, needs, column').eq('user_id', userId).eq('soft_deleted', false),
+      supabase.from('finance_transactions').select('id, date, amount, type, status, description, tax_amount').eq('user_id', userId).eq('soft_deleted', false),
       supabase.from('activity_log').select('title, detail, created_at, entity_type, action').eq('user_id', userId).order('created_at', { ascending: false }).limit(8),
       supabase.from('today_focus_state').select('focus_key, status').eq('user_id', userId).eq('focus_date', focusDate),
-      supabase.from('finance_transactions').select('id, description, status').eq('user_id', userId).eq('soft_deleted', false).like('status', '%应收%'),
-      supabase.from('leads').select('id, name, industry, needs, column').eq('user_id', userId).eq('soft_deleted', false).in('column', ['proposal', 'contacted', 'new']).order('column', { ascending: true }).limit(4),
-      supabase.from('tasks').select('id, title, client, priority, due, column').eq('user_id', userId).eq('soft_deleted', false).neq('column', 'done').order('priority', { ascending: true }).limit(4),
       supabase.from('payment_milestones').select('id, label, amount, due_date, client_id, clients(name)').eq('user_id', userId).eq('status', 'pending').eq('soft_deleted', false).not('due_date', 'is', null).lt('due_date', todayDateKey()).order('due_date', { ascending: true }).limit(1),
       supabase.from('today_focus_manual').select('id, type, title, note').eq('user_id', userId).eq('focus_date', focusDate).eq('soft_deleted', false).order('id', { ascending: false }),
     ]);
 
+    // Derive subsets from merged queries (client-side filtering, zero network cost)
+    const taskData = (allTasks || []).filter((t: any) => t.column !== 'done');
+    const leadData = allLeads || [];
+    const ledgerSeries = (allFinance || []).filter((t: any) => t.type === 'income' && t.status === '已完成');
+    const receivablesData = (allFinance || []).filter((t: any) => (t.status || '').includes('应收'));
+    const bestLeadArr = leadData.filter((l: any) => ['proposal', 'contacted', 'new'].includes(l.column)).slice(0, 4);
+    const urgentTaskArr = taskData.sort((a: any, b: any) => { const p: Record<string, number> = { High: 0, Medium: 1, Low: 2 }; return (p[a.priority] ?? 1) - (p[b.priority] ?? 1); }).slice(0, 4);
+
     const clientsCount = activeClients?.length || 0;
     // Derive MRR from current month's income transactions (more accurate than static client.mrr)
     const currentMonthStr = `${currentYear}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-    const currentMonthIncome = (ledgerSeries || [])
-      .filter((r: any) => String(r.date || '').startsWith(currentMonthStr))
-      .reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
-    const mrr = currentMonthIncome || (activeClients || []).reduce((s, r) => s + Number(r.mrr || 0), 0);
+    // MRR = sum of subscription clients' monthly fee (not one-time project income)
+    const mrr = (activeClients || []).reduce((s: number, r: any) => s + Number(r.mrr || 0), 0);
     const activeTasks = taskData?.length || 0;
     const todoCount = (taskData || []).filter((t: any) => t.column === 'todo').length;
     const inProgressCount = (taskData || []).filter((t: any) => t.column === 'inProgress').length;
+    const workTasks = (taskData || []).filter((t: any) => t.scope !== 'personal' && t.column !== 'done').length;
+    const personalTasks = (taskData || []).filter((t: any) => t.scope === 'personal' && t.column !== 'done' && !t.parent_id).length;
     const leadsCount = (leadData || []).length;
     const leadsNew = (leadData || []).filter((l: any) => l.column === 'new').length;
     const leadsContacted = (leadData || []).filter((l: any) => l.column === 'contacted').length;
@@ -1045,7 +1050,7 @@ export async function handleSupabaseRequest(
 
     const todayFocus = autoFocus.map((item: any) => ({ ...item, status: focusStateMap[item.key] || 'pending' }));
 
-    return ok({ clientsCount, mrr, activeTasks, todoCount, inProgressCount, leadsCount, leadsNew, leadsContacted, leadsProposal, mrrSeries, recentActivity, ytdRevenue, todayIncome, monthlyIncome, todayFocus, manualTodayEvents });
+    return ok({ clientsCount, mrr, activeTasks, todoCount, inProgressCount, leadsCount, leadsNew, leadsContacted, leadsProposal, mrrSeries, recentActivity, ytdRevenue, todayIncome, monthlyIncome, todayFocus, manualTodayEvents, workTasks, personalTasks });
   }
 
   // ── WEEKLY REPORT ──────────────────────────────────────────────

@@ -955,6 +955,8 @@ export async function handleApiRequest(
     const ledgerMrr = get(db, `SELECT SUM(amount) as s FROM client_subscription_ledger WHERE ledger_month=?`, [cm]);
     const mrr = Number(ledgerMrr?.s || 0) || Number(get(db, `SELECT SUM(mrr) as s FROM clients WHERE status='Active'`)?.s || 0);
     const activeTasks = Number(get(db, `SELECT COUNT(*) as c FROM tasks WHERE column != 'done'`)?.c || 0);
+    const workTasks = Number(get(db, `SELECT COUNT(*) as c FROM tasks WHERE column != 'done' AND (scope IS NULL OR scope != 'personal') AND (priority IS NULL OR priority IN ('High','Medium'))`)?.c || 0);
+    const personalTasks = Number(get(db, `SELECT COUNT(*) as c FROM tasks WHERE column != 'done' AND scope = 'personal'`)?.c || 0);
     const leadsCount = Number(get(db, `SELECT COUNT(*) as c FROM leads`)?.c || 0);
 
     const ledgerSeries = all(db,
@@ -1035,7 +1037,7 @@ export async function handleApiRequest(
 
     const todayFocus = autoFocus.map((item: any) => ({ ...item, status: focusStateMap[item.key] || 'pending' }));
 
-    return ok({ clientsCount, mrr, activeTasks, leadsCount, mrrSeries, recentActivity, ytdRevenue, monthlyIncome, todayFocus, manualTodayEvents });
+    return ok({ clientsCount, mrr, activeTasks, workTasks, personalTasks, leadsCount, mrrSeries, recentActivity, ytdRevenue, monthlyIncome, todayFocus, manualTodayEvents });
   }
 
   // ── WEEKLY REPORT ──────────────────────────────────────────────

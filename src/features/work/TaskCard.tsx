@@ -1,9 +1,8 @@
 import React, { useState } from "react";
 import { createPortal } from "react-dom";
-import { Clock, Trash2, ChevronRight, Calendar } from "lucide-react";
+import { Clock, Trash2, Calendar, ArrowRightLeft } from "lucide-react";
 import { fmtDate } from "../../lib/format";
 import { useT } from "../../i18n/context";
-import SwipeAction from "../../components/SwipeAction";
 import { InlinePopover, PopoverOption } from "../../components/ui/InlinePopover";
 
 export interface Task {
@@ -31,6 +30,12 @@ const prioLabel: Record<string, { zh: string; en: string; color: string }> = {
   Low: { zh: "低", en: "L", color: "var(--color-success)" },
 };
 
+interface ColDef {
+  id: string;
+  title: string;
+  color: string;
+}
+
 interface TaskCardProps {
   task: Task;
   provided: any;
@@ -38,19 +43,19 @@ interface TaskCardProps {
   onEdit: (task: Task) => void;
   onDelete: (id: number) => void;
   onClientClick?: () => void;
-  /** Move task to next column (swipe right) */
-  onAdvance?: (id: number) => void;
   /** Inline priority change */
   onPriorityChange?: (id: number, priority: Task["priority"]) => void;
   /** Inline due date change */
   onDueChange?: (id: number, due: string) => void;
-  /** Next column label for swipe hint */
-  advanceLabel?: string;
+  /** All columns for stage picker */
+  columns?: ColDef[];
+  /** Move task to a specific column */
+  onColumnChange?: (id: number, col: string) => void;
 }
 
 export const TaskCard = React.memo(function TaskCard({
   task, provided, snapshot, onEdit, onDelete, onClientClick,
-  onAdvance, onPriorityChange, onDueChange, advanceLabel,
+  onPriorityChange, onDueChange, columns, onColumnChange,
 }: TaskCardProps) {
   const { lang, t } = useT();
   const prio = prioLabel[task.priority];
@@ -183,7 +188,37 @@ export const TaskCard = React.memo(function TaskCard({
           )}
         </div>
 
-        <div className="flex gap-1">
+        <div className="flex items-center gap-1">
+          {/* Stage picker */}
+          {columns && onColumnChange && (
+            <InlinePopover
+              align="end"
+              trigger={
+                <span
+                  className="inline-flex items-center gap-1 text-[12px] px-1.5 py-0.5 rounded-[var(--radius-4)] transition-colors hover:bg-[var(--color-bg-quaternary)] cursor-pointer"
+                  style={{ color: columns.find(c => c.id === task.column)?.color || "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ArrowRightLeft size={11} />
+                  {columns.find(c => c.id === task.column)?.title || task.column}
+                </span>
+              }
+            >
+              {columns.map(col => (
+                <PopoverOption
+                  key={col.id}
+                  selected={task.column === col.id}
+                  color={col.color}
+                  onClick={(e) => { e.stopPropagation(); if (col.id !== task.column) onColumnChange(task.id, col.id); }}
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full" style={{ background: col.color }} />
+                    {col.title}
+                  </span>
+                </PopoverOption>
+              ))}
+            </InlinePopover>
+          )}
           {confirmDeleteId === task.id ? (
             <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
               <button
@@ -216,21 +251,9 @@ export const TaskCard = React.memo(function TaskCard({
     </div>
   );
 
-  // Wrap in SwipeAction for mobile swipe gestures
-  const swipeable = (onAdvance || onDelete) && !snapshot.isDragging ? (
-    <SwipeAction
-      onAdvance={onAdvance ? () => onAdvance(task.id) : undefined}
-      onDelete={() => { onDelete(task.id); }}
-      advanceLabel={advanceLabel || t("common.next" as any) || "Next"}
-      deleteLabel={t("common.delete" as any) || "Delete"}
-    >
-      {cardContent}
-    </SwipeAction>
-  ) : cardContent;
-
   const cardWithConfirm = confirmDeleteId === task.id ? (
     <>
-      {swipeable}
+      {cardContent}
       {createPortal(
         <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 710, background: "var(--color-overlay-primary)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 16px)" }}>
           <div className="card-elevated w-full max-w-sm p-5 rounded-[var(--radius-6)]" role="dialog" aria-modal="true" aria-label="Confirm delete">
@@ -248,7 +271,7 @@ export const TaskCard = React.memo(function TaskCard({
         document.body,
       )}
     </>
-  ) : swipeable;
+  ) : cardContent;
 
   return snapshot.isDragging ? createPortal(cardContent, document.body) : cardWithConfirm;
 });
