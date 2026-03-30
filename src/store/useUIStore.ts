@@ -12,13 +12,12 @@ function applyTheme(mode: ThemeMode) {
     (mode === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   document.documentElement.classList.toggle("dark", isDark);
 
-  // Update meta theme-color so iOS status bar / browser chrome matches
+  // Update meta theme-color so iOS Safari status bar matches the app theme.
+  // Safari only reads this on page load, but keeping it in sync ensures
+  // correctness on next refresh or navigation.
   const color = isDark ? "#1f1e1d" : "#faf9f5";
-  document
-    .querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')
-    .forEach((meta) => {
-      meta.setAttribute("content", color);
-    });
+  const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  if (meta) meta.content = color;
 }
 
 interface UIState {
