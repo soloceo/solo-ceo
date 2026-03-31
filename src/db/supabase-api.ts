@@ -169,7 +169,7 @@ const VALID_BILLING_TYPES = ['subscription', 'project'] as const;
 const VALID_TAX_MODES = ['none', 'exclusive', 'inclusive'] as const;
 const VALID_TASK_PRIORITIES = ['High', 'Medium', 'Low'] as const;
 const VALID_TASK_COLUMNS = ['todo', 'inProgress', 'review', 'done'] as const;
-const VALID_TASK_SCOPES = ['work', 'personal'] as const;
+const VALID_TASK_SCOPES = ['work', 'personal', 'work-memo'] as const;
 const VALID_PAYMENT_METHODS = ['auto', 'manual'] as const;
 const VALID_TX_TYPES = ['income', 'expense'] as const;
 
@@ -726,7 +726,7 @@ export async function handleSupabaseRequest(
         user_id: userId,
         title: str(title, 500), client: str(client, 255), client_id: client_id || null,
         priority: enumVal(priority, VALID_TASK_PRIORITIES, 'Medium'),
-        due: str(due, 10), column: enumVal(column, VALID_TASK_COLUMNS, 'todo'),
+        due: str(due, 16), column: enumVal(column, VALID_TASK_COLUMNS, 'todo'),
         originalRequest: str(originalRequest, 5000), aiBreakdown: str(aiBreakdown, 10000),
         aiMjPrompts: str(aiMjPrompts, 5000), aiStory: str(aiStory, 5000),
         scope: enumVal(scope, VALID_TASK_SCOPES, 'work'), parent_id: parent_id || null,
@@ -748,7 +748,7 @@ export async function handleSupabaseRequest(
         .update({
           title: str(title, 500), client: str(client, 255), client_id: client_id || null,
           priority: enumVal(priority, VALID_TASK_PRIORITIES, 'Medium'),
-          due: str(due, 10), column: enumVal(column, VALID_TASK_COLUMNS, 'todo'),
+          due: str(due, 16), column: enumVal(column, VALID_TASK_COLUMNS, 'todo'),
           originalRequest: str(originalRequest, 5000), aiBreakdown: str(aiBreakdown, 10000),
           aiMjPrompts: str(aiMjPrompts, 5000), aiStory: str(aiStory, 5000),
           scope: enumVal(scope, VALID_TASK_SCOPES, 'work'), parent_id: parent_id ?? null,
