@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Plus, Filter, LayoutGrid, AlignJustify, Building2, User as UserIcon, Bot, Send, Loader2, Download } from "lucide-react";
 import { useSwipeTabs } from "../../hooks/useSwipeTabs";
+import { useIsMobile } from "../../hooks/useIsMobile";
 import { exportCSV } from "../../lib/csv-export";
 import { useAppSettings } from "../../hooks/useAppSettings";
 import { parseWorkTask, AI_KEY_MAP, type AIProvider } from "../../lib/ai-client";
@@ -45,8 +46,13 @@ export default function WorkPage() {
   const [filterPriority, setFilterPriority] = useState("All");
   const showToast = useUIStore((s) => s.showToast);
   const setActiveTab = useUIStore((s) => s.setActiveTab);
-  const viewMode = useUIStore((s) => s.tasksViewMode);
-  const setViewMode = useUIStore((s) => s.setTasksViewMode);
+  const isMobile = useIsMobile();
+  const storeViewMode = useUIStore((s) => s.tasksViewMode);
+  const setStoreViewMode = useUIStore((s) => s.setTasksViewMode);
+  // Mobile defaults to list (horizontal); desktop uses persisted store value
+  const [mobileViewMode, setMobileViewMode] = useState<"vertical" | "horizontal">("horizontal");
+  const viewMode = isMobile ? mobileViewMode : storeViewMode;
+  const setViewMode = isMobile ? setMobileViewMode : setStoreViewMode;
   const [clientList, setClientList] = useState<ClientItem[]>([]);
 
   // Task detail panel state
@@ -318,6 +324,115 @@ export default function WorkPage() {
       </div>
 
       {/* ── Swipeable Panel Container ── */}
+      {/* Mobile kanban: render outside swipe container to avoid nested horizontal scroll conflict */}
+      {isMobile && viewMode === "vertical" ? (
+        <div className="flex-1 flex flex-col">
+          {/* Toolbar */}
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Filter size={14} style={{ color: "var(--color-text-tertiary)" }} />
+              <select
+                value={filterPriority}
+                onChange={(e) => setFilterPriority(e.target.value)}
+                className="input-base compact px-2 text-[14px]"
+              >
+                <option value="All">{t("work.filter.all" as any)}</option>
+                <option value="High">{t("work.filter.high" as any)}</option>
+                <option value="Medium">{t("work.filter.medium" as any)}</option>
+                <option value="Low">{t("work.filter.low" as any)}</option>
+              </select>
+            </div>
+            <div className="segment-switcher">
+              {([
+                ["vertical", <LayoutGrid size={14} />, "Board view"],
+                ["horizontal", <AlignJustify size={14} />, "List view"],
+              ] as [string, React.ReactNode, string][]).map(([mode, icon, label]) => (
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode as "vertical" | "horizontal")}
+                  data-active={viewMode === mode}
+                  aria-label={label}
+                >
+                  {icon}
+                </button>
+              ))}
+            </div>
+            <div className="flex-1" />
+            <button onClick={() => {
+              const all: Task[] = (Object.values(tasks) as Task[][]).flat();
+              exportCSV(all.map(t => ({ title: t.title, client: t.client, priority: t.priority, due: t.due, column: t.column })), "tasks", [
+                { key: "title", label: "Title" }, { key: "client", label: "Client" }, { key: "priority", label: "Priority" }, { key: "due", label: "Due" }, { key: "column", label: "Status" },
+              ]);
+            }} className="btn-ghost compact"><Download size={16} /></button>
+            <button onClick={() => openPanel(null, "todo")} className="btn-primary compact">
+              <Plus size={16} /> <span className="hidden sm:inline">{t("work.new" as any)}</span>
+            </button>
+          </div>
+
+          {/* AI task input */}
+          <div className="flex items-center gap-2 mb-3">
+            <div className="relative flex-1">
+              <Bot size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--color-accent)" }} />
+              <input
+                type="text"
+                value={aiInput}
+                onChange={e => setAiInput(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAiTask(); }}
+                placeholder={t("work.ai.placeholder" as any)}
+                disabled={aiParsing}
+                className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]"
+              />
+            </div>
+            <button onClick={handleAiTask} disabled={!aiInput.trim() || aiParsing} className="btn-primary compact text-[14px] shrink-0 disabled:opacity-40">
+              {aiParsing ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+            </button>
+          </div>
+
+          {/* Work Memo */}
+          <WorkMemoList tasks={allTasks} onRefresh={fetchTasks} />
+
+          {/* Progress bar */}
+          {!isLoading && totalTasks > 0 && (
+            <div className="mb-3">
+              <div className="flex h-1.5 rounded-full overflow-hidden" style={{ background: "var(--color-bg-quaternary)" }}>
+                {counts.map((c) => (
+                  c.count > 0 && (
+                    <div
+                      key={c.id}
+                      style={{ width: `${(c.count / totalTasks) * 100}%`, background: c.color }}
+                      className="transition-all duration-300"
+                    />
+                  )
+                ))}
+              </div>
+              <div className="flex gap-3 mt-1.5">
+                {counts.map((c) => (
+                  <div key={c.id} className="flex items-center gap-1.5 text-[13px]" style={{ color: "var(--color-text-tertiary)" }}>
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ background: c.color }} />
+                    <span>{c.title}</span>
+                    <span className="tabular-nums" style={{ color: "var(--color-text-quaternary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{c.count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Kanban Board */}
+          <KanbanBoard
+            columns={COLS}
+            tasks={filteredTasks}
+            onDragEnd={onDragEnd}
+            onAdd={(col) => openPanel(null, col)}
+            onEdit={(task) => openPanel(task, task.column)}
+            onDelete={handleDelete}
+            onClientClick={() => setActiveTab("clients")}
+            emptyText={t("work.empty" as any)}
+            onPriorityChange={handlePriorityChange}
+            onDueChange={handleDueChange}
+            onColumnChange={handleMove}
+          />
+        </div>
+      ) : (
       <div
         ref={workSwipeRef}
         onScroll={handleWorkScroll}
@@ -466,6 +581,7 @@ export default function WorkPage() {
           <WorkMemoList tasks={allTasks} onRefresh={fetchTasks} scope="personal" accentColor="var(--color-info)" />
         </div>
       </div>
+      )}
 
       {/* Task Detail Panel */}
       <TaskDetail

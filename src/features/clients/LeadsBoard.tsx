@@ -87,8 +87,12 @@ export function LeadsView() {
   const [converting, setConverting] = useState(false);
   const [showConvert, setShowConvert] = useState(false);
   const isMobile = useIsMobile();
-  const viewMode = useUIStore((s) => s.salesViewMode);
-  const setViewMode = useUIStore((s) => s.setSalesViewMode);
+  const storeViewMode = useUIStore((s) => s.salesViewMode);
+  const setStoreViewMode = useUIStore((s) => s.setSalesViewMode);
+  // Mobile defaults to list (horizontal); desktop uses persisted store value
+  const [mobileViewMode, setMobileViewMode] = useState<"vertical" | "horizontal">("horizontal");
+  const viewMode = isMobile ? mobileViewMode : storeViewMode;
+  const setViewMode = isMobile ? setMobileViewMode : setStoreViewMode;
   const [convertForm, setConvertForm] = useState({ plan_tier: "", status: "Active", mrr: "", subscription_start_date: todayDateKey(), billing_type: "subscription" as "subscription" | "project", project_fee: "" });
   const [plans, setPlans] = useState<PlanRow[]>([]);
   const [form, setForm] = useState(EMPTY_LEAD);
