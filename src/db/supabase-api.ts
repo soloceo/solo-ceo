@@ -5,6 +5,7 @@
  */
 import { supabase } from './supabase-client';
 import { todayDateKey, dateToKey, monthKey, currentMonth } from '../lib/date-utils';
+import { str, enumVal } from '../lib/validate';
 
 // ── helpers ────────────────────────────────────────────────────────
 
@@ -62,12 +63,6 @@ async function logActivity(
 
 // ── Input validation helpers ─────────────────────────────────────
 
-/** Truncate string to maxLen, return empty string for nullish values */
-function str(val: unknown, maxLen: number): string {
-  if (val == null) return '';
-  return String(val).slice(0, maxLen);
-}
-
 const VALID_LEAD_COLUMNS = ['new', 'contacted', 'proposal', 'negotiation', 'won', 'lost'] as const;
 const VALID_CLIENT_STATUSES = ['Active', 'Paused', 'Cancelled', 'Completed'] as const;
 const VALID_BILLING_TYPES = ['subscription', 'project'] as const;
@@ -77,10 +72,6 @@ const VALID_TASK_COLUMNS = ['todo', 'inProgress', 'review', 'done'] as const;
 const VALID_TASK_SCOPES = ['work', 'personal'] as const;
 const VALID_PAYMENT_METHODS = ['auto', 'manual'] as const;
 const VALID_TX_TYPES = ['income', 'expense'] as const;
-
-function enumVal<T extends string>(val: unknown, allowed: readonly T[], fallback: T): T {
-  return allowed.includes(val as T) ? (val as T) : fallback;
-}
 
 // ── Tax calc helper ───────────────────────────────────────────────
 function calcTax(amount: number, mode: string, rate: number): number {

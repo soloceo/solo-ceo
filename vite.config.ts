@@ -10,6 +10,9 @@ const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   return {
+    test: {
+      include: ['src/**/*.test.ts'],
+    },
     base: './',
     plugins: [
       react(),
