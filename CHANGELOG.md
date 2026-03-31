@@ -3,6 +3,24 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.10.0] - 2026-03-31
+
+### Added
+- Vitest testing infrastructure with 35 unit tests covering tax calculation, input validation, and date utilities
+- `src/lib/validate.ts` — shared input validation helpers (`str`, `enumVal`) extracted for testability
+- Test scripts: `npm test` and `npm run test:watch`
+
+### Changed
+- HomePage split from 1000 → 424 lines (extracted KnowledgeBaseSection, ProtocolSection, BreakthroughSection)
+- ClientList: extracted `useMilestones` hook (190 lines) and `useClientTransactions` hook (165 lines)
+- LeadsBoard: extracted `useLeadAI` hook (120 lines) for AI outreach/analysis logic
+- CSS z-index replaced with layer variable system (`--layer-nav`, `--layer-overlay`, `--layer-modal`, `--layer-toast`)
+- Input validation added to all Supabase API write paths (string truncation + enum whitelisting)
+
+### Fixed
+- Potential XSS/injection via unvalidated user input in API layer
+- z-index collisions between navigation, overlays, modals, and toasts
+
 ## [2.9.0] - 2026-03-31
 
 ### Added
