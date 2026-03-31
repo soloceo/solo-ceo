@@ -3,6 +3,24 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.9.0] - 2026-03-31
+
+### Added
+- Personal Memo — reusable WorkMemoList with `scope` prop, blue accent for personal, personal-specific AI placeholder
+- Theme system placeholder (Coming Soon in settings)
+
+### Changed
+- Mobile drag disabled on kanban boards (tasks + leads) — use column-change buttons instead
+- Memo buttons enlarged (32x32px) with `onPointerDown` stopPropagation for reliable touch
+- Optimistic updates on memo toggle/delete/save/add — no more click delay
+- QuickCreateMenu rendered via portal to fix z-index stacking issues
+- Sidebar hover improved with neutral gray
+
+### Fixed
+- Memo edit button sometimes triggering toggle instead of edit
+- QuickCreateMenu being occluded by sticky table headers and content area
+- Warm cream color palette restored after neutral gray experiment
+
 ## [2.8.0] - 2026-03-31
 
 ### Added

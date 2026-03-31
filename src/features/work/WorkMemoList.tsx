@@ -8,6 +8,8 @@ import type { Task } from "./TaskCard";
 interface WorkMemoListProps {
   tasks: Task[];
   onRefresh: () => void;
+  scope?: "work-memo" | "personal";
+  accentColor?: string;
 }
 
 /* ── Helpers ── */
@@ -69,8 +71,10 @@ function TimePicker24({ value, onChange }: { value: string; onChange: (v: string
   );
 }
 
-export default function WorkMemoList({ tasks, onRefresh }: WorkMemoListProps) {
+export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", accentColor }: WorkMemoListProps) {
   const { t, lang } = useT();
+  const prefix = scope === "personal" ? "personal.memo" : "work.memo";
+  const accent = accentColor || "var(--color-accent)";
   const [collapsed, setCollapsed] = useState(false);
   const [addingSimple, setAddingSimple] = useState(false);
   const [simpleTitle, setSimpleTitle] = useState("");
@@ -92,7 +96,7 @@ export default function WorkMemoList({ tasks, onRefresh }: WorkMemoListProps) {
   const dayLabels = lang === "zh" ? SHORT_DAY_ZH : SHORT_DAY_EN;
 
   const memoTasks = useMemo(() =>
-    tasks.filter(t => t.scope === "work-memo").sort((a, b) => {
+    tasks.filter(t => t.scope === scope).sort((a, b) => {
       // undone first
       if (a.column === "done" && b.column !== "done") return 1;
       if (a.column !== "done" && b.column === "done") return -1;
@@ -125,19 +129,20 @@ export default function WorkMemoList({ tasks, onRefresh }: WorkMemoListProps) {
 
   const undoneCount = memoTasks.filter(t => t.column !== "done").length;
 
-  const toggleTask = async (task: Task) => {
+  const toggleTask = (task: Task) => {
     const newColumn = task.column === "done" ? "todo" : "done";
-    await fetch(`/api/tasks/${task.id}`, {
+    // Optimistic: refresh immediately, API in background
+    onRefresh();
+    fetch(`/api/tasks/${task.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...task, column: newColumn }),
-    });
-    onRefresh();
+    }).then(() => onRefresh());
   };
 
-  const deleteTask = async (id: number) => {
-    await fetch(`/api/tasks/${id}`, { method: "DELETE" });
+  const deleteTask = (id: number) => {
     onRefresh();
+    fetch(`/api/tasks/${id}`, { method: "DELETE" }).then(() => onRefresh());
   };
 
   const startEdit = (task: Task) => {
@@ -152,17 +157,16 @@ export default function WorkMemoList({ tasks, onRefresh }: WorkMemoListProps) {
     return time ? `${date}T${time}` : date;
   };
 
-  const saveEdit = async () => {
+  const saveEdit = () => {
     if (!editingId || !editTitle.trim()) return;
     const task = memoTasks.find(t => t.id === editingId);
     if (!task) return;
-    await fetch(`/api/tasks/${editingId}`, {
+    setEditingId(null);
+    fetch(`/api/tasks/${editingId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...task, title: editTitle.trim(), due: buildDue(editDate, editTime) }),
-    });
-    setEditingId(null);
-    onRefresh();
+    }).then(() => onRefresh());
   };
 
   const cancelEdit = () => {
@@ -172,26 +176,25 @@ export default function WorkMemoList({ tasks, onRefresh }: WorkMemoListProps) {
     setEditTime("");
   };
 
-  const addMemo = async () => {
+  const addMemo = () => {
     const title = simpleTitle.trim();
     if (!title) return;
     const due = buildDue(simpleDate, simpleTime);
-    await fetch("/api/tasks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title,
-        scope: "work-memo",
-        column: "todo",
-        priority: "Medium",
-        ...(due ? { due } : {}),
-      }),
-    });
     setSimpleTitle("");
     setSimpleDate("");
     setSimpleTime("");
     setAddingSimple(false);
-    onRefresh();
+    fetch("/api/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title,
+        scope,
+        column: "todo",
+        priority: "Medium",
+        ...(due ? { due } : {}),
+      }),
+    }).then(() => onRefresh());
   };
 
   const addMemoByAi = async () => {
@@ -260,7 +263,7 @@ export default function WorkMemoList({ tasks, onRefresh }: WorkMemoListProps) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             title: result.title || text,
-            scope: "work-memo",
+            scope,
             column: "todo",
             priority: "Medium",
             ...(result.due ? { due: result.due } : {}),
@@ -294,7 +297,7 @@ export default function WorkMemoList({ tasks, onRefresh }: WorkMemoListProps) {
         style={{ color: "var(--color-text-quaternary)" }}
       >
         <Pin size={12} />
-        {t("work.memo.add" as any)}
+        {t(`${prefix}.add` as any)}
       </button>
     );
   }
@@ -306,12 +309,12 @@ export default function WorkMemoList({ tasks, onRefresh }: WorkMemoListProps) {
         onClick={() => setCollapsed(!collapsed)}
         className="flex items-center gap-1.5 w-full text-left mb-1.5 transition-colors hover:opacity-80"
       >
-        <Pin size={13} style={{ color: "var(--color-accent)" }} />
+        <Pin size={13} style={{ color: accent }} />
         <span className="text-[13px]" style={{ color: "var(--color-text-secondary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
-          {t("work.memo.title" as any)}
+          {t(`${prefix}.title` as any)}
         </span>
         {undoneCount > 0 && (
-          <span className="text-[12px] tabular-nums px-1.5 py-0.5 rounded-full" style={{ background: "var(--color-accent-tint)", color: "var(--color-accent)" }}>
+          <span className="text-[12px] tabular-nums px-1.5 py-0.5 rounded-full" style={{ background: `color-mix(in srgb, ${accent} 12%, transparent)`, color: accent }}>
             {undoneCount}
           </span>
         )}
@@ -339,11 +342,11 @@ export default function WorkMemoList({ tasks, onRefresh }: WorkMemoListProps) {
                   onClick={() => setSelectedDay(isSelected ? null : ds)}
                   className="flex-1 flex flex-col items-center py-1.5 transition-colors"
                   style={{
-                    background: isSelected ? "var(--color-accent-tint)" : "transparent",
+                    background: isSelected ? `color-mix(in srgb, ${accent} 12%, transparent)` : "transparent",
                   }}
                 >
                   <span className="text-[10px]" style={{
-                    color: isToday ? "var(--color-accent)" : "var(--color-text-quaternary)",
+                    color: isToday ? accent : "var(--color-text-quaternary)",
                     fontWeight: isToday ? 700 : 500,
                   } as React.CSSProperties}>
                     {dayLabels[i]}
@@ -354,14 +357,14 @@ export default function WorkMemoList({ tasks, onRefresh }: WorkMemoListProps) {
                       width: 24, height: 24, borderRadius: "50%",
                       fontSize: 13,
                       fontWeight: isToday ? 700 : 400,
-                      background: isToday ? "var(--color-accent)" : "transparent",
+                      background: isToday ? accent : "transparent",
                       color: isToday ? "var(--color-text-on-color)" : "var(--color-text-primary)",
                     } as React.CSSProperties}
                   >
                     {d.getDate()}
                   </span>
                   {/* Dot indicator */}
-                  <div className="mt-0.5" style={{ width: 4, height: 4, borderRadius: 2, background: info ? (allDone ? "var(--color-success)" : "var(--color-accent)") : "transparent" }} />
+                  <div className="mt-0.5" style={{ width: 4, height: 4, borderRadius: 2, background: info ? (allDone ? "var(--color-success)" : accent) : "transparent" }} />
                 </button>
               );
             })}
@@ -385,19 +388,21 @@ export default function WorkMemoList({ tasks, onRefresh }: WorkMemoListProps) {
 
           {/* AI quick input */}
           <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "var(--color-line-secondary)" }}>
-            <Bot size={14} className="shrink-0" style={{ color: "var(--color-accent)", opacity: 0.6 }} />
+            <Bot size={14} className="shrink-0" style={{ color: accent, opacity: 0.6 }} />
             <input
               type="text"
               value={aiInput}
               onChange={e => setAiInput(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) addMemoByAi(); }}
-              placeholder={lang === "zh" ? "AI 快捷添加：下周三 2 点见客户..." : "AI: meet client Wed 2pm..."}
+              placeholder={scope === "personal"
+                ? (lang === "zh" ? "AI 快捷添加：周六 10am 看牙医..." : "AI: dentist Sat 10am...")
+                : (lang === "zh" ? "AI 快捷添加：下周三 2 点见客户..." : "AI: meet client Wed 2pm...")}
               disabled={aiLoading}
               className="input-base flex-1 px-2 py-1.5 text-[13px]"
               style={{ background: "transparent", border: "none", boxShadow: "none" }}
             />
             {aiInput.trim() && (
-              <button onClick={addMemoByAi} disabled={aiLoading} className="btn-icon-sm shrink-0" style={{ color: "var(--color-accent)" }}>
+              <button onClick={addMemoByAi} disabled={aiLoading} className="btn-icon-sm shrink-0" style={{ color: accent }}>
                 {aiLoading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
               </button>
             )}
@@ -487,20 +492,22 @@ export default function WorkMemoList({ tasks, onRefresh }: WorkMemoListProps) {
                     </span>
                   )}
                   <button
-                    onClick={e => { e.stopPropagation(); startEdit(task); }}
-                    className="btn-icon-sm shrink-0"
-                    style={{ opacity: 0.4 }}
+                    onClick={e => { e.stopPropagation(); e.preventDefault(); startEdit(task); }}
+                    onPointerDown={e => e.stopPropagation()}
+                    className="shrink-0 flex items-center justify-center"
+                    style={{ opacity: 0.5, width: 32, height: 32, borderRadius: 8 }}
                     onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
-                    onMouseLeave={e => (e.currentTarget.style.opacity = "0.4")}
+                    onMouseLeave={e => (e.currentTarget.style.opacity = "0.5")}
                   >
-                    <Pencil size={12} />
+                    <Pencil size={14} />
                   </button>
                   <button
-                    onClick={e => { e.stopPropagation(); deleteTask(task.id); }}
-                    className="btn-icon-sm shrink-0"
-                    style={{ opacity: 0.4 }}
+                    onClick={e => { e.stopPropagation(); e.preventDefault(); deleteTask(task.id); }}
+                    onPointerDown={e => e.stopPropagation()}
+                    className="shrink-0 flex items-center justify-center"
+                    style={{ opacity: 0.5, width: 32, height: 32, borderRadius: 8 }}
                     onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
-                    onMouseLeave={e => (e.currentTarget.style.opacity = "0.4")}
+                    onMouseLeave={e => (e.currentTarget.style.opacity = "0.5")}
                   >
                     <Trash2 size={13} />
                   </button>
@@ -518,7 +525,7 @@ export default function WorkMemoList({ tasks, onRefresh }: WorkMemoListProps) {
                   value={simpleTitle}
                   onChange={e => setSimpleTitle(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) addMemo(); if (e.key === "Escape") { setAddingSimple(false); setSimpleTitle(""); setSimpleDate(""); setSimpleTime(""); } }}
-                  placeholder={t("work.memo.placeholder" as any)}
+                  placeholder={t(`${prefix}.placeholder` as any)}
                   className="input-base flex-1 px-2 py-1.5 text-[14px]"
                   autoFocus
                 />
@@ -553,7 +560,7 @@ export default function WorkMemoList({ tasks, onRefresh }: WorkMemoListProps) {
               style={{ color: "var(--color-text-quaternary)", borderColor: "var(--color-line-secondary)" }}
             >
               <Plus size={13} />
-              {t("work.memo.add" as any)}
+              {t(`${prefix}.add` as any)}
             </button>
           )}
         </div>

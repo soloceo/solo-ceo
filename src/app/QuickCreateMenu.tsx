@@ -1,4 +1,5 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Plus,
@@ -153,23 +154,29 @@ export function QuickCreateMenu({ setActiveTab }: QuickCreateMenuProps) {
           }}
         />
       </button>
-      <AnimatePresence>
-        {quickCreateOpen && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.92, y: -6 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.92, y: -6 }}
-            transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
-            role="menu"
-            className="absolute left-0 top-[calc(100%+4px)] w-48 py-1 overflow-hidden"
-            style={{
-              background: "var(--color-bg-primary)",
-              border: "1px solid var(--color-border-primary)",
-              borderRadius: "var(--radius-8)",
-              boxShadow: "var(--shadow-medium)",
-              zIndex: 10,
-            }}
-          >
+      {createPortal(
+        <AnimatePresence>
+          {quickCreateOpen && (() => {
+            const rect = quickCreateRef.current?.getBoundingClientRect();
+            const top = rect ? rect.bottom + 4 : 0;
+            const left = rect ? rect.left : 0;
+            return (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.92, y: -6 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: -6 }}
+                transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
+                role="menu"
+                className="fixed w-48 py-1 overflow-hidden"
+                style={{
+                  top, left,
+                  background: "var(--color-bg-primary)",
+                  border: "1px solid var(--color-border-primary)",
+                  borderRadius: "var(--radius-8)",
+                  boxShadow: "var(--shadow-medium)",
+                  zIndex: 600,
+                }}
+              >
             {quickCreateGroups.map((group, gi) => (
               <div key={gi}>
                 {gi > 0 && (
@@ -206,9 +213,12 @@ export function QuickCreateMenu({ setActiveTab }: QuickCreateMenuProps) {
                 ))}
               </div>
             ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
+              </motion.div>
+            );
+          })()}
+        </AnimatePresence>,
+        document.body,
+      )}
     </div>
   );
 }

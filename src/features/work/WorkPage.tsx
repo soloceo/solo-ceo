@@ -10,7 +10,6 @@ import { useRealtimeRefresh } from "../../hooks/useRealtimeRefresh";
 import { useUIStore } from "../../store/useUIStore";
 import { KanbanBoard, SwimlaneView, type ColDef } from "./KanbanBoard";
 import { TaskDetail, type TaskForm } from "./TaskDetail";
-import PersonalTaskList from "./PersonalTaskList";
 import WorkMemoList from "./WorkMemoList";
 import type { Task } from "./TaskCard";
 
@@ -464,7 +463,7 @@ export default function WorkPage() {
 
         {/* Panel 2: Personal */}
         <div className="home-swipe-panel">
-          <PersonalTaskList tasks={allTasks} onRefresh={fetchTasks} />
+          <WorkMemoList tasks={allTasks} onRefresh={fetchTasks} scope="personal" accentColor="var(--color-info)" />
         </div>
       </div>
 

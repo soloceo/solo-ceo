@@ -13,6 +13,7 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { Plus } from "lucide-react";
+import { useIsMobile } from "../../hooks/useIsMobile";
 import { TaskCard, type Task } from "./TaskCard";
 
 export interface ColDef {
@@ -45,10 +46,10 @@ function findColumn(tasks: Record<string, Task[]>, taskId: string): string | nul
 
 export function KanbanBoard({ columns, tasks, onDragEnd, onAdd, onEdit, onDelete, onClientClick, emptyText, onPriorityChange, onDueChange, onColumnChange }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+    ...(!isMobile ? [useSensor(PointerSensor, { activationConstraint: { distance: 5 } })] : []),
   );
 
   const allTasks = useMemo(() => Object.values(tasks).flat(), [tasks]);
@@ -230,10 +231,10 @@ interface SwimlaneProps {
 
 export function SwimlaneView({ columns, tasks, onDragEnd, onAdd, onEdit, onDelete, onMove, emptyText, onPriorityChange, onDueChange, onColumnChange }: SwimlaneProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+    ...(!isMobile ? [useSensor(PointerSensor, { activationConstraint: { distance: 5 } })] : []),
   );
 
   const allTasks = useMemo(() => Object.values(tasks).flat(), [tasks]);
