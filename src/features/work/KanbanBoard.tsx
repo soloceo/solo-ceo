@@ -49,7 +49,7 @@ export function KanbanBoard({ columns, tasks, onDragEnd, onAdd, onEdit, onDelete
   const isMobile = useIsMobile();
 
   const sensors = useSensors(
-    ...(!isMobile ? [useSensor(PointerSensor, { activationConstraint: { distance: 5 } })] : []),
+    useSensor(PointerSensor, { activationConstraint: { distance: isMobile ? 99999 : 5 } }),
   );
 
   const allTasks = useMemo(() => Object.values(tasks).flat(), [tasks]);
@@ -234,7 +234,7 @@ export function SwimlaneView({ columns, tasks, onDragEnd, onAdd, onEdit, onDelet
   const isMobile = useIsMobile();
 
   const sensors = useSensors(
-    ...(!isMobile ? [useSensor(PointerSensor, { activationConstraint: { distance: 5 } })] : []),
+    useSensor(PointerSensor, { activationConstraint: { distance: isMobile ? 99999 : 5 } }),
   );
 
   const allTasks = useMemo(() => Object.values(tasks).flat(), [tasks]);

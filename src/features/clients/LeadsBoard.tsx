@@ -573,7 +573,7 @@ function useLeadDnd(leads: Record<string, any[]>, columns: any[], onDragEnd: (r:
   const [activeId, setActiveId] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const sensors = useSensors(
-    ...(!isMobile ? [useSensor(PointerSensor, { activationConstraint: { distance: 5 } })] : []),
+    useSensor(PointerSensor, { activationConstraint: { distance: isMobile ? 99999 : 5 } }),
   );
   const allLeads = useMemo(() => Object.values(leads).flat(), [leads]);
   const activeLead = activeId ? allLeads.find((l: any) => l.id.toString() === activeId) : null;
