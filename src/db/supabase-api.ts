@@ -262,15 +262,15 @@ async function syncClientSubscriptionLedger(userId: string) {
   // Fetch existing subscription transactions for this user
   const { data: existing } = await supabase
     .from('finance_transactions')
-    .select('id, source_id, date')
+    .select('id, source_id, date, status')
     .eq('user_id', userId)
     .eq('source', 'subscription')
     .eq('soft_deleted', false);
 
-  const existingMap = new Map<string, number>();
+  const existingMap = new Map<string, { id: number; status: string }>();
   for (const row of (existing || [])) {
     const m = String(row.date || '').substring(0, 7);
-    existingMap.set(`${row.source_id}-${m}`, row.id);
+    existingMap.set(`${row.source_id}-${m}`, { id: row.id, status: row.status || '' });
   }
 
   // Upsert: insert missing, update changed, soft-delete removed
@@ -278,10 +278,12 @@ async function syncClientSubscriptionLedger(userId: string) {
   const toUpdate: { id: number; data: LedgerUpdateData }[] = [];
 
   for (const [key, row] of shouldExist) {
-    const existId = existingMap.get(key);
-    if (existId) {
+    const exist = existingMap.get(key);
+    if (exist) {
       // Already exists — update amount/description/tax in case client changed
-      toUpdate.push({ id: existId, data: { amount: row.amount, description: row.description, date: row.date, status: row.status, tax_mode: row.tax_mode, tax_rate: row.tax_rate, tax_amount: row.tax_amount, client_name: row.client_name } });
+      // IMPORTANT: preserve status if user already confirmed receipt (已完成)
+      const preservedStatus = exist.status === '已完成' ? '已完成' : row.status;
+      toUpdate.push({ id: exist.id, data: { amount: row.amount, description: row.description, date: row.date, status: preservedStatus, tax_mode: row.tax_mode, tax_rate: row.tax_rate, tax_amount: row.tax_amount, client_name: row.client_name } });
       existingMap.delete(key);
     } else {
       toInsert.push(row);
@@ -289,7 +291,7 @@ async function syncClientSubscriptionLedger(userId: string) {
   }
 
   // Remaining in existingMap are rows that should no longer exist → soft delete
-  const toDelete = [...existingMap.values()];
+  const toDelete = [...existingMap.values()].map(e => e.id);
 
   // Execute
   if (toInsert.length > 0) {
