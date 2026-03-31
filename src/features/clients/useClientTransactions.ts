@@ -150,6 +150,30 @@ export function useClientTransactions(clientId: number | null) {
     setTxForm(createEmptyTx());
   }, []);
 
+  /** Mark a pending subscription transaction as received (已完成) */
+  const confirmReceipt = useCallback(async (txId: number) => {
+    try {
+      await api.post(`/api/finance/${txId}/confirm-receipt`);
+      showToast(t("pipeline.tx.confirmSuccess"));
+      fetchFinance();
+    } catch (e) {
+      console.warn('[useClientTransactions] confirmReceipt', e);
+      showToast(t("common.saveFailed"));
+    }
+  }, [fetchFinance, showToast, t]);
+
+  /** Undo a confirmed subscription receipt back to pending */
+  const undoReceipt = useCallback(async (txId: number) => {
+    try {
+      await api.post(`/api/finance/${txId}/undo-receipt`);
+      showToast(t("pipeline.tx.undoReceiptSuccess"));
+      fetchFinance();
+    } catch (e) {
+      console.warn('[useClientTransactions] undoReceipt', e);
+      showToast(t("common.saveFailed"));
+    }
+  }, [fetchFinance, showToast, t]);
+
   const resetState = useCallback(() => {
     setShowTxForm(false);
     setEditTxId(null);
@@ -162,7 +186,7 @@ export function useClientTransactions(clientId: number | null) {
     // Setters
     setDeleteTxId, setTxForm,
     // Actions
-    fetchFinance, saveTx, deleteTx,
+    fetchFinance, saveTx, deleteTx, confirmReceipt, undoReceipt,
     openNewTx, openEditTx, closeTxForm, resetState,
   };
 }

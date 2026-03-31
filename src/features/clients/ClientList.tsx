@@ -762,6 +762,16 @@ export function ClientsView() {
                                 })()}
                                 <span className="text-[15px] truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{txItem.description || txItem.desc}</span>
                               </div>
+                              {/* Subscription confirm/undo receipt */}
+                              {txItem.source === "subscription" && (txItem.status || "").includes("应收") && (
+                                <button onClick={() => tx.confirmReceipt(txItem.id)} className="btn-primary compact text-[13px]">{t("pipeline.tx.confirmReceipt")}</button>
+                              )}
+                              {txItem.source === "subscription" && (txItem.status || "") === "已完成" && (
+                                <button onClick={() => tx.undoReceipt(txItem.id)} className="btn-ghost compact text-[13px]" style={{ color: "var(--color-text-tertiary)" }}>
+                                  <Undo2 size={13} className="mr-1" />{t("pipeline.tx.undoReceipt")}
+                                </button>
+                              )}
+                              {/* Manual tx edit/delete */}
                               {(!txItem.source || txItem.source === "manual") && (
                                 <div className="flex items-center gap-1 shrink-0">
                                   <button onClick={() => tx.openEditTx(txItem)} className="btn-icon-sm"><Edit2 size={16} /></button>

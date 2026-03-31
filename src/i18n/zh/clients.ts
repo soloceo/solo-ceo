@@ -202,4 +202,8 @@ export const clients = {
   "pipeline.tx.received": "已到账",
   "pipeline.tx.pending": "待收",
   "pipeline.tx.expense": "支出",
+  "pipeline.tx.confirmReceipt": "确认收款",
+  "pipeline.tx.undoReceipt": "撤销",
+  "pipeline.tx.confirmSuccess": "已确认收款",
+  "pipeline.tx.undoReceiptSuccess": "已撤销收款确认",
 };

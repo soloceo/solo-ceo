@@ -903,6 +903,34 @@ export async function handleSupabaseRequest(
     return ok({ id: data!.id });
   }
 
+  // ── Confirm receipt for subscription transactions ──
+  const confirmReceiptMatch = path.match(/^\/api\/finance\/(\d+)\/confirm-receipt$/);
+  if (confirmReceiptMatch && method === 'POST') {
+    const id = Number(confirmReceiptMatch[1]);
+    const { data: txRow } = await supabase.from('finance_transactions').select('source, status, description').eq('id', id).eq('user_id', userId).single();
+    if (!txRow) return err(404, 'Transaction not found');
+    if (txRow.source !== 'subscription') return err(400, 'Only subscription transactions can use confirm-receipt');
+    if (txRow.status === '已完成') return err(400, 'Already confirmed');
+    const { error: e } = await supabase.from('finance_transactions').update({ status: '已完成' }).eq('id', id).eq('user_id', userId);
+    if (e) return err(500, e.message);
+    await logActivity(userId, 'finance', 'updated', `确认收款：${txRow.description || '未命名交易'}`, '', id);
+    return ok({ success: true });
+  }
+
+  // ── Undo receipt for subscription transactions ──
+  const undoReceiptMatch = path.match(/^\/api\/finance\/(\d+)\/undo-receipt$/);
+  if (undoReceiptMatch && method === 'POST') {
+    const id = Number(undoReceiptMatch[1]);
+    const { data: txRow } = await supabase.from('finance_transactions').select('source, status, description').eq('id', id).eq('user_id', userId).single();
+    if (!txRow) return err(404, 'Transaction not found');
+    if (txRow.source !== 'subscription') return err(400, 'Only subscription transactions can use undo-receipt');
+    if (txRow.status !== '已完成') return err(400, 'Not yet confirmed');
+    const { error: e } = await supabase.from('finance_transactions').update({ status: '待收款 (应收)' }).eq('id', id).eq('user_id', userId);
+    if (e) return err(500, e.message);
+    await logActivity(userId, 'finance', 'updated', `撤销收款确认：${txRow.description || '未命名交易'}`, '', id);
+    return ok({ success: true });
+  }
+
   const financeMatch = path.match(/^\/api\/finance\/(\d+)$/);
   if (financeMatch) {
     const id = Number(financeMatch[1]);

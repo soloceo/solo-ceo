@@ -204,4 +204,8 @@ export const clients = {
   "pipeline.tx.received": "Received",
   "pipeline.tx.pending": "Pending",
   "pipeline.tx.expense": "Expense",
+  "pipeline.tx.confirmReceipt": "Confirm Receipt",
+  "pipeline.tx.undoReceipt": "Undo",
+  "pipeline.tx.confirmSuccess": "Receipt confirmed",
+  "pipeline.tx.undoReceiptSuccess": "Receipt confirmation undone",
 };
