@@ -196,7 +196,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
 
     if (!provider || !apiKey) {
       // No AI key — just create directly with text as title
-      await api.post("/api/tasks", { title: text, scope: "work-memo", column: "todo", priority: "Medium" });
+      await api.post("/api/tasks", { title: text, scope, column: "todo", priority: "Medium" });
       showToast(`✓ ${text}`);
       setAiInput("");
       onRefresh();
@@ -257,7 +257,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
     } catch (e) {
       console.warn('[WorkMemoList] AI parse failed, using fallback', e);
       // Fallback: create directly
-      await api.post("/api/tasks", { title: text, scope: "work-memo", column: "todo", priority: "Medium" });
+      await api.post("/api/tasks", { title: text, scope, column: "todo", priority: "Medium" });
       showToast(`✓ ${text}`);
       setAiInput("");
       onRefresh();

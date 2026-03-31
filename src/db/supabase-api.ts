@@ -163,7 +163,7 @@ async function logActivity(
 
 // ── Input validation helpers ─────────────────────────────────────
 
-const VALID_LEAD_COLUMNS = ['new', 'contacted', 'proposal', 'negotiation', 'won', 'lost'] as const;
+const VALID_LEAD_COLUMNS = ['new', 'contacted', 'proposal', 'won', 'lost'] as const;
 const VALID_CLIENT_STATUSES = ['Active', 'Paused', 'Cancelled', 'Completed'] as const;
 const VALID_BILLING_TYPES = ['subscription', 'project'] as const;
 const VALID_TAX_MODES = ['none', 'exclusive', 'inclusive'] as const;
@@ -172,6 +172,8 @@ const VALID_TASK_COLUMNS = ['todo', 'inProgress', 'review', 'done'] as const;
 const VALID_TASK_SCOPES = ['work', 'personal', 'work-memo'] as const;
 const VALID_PAYMENT_METHODS = ['auto', 'manual'] as const;
 const VALID_TX_TYPES = ['income', 'expense'] as const;
+const VALID_TX_STATUSES = ['已完成', '待收款 (应收)', '待支付 (应付)'] as const;
+const VALID_MS_STATUSES = ['pending', 'paid'] as const;
 
 // ── Tax calc helper ───────────────────────────────────────────────
 function calcTax(amount: number, mode: string, rate: number): number {
@@ -381,14 +383,14 @@ export async function handleSupabaseRequest(
     if (!lead) return err(404, 'Lead not found');
     const { plan_tier, status, mrr, subscription_start_date, mrr_effective_from, billing_type, project_fee } = body || {};
     const np = normalizePlanTier(plan_tier || '');
-    const bt = billing_type || 'subscription';
+    const bt = enumVal(billing_type, VALID_BILLING_TYPES, 'subscription');
     const today = todayDateKey();
     const { data: newClient, error: e } = await supabase
       .from('clients')
       .insert({
         user_id: userId,
-        name: lead.name || '', industry: lead.industry || '',
-        plan_tier: np, status: status || 'Active', brand_context: lead.needs || '',
+        name: str(lead.name, 255) || '', industry: str(lead.industry, 100) || '',
+        plan_tier: np, status: enumVal(status, VALID_CLIENT_STATUSES, 'Active'), brand_context: str(lead.needs, 2000) || '',
         mrr: bt === 'subscription' ? Number(mrr || 0) : 0,
         billing_type: bt,
         project_fee: bt === 'project' ? Number(project_fee || 0) : 0,
@@ -610,7 +612,7 @@ export async function handleSupabaseRequest(
         .update({
           label: str(label, 255), amount: amount || 0, percentage: percentage || 0,
           due_date: str(due_date, 10), payment_method: str(payment_method, 50),
-          status: status || 'pending', invoice_number: str(invoice_number, 100),
+          status: enumVal(status, VALID_MS_STATUSES, 'pending'), invoice_number: str(invoice_number, 100),
           note: str(note, 1000), sort_order: sort_order ?? 0,
         })
         .eq('id', id).eq('user_id', userId);
@@ -889,7 +891,7 @@ export async function handleSupabaseRequest(
       .insert({
         user_id: userId,
         type: enumVal(type, VALID_TX_TYPES, 'income'), amount: amount || 0, category: str(category, 100),
-        description: str(description, 500), date: str(date, 10), status: status || '已完成',
+        description: str(description, 500), date: str(date, 10), status: enumVal(status, VALID_TX_STATUSES, '已完成'),
         tax_mode: enumVal(tax_mode, VALID_TAX_MODES, 'none'), tax_rate: tax_rate || 0, tax_amount: tax_amount || 0,
         client_id: client_id || null, client_name: str(client_name, 255),
       })
@@ -918,7 +920,7 @@ export async function handleSupabaseRequest(
         .from('finance_transactions')
         .update({
           type: enumVal(type, VALID_TX_TYPES, 'income'), amount: amount || 0, category: str(category, 100),
-          description: str(description, 500), date: str(date, 10), status: status || '已完成',
+          description: str(description, 500), date: str(date, 10), status: enumVal(status, VALID_TX_STATUSES, '已完成'),
           tax_mode: enumVal(tax_mode, VALID_TAX_MODES, 'none'), tax_rate: tax_rate || 0, tax_amount: tax_amount || 0,
           client_id: client_id || null, client_name: str(client_name, 255),
         })
