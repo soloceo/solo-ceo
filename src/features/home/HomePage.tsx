@@ -351,7 +351,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div ref={scrollRef} className="mobile-page max-w-[1680px] mx-auto min-h-full px-4 py-3 md:px-6 md:py-4 lg:px-8 lg:py-5 relative">
+    <div ref={scrollRef} className="mobile-page max-w-[1680px] mx-auto min-h-full p-4 md:p-6 lg:p-8 relative">
       <div className="page-stack">
         {/* ── Header: Greeting + Progress Ring + Date ── */}
         <div className="flex items-center gap-3">
@@ -508,7 +508,7 @@ export default function HomePage() {
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  transition={{ type: "spring", damping: 30, stiffness: 320 }}
+                  transition={{ duration: 0.3, ease: [0.25, 1, 0.5, 1] }}
                   className="overflow-hidden"
                 >
                   <div className="divide-y divide-[var(--color-line-secondary)]">
@@ -625,7 +625,7 @@ export default function HomePage() {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={{ type: "spring", damping: 30, stiffness: 320 }}
+                transition={{ duration: 0.3, ease: [0.25, 1, 0.5, 1] }}
                 className="overflow-hidden"
               >
                 {/* Phase pills */}

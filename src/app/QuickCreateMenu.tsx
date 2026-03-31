@@ -156,10 +156,10 @@ export function QuickCreateMenu({ setActiveTab }: QuickCreateMenuProps) {
       <AnimatePresence>
         {quickCreateOpen && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: -4 }}
+            initial={{ opacity: 0, scale: 0.92, y: -6 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -4 }}
-            transition={{ duration: 0.12, ease: [0.25, 0.46, 0.45, 0.94] }}
+            exit={{ opacity: 0, scale: 0.92, y: -6 }}
+            transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
             role="menu"
             className="absolute left-0 top-[calc(100%+4px)] w-48 py-1 overflow-hidden"
             style={{

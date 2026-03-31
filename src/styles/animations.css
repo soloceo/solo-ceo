@@ -1,6 +1,6 @@
 /* ══════════════════════════════════════════════════════════════════
    Animations — Solo CEO V2
-   Spring physics via Motion library; CSS for simple/loading states
+   iOS 26 Liquid Glass motion system
    ══════════════════════════════════════════════════════════════════ */
 
 /* ── Keyframes ────────────────────────────────────────────────── */
@@ -32,48 +32,77 @@
 /* ── Utility classes ─────────────────────────────────────────── */
 
 .animate-skeleton-in {
-  animation: skeleton-in 0.3s ease-out 0.3s both;
+  animation: skeleton-in 0.15s var(--ease-ios) 0.1s both;
 }
 
 .animate-fade-in {
-  animation: fade-in 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: fade-in 0.2s var(--ease-ios) both;
 }
 
-/* ── Page enter (instant Linear-style) ─────────────────────── */
+/* ── anim-appear: mount fade+slide (iOS 26 style) ────────── */
+.anim-appear {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.2s var(--ease-ios),
+              transform 0.3s var(--ease-ios-bounce);
+}
+@starting-style {
+  .anim-appear {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* ── anim-fade: mount fade only ───────────────────────────── */
+.anim-fade {
+  opacity: 1;
+  transition: opacity 0.2s var(--ease-ios);
+}
+@starting-style {
+  .anim-fade {
+    opacity: 0;
+  }
+}
+
+/* ── anim-collapse: smooth height collapse/expand ─────────── */
+.anim-collapse-wrapper {
+  display: grid;
+  transition: grid-template-rows 0.3s var(--ease-ios);
+}
+.anim-collapse-wrapper[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+.anim-collapse-wrapper[data-open="false"] {
+  grid-template-rows: 0fr;
+}
+.anim-collapse-inner {
+  overflow: hidden;
+}
+
+/* ── Page enter (iOS 26 style — 300ms fade+slide) ─────────── */
 
 @keyframes page-enter {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .page-enter {
-  animation: page-enter 80ms ease-out both;
+  animation: page-enter 300ms var(--ease-ios) both;
 }
 
-/* ── Press feedback ──────────────────────────────────────────── */
+/* ── Press feedback (iOS 26 — gentle scale) ──────────────── */
 
 .press-feedback {
-  transition: transform 0.12s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  will-change: transform;
+  transition: transform 0.2s var(--ease-ios);
 }
 .press-feedback:active {
-  transform: scale(0.97);
-  transition: transform 60ms ease-out;
+  transform: scale(0.96);
+  transition: transform 80ms var(--ease-ios);
 }
 
-/* ── Celebrate bounce ──────────────────────────────────────────── */
-
-@keyframes celebrate-bounce {
-  0%, 100% { transform: scale(1); }
-  25% { transform: scale(1.05); }
-  50% { transform: scale(0.97); }
-  75% { transform: scale(1.02); }
-}
-.celebrate-bounce {
-  animation: celebrate-bounce 0.5s var(--spring-bounce);
-}
+/* ── Popover (iOS 26 spring-from-source) ──────────────────── */
 
 @keyframes popoverIn {
-  from { opacity: 0; transform: translateY(-4px) scale(0.97); }
+  from { opacity: 0; transform: translateY(-6px) scale(0.92); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }

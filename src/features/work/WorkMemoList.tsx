@@ -322,7 +322,8 @@ export default function WorkMemoList({ tasks, onRefresh }: WorkMemoListProps) {
       </button>
 
       {/* Content */}
-      {!collapsed && (
+      <div className="anim-collapse-wrapper" data-open={!collapsed && memoTasks.length > 0 ? "true" : "false"}>
+        <div className="anim-collapse-inner">
         <div className="card overflow-hidden">
           {/* Week strip */}
           <div className="flex items-stretch border-b" style={{ borderColor: "var(--color-line-secondary)" }}>
@@ -465,7 +466,7 @@ export default function WorkMemoList({ tasks, onRefresh }: WorkMemoListProps) {
               return (
                 <div
                   key={task.id}
-                  className="flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback"
+                  className="flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback anim-appear"
                   onClick={() => toggleTask(task)}
                 >
                   <div className="shrink-0">
@@ -556,7 +557,8 @@ export default function WorkMemoList({ tasks, onRefresh }: WorkMemoListProps) {
             </button>
           )}
         </div>
-      )}
+        </div>
+      </div>
     </div>
   );
 }

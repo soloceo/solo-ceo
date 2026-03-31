@@ -46,7 +46,6 @@
   --color-danger-light:    #fef2f2;
   --color-danger-tint:     #fef2f2;
   --color-info:            #3b82f6;
-  --color-info-light:      #eff6ff;
 
   /* ── Text on colored backgrounds ─────────────────────────────── */
   --color-text-on-color:   #ffffff;
@@ -57,6 +56,11 @@
 
   /* ── Overlay ──────────────────────────────────────────────────── */
   --color-overlay-primary: rgba(255,255,255,0.65);
+
+  /* ── Liquid Glass (iOS 26) ──────────────────────────────────── */
+  --glass-bg:              rgba(255, 255, 255, 0.82);
+  --glass-border:          rgba(255, 255, 255, 0.6);
+  --glass-shadow:          0 -1px 8px rgba(0, 0, 0, 0.04);
 
   /* ── Shadows — warm neutral system ─────────────────────────── */
   --shadow-tiny:           0px 1px 1px 0px rgba(0,0,0,0.06);
@@ -85,10 +89,15 @@
   --page-max-width:        1024px;
   --min-tap-size:          44px;
 
-  /* ── Transitions — Linear easing ─────────────────────────────── */
-  --speed-quick:           0.1s;
-  --ease-out-quad:         cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  --transition-fast:       0.1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  /* ── Transitions — iOS 26 easing system ──────────────────────── */
+  --speed-quick:           0.15s;
+  --ease-out-quad:         cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast:       0.15s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* iOS 26 Liquid Glass easing curves */
+  --ease-ios:              cubic-bezier(0.4, 0, 0.2, 1);     /* standard smooth */
+  --ease-ios-bounce:       cubic-bezier(0.25, 1, 0.5, 1);    /* slide-in bounce */
+  --ease-ios-glass:        cubic-bezier(0.175, 0.885, 0.32, 2.2); /* elastic glass */
 
   /* ── Focus ───────────────────────────────────────────────────── */
   --focus-ring-width:      2px;
@@ -103,8 +112,6 @@
   --layer-toasts:          800;
   --layer-tooltip:         1100;
 
-  /* ── Spring Animation Curves ───────────────────────────────────── */
-  --spring-bounce:        cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* ── Grid background ────────────────────────────────────────── */
   --grid-line-color:       #f5f4ed;
@@ -150,12 +157,16 @@
   --color-danger-light:    #2a0808;
   --color-danger-tint:     #2a0808;
   --color-info:            #60a5fa;
-  --color-info-light:      #0c1a2e;
 
   --header-bg:             rgba(20,20,19,0.6);
   --header-border:         rgba(255,255,255,0.06);
 
   --color-overlay-primary: rgba(0,0,0,0.85);
+
+  /* ── Liquid Glass (iOS 26) dark ─────────────────────────────── */
+  --glass-bg:              rgba(20, 20, 19, 0.82);
+  --glass-border:          rgba(255, 255, 255, 0.08);
+  --glass-shadow:          0 -1px 8px rgba(0, 0, 0, 0.2);
 
   --shadow-tiny:           0px 0px 0px transparent;
   --shadow-low:            0px 2px 4px rgba(0,0,0,0.1);

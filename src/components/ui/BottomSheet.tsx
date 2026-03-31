@@ -67,11 +67,11 @@ export function BottomSheet({ open, onClose, title, children, className }: Botto
           {/* Backdrop */}
           <motion.div
             className="absolute inset-0"
-            style={{ background: "var(--color-overlay-primary)" }}
+            style={{ background: "var(--color-overlay-primary)", backdropFilter: "blur(2px) saturate(180%)", WebkitBackdropFilter: "blur(2px) saturate(180%)" }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
+            transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
             onClick={onClose}
           />
 
@@ -81,7 +81,7 @@ export function BottomSheet({ open, onClose, title, children, className }: Botto
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
-            transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={{ duration: 0.35, ease: [0.25, 1, 0.5, 1] }}
             className={cn(
               "relative w-full max-h-[90vh] flex flex-col overflow-hidden",
               "rounded-t-[var(--radius-16)]",

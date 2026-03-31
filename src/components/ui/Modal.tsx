@@ -81,19 +81,19 @@ export function Modal({ open, onClose, onSubmit, title, children, className, siz
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.15 }}
+          transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
           role="dialog"
           aria-modal="true"
           aria-label={title}
         >
-          <div className="absolute inset-0" style={{ background: "var(--color-overlay-primary)" }} onClick={onClose} />
+          <div className="absolute inset-0" style={{ background: "var(--color-overlay-primary)", backdropFilter: "blur(2px) saturate(180%)", WebkitBackdropFilter: "blur(2px) saturate(180%)" }} onClick={onClose} />
 
           <motion.div
             ref={dialogRef}
-            initial={{ opacity: 0, scale: 0.97, y: 8 }}
+            initial={{ opacity: 0, scale: 0.92, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.97, y: 4 }}
-            transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+            exit={{ opacity: 0, scale: 0.92, y: 4 }}
+            transition={{ duration: 0.3, ease: [0.25, 1, 0.5, 1] }}
             className={cn(
               "relative w-full overflow-hidden flex flex-col max-h-[85vh]",
               sizes[size],

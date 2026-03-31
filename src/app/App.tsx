@@ -90,9 +90,7 @@ const Content = React.memo(({ activeTab }: { activeTab: string }) => {
   return (
     <PageErrorBoundary key={activeTab} pageName={activeTab}>
       <Suspense fallback={<PageSkeleton />}>
-        <div className="page-enter">
-          <Page />
-        </div>
+        <Page />
       </Suspense>
     </PageErrorBoundary>
   );
@@ -549,12 +547,12 @@ function App() {
                 <AnimatePresence>
                   {fabMenuOpen && (
                     <motion.div
-                      initial={{ opacity: 0, scale: 0.85, y: 10 }}
+                      initial={{ opacity: 0, scale: 0.92, y: 10 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.85, y: 10 }}
-                      transition={{ duration: 0.15, ease: [0.34, 1.56, 0.64, 1] }}
+                      exit={{ opacity: 0, scale: 0.92, y: 10 }}
+                      transition={{ duration: 0.25, ease: [0.175, 0.885, 0.32, 2.2] }}
                       className="absolute bottom-[56px] right-0 w-[180px] py-1.5 rounded-[var(--radius-16)]"
-                      style={{ background: "var(--color-bg-primary)", border: "1px solid var(--color-border-translucent)", boxShadow: "var(--shadow-high)" }}
+                      style={{ background: "var(--glass-bg)", backdropFilter: "blur(2px) saturate(180%)", WebkitBackdropFilter: "blur(2px) saturate(180%)", border: "1px solid var(--glass-border)", boxShadow: "var(--shadow-high)" }}
                       role="menu"
                     >
                       {quickCreateGroups.map((group, gi) => (

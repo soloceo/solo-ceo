@@ -22,7 +22,7 @@ export function StatCard({ label, value, sub, icon, color }: {
   label: string; value: string; sub: string; icon: React.ReactNode; color: string;
 }) {
   return (
-    <div className="stat-card">
+    <div className="stat-card anim-appear">
       <div className="flex items-center justify-between mb-1">
         <span className="text-[13px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{label}</span>
         <span className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-4)]" style={{ background: `color-mix(in srgb, ${color} 10%, transparent)`, color }}>{icon}</span>

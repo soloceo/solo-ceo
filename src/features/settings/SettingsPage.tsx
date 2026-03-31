@@ -45,7 +45,7 @@ export default function SettingsPage() {
   };
 
   useEffect(() => {
-    getQueueLength().then(setPendingOps).catch(() => {});
+    getQueueLength().then(setPendingOps).catch(() => { /* offline — no queue available */ });
     const onOnline = () => setOnline(true);
     const onOffline = () => setOnline(false);
     const onSyncStatus = (e: Event) => {
@@ -72,7 +72,7 @@ export default function SettingsPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ OPERATOR_NAME: cleanedName, OPERATOR_AVATAR: operatorAvatar || '' }),
-    }).catch(() => {});
+    }).catch((e) => console.warn("[Settings] Failed to save profile:", e));
     showToast(t("settings.saved" as any));
   };
 
@@ -98,7 +98,7 @@ export default function SettingsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ OPERATOR_AVATAR: compressed }),
-      }).catch(() => {});
+      }).catch((e) => console.warn("[Settings] Failed to save avatar:", e));
       showToast(t("settings.avatarUpdated" as any));
     };
     img.src = dataUrl;
@@ -125,13 +125,13 @@ export default function SettingsPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ OPERATOR_AVATAR: '' }),
-    }).catch(() => {});
+    }).catch((e) => console.warn("[Settings] Failed to remove avatar:", e));
     showToast(t("settings.avatarRemoved" as any));
   };
 
   /* ── Render ── */
   return (
-    <div className="mobile-page max-w-2xl lg:max-w-3xl mx-auto px-4 py-3 md:px-8 md:py-4 lg:py-5 relative">
+    <div className="mobile-page max-w-[1680px] mx-auto min-h-full p-4 md:p-6 lg:p-8 relative">
 
       <h1 className="sr-only">{t("settings.title" as any)}</h1>
 

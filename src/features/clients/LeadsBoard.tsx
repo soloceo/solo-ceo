@@ -7,7 +7,13 @@ import { useAppSettings } from "../../hooks/useAppSettings";
 import { generateOutreach, analyzeLeadQuality, AI_KEY_MAP, type AIProvider, type LeadAnalysis } from "../../lib/ai-client";
 import { exportCSV } from "../../lib/csv-export";
 import { todayDateKey } from "../../lib/date-utils";
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import {
+  DndContext, DragOverlay, closestCorners,
+  PointerSensor, TouchSensor, useSensor, useSensors,
+  type DragStartEvent, type DragEndEvent,
+} from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { motion, AnimatePresence } from "motion/react";
 import { createPortal } from "react-dom";
 import { useT } from "../../i18n/context";
@@ -320,13 +326,7 @@ export function LeadsView() {
           ))}
         </div>
       ) : viewMode === "vertical" ? (
-        <div className="flex-1 overflow-x-auto overflow-y-hidden ios-scroll pb-4 -mx-4 px-4 md:-mx-6 md:px-6 lg:mx-0 lg:px-0 snap-x snap-mandatory lg:snap-none lg:overflow-x-visible">
-          <div className="flex h-full gap-3 min-w-max lg:min-w-0">
-            <DragDropContext onDragEnd={onDragEnd}>
-              {LEAD_COLS.map(col => <LeadColumn key={col.id} col={col} items={leads[col.id]} onAdd={() => openPanel(null, col.id)} onEdit={(l: any) => openPanel(l, col.id)} onDelete={(id: number) => setDeleteId(id)} emptyText={t("pipeline.emptyCol" as any)} leadScores={leadScores} />)}
-            </DragDropContext>
-          </div>
-        </div>
+        <LeadKanban leads={leads} columns={LEAD_COLS} onDragEnd={onDragEnd} onAdd={openPanel} onEdit={openPanel} onDelete={(id: number) => setDeleteId(id)} emptyText={t("pipeline.emptyCol" as any)} leadScores={leadScores} />
       ) : (
         <LeadSwimlane leads={leads} columns={LEAD_COLS} onDragEnd={onDragEnd} onAdd={openPanel} onEdit={openPanel} onDelete={(id: number) => setDeleteId(id)} emptyText={t("pipeline.emptyCol" as any)} onMove={async (id: number, col: string) => {
           try {
@@ -342,12 +342,12 @@ export function LeadsView() {
       {createPortal(<AnimatePresence>
         {showPanel && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="fixed inset-0" style={{ zIndex: 699, background: "var(--color-overlay-primary)" }} onClick={() => setShowPanel(false)} />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }} className="fixed inset-0" style={{ zIndex: 699, background: "var(--color-overlay-primary)", backdropFilter: "blur(2px) saturate(180%)", WebkitBackdropFilter: "blur(2px) saturate(180%)" }} onClick={() => setShowPanel(false)} />
             <motion.div
               initial={{ x: isMobile ? 0 : "100%", y: isMobile ? "100%" : 0 }}
               animate={{ x: 0, y: 0 }}
               exit={{ x: isMobile ? 0 : "100%", y: isMobile ? "100%" : 0 }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              transition={{ duration: 0.35, ease: [0.25, 1, 0.5, 1] }}
               role="dialog"
               aria-modal="true"
               aria-label="Lead detail"
@@ -524,57 +524,23 @@ export function LeadsView() {
   );
 }
 
-/* ── Lead column (kanban) ───────────────────────────────────────── */
-function LeadColumn({ col, items, onAdd, onEdit, onDelete, emptyText, leadScores }: { key?: React.Key; col: { id: string; title: string; color: string }; items: any[]; onAdd: () => void; onEdit: (l: any) => void; onDelete: (id: number) => void; emptyText: string; leadScores?: Record<number, LeadAnalysis> }) {
-  return (
-    <div className="flex flex-col flex-1 min-w-[240px] lg:min-w-0 h-full snap-start lg:snap-align-none">
-      <div className="flex items-center justify-between mb-2 px-1">
-        <div className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-[var(--radius-2)]" style={{ background: col.color }} />
-          <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" as any }}>{col.title}</h3>
-          <span className="text-[13px] tabular-nums" style={{ color: "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" as any }}>{items.length}</span>
-        </div>
-        <button onClick={onAdd} className="btn-icon-sm" aria-label="Add lead"><Plus size={14} /></button>
-      </div>
-      <Droppable droppableId={col.id}>
-        {(provided, snapshot) => (
-          <div {...provided.droppableProps} ref={provided.innerRef}
-            className="flex flex-col flex-1 min-h-0 rounded-[var(--radius-8)] overflow-hidden"
-            style={{ background: snapshot.isDraggingOver ? "var(--color-accent-tint)" : "var(--color-bg-tertiary)", borderTop: `2px solid ${col.color}`, transition: "background 0.15s" }}>
-            <div className="flex-1 overflow-y-auto p-1.5 space-y-1 ios-scroll">
-              {!items.length && (
-                <div className="py-8 flex flex-col items-center gap-1.5">
-                  <UserPlus size={20} style={{ color: "var(--color-text-quaternary)" }} />
-                  <span className="text-[13px]" style={{ color: "var(--color-text-quaternary)" }}>{emptyText}</span>
-                </div>
-              )}
-              {items.map((lead: any, i: number) => (
-                // @ts-expect-error React 19 type issue
-                <Draggable key={lead.id.toString()} draggableId={lead.id.toString()} index={i}>
-                  {(prov: any, snap: any) => <LeadCard lead={lead} provided={prov} snapshot={snap} onEdit={onEdit} onDelete={onDelete} score={leadScores?.[lead.id]} />}
-                </Draggable>
-              ))}
-              {provided.placeholder}
-            </div>
-          </div>
-        )}
-      </Droppable>
-    </div>
-  );
-}
-
-function LeadCard({ lead, provided, snapshot, onEdit, onDelete, score }: any) {
+/* ── Sortable Lead Card ────────────────────────────────────────── */
+function SortableLeadCard({ lead, onEdit, onDelete, score, isOverlay }: { lead: any; onEdit: (l: any) => void; onDelete: (id: number) => void; score?: LeadAnalysis; isOverlay?: boolean }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: lead.id.toString(), disabled: isOverlay });
   const scoreColors: Record<string, { bg: string; color: string; label: string }> = {
     high: { bg: "var(--color-success-light)", color: "var(--color-success)", label: "高" },
     medium: { bg: "var(--color-warning-light)", color: "var(--color-warning)", label: "中" },
     low: { bg: "color-mix(in srgb, var(--color-danger) 10%, transparent)", color: "var(--color-danger)", label: "低" },
   };
   const s = score ? scoreColors[score.score] : null;
-  const card = (
-    <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}
-      style={{ ...(provided.draggableProps.style as React.CSSProperties), touchAction: snapshot.isDragging ? "none" : "auto", ...(snapshot.isDragging ? { boxShadow: "var(--shadow-high)" } : {}) }}
-      onClick={() => onEdit(lead)}
-      className={`group card-interactive cursor-grab active:cursor-grabbing p-3 press-feedback ${snapshot.isDragging ? "rotate-[2deg] scale-[1.02] z-[1100]" : ""}`}>
+  const style: React.CSSProperties = isOverlay
+    ? { boxShadow: "var(--shadow-high)", transform: "rotate(2deg) scale(1.02)", opacity: 0.95 }
+    : { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1, touchAction: "manipulation" };
+
+  return (
+    <div ref={isOverlay ? undefined : setNodeRef} {...(isOverlay ? {} : attributes)} {...(isOverlay ? {} : listeners)}
+      style={style} onClick={() => onEdit(lead)}
+      className={`group card-interactive cursor-grab active:cursor-grabbing p-3 press-feedback`}>
       <div className="flex items-start justify-between gap-2 mb-1 min-w-0">
         <div className="min-w-0 flex-1">
           <h4 className="text-[15px] truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{lead.name || "—"}</h4>
@@ -593,101 +559,162 @@ function LeadCard({ lead, provided, snapshot, onEdit, onDelete, score }: any) {
       </div>
     </div>
   );
-  return snapshot.isDragging ? createPortal(card, document.body) : card;
 }
 
-function LeadSwimlane({ leads, columns, onDragEnd, onAdd, onEdit, onDelete, onMove, emptyText }: any) {
-  return (
-    <DragDropContext onDragEnd={onDragEnd}>
-    <div className="space-y-3 pb-4">
-      {columns.map((col: any) => {
-        const items: any[] = leads[col.id] || [];
-        return (
-          <section key={col.id}>
-            {/* Section header */}
-            <div className="flex items-center justify-between mb-1 px-1">
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-[var(--radius-2)]" style={{ background: col.color }} />
-                <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" as any }}>{col.title}</h3>
-                <span className="text-[13px] tabular-nums" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" as any }}>{items.length}</span>
-              </div>
-              <button onClick={() => onAdd(null, col.id)} className="btn-icon-sm" aria-label="Add lead"><Plus size={14} /></button>
-            </div>
+/* ── DnD helpers ───────────────────────────────────────────────── */
+function findLeadColumn(leads: Record<string, any[]>, id: string): string | null {
+  for (const [colId, items] of Object.entries(leads)) {
+    if (items.some((l: any) => l.id.toString() === id)) return colId;
+  }
+  return null;
+}
 
-            {/* Droppable list */}
-            <Droppable droppableId={col.id}>
-              {(droppableProvided: any, droppableSnapshot: any) => (
-                <div
-                  {...droppableProvided.droppableProps}
-                  ref={droppableProvided.innerRef}
-                  className="rounded-[var(--radius-8)] overflow-hidden"
-                  style={{
-                    background: droppableSnapshot.isDraggingOver ? "var(--color-accent-tint)" : "var(--color-bg-tertiary)",
-                    borderTop: `2px solid ${col.color}`,
-                    transition: "background var(--speed-quick) var(--ease-out-quad)",
-                  }}
-                >
+function useLeadDnd(leads: Record<string, any[]>, columns: any[], onDragEnd: (r: any) => void) {
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+  );
+  const allLeads = useMemo(() => Object.values(leads).flat(), [leads]);
+  const activeLead = activeId ? allLeads.find((l: any) => l.id.toString() === activeId) : null;
+
+  const handleDragStart = useCallback((e: DragStartEvent) => setActiveId(e.active.id as string), []);
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    setActiveId(null);
+    const { active, over } = event;
+    if (!over) return;
+    const src = findLeadColumn(leads, active.id as string);
+    if (!src) return;
+    let dest = findLeadColumn(leads, over.id as string);
+    let destIdx = 0;
+    if (dest) { destIdx = leads[dest].findIndex((l: any) => l.id.toString() === (over.id as string)); }
+    else if (columns.some((c: any) => c.id === over.id)) { dest = over.id as string; }
+    else return;
+    const srcIdx = leads[src].findIndex((l: any) => l.id.toString() === (active.id as string));
+    onDragEnd({ source: { droppableId: src, index: srcIdx }, destination: { droppableId: dest, index: destIdx } });
+  }, [leads, columns, onDragEnd]);
+
+  return { sensors, activeId, activeLead, handleDragStart, handleDragEnd };
+}
+
+/* ── Lead Kanban ──────────────────────────────────────────────── */
+function LeadKanban({ leads, columns, onDragEnd, onAdd, onEdit, onDelete, emptyText, leadScores }: any) {
+  const { sensors, activeLead, handleDragStart, handleDragEnd } = useLeadDnd(leads, columns, onDragEnd);
+  return (
+    <div className="flex-1 overflow-x-auto overflow-y-hidden ios-scroll pb-4 -mx-4 px-4 md:-mx-6 md:px-6 lg:mx-0 lg:px-0 snap-x snap-mandatory lg:snap-none lg:overflow-x-visible">
+      <div className="flex h-full gap-3 min-w-max lg:min-w-0">
+        <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+          {columns.map((col: any) => {
+            const items = leads[col.id] || [];
+            const itemIds = items.map((l: any) => l.id.toString());
+            return (
+              <div key={col.id} className="flex flex-col flex-1 min-w-[240px] lg:min-w-0 h-full snap-start lg:snap-align-none">
+                <div className="flex items-center justify-between mb-2 px-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-[var(--radius-2)]" style={{ background: col.color }} />
+                    <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" as any }}>{col.title}</h3>
+                    <span className="text-[13px] tabular-nums" style={{ color: "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" as any }}>{items.length}</span>
+                  </div>
+                  <button onClick={() => onAdd(null, col.id)} className="btn-icon-sm" aria-label="Add lead"><Plus size={14} /></button>
+                </div>
+                <SortableContext id={col.id} items={itemIds} strategy={verticalListSortingStrategy}>
+                  <div className="flex flex-col flex-1 min-h-0 rounded-[var(--radius-8)] overflow-hidden"
+                    style={{ background: "var(--color-bg-tertiary)", borderTop: `2px solid ${col.color}` }}>
+                    <div className="flex-1 overflow-y-auto p-1.5 space-y-1 ios-scroll">
+                      {!items.length && (
+                        <div className="py-8 flex flex-col items-center gap-1.5">
+                          <UserPlus size={20} style={{ color: "var(--color-text-quaternary)" }} />
+                          <span className="text-[13px]" style={{ color: "var(--color-text-quaternary)" }}>{emptyText}</span>
+                        </div>
+                      )}
+                      {items.map((lead: any) => (
+                        <SortableLeadCard key={lead.id} lead={lead} onEdit={(l: any) => onEdit(l, col.id)} onDelete={onDelete} score={leadScores?.[lead.id]} />
+                      ))}
+                    </div>
+                  </div>
+                </SortableContext>
+              </div>
+            );
+          })}
+          <DragOverlay dropAnimation={{ duration: 200, easing: "cubic-bezier(0.25, 1, 0.5, 1)" }}>
+            {activeLead ? <SortableLeadCard lead={activeLead} onEdit={() => {}} onDelete={() => {}} isOverlay /> : null}
+          </DragOverlay>
+        </DndContext>
+      </div>
+    </div>
+  );
+}
+
+/* ── Lead Swimlane ────────────────────────────────────────────── */
+function LeadSwimlane({ leads, columns, onDragEnd, onAdd, onEdit, onDelete, onMove, emptyText }: any) {
+  const { sensors, activeLead, handleDragStart, handleDragEnd } = useLeadDnd(leads, columns, onDragEnd);
+  return (
+    <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <div className="space-y-3 pb-4">
+        {columns.map((col: any) => {
+          const items: any[] = leads[col.id] || [];
+          const itemIds = items.map((l: any) => l.id.toString());
+          return (
+            <section key={col.id}>
+              <div className="flex items-center justify-between mb-1 px-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-[var(--radius-2)]" style={{ background: col.color }} />
+                  <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" as any }}>{col.title}</h3>
+                  <span className="text-[13px] tabular-nums" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" as any }}>{items.length}</span>
+                </div>
+                <button onClick={() => onAdd(null, col.id)} className="btn-icon-sm" aria-label="Add lead"><Plus size={14} /></button>
+              </div>
+              <SortableContext id={col.id} items={itemIds} strategy={verticalListSortingStrategy}>
+                <div className="rounded-[var(--radius-8)] overflow-hidden"
+                  style={{ background: "var(--color-bg-tertiary)", borderTop: `2px solid ${col.color}` }}>
                   {!items.length ? (
-                    <button
-                      onClick={() => onAdd(null, col.id)}
+                    <button onClick={() => onAdd(null, col.id)}
                       className="py-6 w-full text-center text-[13px] transition-colors hover:bg-[var(--color-bg-quaternary)] rounded-[var(--radius-6)] mx-auto my-1.5"
-                      style={{ color: "var(--color-text-quaternary)", border: "1px dashed var(--color-border-primary)", background: "transparent" }}
-                    >
-                      <Plus size={15} className="mx-auto mb-0.5" style={{ opacity: 0.4 }} />
-                      {emptyText}
+                      style={{ color: "var(--color-text-quaternary)", border: "1px dashed var(--color-border-primary)", background: "transparent" }}>
+                      <Plus size={15} className="mx-auto mb-0.5" style={{ opacity: 0.4 }} />{emptyText}
                     </button>
                   ) : (
                     <div className="p-1.5 space-y-1">
-                      {items.map((lead: any, i: number) => (
-                        // @ts-expect-error React 19 type issue with Draggable
-                        <Draggable key={lead.id.toString()} draggableId={lead.id.toString()} index={i}>
-                          {(provided: any, snapshot: any) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              role="listitem"
-                              style={{ ...(provided.draggableProps.style as React.CSSProperties), touchAction: snapshot.isDragging ? "none" : "auto", ...(snapshot.isDragging ? { boxShadow: "var(--shadow-high)" } : {}) }}
-                              onClick={() => onEdit(lead, col.id)}
-                              className={`card-interactive cursor-grab active:cursor-grabbing p-3 press-feedback ${snapshot.isDragging ? "rotate-[2deg] scale-[1.02] z-[1100]" : ""}`}
-                            >
-                              <div className="flex items-start justify-between gap-2 mb-1 min-w-0">
-                                <div className="min-w-0 flex-1">
-                                  <h4 className="text-[15px] truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{lead.name || "—"}</h4>
-                                  <p className="text-[13px] truncate mt-0.5" style={{ color: "var(--color-text-secondary)" }}>{lead.industry || "—"}</p>
-                                </div>
-                                {/* Move selector */}
-                                <div className="flex items-center gap-1 shrink-0" onClick={(e: any) => e.stopPropagation()}>
-                                  <select
-                                    value={col.id}
-                                    onChange={(e: any) => onMove(lead.id, e.target.value)}
-                                    className="input-base compact cursor-pointer text-[13px] px-2"
-                                    style={{ fontWeight: "var(--font-weight-medium)", height: "28px" } as React.CSSProperties}
-                                  >
-                                    {columns.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
-                                  </select>
-                                </div>
+                      {items.map((lead: any) => {
+                        const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: lead.id.toString() });
+                        return (
+                          <div key={lead.id} ref={setNodeRef} {...attributes} {...listeners}
+                            style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1, touchAction: "manipulation" }}
+                            onClick={() => onEdit(lead, col.id)}
+                            className="card-interactive cursor-grab active:cursor-grabbing p-3 press-feedback">
+                            <div className="flex items-start justify-between gap-2 mb-1 min-w-0">
+                              <div className="min-w-0 flex-1">
+                                <h4 className="text-[15px] truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{lead.name || "—"}</h4>
+                                <p className="text-[13px] truncate mt-0.5" style={{ color: "var(--color-text-secondary)" }}>{lead.industry || "—"}</p>
                               </div>
-                              {lead.needs && <p className="text-[13px] line-clamp-2 mb-1" style={{ color: "var(--color-text-secondary)" }}>{lead.needs}</p>}
-                              <div className="flex items-center justify-between mt-1">
-                                {lead.source ? <span className="badge">{lead.source}</span> : <span />}
-                                <button onClick={(e: any) => { e.stopPropagation(); onDelete(lead.id); }} className="btn-icon-sm" aria-label="Delete lead"><Trash2 size={14} /></button>
+                              <div className="flex items-center gap-1 shrink-0" onClick={(e: any) => e.stopPropagation()}>
+                                <select value={col.id} onChange={(e: any) => onMove(lead.id, e.target.value)}
+                                  className="input-base compact cursor-pointer text-[13px] px-2"
+                                  style={{ fontWeight: "var(--font-weight-medium)", height: "28px" } as React.CSSProperties}>
+                                  {columns.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
+                                </select>
                               </div>
                             </div>
-                          )}
-                        </Draggable>
-                      ))}
+                            {lead.needs && <p className="text-[13px] line-clamp-2 mb-1" style={{ color: "var(--color-text-secondary)" }}>{lead.needs}</p>}
+                            <div className="flex items-center justify-between mt-1">
+                              {lead.source ? <span className="badge">{lead.source}</span> : <span />}
+                              <button onClick={(e: any) => { e.stopPropagation(); onDelete(lead.id); }} className="btn-icon-sm" aria-label="Delete lead"><Trash2 size={14} /></button>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
-                  {droppableProvided.placeholder}
                 </div>
-              )}
-            </Droppable>
-          </section>
-        );
-      })}
-    </div>
-    </DragDropContext>
+              </SortableContext>
+            </section>
+          );
+        })}
+      </div>
+      <DragOverlay dropAnimation={{ duration: 200, easing: "cubic-bezier(0.25, 1, 0.5, 1)" }}>
+        {activeLead ? <SortableLeadCard lead={activeLead} onEdit={() => {}} onDelete={() => {}} isOverlay /> : null}
+      </DragOverlay>
+    </DndContext>
   );
 }
 

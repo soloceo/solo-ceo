@@ -2,7 +2,7 @@
   "name": "solo-ceo",
   "productName": "一人CEO",
   "private": true,
-  "version": "2.6.0",
+  "version": "2.7.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,8 +11,9 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@google/genai": "^1.29.0",
-    "@hello-pangea/dnd": "^18.0.1",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@rollup/rollup-linux-arm64-gnu": "^4.60.0",
     "@supabase/supabase-js": "^2.99.1",
     "@tailwindcss/vite": "^4.1.14",

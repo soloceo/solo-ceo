@@ -56,7 +56,7 @@ export default function WorkPage() {
   const [defaultColumn, setDefaultColumn] = useState("todo");
 
   useEffect(() => {
-    fetch("/api/clients").then((r) => r.json()).then((d) => setClientList(Array.isArray(d) ? d.filter((c: ClientItem) => !c.soft_deleted) : [])).catch(() => {});
+    fetch("/api/clients").then((r) => r.json()).then((d) => setClientList(Array.isArray(d) ? d.filter((c: ClientItem) => !c.soft_deleted) : [])).catch((e) => console.warn("[WorkPage] Failed to fetch clients:", e));
   }, []);
 
   const fetchTasks = useCallback(async () => {
@@ -295,7 +295,7 @@ export default function WorkPage() {
   const counts = COLS.map((c) => ({ ...c, count: (tasks[c.id] || []).length }));
 
   return (
-    <div className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col px-4 py-3 md:px-6 md:py-4 lg:px-8 lg:py-5 relative">
+    <div className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col p-4 md:p-6 lg:p-8 relative">
       <h1 className="sr-only">{t("nav.work" as any)}</h1>
 
       {/* ── Segmented Tab Switcher ── */}
@@ -432,7 +432,7 @@ export default function WorkPage() {
               ))}
             </div>
           ) : viewMode === "vertical" ? (
-            <KanbanBoard
+            <div key="kanban" className="anim-fade flex-1 flex flex-col"><KanbanBoard
               columns={COLS}
               tasks={filteredTasks}
               onDragEnd={onDragEnd}
@@ -444,9 +444,9 @@ export default function WorkPage() {
               onPriorityChange={handlePriorityChange}
               onDueChange={handleDueChange}
               onColumnChange={handleMove}
-            />
+            /></div>
           ) : (
-            <SwimlaneView
+            <div key="swimlane" className="anim-fade flex-1 flex flex-col"><SwimlaneView
               columns={COLS}
               tasks={filteredTasks}
               onDragEnd={onDragEnd}
@@ -458,7 +458,7 @@ export default function WorkPage() {
               onPriorityChange={handlePriorityChange}
               onDueChange={handleDueChange}
               onColumnChange={handleMove}
-            />
+            /></div>
           )}
         </div>
 

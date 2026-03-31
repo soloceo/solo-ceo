@@ -60,7 +60,7 @@ export default defineConfig(({mode}) => {
             'vendor-react': ['react', 'react-dom'],
             'vendor-supabase': ['@supabase/supabase-js'],
             'vendor-recharts': ['recharts'],
-            'vendor-dnd': ['@hello-pangea/dnd'],
+            'vendor-dnd': ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
             'vendor-motion': ['motion'],
             'vendor-cmdk': ['cmdk'],
           },

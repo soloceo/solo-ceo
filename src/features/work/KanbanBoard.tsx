@@ -1,5 +1,17 @@
-import React from "react";
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import React, { useState, useCallback, useMemo } from "react";
+import {
+  DndContext,
+  DragOverlay,
+  closestCorners,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragStartEvent,
+  type DragOverEvent,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { Plus } from "lucide-react";
 import { TaskCard, type Task } from "./TaskCard";
 
@@ -18,21 +30,86 @@ interface KanbanBoardProps {
   onDelete: (id: number) => void;
   onClientClick?: () => void;
   emptyText: string;
-  /** Inline priority change */
   onPriorityChange?: (id: number, priority: Task["priority"]) => void;
-  /** Inline due date change */
   onDueChange?: (id: number, due: string) => void;
-  /** Move task to a specific column */
   onColumnChange?: (id: number, col: string) => void;
 }
 
+/** Find which column a task ID belongs to */
+function findColumn(tasks: Record<string, Task[]>, taskId: string): string | null {
+  for (const [colId, items] of Object.entries(tasks)) {
+    if (items.some(t => t.id.toString() === taskId)) return colId;
+  }
+  return null;
+}
+
 export function KanbanBoard({ columns, tasks, onDragEnd, onAdd, onEdit, onDelete, onClientClick, emptyText, onPriorityChange, onDueChange, onColumnChange }: KanbanBoardProps) {
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+  );
+
+  const allTasks = useMemo(() => Object.values(tasks).flat(), [tasks]);
+  const activeTask = activeId ? allTasks.find(t => t.id.toString() === activeId) : null;
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  }, []);
+
+  const handleDragOver = useCallback((_event: DragOverEvent) => {
+    // Visual feedback handled by CSS (isDraggingOver state not needed with DragOverlay)
+  }, []);
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    setActiveId(null);
+    const { active, over } = event;
+    if (!over) return;
+
+    const activeTaskId = active.id as string;
+    const overId = over.id as string;
+
+    // Find source column
+    const sourceCol = findColumn(tasks, activeTaskId);
+    if (!sourceCol) return;
+
+    // Determine destination: over could be a task ID or a column ID
+    let destCol = findColumn(tasks, overId);
+    let destIndex = 0;
+
+    if (destCol) {
+      // Dropped over a task — find its index
+      destIndex = tasks[destCol].findIndex(t => t.id.toString() === overId);
+    } else if (columns.some(c => c.id === overId)) {
+      // Dropped over an empty column droppable
+      destCol = overId;
+      destIndex = 0;
+    } else {
+      return;
+    }
+
+    const sourceIndex = tasks[sourceCol].findIndex(t => t.id.toString() === activeTaskId);
+
+    // Translate to source/destination format for WorkPage.onDragEnd
+    onDragEnd({
+      source: { droppableId: sourceCol, index: sourceIndex },
+      destination: { droppableId: destCol, index: destIndex },
+    });
+  }, [tasks, columns, onDragEnd]);
+
   return (
     <div className="flex-1 overflow-x-auto overflow-y-hidden ios-scroll pb-4 -mx-4 px-4 md:-mx-6 md:px-6 lg:mx-0 lg:px-0 snap-x snap-mandatory lg:snap-none lg:overflow-x-visible">
       <div className="flex h-full gap-3 min-w-max lg:min-w-0">
-        <DragDropContext onDragEnd={onDragEnd}>
-          {columns.map((col, colIdx) => (
-            <Column
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+        >
+          {columns.map((col) => (
+            <KanbanColumn
               key={col.id}
               col={col}
               items={tasks[col.id] || []}
@@ -47,14 +124,23 @@ export function KanbanBoard({ columns, tasks, onDragEnd, onAdd, onEdit, onDelete
               onColumnChange={onColumnChange}
             />
           ))}
-        </DragDropContext>
+          <DragOverlay dropAnimation={{ duration: 200, easing: "cubic-bezier(0.25, 1, 0.5, 1)" }}>
+            {activeTask ? (
+              <TaskCard
+                task={activeTask}
+                onEdit={() => {}}
+                onDelete={() => {}}
+                isOverlay
+              />
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       </div>
     </div>
   );
 }
 
-function Column({ col, items, onAdd, onEdit, onDelete, onClientClick, emptyText, onPriorityChange, onDueChange, columns, onColumnChange }: {
-  key?: React.Key;
+function KanbanColumn({ col, items, onAdd, onEdit, onDelete, onClientClick, emptyText, onPriorityChange, onDueChange, columns, onColumnChange }: {
   col: ColDef;
   items: Task[];
   onAdd: () => void;
@@ -67,6 +153,8 @@ function Column({ col, items, onAdd, onEdit, onDelete, onClientClick, emptyText,
   columns?: ColDef[];
   onColumnChange?: (id: number, col: string) => void;
 }) {
+  const itemIds = useMemo(() => items.map(t => t.id.toString()), [items]);
+
   return (
     <div className="flex flex-col flex-1 min-w-[240px] lg:min-w-0 h-full snap-start lg:snap-align-none" role="region" aria-label={col.title}>
       {/* Column header */}
@@ -85,55 +173,47 @@ function Column({ col, items, onAdd, onEdit, onDelete, onClientClick, emptyText,
         </button>
       </div>
 
-      <Droppable droppableId={col.id}>
-        {(provided, snapshot) => (
-          <div
-            {...provided.droppableProps}
-            ref={provided.innerRef}
-            className="flex flex-col flex-1 min-h-0 rounded-[var(--radius-8)] overflow-hidden"
-            role="list"
-            style={{
-              background: snapshot.isDraggingOver ? "var(--color-accent-tint)" : "var(--color-bg-tertiary)",
-              borderTop: `2px solid ${col.color}`,
-              transition: "background var(--speed-quick) var(--ease-out-quad)",
-            }}
-          >
-            <div className="flex-1 overflow-y-auto p-1.5 space-y-1">
-              {!items.length && (
-                <button
-                  onClick={onAdd}
-                  className="py-6 w-full text-center text-[13px] transition-colors hover:bg-[var(--color-bg-quaternary)] rounded-[var(--radius-6)] mx-auto my-1.5"
-                  style={{ color: "var(--color-text-quaternary)", border: "1px dashed var(--color-border-primary)", background: "transparent" }}
-                >
-                  <Plus size={15} className="mx-auto mb-0.5" style={{ opacity: 0.4 }} />
-                  {emptyText}
-                </button>
-              )}
-              {items.map((task, i) => (
-                // @ts-expect-error React 19 type issue with Draggable
-                <Draggable key={task.id.toString()} draggableId={task.id.toString()} index={i}>
-                  {(prov: any, snap: any) => (
-                    <TaskCard
-                      task={task} provided={prov} snapshot={snap}
-                      onEdit={onEdit} onDelete={onDelete} onClientClick={onClientClick}
-                      onPriorityChange={onPriorityChange}
-                      onDueChange={onDueChange}
-                      columns={columns}
-                      onColumnChange={onColumnChange}
-                    />
-                  )}
-                </Draggable>
-              ))}
-              {provided.placeholder}
-            </div>
+      <SortableContext id={col.id} items={itemIds} strategy={verticalListSortingStrategy}>
+        <div
+          className="flex flex-col flex-1 min-h-0 rounded-[var(--radius-8)] overflow-hidden"
+          role="list"
+          style={{
+            background: "var(--color-bg-tertiary)",
+            borderTop: `2px solid ${col.color}`,
+          }}
+        >
+          <div className="flex-1 overflow-y-auto p-1.5 space-y-1">
+            {!items.length && (
+              <button
+                onClick={onAdd}
+                className="py-6 w-full text-center text-[13px] transition-colors hover:bg-[var(--color-bg-quaternary)] rounded-[var(--radius-6)] mx-auto my-1.5"
+                style={{ color: "var(--color-text-quaternary)", border: "1px dashed var(--color-border-primary)", background: "transparent" }}
+              >
+                <Plus size={15} className="mx-auto mb-0.5" style={{ opacity: 0.4 }} />
+                {emptyText}
+              </button>
+            )}
+            {items.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onClientClick={onClientClick}
+                onPriorityChange={onPriorityChange}
+                onDueChange={onDueChange}
+                columns={columns}
+                onColumnChange={onColumnChange}
+              />
+            ))}
           </div>
-        )}
-      </Droppable>
+        </div>
+      </SortableContext>
     </div>
   );
 }
 
-/* ── Swimlane View — reuses TaskCard with drag-and-drop ── */
+/* ── Swimlane View ── */
 interface SwimlaneProps {
   columns: ColDef[];
   tasks: Record<string, Task[]>;
@@ -149,40 +229,84 @@ interface SwimlaneProps {
 }
 
 export function SwimlaneView({ columns, tasks, onDragEnd, onAdd, onEdit, onDelete, onMove, emptyText, onPriorityChange, onDueChange, onColumnChange }: SwimlaneProps) {
-  return (
-    <DragDropContext onDragEnd={onDragEnd}>
-    <div className="space-y-3 pb-4">
-      {columns.map((col, colIdx) => {
-        const items = tasks[col.id] || [];
-        return (
-          <section key={col.id}>
-            {/* Section header */}
-            <div className="flex items-center justify-between mb-1 px-1">
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-[var(--radius-2)]" style={{ background: col.color }} />
-                <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
-                  {col.title}
-                </h3>
-                <span className="text-[13px] tabular-nums" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-                  {items.length}
-                </span>
-              </div>
-              <button onClick={() => onAdd(col.id)} className="btn-icon-sm" aria-label="Add task">
-                <Plus size={14} />
-              </button>
-            </div>
+  const [activeId, setActiveId] = useState<string | null>(null);
 
-            {/* Droppable list */}
-            <Droppable droppableId={col.id}>
-              {(droppableProvided, droppableSnapshot) => (
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+  );
+
+  const allTasks = useMemo(() => Object.values(tasks).flat(), [tasks]);
+  const activeTask = activeId ? allTasks.find(t => t.id.toString() === activeId) : null;
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    setActiveId(null);
+    const { active, over } = event;
+    if (!over) return;
+
+    const activeTaskId = active.id as string;
+    const overId = over.id as string;
+
+    let sourceCol: string | null = null;
+    for (const [colId, items] of Object.entries(tasks)) {
+      if (items.some(t => t.id.toString() === activeTaskId)) { sourceCol = colId; break; }
+    }
+    if (!sourceCol) return;
+
+    let destCol: string | null = null;
+    let destIndex = 0;
+    for (const [colId, items] of Object.entries(tasks)) {
+      const idx = items.findIndex(t => t.id.toString() === overId);
+      if (idx >= 0) { destCol = colId; destIndex = idx; break; }
+    }
+    if (!destCol && columns.some(c => c.id === overId)) {
+      destCol = overId;
+      destIndex = 0;
+    }
+    if (!destCol) return;
+
+    const sourceIndex = tasks[sourceCol].findIndex(t => t.id.toString() === activeTaskId);
+
+    onDragEnd({
+      source: { droppableId: sourceCol, index: sourceIndex },
+      destination: { droppableId: destCol, index: destIndex },
+    });
+  }, [tasks, columns, onDragEnd]);
+
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCorners}
+      onDragStart={(e) => setActiveId(e.active.id as string)}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="space-y-3 pb-4">
+        {columns.map((col) => {
+          const items = tasks[col.id] || [];
+          const itemIds = items.map(t => t.id.toString());
+          return (
+            <section key={col.id}>
+              <div className="flex items-center justify-between mb-1 px-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-[var(--radius-2)]" style={{ background: col.color }} />
+                  <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
+                    {col.title}
+                  </h3>
+                  <span className="text-[13px] tabular-nums" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
+                    {items.length}
+                  </span>
+                </div>
+                <button onClick={() => onAdd(col.id)} className="btn-icon-sm" aria-label="Add task">
+                  <Plus size={14} />
+                </button>
+              </div>
+
+              <SortableContext id={col.id} items={itemIds} strategy={verticalListSortingStrategy}>
                 <div
-                  {...droppableProvided.droppableProps}
-                  ref={droppableProvided.innerRef}
                   className="rounded-[var(--radius-8)] overflow-hidden"
                   style={{
-                    background: droppableSnapshot.isDraggingOver ? "var(--color-accent-tint)" : "var(--color-bg-tertiary)",
+                    background: "var(--color-bg-tertiary)",
                     borderTop: `2px solid ${col.color}`,
-                    transition: "background var(--speed-quick) var(--ease-out-quad)",
                   }}
                 >
                   {!items.length ? (
@@ -196,31 +320,36 @@ export function SwimlaneView({ columns, tasks, onDragEnd, onAdd, onEdit, onDelet
                     </button>
                   ) : (
                     <div className="p-1.5 space-y-1">
-                      {items.map((task, i) => (
-                        // @ts-expect-error React 19 type issue with Draggable
-                        <Draggable key={task.id.toString()} draggableId={task.id.toString()} index={i}>
-                          {(provided: any, snapshot: any) => (
-                            <TaskCard
-                              task={task} provided={provided} snapshot={snapshot}
-                              onEdit={onEdit} onDelete={onDelete}
-                              onPriorityChange={onPriorityChange}
-                              onDueChange={onDueChange}
-                              columns={columns}
-                              onColumnChange={onColumnChange}
-                            />
-                          )}
-                        </Draggable>
+                      {items.map((task) => (
+                        <TaskCard
+                          key={task.id}
+                          task={task}
+                          onEdit={onEdit}
+                          onDelete={onDelete}
+                          onPriorityChange={onPriorityChange}
+                          onDueChange={onDueChange}
+                          columns={columns}
+                          onColumnChange={onColumnChange}
+                        />
                       ))}
                     </div>
                   )}
-                  {droppableProvided.placeholder}
                 </div>
-              )}
-            </Droppable>
-          </section>
-        );
-      })}
-    </div>
-    </DragDropContext>
+              </SortableContext>
+            </section>
+          );
+        })}
+      </div>
+      <DragOverlay dropAnimation={{ duration: 200, easing: "cubic-bezier(0.25, 1, 0.5, 1)" }}>
+        {activeTask ? (
+          <TaskCard
+            task={activeTask}
+            onEdit={() => {}}
+            onDelete={() => {}}
+            isOverlay
+          />
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   );
 }

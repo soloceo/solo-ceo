@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { createPortal } from "react-dom";
 import { useT } from "../../i18n/context";
 import { useRealtimeRefresh } from "../../hooks/useRealtimeRefresh";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import { useUIStore } from "../../store/useUIStore";
 import { Skeleton } from "../../components/ui";
-import { motion, AnimatePresence } from "motion/react";
 import {
   Plus,
   X,
@@ -499,7 +499,7 @@ export default function FinancePage() {
   /* ── Loading ── */
   if (isLoading) {
     return (
-      <div className="mobile-page max-w-[1680px] mx-auto min-h-full px-4 py-3 md:px-6 md:py-4 lg:px-8 lg:py-5">
+      <div className="mobile-page max-w-[1680px] mx-auto min-h-full p-4 md:p-6 lg:p-8">
         <div className="space-y-4 animate-skeleton-in">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[1,2,3,4].map(i => <Skeleton key={i} className="h-[80px] rounded-[var(--radius-12)]" />)}
@@ -514,7 +514,7 @@ export default function FinancePage() {
   }
 
   return (
-    <div className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col px-4 py-3 md:px-6 md:py-4 lg:px-8 lg:py-5 relative">
+    <div className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col p-4 md:p-6 lg:p-8 relative">
       <h1 className="sr-only">{t("nav.finance" as any)}</h1>
 
       {/* ── Segmented Tab Switcher ── */}
@@ -824,14 +824,14 @@ export default function FinancePage() {
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className={isMobile ? "fixed inset-0" : "fixed inset-0"}
-              style={{ zIndex: 699, background: isMobile ? "var(--color-bg-primary)" : "var(--color-overlay-primary)" }}
+              style={{ zIndex: 699, background: isMobile ? "var(--color-bg-primary)" : "var(--color-overlay-primary)", ...(!isMobile ? { backdropFilter: "blur(2px) saturate(180%)", WebkitBackdropFilter: "blur(2px) saturate(180%)" } : {}) }}
               onClick={() => !isMobile && setShowPanel(false)}
             />
             <motion.div
               initial={{ x: isMobile ? 0 : "100%", y: isMobile ? "100%" : 0 }}
               animate={{ x: 0, y: 0 }}
               exit={{ x: isMobile ? 0 : "100%", y: isMobile ? "100%" : 0 }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              transition={{ duration: 0.35, ease: [0.25, 1, 0.5, 1] }}
               role="dialog"
               aria-modal="true"
               aria-label="Transaction form"

@@ -140,9 +140,9 @@ export function TaskDetail({ open, onClose, editTask, columns, defaultColumn, cl
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
+            transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
             className="fixed inset-0"
-            style={{ zIndex: 699, background: "var(--color-overlay-primary)" }}
+            style={{ zIndex: 699, background: "var(--color-overlay-primary)", backdropFilter: "blur(2px) saturate(180%)", WebkitBackdropFilter: "blur(2px) saturate(180%)" }}
             onClick={onClose}
           />
           {/* Panel */}
@@ -150,7 +150,7 @@ export function TaskDetail({ open, onClose, editTask, columns, defaultColumn, cl
             initial={{ x: isMobile ? 0 : "100%", y: isMobile ? "100%" : 0 }}
             animate={{ x: 0, y: 0 }}
             exit={{ x: isMobile ? 0 : "100%", y: isMobile ? "100%" : 0 }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            transition={{ duration: 0.35, ease: [0.25, 1, 0.5, 1] }}
             role="dialog"
             aria-modal="true"
             aria-label="Task detail"

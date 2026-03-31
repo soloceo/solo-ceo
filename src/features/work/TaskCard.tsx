@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { createPortal } from "react-dom";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Clock, Trash2, Calendar, ArrowRightLeft } from "lucide-react";
 import { fmtDate } from "../../lib/format";
 import { todayDateKey } from "../../lib/date-utils";
@@ -39,41 +41,57 @@ interface ColDef {
 
 interface TaskCardProps {
   task: Task;
-  provided: any;
-  snapshot: any;
   onEdit: (task: Task) => void;
   onDelete: (id: number) => void;
   onClientClick?: () => void;
-  /** Inline priority change */
   onPriorityChange?: (id: number, priority: Task["priority"]) => void;
-  /** Inline due date change */
   onDueChange?: (id: number, due: string) => void;
-  /** All columns for stage picker */
   columns?: ColDef[];
-  /** Move task to a specific column */
   onColumnChange?: (id: number, col: string) => void;
+  /** If true, renders as overlay (no sortable hooks) */
+  isOverlay?: boolean;
 }
 
 export const TaskCard = React.memo(function TaskCard({
-  task, provided, snapshot, onEdit, onDelete, onClientClick,
-  onPriorityChange, onDueChange, columns, onColumnChange,
+  task, onEdit, onDelete, onClientClick,
+  onPriorityChange, onDueChange, columns, onColumnChange, isOverlay,
 }: TaskCardProps) {
   const { lang, t } = useT();
   const prio = prioLabel[task.priority];
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: task.id.toString(),
+    disabled: isOverlay,
+  });
+
+  const style: React.CSSProperties = isOverlay
+    ? { boxShadow: "var(--shadow-high)", transform: "rotate(2deg) scale(1.02)", opacity: 0.95 }
+    : {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.4 : 1,
+        touchAction: "manipulation",
+      };
+
   const cardContent = (
     <div
-      ref={provided.innerRef}
-      {...provided.draggableProps}
-      {...provided.dragHandleProps}
+      ref={isOverlay ? undefined : setNodeRef}
+      {...(isOverlay ? {} : attributes)}
+      {...(isOverlay ? {} : listeners)}
       role="listitem"
-      style={{ ...(provided.draggableProps.style as React.CSSProperties), touchAction: snapshot.isDragging ? "none" : "auto", ...(snapshot.isDragging ? { boxShadow: "var(--shadow-high)" } : {}) }}
+      style={style}
       onClick={() => onEdit(task)}
-      className={`group card-interactive cursor-grab active:cursor-grabbing p-3 press-feedback ${snapshot.isDragging ? "rotate-[2deg] scale-[1.02] z-[1100]" : ""}`}
+      className={`group card-interactive cursor-grab active:cursor-grabbing p-3 press-feedback ${isDragging && !isOverlay ? "z-[1100]" : ""}`}
     >
       <div className="flex items-center gap-2 mb-1 min-w-0">
-        {/* Inline priority editor */}
         {onPriorityChange ? (
           <InlinePopover
             align="start"
@@ -130,7 +148,6 @@ export const TaskCard = React.memo(function TaskCard({
 
       <div className="flex items-center justify-between mt-1">
         <div className="flex items-center gap-1">
-          {/* Inline date editor */}
           {onDueChange ? (
             <span
               className="inline-flex items-center gap-1 cursor-pointer rounded-[var(--radius-4)] transition-colors hover:bg-[var(--color-bg-quaternary)]"
@@ -190,7 +207,6 @@ export const TaskCard = React.memo(function TaskCard({
         </div>
 
         <div className="flex items-center gap-1">
-          {/* Stage picker */}
           {columns && onColumnChange && (
             <InlinePopover
               align="end"
@@ -251,27 +267,29 @@ export const TaskCard = React.memo(function TaskCard({
     </div>
   );
 
-  const cardWithConfirm = confirmDeleteId === task.id ? (
-    <>
-      {cardContent}
-      {createPortal(
-        <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 710, background: "var(--color-overlay-primary)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 16px)" }}>
-          <div className="card-elevated w-full max-w-sm p-5 rounded-[var(--radius-6)]" role="dialog" aria-modal="true" aria-label="Confirm delete">
-            <h3 className="text-[15px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("common.confirmDelete" as any)}</h3>
-            <p className="text-[14px] mb-4" style={{ color: "var(--color-text-secondary)" }}>{t("common.cannotUndo" as any)}</p>
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setConfirmDeleteId(null)} className="btn-secondary text-[14px]">{t("common.cancel" as any)}</button>
-              <button onClick={() => {
-                onDelete(task.id);
-                setConfirmDeleteId(null);
-              }} className="text-[14px] px-4 py-2 rounded-[var(--radius-6)]" style={{ background: "var(--color-danger)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("common.confirm" as any)}</button>
+  if (confirmDeleteId === task.id) {
+    return (
+      <>
+        {cardContent}
+        {createPortal(
+          <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 710, background: "var(--color-overlay-primary)", backdropFilter: "blur(2px) saturate(180%)", WebkitBackdropFilter: "blur(2px) saturate(180%)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 16px)" }}>
+            <div className="card-elevated w-full max-w-sm p-5 rounded-[var(--radius-6)]" role="dialog" aria-modal="true" aria-label="Confirm delete">
+              <h3 className="text-[15px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("common.confirmDelete" as any)}</h3>
+              <p className="text-[14px] mb-4" style={{ color: "var(--color-text-secondary)" }}>{t("common.cannotUndo" as any)}</p>
+              <div className="flex justify-end gap-2">
+                <button onClick={() => setConfirmDeleteId(null)} className="btn-secondary text-[14px]">{t("common.cancel" as any)}</button>
+                <button onClick={() => {
+                  onDelete(task.id);
+                  setConfirmDeleteId(null);
+                }} className="text-[14px] px-4 py-2 rounded-[var(--radius-6)]" style={{ background: "var(--color-danger)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("common.confirm" as any)}</button>
+              </div>
             </div>
-          </div>
-        </div>,
-        document.body,
-      )}
-    </>
-  ) : cardContent;
+          </div>,
+          document.body,
+        )}
+      </>
+    );
+  }
 
-  return snapshot.isDragging ? createPortal(cardContent, document.body) : cardWithConfirm;
+  return cardContent;
 });

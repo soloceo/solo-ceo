@@ -37,7 +37,7 @@ function setupAuthCache() {
   // Init from localStorage — no network request
   supabase.auth.getSession().then(({ data }) => {
     _cachedAuthed = !!data.session;
-  }).catch(() => {});
+  }).catch(() => { /* auth check — silent in offline mode */ });
 }
 
 setupAuthCache();
@@ -158,7 +158,7 @@ export async function installSupabaseInterceptor(): Promise<void> {
     // Offline or not authenticated → use local DB
     // Queue write operations for later replay
     if (method !== 'GET') {
-      enqueue(method, path, body).catch(() => {});
+      enqueue(method, path, body).catch((e) => console.warn("[Offline] Failed to enqueue:", e));
     }
     return handleLocally(method, path, body);
   };

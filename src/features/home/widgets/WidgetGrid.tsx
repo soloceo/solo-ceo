@@ -1,32 +1,84 @@
-import React, { useState } from "react";
-import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
+import React, { useState, useMemo, useCallback } from "react";
+import {
+  DndContext, DragOverlay, closestCenter,
+  PointerSensor, TouchSensor, useSensor, useSensors,
+  type DragStartEvent, type DragEndEvent,
+} from "@dnd-kit/core";
+import { SortableContext, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Plus, Settings2, GripVertical } from "lucide-react";
 import { useT } from "../../../i18n/context";
 import { useWidgetStore } from "./useWidgetStore";
 import { WIDGET_REGISTRY, WidgetWrapper, WidgetPreviewProvider } from "./WidgetRegistry";
 import WidgetStore from "./WidgetStore";
 
+function SortableWidget({ widget, editMode }: { widget: typeof WIDGET_REGISTRY[number] & { layoutIndex: number }; editMode: boolean }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: widget.id, disabled: !editMode });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    padding: 0,
+  };
+
+  return (
+    <div ref={setNodeRef} {...attributes} className="relative group card overflow-hidden widget-card" style={style}>
+      {editMode && (
+        <div {...listeners} className="flex items-center justify-center mb-[-6px] relative cursor-grab" style={{ zIndex: 1, height: 14 }}>
+          <div className="flex items-center justify-center rounded-full" style={{ width: 32, height: 14, background: "var(--color-bg-tertiary)", color: "var(--color-text-quaternary)" }}>
+            <GripVertical size={10} />
+          </div>
+        </div>
+      )}
+      <div className="h-full">
+        <WidgetPreviewProvider value={false}>
+          <WidgetWrapper>
+            <widget.component />
+          </WidgetWrapper>
+        </WidgetPreviewProvider>
+      </div>
+    </div>
+  );
+}
+
 export default function WidgetGrid() {
   const { t } = useT();
   const { layout, reorder } = useWidgetStore();
   const [storeOpen, setStoreOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
-  const enabledWidgets = layout
-    .filter((w) => w.enabled)
-    .sort((a, b) => a.order - b.order)
-    .map((w) => {
-      const def = WIDGET_REGISTRY.find((r) => r.id === w.id);
-      return def ? { ...def, layoutIndex: layout.indexOf(w) } : null;
-    })
-    .filter(Boolean) as (typeof WIDGET_REGISTRY[number] & { layoutIndex: number })[];
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+  );
 
-  const handleDragEnd = (result: DropResult) => {
-    if (!result.destination) return;
-    const srcIdx = enabledWidgets[result.source.index]?.layoutIndex;
-    const dstIdx = enabledWidgets[result.destination.index]?.layoutIndex;
-    if (srcIdx !== undefined && dstIdx !== undefined) reorder(srcIdx, dstIdx);
-  };
+  const enabledWidgets = useMemo(() =>
+    layout
+      .filter((w) => w.enabled)
+      .sort((a, b) => a.order - b.order)
+      .map((w) => {
+        const def = WIDGET_REGISTRY.find((r) => r.id === w.id);
+        return def ? { ...def, layoutIndex: layout.indexOf(w) } : null;
+      })
+      .filter(Boolean) as (typeof WIDGET_REGISTRY[number] & { layoutIndex: number })[],
+  [layout]);
+
+  const widgetIds = useMemo(() => enabledWidgets.map(w => w.id), [enabledWidgets]);
+
+  const handleDragStart = useCallback((e: DragStartEvent) => setActiveId(e.active.id as string), []);
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    setActiveId(null);
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const srcIdx = enabledWidgets.findIndex(w => w.id === active.id);
+    const dstIdx = enabledWidgets.findIndex(w => w.id === over.id);
+    if (srcIdx >= 0 && dstIdx >= 0) {
+      reorder(enabledWidgets[srcIdx].layoutIndex, enabledWidgets[dstIdx].layoutIndex);
+    }
+  }, [enabledWidgets, reorder]);
+
+  const activeWidget = activeId ? enabledWidgets.find(w => w.id === activeId) : null;
 
   if (enabledWidgets.length === 0) {
     return (
@@ -70,52 +122,28 @@ export default function WidgetGrid() {
         </div>
       </div>
 
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId="widgets">
-          {(provided) => (
-            <div
-              ref={provided.innerRef}
-              {...provided.droppableProps}
-              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-              style={{ gap: 8 }}
-            >
-              {enabledWidgets.map((widget, index) => (
-                <Draggable {...{ key: widget.id }} draggableId={widget.id} index={index} isDragDisabled={!editMode}>
-                  {(dp, snap) => (
-                    <div
-                      ref={dp.innerRef}
-                      {...dp.draggableProps}
-                      className="relative group card overflow-hidden widget-card"
-                      style={{
-                        ...dp.draggableProps.style,
-                        opacity: snap.isDragging ? 0.85 : 1,
-                        padding: 0,
-                      }}
-                    >
-                      {editMode && (
-                        <div {...dp.dragHandleProps} className="flex items-center justify-center mb-[-6px] relative" style={{ zIndex: 1, height: 14 }}>
-                          <div className="flex items-center justify-center rounded-full" style={{ width: 32, height: 14, background: "var(--color-bg-tertiary)", color: "var(--color-text-quaternary)" }}>
-                            <GripVertical size={10} />
-                          </div>
-                        </div>
-                      )}
-                      {/* Widget content — directly interactive */}
-                      <div className="h-full">
-                        <WidgetPreviewProvider value={false}>
-                          <WidgetWrapper>
-                            <widget.component />
-                          </WidgetWrapper>
-                        </WidgetPreviewProvider>
-                      </div>
-                    </div>
-                  )}
-                </Draggable>
-              ))}
-              {provided.placeholder}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <SortableContext items={widgetIds} strategy={rectSortingStrategy}>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4" style={{ gap: 8 }}>
+            {enabledWidgets.map((widget) => (
+              <SortableWidget key={widget.id} widget={widget} editMode={editMode} />
+            ))}
+          </div>
+        </SortableContext>
+        <DragOverlay dropAnimation={{ duration: 200, easing: "cubic-bezier(0.25, 1, 0.5, 1)" }}>
+          {activeWidget ? (
+            <div className="card overflow-hidden widget-card" style={{ opacity: 0.85, boxShadow: "var(--shadow-high)", padding: 0 }}>
+              <div className="h-full">
+                <WidgetPreviewProvider value={false}>
+                  <WidgetWrapper>
+                    <activeWidget.component />
+                  </WidgetWrapper>
+                </WidgetPreviewProvider>
+              </div>
             </div>
-          )}
-        </Droppable>
-      </DragDropContext>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
 
       <WidgetStore open={storeOpen} onClose={() => setStoreOpen(false)} />
     </section>
