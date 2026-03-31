@@ -39,7 +39,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const sessionTimeout = setTimeout(() => {
       // If getSession hasn't resolved in 6s, we're likely offline or on slow network
       if (loading) {
-        console.warn('[Auth] Session check timed out — entering offline mode');
         setOfflineMode(true);
         setLoading(false);
       }
@@ -58,7 +57,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
       .catch((err) => {
         clearTimeout(sessionTimeout);
-        console.warn('[Auth] Failed to get session (likely offline):', err);
         // Offline fallback: allow app to work with local data
         setOfflineMode(true);
         setLoading(false);
@@ -69,12 +67,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
         (event, s) => {
           if (event === 'SIGNED_OUT') {
-            console.warn('[Auth] User signed out');
             setSession(null);
             setUser(null);
             setOfflineMode(true);
-          } else if (event === 'TOKEN_REFRESHED') {
-            console.info('[Auth] Token refreshed');
           }
           setSession(s);
           setUser(s?.user ?? null);
@@ -84,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
       subscriptionRef = subscription;
     } catch (err) {
-      console.warn('[Auth] Failed to set up auth listener:', err);
+      // Auth listener setup failed — app continues in offline mode
     }
 
     // Listen for online/offline to toggle offline mode
@@ -104,12 +99,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setUser(s2.user);
                 setOfflineMode(false);
               } else {
-                console.warn('[Auth] Session expired — user needs to re-login');
+                // Session expired — user needs to re-login
               }
             });
           }
         })
-        .catch((err) => { console.warn('[Auth] Session refresh failed:', err); });
+        .catch(() => { /* Session refresh failed — stays in current mode */ });
     };
     const handleOffline = () => {
       if (!user) setOfflineMode(true);

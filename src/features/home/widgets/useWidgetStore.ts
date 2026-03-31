@@ -43,11 +43,11 @@ export const useWidgetStore = create<WidgetState>()(
     {
       name: "solo-ceo-widgets",
       version: 8,
-      migrate: (persisted: any, version: number) => {
+      migrate: (persisted: Record<string, unknown>, version: number) => {
         if (version < 8) {
           // v8: remove pomodoro + quick-note
-          const layout = (persisted.layout || DEFAULT_LAYOUT)
-            .filter((w: any) => w.id !== "pomodoro" && w.id !== "quick-note" && w.id !== "learning");
+          const layout = ((persisted.layout || DEFAULT_LAYOUT) as Array<{ id: string }>)
+            .filter((w) => w.id !== "pomodoro" && w.id !== "quick-note" && w.id !== "learning");
           return { ...persisted, layout };
         }
         return persisted;

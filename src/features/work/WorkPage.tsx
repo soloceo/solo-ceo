@@ -55,7 +55,7 @@ export default function WorkPage() {
   const [defaultColumn, setDefaultColumn] = useState("todo");
 
   useEffect(() => {
-    fetch("/api/clients").then((r) => r.json()).then((d) => setClientList(Array.isArray(d) ? d.filter((c: ClientItem) => !c.soft_deleted) : [])).catch((e) => console.warn("[WorkPage] Failed to fetch clients:", e));
+    fetch("/api/clients").then((r) => r.json()).then((d) => setClientList(Array.isArray(d) ? d.filter((c: ClientItem) => !c.soft_deleted) : [])).catch(() => { /* client list unavailable */ });
   }, []);
 
   const fetchTasks = useCallback(async () => {

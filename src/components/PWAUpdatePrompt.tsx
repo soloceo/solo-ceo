@@ -26,7 +26,7 @@ export default function PWAUpdatePrompt() {
 
   return (
     <div
-      className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[900] animate-fade-in"
+      className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[var(--layer-pwa)] animate-fade-in"
       style={{ maxWidth: "calc(100vw - 32px)" }}
     >
       <div

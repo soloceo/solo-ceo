@@ -99,7 +99,6 @@
   /* iOS 26 Liquid Glass easing curves */
   --ease-ios:              cubic-bezier(0.4, 0, 0.2, 1);     /* standard smooth */
   --ease-ios-bounce:       cubic-bezier(0.25, 1, 0.5, 1);    /* slide-in bounce */
-  --ease-ios-glass:        cubic-bezier(0.175, 0.885, 0.32, 2.2); /* elastic glass */
 
   /* ── Focus ───────────────────────────────────────────────────── */
   --focus-ring-width:      2px;
@@ -111,7 +110,9 @@
   --layer-command-menu:    650;
   --layer-dialog-overlay:  699;
   --layer-dialog:          700;
+  --layer-confirm:         710;
   --layer-toasts:          800;
+  --layer-pwa:             900;
   --layer-tooltip:         1100;
 
 

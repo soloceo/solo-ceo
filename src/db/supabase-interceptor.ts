@@ -63,7 +63,7 @@ async function parseBody(input: RequestInfo | URL, init?: RequestInit): Promise<
 async function handleLocally(
   method: string,
   path: string,
-  body: any,
+  body: Record<string, unknown>,
 ): Promise<Response> {
   try {
     const { status, data } = await handleApiRequest(method, path, body);
@@ -77,9 +77,9 @@ async function handleLocally(
       status,
       headers: { 'Content-Type': 'application/json' },
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[LocalAPI]', method, path, e);
-    return new Response(JSON.stringify({ error: String(e?.message || e) }), {
+    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : String(e) }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -91,7 +91,7 @@ async function handleLocally(
 async function handleViaSupabase(
   method: string,
   path: string,
-  body: any,
+  body: Record<string, unknown>,
 ): Promise<Response> {
   try {
     const { status, data } = await handleSupabaseRequest(method, path, body);
@@ -105,7 +105,7 @@ async function handleViaSupabase(
       status,
       headers: { 'Content-Type': 'application/json' },
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[SupabaseAPI]', method, path, e);
     // Fall back to local on Supabase errors
     return handleLocally(method, path, body);

@@ -82,7 +82,7 @@ export function InlinePopover({ trigger, children, align = "start", className = 
       {open && createPortal(
         <div
           ref={panelRef}
-          className={`fixed z-[800] rounded-[var(--radius-8)] shadow-lg overflow-hidden ${className}`}
+          className={`fixed z-[var(--layer-toasts)] rounded-[var(--radius-8)] shadow-lg overflow-hidden ${className}`}
           style={{
             top: pos.top,
             left: pos.left,

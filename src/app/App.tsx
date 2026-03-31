@@ -159,7 +159,7 @@ function App() {
           monthIncome: data.todayIncome || 0,
         });
       } catch (e) {
-        console.warn("Failed to fetch badges:", e);
+        // badge fetch failed — non-critical
       }
     };
     fetchBadges();
@@ -209,7 +209,7 @@ function App() {
         if (s.protocol_streak) setProtocolStreakRaw(s.protocol_streak);
       })
       .catch((e) => {
-        console.warn("Failed to sync operator profile:", e);
+        // operator profile sync failed — non-critical
       });
   }, [user, setOperator]);
 
@@ -221,7 +221,7 @@ function App() {
       const yesterday = dateToKey(new Date(Date.now() - 86400000));
       if (s.lastDate === today || s.lastDate === yesterday) return s.count || 0;
     } catch (e) {
-      console.warn("Failed to parse protocol streak:", e);
+      // streak parse failed — return 0
     }
     return 0;
   }, [protocolStreakRaw]);

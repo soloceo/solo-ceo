@@ -31,7 +31,7 @@ export function WeeklyReport({ open, onClose }: WeeklyReportProps) {
     fetch("/api/weekly-report")
       .then(r => r.json())
       .then(setData)
-      .catch((e) => console.warn("[WeeklyReport] Failed to load:", e))
+      .catch(() => { /* weekly report load failed */ })
       .finally(() => setLoading(false));
   }, [open]);
 

@@ -157,14 +157,14 @@ export function ClientsView() {
   /* ── Form validation ── */
   const [formErrors, setFormErrors] = useState<Record<string, boolean>>({});
 
-  const fetchPlans = async () => { try { const d = await (await fetch("/api/plans")).json(); setPlans(Array.isArray(d) ? d : []); } catch (e) { console.warn("Failed to fetch plans:", e); showToast(t("common.loadFailed" as any) || "Load failed"); } };
+  const fetchPlans = async () => { try { const d = await (await fetch("/api/plans")).json(); setPlans(Array.isArray(d) ? d : []); } catch { showToast(t("common.loadFailed" as any) || "Load failed"); } };
   const fetchClients = async () => { try { const res = await fetch("/api/clients"); const data = await res.json(); setClients(Array.isArray(data) ? data : []); } catch { showToast(t("pipeline.toast.clientLoadFailed" as any)); } finally { setLoading(false); } };
-  const fetchFinance = async () => { try { const res = await fetch("/api/finance"); const d = await res.json(); setFinTxs(Array.isArray(d) ? d : []); } catch (e) { console.warn("Failed to fetch finance:", e); showToast(t("common.loadFailed" as any) || "Load failed"); } };
+  const fetchFinance = async () => { try { const res = await fetch("/api/finance"); const d = await res.json(); setFinTxs(Array.isArray(d) ? d : []); } catch { showToast(t("common.loadFailed" as any) || "Load failed"); } };
 
   const fetchMilestones = async (clientId: number) => {
     setMsLoading(true);
     try { const res = await fetch(`/api/clients/${clientId}/milestones`); setMilestones(await res.json()); }
-    catch (e) { console.warn("Failed to fetch milestones:", e); setMilestones([]); }
+    catch { setMilestones([]); }
     finally { setMsLoading(false); }
   };
 
@@ -282,7 +282,7 @@ export function ClientsView() {
       setEditId(c.id);
       // Parse timeline — fallback to legacy fields
       let tl: { type: string; date: string }[] = [];
-      try { tl = JSON.parse(c.subscription_timeline || '[]'); } catch (e) { console.warn("Failed to parse subscription timeline:", e); tl = []; }
+      try { tl = JSON.parse(c.subscription_timeline || '[]'); } catch { tl = []; }
       if (!tl.length) {
         const sd = c.subscription_start_date || (c.joined_at ? String(c.joined_at).split("T")[0].split(" ")[0] : "");
         if (sd) tl.push({ type: "start", date: sd });
@@ -495,7 +495,7 @@ export function ClientsView() {
       {createPortal(<AnimatePresence>
         {showPanel && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="fixed inset-0" style={{ zIndex: 699, background: "var(--color-overlay-primary)" }} onClick={() => setShowPanel(false)} />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="fixed inset-0" style={{ zIndex: "var(--layer-dialog-overlay)", background: "var(--color-overlay-primary)" }} onClick={() => setShowPanel(false)} />
             <motion.div
               initial={{ x: isMobile ? 0 : "100%", y: isMobile ? "100%" : 0 }}
               animate={{ x: 0, y: 0 }}
@@ -505,7 +505,7 @@ export function ClientsView() {
               aria-modal="true"
               aria-label="Client detail"
               className={isMobile ? "fixed inset-0 flex flex-col" : "fixed top-0 right-0 h-full w-full max-w-[440px] lg:max-w-[520px] flex flex-col border-l"}
-              style={{ zIndex: 700, background: "var(--color-bg-primary)", borderColor: "var(--color-border-primary)", boxShadow: "var(--shadow-high)", paddingTop: isMobile ? "var(--mobile-header-pt, env(safe-area-inset-top, 0px))" : undefined }}
+              style={{ zIndex: "var(--layer-dialog)", background: "var(--color-bg-primary)", borderColor: "var(--color-border-primary)", boxShadow: "var(--shadow-high)", paddingTop: isMobile ? "var(--mobile-header-pt, env(safe-area-inset-top, 0px))" : undefined }}
             >
               <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: "var(--color-border-primary)" }}>
                 <div className="flex items-center gap-3">
@@ -1007,7 +1007,7 @@ export function ClientsView() {
 
       {/* Billing type confirmation modal */}
       {billingConfirm !== null && createPortal(
-        <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 710, background: "var(--color-overlay-primary)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 16px)" }}>
+        <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: "var(--layer-confirm)", background: "var(--color-overlay-primary)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 16px)" }}>
           <div className="card-elevated w-full max-w-sm p-5" role="dialog" aria-modal="true" aria-label="Confirm billing type change">
             <h3 className="text-[15px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("common.confirm" as any)}</h3>
             <p className="text-[15px] mb-4" style={{ color: "var(--color-text-secondary)" }}>{billingConfirm.message}</p>
@@ -1041,7 +1041,7 @@ export function ClientsView() {
 
       {/* Delete client confirmation */}
       {deleteClientId !== null && createPortal(
-        <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 710, background: "var(--color-overlay-primary)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 16px)" }}>
+        <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: "var(--layer-confirm)", background: "var(--color-overlay-primary)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 16px)" }}>
           <div className="card-elevated w-full max-w-sm p-5" role="dialog" aria-modal="true" aria-label="Confirm delete">
             <h3 className="text-[15px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.delete.clientTitle" as any)}</h3>
             <p className="text-[15px] mb-4" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.delete.clientWarning" as any)}</p>
@@ -1055,7 +1055,7 @@ export function ClientsView() {
 
       {/* Delete transaction confirmation */}
       {deleteTxId !== null && createPortal(
-        <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 710, background: "var(--color-overlay-primary)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 16px)" }}>
+        <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: "var(--layer-confirm)", background: "var(--color-overlay-primary)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 16px)" }}>
           <div className="card-elevated w-full max-w-sm p-5" role="dialog" aria-modal="true" aria-label="Confirm delete">
             <h3 className="text-[15px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.tx.deleteTitle" as any)}</h3>
             <p className="text-[15px] mb-4" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.tx.deleteWarning" as any)}</p>

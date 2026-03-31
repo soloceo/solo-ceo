@@ -69,7 +69,7 @@ export function TodayFocus({
       await onUpdateStatus(key, status);
       if (status === "pending") setSkipped((p) => p.filter((k) => k !== key));
     } catch (e) {
-      console.error("Failed to update status:", e);
+      // update status failed
     } finally {
       setSavingKey(null);
     }
@@ -80,7 +80,7 @@ export function TodayFocus({
     try {
       await onDeleteManual(item);
     } catch (e) {
-      console.error("Failed to delete item:", e);
+      // delete item failed
     } finally {
       setSavingKey(null);
     }
@@ -96,7 +96,7 @@ export function TodayFocus({
       setEditKey(null);
       setShowForm(false);
     } catch (e) {
-      console.error("Failed to save item:", e);
+      // save item failed
     } finally {
       setSubmitting(false);
     }

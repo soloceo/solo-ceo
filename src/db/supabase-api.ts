@@ -60,6 +60,28 @@ async function logActivity(
   });
 }
 
+// ── Input validation helpers ─────────────────────────────────────
+
+/** Truncate string to maxLen, return empty string for nullish values */
+function str(val: unknown, maxLen: number): string {
+  if (val == null) return '';
+  return String(val).slice(0, maxLen);
+}
+
+const VALID_LEAD_COLUMNS = ['new', 'contacted', 'proposal', 'negotiation', 'won', 'lost'] as const;
+const VALID_CLIENT_STATUSES = ['Active', 'Paused', 'Cancelled', 'Completed'] as const;
+const VALID_BILLING_TYPES = ['subscription', 'project'] as const;
+const VALID_TAX_MODES = ['none', 'exclusive', 'inclusive'] as const;
+const VALID_TASK_PRIORITIES = ['High', 'Medium', 'Low'] as const;
+const VALID_TASK_COLUMNS = ['todo', 'inProgress', 'review', 'done'] as const;
+const VALID_TASK_SCOPES = ['work', 'personal'] as const;
+const VALID_PAYMENT_METHODS = ['auto', 'manual'] as const;
+const VALID_TX_TYPES = ['income', 'expense'] as const;
+
+function enumVal<T extends string>(val: unknown, allowed: readonly T[], fallback: T): T {
+  return allowed.includes(val as T) ? (val as T) : fallback;
+}
+
 // ── Tax calc helper ───────────────────────────────────────────────
 function calcTax(amount: number, mode: string, rate: number): number {
   if (mode === 'none' || !rate) return 0;
@@ -195,9 +217,9 @@ async function syncClientSubscriptionLedger(userId: string) {
 export async function handleSupabaseRequest(
   method: string,
   path: string,
-  body: any,
-): Promise<{ status: number; data: any }> {
-  const ok = (data: any) => ({ status: 200, data });
+  body: Record<string, unknown>,
+): Promise<{ status: number; data: unknown }> {
+  const ok = (data: unknown) => ({ status: 200, data });
   const err = (status: number, msg: string) => ({ status, data: { error: msg } });
 
   let userId: string;
@@ -225,9 +247,9 @@ export async function handleSupabaseRequest(
       .from('leads')
       .insert({
         user_id: userId,
-        name: name || '', industry: industry || '', needs: needs || '',
-        website: website || '', column: column || 'new',
-        aiDraft: aiDraft || '', source: source || '',
+        name: str(name, 255), industry: str(industry, 100), needs: str(needs, 2000),
+        website: str(website, 2048), column: enumVal(column, VALID_LEAD_COLUMNS, 'new'),
+        aiDraft: str(aiDraft, 5000), source: str(source, 100),
       })
       .select('id')
       .single();
@@ -244,13 +266,13 @@ export async function handleSupabaseRequest(
       const { error: e } = await supabase
         .from('leads')
         .update({
-          name: name || '', industry: industry || '', needs: needs || '',
-          website: website || '', column: column || 'new',
-          aiDraft: aiDraft || '', source: source || '',
+          name: str(name, 255), industry: str(industry, 100), needs: str(needs, 2000),
+          website: str(website, 2048), column: enumVal(column, VALID_LEAD_COLUMNS, 'new'),
+          aiDraft: str(aiDraft, 5000), source: str(source, 100),
         })
         .eq('id', id).eq('user_id', userId);
       if (e) return err(500, e.message);
-      await logActivity(userId, 'lead', 'updated', `更新线索：${name || '未命名线索'}`, '', id);
+      await logActivity(userId, 'lead', 'updated', `更新线索：${str(name, 255) || '未命名线索'}`, '', id);
       return ok({ success: true });
     }
     if (method === 'DELETE') {
@@ -334,23 +356,25 @@ export async function handleSupabaseRequest(
             subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from, subscription_timeline,
             company_name, contact_name, contact_email, contact_phone, billing_type, project_fee, project_end_date, tax_mode, tax_rate, drive_folder_url, payment_method } = body;
     const np = normalizePlanTier(plan_tier || '');
+    const bt = enumVal(billing_type, VALID_BILLING_TYPES, 'subscription');
     const { data, error: e } = await supabase
       .from('clients')
       .insert({
         user_id: userId,
-        name: name || '', industry: industry || '', plan_tier: np, status: status || 'Active',
-        brand_context: brand_context || '', mrr: mrr || 0,
-        subscription_start_date: subscription_start_date || '', paused_at: paused_at || '',
-        resumed_at: resumed_at || '', cancelled_at: cancelled_at || '',
-        mrr_effective_from: mrr_effective_from || subscription_start_date || '',
+        name: str(name, 255), industry: str(industry, 100), plan_tier: np,
+        status: enumVal(status, VALID_CLIENT_STATUSES, 'Active'),
+        brand_context: str(brand_context, 2000), mrr: mrr || 0,
+        subscription_start_date: str(subscription_start_date, 10), paused_at: str(paused_at, 10),
+        resumed_at: str(resumed_at, 10), cancelled_at: str(cancelled_at, 10),
+        mrr_effective_from: str(mrr_effective_from, 10) || str(subscription_start_date, 10),
         subscription_timeline: subscription_timeline || JSON.stringify(subscription_start_date ? [{ type: 'start', date: subscription_start_date }] : []),
-        company_name: company_name || '', contact_name: contact_name || '',
-        contact_email: contact_email || '', contact_phone: contact_phone || '',
-        billing_type: billing_type || 'subscription', project_fee: project_fee || 0,
-        project_end_date: project_end_date || '',
-        tax_mode: tax_mode || 'none', tax_rate: tax_rate || 0,
-        drive_folder_url: drive_folder_url || '',
-        payment_method: payment_method || 'auto',
+        company_name: str(company_name, 255), contact_name: str(contact_name, 255),
+        contact_email: str(contact_email, 320), contact_phone: str(contact_phone, 30),
+        billing_type: bt, project_fee: project_fee || 0,
+        project_end_date: str(project_end_date, 10),
+        tax_mode: enumVal(tax_mode, VALID_TAX_MODES, 'none'), tax_rate: tax_rate || 0,
+        drive_folder_url: str(drive_folder_url, 2048),
+        payment_method: enumVal(payment_method, VALID_PAYMENT_METHODS, 'auto'),
       })
       .select('id')
       .single();
@@ -371,19 +395,20 @@ export async function handleSupabaseRequest(
       const { error: e } = await supabase
         .from('clients')
         .update({
-          name: name || '', industry: industry || '', plan_tier: np, status: status || 'Active',
-          brand_context: brand_context || '', mrr: mrr || 0,
-          subscription_start_date: subscription_start_date || '', paused_at: paused_at || '',
-          resumed_at: resumed_at || '', cancelled_at: cancelled_at || '',
-          mrr_effective_from: mrr_effective_from || subscription_start_date || '',
+          name: str(name, 255), industry: str(industry, 100), plan_tier: np,
+          status: enumVal(status, VALID_CLIENT_STATUSES, 'Active'),
+          brand_context: str(brand_context, 2000), mrr: mrr || 0,
+          subscription_start_date: str(subscription_start_date, 10), paused_at: str(paused_at, 10),
+          resumed_at: str(resumed_at, 10), cancelled_at: str(cancelled_at, 10),
+          mrr_effective_from: str(mrr_effective_from, 10) || str(subscription_start_date, 10),
           subscription_timeline: subscription_timeline || '[]',
-          company_name: company_name || '', contact_name: contact_name || '',
-          contact_email: contact_email || '', contact_phone: contact_phone || '',
-          billing_type: billing_type || 'subscription', project_fee: project_fee || 0,
-          project_end_date: project_end_date || '',
-          tax_mode: tax_mode || 'none', tax_rate: tax_rate || 0,
-          drive_folder_url: drive_folder_url || '',
-          payment_method: payment_method || 'auto',
+          company_name: str(company_name, 255), contact_name: str(contact_name, 255),
+          contact_email: str(contact_email, 320), contact_phone: str(contact_phone, 30),
+          billing_type: enumVal(billing_type, VALID_BILLING_TYPES, 'subscription'), project_fee: project_fee || 0,
+          project_end_date: str(project_end_date, 10),
+          tax_mode: enumVal(tax_mode, VALID_TAX_MODES, 'none'), tax_rate: tax_rate || 0,
+          drive_folder_url: str(drive_folder_url, 2048),
+          payment_method: enumVal(payment_method, VALID_PAYMENT_METHODS, 'auto'),
         })
         .eq('id', id).eq('user_id', userId);
       if (e) return err(500, e.message);
@@ -444,9 +469,9 @@ export async function handleSupabaseRequest(
         .insert({
           user_id: userId,
           client_id: clientId,
-          label: label || '', amount: amount || 0, percentage: percentage || 0,
-          due_date: due_date || '', payment_method: payment_method || '',
-          invoice_number: invoice_number || '', note: note || '',
+          label: str(label, 255), amount: amount || 0, percentage: percentage || 0,
+          due_date: str(due_date, 10), payment_method: str(payment_method, 50),
+          invoice_number: str(invoice_number, 100), note: str(note, 1000),
           sort_order: sort_order ?? 0, status: 'pending',
         })
         .select('id')
@@ -486,10 +511,10 @@ export async function handleSupabaseRequest(
       const { error: e } = await supabase
         .from('payment_milestones')
         .update({
-          label: label || '', amount: amount || 0, percentage: percentage || 0,
-          due_date: due_date || '', payment_method: payment_method || '',
-          status: status || 'pending', invoice_number: invoice_number || '',
-          note: note || '', sort_order: sort_order ?? 0,
+          label: str(label, 255), amount: amount || 0, percentage: percentage || 0,
+          due_date: str(due_date, 10), payment_method: str(payment_method, 50),
+          status: status || 'pending', invoice_number: str(invoice_number, 100),
+          note: str(note, 1000), sort_order: sort_order ?? 0,
         })
         .eq('id', id).eq('user_id', userId);
       if (e) return err(500, e.message);
@@ -598,12 +623,12 @@ export async function handleSupabaseRequest(
       .from('tasks')
       .insert({
         user_id: userId,
-        title: title || '', client: client || '', client_id: client_id || null,
-        priority: priority || 'Medium',
-        due: due || '', column: column || 'todo',
-        originalRequest: originalRequest || '', aiBreakdown: aiBreakdown || '',
-        aiMjPrompts: aiMjPrompts || '', aiStory: aiStory || '',
-        scope: scope || 'work', parent_id: parent_id || null,
+        title: str(title, 500), client: str(client, 255), client_id: client_id || null,
+        priority: enumVal(priority, VALID_TASK_PRIORITIES, 'Medium'),
+        due: str(due, 10), column: enumVal(column, VALID_TASK_COLUMNS, 'todo'),
+        originalRequest: str(originalRequest, 5000), aiBreakdown: str(aiBreakdown, 10000),
+        aiMjPrompts: str(aiMjPrompts, 5000), aiStory: str(aiStory, 5000),
+        scope: enumVal(scope, VALID_TASK_SCOPES, 'work'), parent_id: parent_id || null,
       })
       .select('id')
       .single();
@@ -620,12 +645,12 @@ export async function handleSupabaseRequest(
       const { error: e } = await supabase
         .from('tasks')
         .update({
-          title: title || '', client: client || '', client_id: client_id || null,
-          priority: priority || 'Medium',
-          due: due || '', column: column || 'todo',
-          originalRequest: originalRequest || '', aiBreakdown: aiBreakdown || '',
-          aiMjPrompts: aiMjPrompts || '', aiStory: aiStory || '',
-          scope: scope || 'work', parent_id: parent_id ?? null,
+          title: str(title, 500), client: str(client, 255), client_id: client_id || null,
+          priority: enumVal(priority, VALID_TASK_PRIORITIES, 'Medium'),
+          due: str(due, 10), column: enumVal(column, VALID_TASK_COLUMNS, 'todo'),
+          originalRequest: str(originalRequest, 5000), aiBreakdown: str(aiBreakdown, 10000),
+          aiMjPrompts: str(aiMjPrompts, 5000), aiStory: str(aiStory, 5000),
+          scope: enumVal(scope, VALID_TASK_SCOPES, 'work'), parent_id: parent_id ?? null,
         })
         .eq('id', id).eq('user_id', userId);
       if (e) return err(500, e.message);
@@ -762,15 +787,15 @@ export async function handleSupabaseRequest(
       .from('finance_transactions')
       .insert({
         user_id: userId,
-        type: type || 'income', amount: amount || 0, category: category || '',
-        description: description || '', date: date || '', status: status || '已完成',
-        tax_mode: tax_mode || 'none', tax_rate: tax_rate || 0, tax_amount: tax_amount || 0,
-        client_id: client_id || null, client_name: client_name || '',
+        type: enumVal(type, VALID_TX_TYPES, 'income'), amount: amount || 0, category: str(category, 100),
+        description: str(description, 500), date: str(date, 10), status: status || '已完成',
+        tax_mode: enumVal(tax_mode, VALID_TAX_MODES, 'none'), tax_rate: tax_rate || 0, tax_amount: tax_amount || 0,
+        client_id: client_id || null, client_name: str(client_name, 255),
       })
       .select('id')
       .single();
     if (e) return err(500, e.message);
-    await logActivity(userId, 'finance', 'created', `新增交易：${description || '未命名交易'}`,
+    await logActivity(userId, 'finance', 'created', `新增交易：${str(description, 500) || '未命名交易'}`,
       `${type === 'income' ? '+' : '-'}$${Number(amount || 0).toLocaleString()} · ${category || '未分类'}`, data!.id);
     return ok({ id: data!.id });
   }
@@ -791,14 +816,14 @@ export async function handleSupabaseRequest(
       const { error: e } = await supabase
         .from('finance_transactions')
         .update({
-          type: type || 'income', amount: amount || 0, category: category || '',
-          description: description || '', date: date || '', status: status || '已完成',
-          tax_mode: tax_mode || 'none', tax_rate: tax_rate || 0, tax_amount: tax_amount || 0,
-          client_id: client_id || null, client_name: client_name || '',
+          type: enumVal(type, VALID_TX_TYPES, 'income'), amount: amount || 0, category: str(category, 100),
+          description: str(description, 500), date: str(date, 10), status: status || '已完成',
+          tax_mode: enumVal(tax_mode, VALID_TAX_MODES, 'none'), tax_rate: tax_rate || 0, tax_amount: tax_amount || 0,
+          client_id: client_id || null, client_name: str(client_name, 255),
         })
         .eq('id', id).eq('user_id', userId);
       if (e) return err(500, e.message);
-      await logActivity(userId, 'finance', 'updated', `更新交易：${description || '未命名交易'}`, '', id);
+      await logActivity(userId, 'finance', 'updated', `更新交易：${str(description, 500) || '未命名交易'}`, '', id);
       return ok({ success: true });
     }
     if (method === 'DELETE') {

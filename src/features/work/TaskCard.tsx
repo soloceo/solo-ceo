@@ -89,7 +89,7 @@ export const TaskCard = React.memo(function TaskCard({
       role="listitem"
       style={style}
       onClick={() => onEdit(task)}
-      className={`group card-interactive cursor-grab active:cursor-grabbing p-3 press-feedback ${isDragging && !isOverlay ? "z-[1100]" : ""}`}
+      className={`group card-interactive cursor-grab active:cursor-grabbing p-3 press-feedback ${isDragging && !isOverlay ? "z-[var(--layer-tooltip)]" : ""}`}
     >
       <div className="flex items-center gap-2 mb-1 min-w-0">
         {onPriorityChange ? (
@@ -272,7 +272,7 @@ export const TaskCard = React.memo(function TaskCard({
       <>
         {cardContent}
         {createPortal(
-          <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 710, background: "var(--color-overlay-primary)", backdropFilter: "blur(2px) saturate(180%)", WebkitBackdropFilter: "blur(2px) saturate(180%)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 16px)" }}>
+          <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: "var(--layer-confirm)", background: "var(--color-overlay-primary)", backdropFilter: "blur(2px) saturate(180%)", WebkitBackdropFilter: "blur(2px) saturate(180%)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 16px)" }}>
             <div className="card-elevated w-full max-w-sm p-5 rounded-[var(--radius-6)]" role="dialog" aria-modal="true" aria-label="Confirm delete">
               <h3 className="text-[15px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("common.confirmDelete" as any)}</h3>
               <p className="text-[14px] mb-4" style={{ color: "var(--color-text-secondary)" }}>{t("common.cannotUndo" as any)}</p>

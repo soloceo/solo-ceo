@@ -142,7 +142,7 @@ export function TaskDetail({ open, onClose, editTask, columns, defaultColumn, cl
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
             className="fixed inset-0"
-            style={{ zIndex: 699, background: "var(--color-overlay-primary)", backdropFilter: "blur(2px) saturate(180%)", WebkitBackdropFilter: "blur(2px) saturate(180%)" }}
+            style={{ zIndex: "var(--layer-dialog-overlay)", background: "var(--color-overlay-primary)", backdropFilter: "blur(2px) saturate(180%)", WebkitBackdropFilter: "blur(2px) saturate(180%)" }}
             onClick={onClose}
           />
           {/* Panel */}
@@ -159,7 +159,7 @@ export function TaskDetail({ open, onClose, editTask, columns, defaultColumn, cl
               : "fixed top-0 right-0 h-full w-full max-w-[440px] lg:max-w-[520px] flex flex-col"
             }
             style={{
-              zIndex: 700,
+              zIndex: "var(--layer-dialog)",
               background: "var(--color-bg-primary)",
               borderLeft: isMobile ? undefined : "1px solid var(--color-border-primary)",
               boxShadow: "var(--shadow-high)",
@@ -320,7 +320,7 @@ export function TaskDetail({ open, onClose, editTask, columns, defaultColumn, cl
     document.body,
   )}
   {showDeleteConfirm && createPortal(
-    <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 710, background: "var(--color-overlay-primary)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 16px)" }}>
+    <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: "var(--layer-confirm)", background: "var(--color-overlay-primary)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 16px)" }}>
       <div className="card-elevated w-full max-w-sm p-5" role="dialog" aria-modal="true" aria-label="Confirm delete">
         <h3 className="text-[15px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("work.delete.title" as any)}</h3>
         <p className="text-[15px] mb-4" style={{ color: "var(--color-text-secondary)" }}>{t("work.delete.warning" as any)}</p>

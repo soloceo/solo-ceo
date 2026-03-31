@@ -174,7 +174,7 @@ export function QuickCreateMenu({ setActiveTab }: QuickCreateMenuProps) {
                   border: "1px solid var(--color-border-primary)",
                   borderRadius: "var(--radius-8)",
                   boxShadow: "var(--shadow-medium)",
-                  zIndex: 600,
+                  zIndex: "var(--layer-popover)",
                 }}
               >
             {quickCreateGroups.map((group, gi) => (

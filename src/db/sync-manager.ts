@@ -66,7 +66,6 @@ export async function triggerFullSync(): Promise<void> {
   }
 
   syncing = true;
-  lastSyncAt = Date.now();
 
   try {
     const pending = await getQueueLength();
@@ -74,13 +73,10 @@ export async function triggerFullSync(): Promise<void> {
     // Step 1: Replay offline queue (push local → cloud)
     if (pending > 0) {
       dispatchSyncStatus('syncing', { pending });
-      console.info(`[SyncManager] Replaying ${pending} queued operations`);
-
       const { replayed, failed } = await replayQueue();
 
       if (replayed > 0) {
         dispatchSyncToast(`已同步 ${replayed} 条离线操作`, 'success');
-        console.info(`[SyncManager] Replayed ${replayed}, failed ${failed}`);
       }
       if (failed > 0) {
         dispatchSyncToast(`${failed} 条操作同步失败，将稍后重试`, 'warning');
@@ -93,10 +89,11 @@ export async function triggerFullSync(): Promise<void> {
 
     dispatchSyncStatus('idle', { pending: 0 });
   } catch (e) {
-    console.error('[SyncManager] Sync failed', e);
+    // Sync failed — will retry on next trigger
     dispatchSyncStatus('idle', { pending: 0 });
   } finally {
     syncing = false;
+    lastSyncAt = Date.now();
   }
 }
 
@@ -120,7 +117,6 @@ export function initSyncManager(): void {
 
   // 2. Sync when coming back online
   window.addEventListener('online', () => {
-    console.info('[SyncManager] Back online, triggering sync');
     triggerFullSync();
   });
 
@@ -134,5 +130,4 @@ export function initSyncManager(): void {
   // 4. Try immediate sync on init
   triggerFullSync();
 
-  console.info('[SyncManager] Initialized');
 }

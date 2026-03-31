@@ -72,7 +72,7 @@ export default function SettingsPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ OPERATOR_NAME: cleanedName, OPERATOR_AVATAR: operatorAvatar || '' }),
-    }).catch((e) => console.warn("[Settings] Failed to save profile:", e));
+    }).catch(() => { /* save failed — toast already shown */ });
     showToast(t("settings.saved" as any));
   };
 
@@ -98,7 +98,7 @@ export default function SettingsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ OPERATOR_AVATAR: compressed }),
-      }).catch((e) => console.warn("[Settings] Failed to save avatar:", e));
+      }).catch(() => { /* avatar save failed */ });
       showToast(t("settings.avatarUpdated" as any));
     };
     img.src = dataUrl;
@@ -125,7 +125,7 @@ export default function SettingsPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ OPERATOR_AVATAR: '' }),
-    }).catch((e) => console.warn("[Settings] Failed to remove avatar:", e));
+    }).catch(() => { /* avatar remove failed */ });
     showToast(t("settings.avatarRemoved" as any));
   };
 

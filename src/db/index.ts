@@ -40,7 +40,7 @@ export async function saveDb(): Promise<void> {
       tx.onerror = () => reject(tx.error);
     });
   } catch (e) {
-    console.warn('saveDb failed', e);
+    // saveDb failed — non-critical, data remains in memory
   }
 }
 

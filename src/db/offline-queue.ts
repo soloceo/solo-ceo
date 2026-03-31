@@ -6,7 +6,7 @@
  *   - Retry up to 3 times per operation (with exponential backoff)
  *   - 4xx errors (client errors) are discarded (permanent failure)
  *   - 5xx errors are retried
- *   - Stale ops older than 7 days are discarded
+ *   - Stale ops older than 30 days are discarded
  */
 import { handleSupabaseRequest } from './supabase-api';
 
@@ -14,9 +14,10 @@ interface QueuedOp {
   id: number;
   method: string;
   path: string;
-  body: any;
+  body: Record<string, unknown>;
   timestamp: number;
   retryCount?: number;
+  failReason?: string;
 }
 
 const DB_NAME = 'soloceo-offline-queue';
@@ -41,7 +42,7 @@ function openQueueDb(): Promise<IDBDatabase> {
   });
 }
 
-export async function enqueue(method: string, path: string, body: any): Promise<void> {
+export async function enqueue(method: string, path: string, body: Record<string, unknown>): Promise<void> {
   const db = await openQueueDb();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
@@ -105,20 +106,16 @@ export async function replayQueue(): Promise<{ replayed: number; failed: number 
     if (!ops.length) return { replayed: 0, failed: 0 };
 
     const now = Date.now();
-    console.info(`[OfflineQueue] Replaying ${ops.length} operations`);
-
     // Pre-filter: discard stale and over-retried ops
     const validOps = [];
     for (const op of ops) {
       if (now - op.timestamp > MAX_AGE_MS) {
         const ageDays = Math.round((now - op.timestamp) / 86400000);
-        console.warn(`[OfflineQueue] Discarding stale op (${ageDays} days old): ${op.method} ${op.path}`);
         window.dispatchEvent(new CustomEvent('sync-status', { detail: { warning: `离线操作已过期(${ageDays}天)：${op.path}`, pending: ops.length } }));
         await removeOp(op.id);
         continue;
       }
       if ((op.retryCount || 0) >= MAX_RETRIES) {
-        console.warn(`[OfflineQueue] Discarding op after ${MAX_RETRIES} retries: ${op.method} ${op.path}`);
         await removeOp(op.id);
         failed++;
         continue;
@@ -146,7 +143,7 @@ export async function replayQueue(): Promise<{ replayed: number; failed: number 
           } else if (result.status < 500) {
             // 4xx client error — mark as failed but keep for review
             op.retryCount = MAX_RETRIES; // prevent further retries
-            (op as any).failReason = `HTTP ${result.status}`;
+            op.failReason = `HTTP ${result.status}`;
             await updateOp(op);
             failed++;
           } else {
@@ -185,6 +182,6 @@ export function startOfflineQueueListener() {
   // The sync-manager's initSyncManager() is the primary trigger.
   // This is a lightweight fallback that just logs.
   window.addEventListener('online', () => {
-    console.info('[OfflineQueue] Online event detected (sync-manager handles replay)');
+    // Online event detected — sync-manager handles replay
   });
 }

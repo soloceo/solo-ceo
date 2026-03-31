@@ -39,10 +39,8 @@ export function startRealtime() {
   }
 
   ch.subscribe((status) => {
-    if (status === 'SUBSCRIBED') {
-      console.info('[Realtime] Subscribed to all tables');
-    } else if (status === 'CHANNEL_ERROR') {
-      console.warn('[Realtime] Channel error, will retry');
+    if (status === 'CHANNEL_ERROR') {
+      // Channel error — Supabase will auto-retry
     }
   });
 
