@@ -35,15 +35,23 @@ interface Lead {
   website?: string;
   column: "new" | "contacted" | "proposal" | "won" | "lost";
   source?: string;
-  [key: string]: any;
+  aiDraft?: string;
+  created_at?: string;
+  updated_at?: string;
+  [key: string]: unknown;
 }
 
 interface PlanRow {
   id: number;
   name: string;
   price: number;
-  [key: string]: any;
+  deliverySpeed?: string;
+  features?: string;
+  clients?: number;
+  [key: string]: unknown;
 }
+
+type ColId = "new" | "contacted" | "proposal" | "won" | "lost";
 
 interface LeadsState {
   new: Lead[];
@@ -51,6 +59,47 @@ interface LeadsState {
   proposal: Lead[];
   won: Lead[];
   lost: Lead[];
+}
+
+interface LeadColumn {
+  id: ColId;
+  color: string;
+  title: string;
+}
+
+interface DragResult {
+  source: { droppableId: string; index: number };
+  destination: { droppableId: string; index: number } | null;
+}
+
+interface SortableLeadCardProps {
+  lead: Lead;
+  onEdit: (l: Lead) => void;
+  onDelete: (id: number) => void;
+  score?: LeadAnalysis;
+  isOverlay?: boolean;
+}
+
+interface LeadKanbanProps {
+  leads: Record<string, Lead[]>;
+  columns: LeadColumn[];
+  onDragEnd: (r: DragResult) => void;
+  onAdd: (lead: Lead | null, col: ColId) => void;
+  onEdit: (lead: Lead, col: ColId) => void;
+  onDelete: (id: number) => void;
+  emptyText: string;
+  leadScores: Record<number, LeadAnalysis>;
+}
+
+interface LeadSwimlaneProps {
+  leads: Record<string, Lead[]>;
+  columns: LeadColumn[];
+  onDragEnd: (r: DragResult) => void;
+  onAdd: (lead: Lead | null, col: ColId) => void;
+  onEdit: (lead: Lead, col: ColId) => void;
+  onDelete: (id: number) => void;
+  onMove: (id: number, col: string) => void;
+  emptyText: string;
 }
 
 /* ── Constants ─────────────────────────────────────────────────── */
@@ -76,7 +125,7 @@ export function LeadsView() {
   const setActiveTab = useUIStore((s) => s.setActiveTab);
   const LEAD_COLS = useMemo(() => LEAD_COL_IDS.map(c => ({
     ...c,
-    title: t(`pipeline.col.${c.id}` as any),
+    title: t(`pipeline.col.${c.id}`),
   })), [t]);
   const [leads, setLeads] = useState<LeadsState>({ new: [], contacted: [], proposal: [], won: [], lost: [] });
   const [showFunnel, setShowFunnel] = useState(false);
@@ -98,15 +147,15 @@ export function LeadsView() {
   const [form, setForm] = useState(EMPTY_LEAD);
   const ai = useLeadAI(lang);
 
-  const fetchPlans = async () => { try { const d = await (await fetch("/api/plans")).json(); setPlans(Array.isArray(d) ? d : []); } catch {} };
+  const fetchPlans = async () => { try { const d = await (await fetch("/api/plans")).json(); setPlans(Array.isArray(d) ? d : []); } catch (e) { console.warn('[LeadsBoard] fetchPlans', e); } };
 
   const fetchLeads = async () => {
     try {
       const res = await fetch("/api/leads");
       const raw = await res.json();
       const data = Array.isArray(raw) ? raw : [];
-      setLeads({ new: data.filter((l: any) => l.column === "new"), contacted: data.filter((l: any) => l.column === "contacted"), proposal: data.filter((l: any) => l.column === "proposal"), won: data.filter((l: any) => l.column === "won"), lost: data.filter((l: any) => l.column === "lost") });
-    } catch { showToast(t("pipeline.toast.loadFailed" as any)); }
+      setLeads({ new: data.filter((l: Lead) => l.column === "new"), contacted: data.filter((l: Lead) => l.column === "contacted"), proposal: data.filter((l: Lead) => l.column === "proposal"), won: data.filter((l: Lead) => l.column === "won"), lost: data.filter((l: Lead) => l.column === "lost") });
+    } catch { showToast(t("pipeline.toast.loadFailed")); }
     finally { setLoading(false); }
   };
 
@@ -130,7 +179,7 @@ export function LeadsView() {
     return () => window.removeEventListener("quick-create", handler);
   }, []);
 
-  const openPanel = (lead: any = null, col = "new") => {
+  const openPanel = (lead: Lead | null = null, col: ColId = "new") => {
     if (lead) {
       setEditId(lead.id);
       setForm({ name: lead.name, industry: lead.industry, needs: lead.needs, website: lead.website || "", column: lead.column || col, source: lead.source || "" });
@@ -151,26 +200,26 @@ export function LeadsView() {
     setNameError(false);
     setSavingLead(true);
     try {
-      if (editId) { await fetch(`/api/leads/${editId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) }); showToast(t("pipeline.toast.leadUpdated" as any)); }
-      else { await fetch("/api/leads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) }); showToast(t("pipeline.toast.leadAdded" as any)); }
+      if (editId) { await fetch(`/api/leads/${editId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) }); showToast(t("pipeline.toast.leadUpdated")); }
+      else { await fetch("/api/leads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) }); showToast(t("pipeline.toast.leadAdded")); }
       setShowPanel(false); fetchLeads();
-    } catch { showToast(t("common.saveFailed" as any)); }
+    } catch { showToast(t("common.saveFailed")); }
     finally { setSavingLead(false); }
   };
 
   const deleteLead = async (id: number) => {
-    try { await fetch(`/api/leads/${id}`, { method: "DELETE" }); setShowPanel(false); setDeleteId(null); showToast(t("pipeline.toast.leadDeleted" as any)); fetchLeads(); } catch { showToast(t("common.deleteFailed" as any)); }
+    try { await fetch(`/api/leads/${id}`, { method: "DELETE" }); setShowPanel(false); setDeleteId(null); showToast(t("pipeline.toast.leadDeleted")); fetchLeads(); } catch { showToast(t("common.deleteFailed")); }
   };
 
-  const onDragEnd = async (result: any) => {
+  const onDragEnd = async (result: DragResult) => {
     if (!result.destination) return;
-    const { source: s, destination: d } = result;
+    const { source: s, destination: d } = result as { source: DragResult["source"]; destination: NonNullable<DragResult["destination"]> };
     if (s.droppableId !== d.droppableId) {
-      const src = [...leads[s.droppableId]], dst = [...leads[d.droppableId]];
-      const [moved] = src.splice(s.index, 1); moved.column = d.droppableId; dst.splice(d.index, 0, moved);
+      const src = [...leads[s.droppableId as ColId]], dst = [...leads[d.droppableId as ColId]];
+      const [moved] = src.splice(s.index, 1); moved.column = d.droppableId as ColId; dst.splice(d.index, 0, moved);
       setLeads({ ...leads, [s.droppableId]: src, [d.droppableId]: dst });
-      try { await fetch(`/api/leads/${moved.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(moved) }); } catch { showToast(t("common.updateFailed" as any)); fetchLeads(); }
-    } else { const col = [...leads[s.droppableId]]; const [moved] = col.splice(s.index, 1); col.splice(d.index, 0, moved); setLeads({ ...leads, [s.droppableId]: col }); }
+      try { await fetch(`/api/leads/${moved.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(moved) }); } catch { showToast(t("common.updateFailed")); fetchLeads(); }
+    } else { const col = [...leads[s.droppableId as ColId]]; const [moved] = col.splice(s.index, 1); col.splice(d.index, 0, moved); setLeads({ ...leads, [s.droppableId]: col }); }
   };
 
   const convertLead = async () => {
@@ -178,8 +227,8 @@ export function LeadsView() {
     try {
       const mrrVal = parseFloat(convertForm.mrr); const projVal = parseFloat(convertForm.project_fee);
       await fetch(`/api/leads/${editId}/convert`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan_tier: convertForm.plan_tier, status: convertForm.status, mrr: isNaN(mrrVal) ? 0 : mrrVal, subscription_start_date: convertForm.subscription_start_date, billing_type: convertForm.billing_type, project_fee: isNaN(projVal) ? 0 : projVal }) });
-      setShowConvert(false); setShowPanel(false); showToast(t("pipeline.convert.success" as any)); fetchLeads();
-    } catch { showToast(t("pipeline.convert.failed" as any)); }
+      setShowConvert(false); setShowPanel(false); showToast(t("pipeline.convert.success")); fetchLeads();
+    } catch { showToast(t("pipeline.convert.failed")); }
     finally { setConverting(false); }
   };
 
@@ -192,24 +241,24 @@ export function LeadsView() {
           ))}
         </div>
         <button onClick={() => setShowFunnel(f => !f)} className={`btn-ghost compact gap-1 ${showFunnel ? "ring-1" : ""}`} style={showFunnel ? { color: "var(--color-accent)", borderColor: "var(--color-accent)" } : undefined}>
-          <ChevronDown size={14} style={{ transform: showFunnel ? "rotate(180deg)" : undefined, transition: "transform 0.2s" }} /> {t("pipeline.funnel.title" as any)}
+          <ChevronDown size={14} style={{ transform: showFunnel ? "rotate(180deg)" : undefined, transition: "transform 0.2s" }} /> {t("pipeline.funnel.title")}
         </button>
         <div className="flex-1" />
         <button
-          onClick={() => ai.handleBatchAnalyze((Object.values(leads) as any[]).flat())}
+          onClick={() => ai.handleBatchAnalyze(Object.values(leads).flat())}
           disabled={ai.batchAnalyzing}
           className="btn-ghost compact gap-1 disabled:opacity-40"
         >
           {ai.batchAnalyzing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-          <span className="hidden sm:inline">{t("pipeline.ai.analyzeAll" as any)}</span>
+          <span className="hidden sm:inline">{t("pipeline.ai.analyzeAll")}</span>
         </button>
         <button onClick={() => {
           const all = Object.values(leads).flat();
-          exportCSV(all.map((l: any) => ({ name: l.name, industry: l.industry, source: l.source, needs: l.needs, stage: l.column })), "leads", [
+          exportCSV(all.map((l: Lead) => ({ name: l.name, industry: l.industry, source: l.source, needs: l.needs, stage: l.column })), "leads", [
             { key: "name", label: "Name" }, { key: "industry", label: "Industry" }, { key: "source", label: "Source" }, { key: "needs", label: "Needs" }, { key: "stage", label: "Stage" },
           ]);
         }} className="btn-ghost compact"><Download size={16} /></button>
-        <button onClick={() => openPanel(null, "new")} className="btn-primary compact"><Plus size={16} /> <span className="hidden sm:inline">{t("pipeline.addLead" as any)}</span></button>
+        <button onClick={() => openPanel(null, "new")} className="btn-primary compact"><Plus size={16} /> <span className="hidden sm:inline">{t("pipeline.addLead")}</span></button>
       </div>
 
       {/* Funnel chart */}
@@ -218,7 +267,7 @@ export function LeadsView() {
         if (total === 0) return null;
         return (
           <div className="card p-4 mb-4">
-            <h3 className="section-label mb-3">{t("pipeline.funnel.title" as any)}</h3>
+            <h3 className="section-label mb-3">{t("pipeline.funnel.title")}</h3>
             <div className="space-y-2">
               {LEAD_COLS.filter(col => col.id !== "lost").map((col, i) => {
                 const count = leads[col.id]?.length || 0;
@@ -226,7 +275,7 @@ export function LeadsView() {
                 const maxW = 100 - i * 12;
                 return (
                   <div key={col.id} className="flex items-center gap-3" style={{ paddingLeft: `${i * 6}%`, paddingRight: `${i * 6}%` }}>
-                    <div className="flex-1 rounded-[var(--radius-4)] h-8 flex items-center justify-between px-3 text-[15px] transition-all" style={{ background: `color-mix(in srgb, ${col.color} 15%, transparent)`, color: col.color, maxWidth: `${maxW}%`, fontWeight: "var(--font-weight-medium)" as any }}>
+                    <div className="flex-1 rounded-[var(--radius-4)] h-8 flex items-center justify-between px-3 text-[15px] transition-all" style={{ background: `color-mix(in srgb, ${col.color} 15%, transparent)`, color: col.color, maxWidth: `${maxW}%`, fontWeight: "var(--font-weight-medium)" }}>
                       <span>{col.title}</span>
                       <span className="tabular-nums">{count} ({pct}%)</span>
                     </div>
@@ -236,8 +285,8 @@ export function LeadsView() {
               {/* Lost row */}
               {(leads.lost?.length || 0) > 0 && (
                 <div className="flex items-center gap-3 mt-1 pt-1 border-t" style={{ borderColor: "var(--color-border-primary)" }}>
-                  <div className="flex-1 rounded-[var(--radius-4)] h-7 flex items-center justify-between px-3 text-[13px]" style={{ background: "color-mix(in srgb, var(--color-danger) 10%, transparent)", color: "var(--color-danger)", fontWeight: "var(--font-weight-medium)" as any }}>
-                    <span>{t("pipeline.col.lost" as any)}</span>
+                  <div className="flex-1 rounded-[var(--radius-4)] h-7 flex items-center justify-between px-3 text-[13px]" style={{ background: "color-mix(in srgb, var(--color-danger) 10%, transparent)", color: "var(--color-danger)", fontWeight: "var(--font-weight-medium)" }}>
+                    <span>{t("pipeline.col.lost")}</span>
                     <span className="tabular-nums">{leads.lost.length} ({Math.round((leads.lost.length / total) * 100)}%)</span>
                   </div>
                 </div>
@@ -260,15 +309,15 @@ export function LeadsView() {
           ))}
         </div>
       ) : viewMode === "vertical" ? (
-        <LeadKanban leads={leads} columns={LEAD_COLS} onDragEnd={onDragEnd} onAdd={openPanel} onEdit={openPanel} onDelete={(id: number) => setDeleteId(id)} emptyText={t("pipeline.emptyCol" as any)} leadScores={ai.leadScores} />
+        <LeadKanban leads={leads} columns={LEAD_COLS} onDragEnd={onDragEnd} onAdd={openPanel} onEdit={openPanel} onDelete={(id: number) => setDeleteId(id)} emptyText={t("pipeline.emptyCol")} leadScores={ai.leadScores} />
       ) : (
-        <LeadSwimlane leads={leads} columns={LEAD_COLS} onDragEnd={onDragEnd} onAdd={openPanel} onEdit={openPanel} onDelete={(id: number) => setDeleteId(id)} emptyText={t("pipeline.emptyCol" as any)} onMove={async (id: number, col: string) => {
+        <LeadSwimlane leads={leads} columns={LEAD_COLS} onDragEnd={onDragEnd} onAdd={openPanel} onEdit={openPanel} onDelete={(id: number) => setDeleteId(id)} emptyText={t("pipeline.emptyCol")} onMove={async (id: number, col: string) => {
           try {
             const allLeads = Object.values(leads).flat();
-            const lead = allLeads.find((l: any) => l.id === id) as Lead | undefined;
+            const lead = allLeads.find((l: Lead) => l.id === id);
             if (!lead) return;
-            await fetch(`/api/leads/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...lead, column: col }) }); fetchLeads();
-          } catch { showToast(t("pipeline.toast.moveFailed" as any)); }
+            await fetch(`/api/leads/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(Object.assign({}, lead, { column: col })) }); fetchLeads();
+          } catch { showToast(t("pipeline.toast.moveFailed")); }
         }} />
       )}
 
@@ -291,41 +340,41 @@ export function LeadsView() {
               <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: "var(--color-border-primary)" }}>
                 <div className="flex items-center gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-6)]" style={{ background: "var(--color-accent-tint)", color: "var(--color-accent)" }}>{editId ? <Edit2 size={16} /> : <Plus size={16} />}</div>
-                  <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" as any }}>{editId ? t("pipeline.panel.editLead" as any) : t("pipeline.panel.newLead" as any)}</span>
+                  <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" }}>{editId ? t("pipeline.panel.editLead") : t("pipeline.panel.newLead")}</span>
                 </div>
                 <button onClick={() => setShowPanel(false)} className="btn-icon" aria-label="Close panel">{isMobile ? <X size={18} /> : <PanelRightClose size={18} />}</button>
               </div>
               <div className="flex-1 overflow-y-auto overflow-x-hidden ios-scroll p-5 space-y-3">
                 <div className="space-y-3">
-                  <FL label={t("pipeline.form.name" as any)}><input required value={form.name} onChange={e => { setForm(p => ({ ...p, name: e.target.value })); setNameError(false); }} className="input-base w-full px-3 py-2 text-[15px]" style={nameError ? { borderColor: "var(--color-danger)", boxShadow: "0 0 0 2px color-mix(in srgb, var(--color-danger) 15%, transparent)" } : undefined} /></FL>
+                  <FL label={t("pipeline.form.name")}><input required value={form.name} onChange={e => { setForm(p => ({ ...p, name: e.target.value })); setNameError(false); }} className="input-base w-full px-3 py-2 text-[15px]" style={nameError ? { borderColor: "var(--color-danger)", boxShadow: "0 0 0 2px color-mix(in srgb, var(--color-danger) 15%, transparent)" } : undefined} /></FL>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <FL label={t("pipeline.form.industry" as any)}><input value={form.industry} onChange={e => setForm(p => ({ ...p, industry: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
-                    <FL label={t("pipeline.form.source" as any)}>
-                      <input list="source-presets" value={form.source} onChange={e => setForm(p => ({ ...p, source: e.target.value }))} placeholder={t("pipeline.form.sourcePlaceholder" as any)} className="input-base w-full px-3 py-2 text-[15px]" />
+                    <FL label={t("pipeline.form.industry")}><input value={form.industry} onChange={e => setForm(p => ({ ...p, industry: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+                    <FL label={t("pipeline.form.source")}>
+                      <input list="source-presets" value={form.source} onChange={e => setForm(p => ({ ...p, source: e.target.value }))} placeholder={t("pipeline.form.sourcePlaceholder")} className="input-base w-full px-3 py-2 text-[15px]" />
                       <datalist id="source-presets">
-                        {["LinkedIn", "Twitter / X", "Instagram", t("pipeline.source.referral" as any), t("pipeline.source.website" as any), t("pipeline.source.event" as any), t("pipeline.source.coldOutreach" as any), t("pipeline.source.other" as any)].map(s => <option key={s} value={s} />)}
+                        {["LinkedIn", "Twitter / X", "Instagram", t("pipeline.source.referral"), t("pipeline.source.website"), t("pipeline.source.event"), t("pipeline.source.coldOutreach"), t("pipeline.source.other")].map(s => <option key={s} value={s} />)}
                       </datalist>
                     </FL>
                   </div>
-                  <FL label={t("pipeline.form.needs" as any)}><input value={form.needs} onChange={e => setForm(p => ({ ...p, needs: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
-                  <FL label={t("pipeline.form.stage" as any)}>
+                  <FL label={t("pipeline.form.needs")}><input value={form.needs} onChange={e => setForm(p => ({ ...p, needs: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+                  <FL label={t("pipeline.form.stage")}>
                     <select value={form.column} onChange={e => setForm(p => ({ ...p, column: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]">
                       {LEAD_COLS.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
                     </select>
                   </FL>
                 </div>
                 <div className="border-t" style={{ borderColor: "var(--color-border-primary)" }} />
-                <FL label={t("pipeline.form.website" as any)}><textarea value={form.website} onChange={e => setForm(p => ({ ...p, website: e.target.value }))} placeholder={t("pipeline.form.websitePlaceholder" as any)} className="input-base w-full h-16 px-3 py-2 text-[15px] resize-none" /></FL>
+                <FL label={t("pipeline.form.website")}><textarea value={form.website} onChange={e => setForm(p => ({ ...p, website: e.target.value }))} placeholder={t("pipeline.form.websitePlaceholder")} className="input-base w-full h-16 px-3 py-2 text-[15px] resize-none" /></FL>
 
                 {/* ── AI Lead Analysis ── */}
                 <div className="border-t pt-3" style={{ borderColor: "var(--color-border-primary)" }}>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[13px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
-                      {t("pipeline.ai.analysis" as any)}
+                      {t("pipeline.ai.analysis")}
                     </span>
                     <button onClick={() => ai.handleAnalyzeLead(form)} disabled={ai.aiAnalyzing} className="btn-ghost compact text-[13px] gap-1 disabled:opacity-40">
                       {ai.aiAnalyzing ? <Loader2 size={12} className="animate-spin" /> : <Search size={12} />}
-                      {t("pipeline.ai.analyze" as any)}
+                      {t("pipeline.ai.analyze")}
                     </button>
                   </div>
                   {ai.aiAnalysis && (
@@ -338,7 +387,7 @@ export function LeadsView() {
                         background: ai.aiAnalysis.score === "high" ? "var(--color-success)" : ai.aiAnalysis.score === "medium" ? "var(--color-warning)" : "var(--color-danger)",
                         color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)",
                       } as React.CSSProperties}>
-                        {ai.aiAnalysis.score === "high" ? t("pipeline.ai.scoreHigh" as any) : ai.aiAnalysis.score === "medium" ? t("pipeline.ai.scoreMedium" as any) : t("pipeline.ai.scoreLow" as any)}
+                        {ai.aiAnalysis.score === "high" ? t("pipeline.ai.scoreHigh") : ai.aiAnalysis.score === "medium" ? t("pipeline.ai.scoreMedium") : t("pipeline.ai.scoreLow")}
                       </span>
                       <p style={{ color: "var(--color-text-secondary)" }}>{ai.aiAnalysis.reason}</p>
                     </div>
@@ -348,7 +397,7 @@ export function LeadsView() {
                 {/* ── AI Outreach Email ── */}
                 <div className="border-t pt-3" style={{ borderColor: "var(--color-border-primary)" }}>
                   <span className="text-[13px] block mb-2" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
-                    {t("pipeline.ai.generate" as any)}
+                    {t("pipeline.ai.generate")}
                   </span>
                   <div className="flex items-center gap-2 mb-2">
                     {/* Tone */}
@@ -358,7 +407,7 @@ export function LeadsView() {
                           className="flex-1 text-[12px] py-1 rounded-[var(--radius-4)] transition-colors"
                           style={ai.aiTone === tone ? { background: "var(--color-accent)", color: "var(--color-brand-text)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties : { background: "var(--color-bg-tertiary)", color: "var(--color-text-tertiary)" }}
                         >
-                          {tone === "formal" ? t("pipeline.ai.toneFormal" as any) : tone === "friendly" ? t("pipeline.ai.toneFriendly" as any) : t("pipeline.ai.toneDirect" as any)}
+                          {tone === "formal" ? t("pipeline.ai.toneFormal") : tone === "friendly" ? t("pipeline.ai.toneFriendly") : t("pipeline.ai.toneDirect")}
                         </button>
                       ))}
                     </div>
@@ -376,7 +425,7 @@ export function LeadsView() {
                   </div>
                   <button onClick={() => ai.handleGenerateOutreach(form)} disabled={ai.aiGenerating} className="btn-primary compact w-full text-[14px] gap-1.5 mb-2 disabled:opacity-40">
                     {ai.aiGenerating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                    {ai.aiGenerating ? t("pipeline.ai.generating" as any) : t("pipeline.ai.generate" as any)}
+                    {ai.aiGenerating ? t("pipeline.ai.generating") : t("pipeline.ai.generate")}
                   </button>
                   {ai.aiDraft && (
                     <div>
@@ -384,11 +433,11 @@ export function LeadsView() {
                         {ai.aiDraft}
                       </pre>
                       <div className="flex gap-2">
-                        <button onClick={() => { navigator.clipboard.writeText(ai.aiDraft); showToast(t("pipeline.ai.copyDraft" as any)); }} className="btn-ghost compact text-[13px] gap-1">
-                          <Copy size={12} /> {t("pipeline.ai.copyDraft" as any)}
+                        <button onClick={() => { navigator.clipboard.writeText(ai.aiDraft); showToast(t("pipeline.ai.copyDraft")); }} className="btn-ghost compact text-[13px] gap-1">
+                          <Copy size={12} /> {t("pipeline.ai.copyDraft")}
                         </button>
                         <button onClick={() => ai.handleGenerateOutreach(form)} disabled={ai.aiGenerating} className="btn-ghost compact text-[13px] gap-1 disabled:opacity-40">
-                          <RefreshCw size={12} /> {t("common.regenerate" as any)}
+                          <RefreshCw size={12} /> {t("common.regenerate")}
                         </button>
                       </div>
                     </div>
@@ -397,12 +446,12 @@ export function LeadsView() {
               </div>
               <div className="flex items-center justify-between px-5 py-3 border-t pb-safe" style={{ borderColor: "var(--color-border-primary)" }}>
                 <div className="flex gap-2">
-                  {editId && <button type="button" onClick={() => setDeleteId(editId)} className="btn-ghost text-[15px]" style={{ color: "var(--color-danger)" }}><Trash2 size={16} /> {t("common.delete" as any)}</button>}
-                  {editId && <button type="button" onClick={() => { setConvertForm({ plan_tier: "", status: "Active", mrr: "", subscription_start_date: todayDateKey() }); setShowConvert(true); }} className="btn-ghost text-[15px]" style={{ color: "var(--color-success)" }}><UserPlus size={16} /> {t("pipeline.convert.btn" as any)}</button>}
+                  {editId && <button type="button" onClick={() => setDeleteId(editId)} className="btn-ghost text-[15px]" style={{ color: "var(--color-danger)" }}><Trash2 size={16} /> {t("common.delete")}</button>}
+                  {editId && <button type="button" onClick={() => { setConvertForm({ plan_tier: "", status: "Active", mrr: "", subscription_start_date: todayDateKey() }); setShowConvert(true); }} className="btn-ghost text-[15px]" style={{ color: "var(--color-success)" }}><UserPlus size={16} /> {t("pipeline.convert.btn")}</button>}
                 </div>
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => setShowPanel(false)} className="btn-secondary text-[15px]">{t("common.cancel" as any)}</button>
-                  <button type="button" onClick={saveLead} disabled={savingLead} className="btn-primary text-[15px]">{savingLead ? t("common.loading" as any) : editId ? t("common.save" as any) : t("common.create" as any)}</button>
+                  <button type="button" onClick={() => setShowPanel(false)} className="btn-secondary text-[15px]">{t("common.cancel")}</button>
+                  <button type="button" onClick={saveLead} disabled={savingLead} className="btn-primary text-[15px]">{savingLead ? t("common.loading") : editId ? t("common.save") : t("common.create")}</button>
                 </div>
               </div>
             </motion.div>
@@ -414,11 +463,11 @@ export function LeadsView() {
       {deleteId && createPortal(
         <div className="fixed inset-0 flex items-center justify-center p-4 animate-fade-in" style={{ zIndex: "var(--layer-confirm)", background: "var(--color-overlay-primary)", paddingBottom: "16px" }}>
           <div className="card-elevated w-full max-w-sm p-5" role="dialog" aria-modal="true" aria-label="Confirm delete">
-            <h3 className="text-[15px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" as any }}>{t("pipeline.delete.title" as any)}</h3>
-            <p className="text-[15px] mb-4" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.delete.warning" as any)}</p>
+            <h3 className="text-[15px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" }}>{t("pipeline.delete.title")}</h3>
+            <p className="text-[15px] mb-4" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.delete.warning")}</p>
             <div className="flex justify-end gap-2">
-              <button onClick={() => setDeleteId(null)} className="btn-secondary text-[15px]">{t("common.cancel" as any)}</button>
-              <button onClick={() => deleteLead(deleteId)} className="text-[15px] px-4 py-2 rounded-[var(--radius-6)]" style={{ background: "var(--color-danger)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.delete.confirm" as any)}</button>
+              <button onClick={() => setDeleteId(null)} className="btn-secondary text-[15px]">{t("common.cancel")}</button>
+              <button onClick={() => deleteLead(deleteId)} className="text-[15px] px-4 py-2 rounded-[var(--radius-6)]" style={{ background: "var(--color-danger)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.delete.confirm")}</button>
             </div>
           </div>
         </div>
@@ -429,26 +478,26 @@ export function LeadsView() {
         <div className="fixed inset-0 flex items-center justify-center p-4 animate-fade-in" style={{ zIndex: "var(--layer-confirm)", background: "var(--color-overlay-primary)", paddingBottom: "16px" }}>
           <div className="card-elevated w-full max-w-md p-5 space-y-4" role="dialog" aria-modal="true" aria-label="Convert lead">
             <div className="flex items-center justify-between">
-              <h3 className="text-[15px] flex items-center gap-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" as any }}><UserPlus size={16} style={{ color: "var(--color-success)" }} /> {t("pipeline.convert.title" as any)}</h3>
+              <h3 className="text-[15px] flex items-center gap-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" }}><UserPlus size={16} style={{ color: "var(--color-success)" }} /> {t("pipeline.convert.title")}</h3>
               <button onClick={() => setShowConvert(false)} className="btn-icon" aria-label="Close dialog"><X size={18} /></button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <FL label={t("pipeline.convert.billingType" as any)}><select value={convertForm.billing_type} onChange={e => setConvertForm(p => ({ ...p, billing_type: e.target.value as "subscription" | "project" }))} className="input-base w-full px-3 py-2 text-[15px]"><option value="subscription">{t("pipeline.convert.subscription" as any)}</option><option value="project">{t("pipeline.convert.project" as any)}</option></select></FL>
-              <FL label={t("common.status" as any)}><select value={convertForm.status} onChange={e => setConvertForm(p => ({ ...p, status: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]"><option value="Active">{t("common.active" as any)}</option><option value="Paused">{t("common.paused" as any)}</option></select></FL>
+              <FL label={t("pipeline.convert.billingType")}><select value={convertForm.billing_type} onChange={e => setConvertForm(p => ({ ...p, billing_type: e.target.value as "subscription" | "project" }))} className="input-base w-full px-3 py-2 text-[15px]"><option value="subscription">{t("pipeline.convert.subscription")}</option><option value="project">{t("pipeline.convert.project")}</option></select></FL>
+              <FL label={t("common.status")}><select value={convertForm.status} onChange={e => setConvertForm(p => ({ ...p, status: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]"><option value="Active">{t("common.active")}</option><option value="Paused">{t("common.paused")}</option></select></FL>
             </div>
-            <FL label={t("pipeline.convert.plan" as any)}><select value={convertForm.plan_tier} onChange={e => { const v = e.target.value; const p = plans.find((x: any) => x.name === v); setConvertForm(prev => ({ ...prev, plan_tier: v, mrr: p ? String(p.price) : prev.mrr })); }} className="input-base w-full px-3 py-2 text-[15px]"><option value="">{t("pipeline.convert.planSelect" as any)}</option>{plans.map((p: any) => <option key={p.id} value={p.name}>{p.name}</option>)}</select></FL>
+            <FL label={t("pipeline.convert.plan")}><select value={convertForm.plan_tier} onChange={e => { const v = e.target.value; const p = plans.find((x: PlanRow) => x.name === v); setConvertForm(prev => ({ ...prev, plan_tier: v, mrr: p ? String(p.price) : prev.mrr })); }} className="input-base w-full px-3 py-2 text-[15px]"><option value="">{t("pipeline.convert.planSelect")}</option>{plans.map((p: PlanRow) => <option key={p.id} value={p.name}>{p.name}</option>)}</select></FL>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {convertForm.billing_type === "subscription" ? (
-                <FL label={t("pipeline.convert.mrr" as any)}><input type="number" min="0" value={convertForm.mrr} onChange={e => setConvertForm(p => ({ ...p, mrr: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+                <FL label={t("pipeline.convert.mrr")}><input type="number" min="0" value={convertForm.mrr} onChange={e => setConvertForm(p => ({ ...p, mrr: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
               ) : (
-                <FL label={t("pipeline.convert.projectFee" as any)}><input type="number" min="0" value={convertForm.project_fee} onChange={e => setConvertForm(p => ({ ...p, project_fee: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+                <FL label={t("pipeline.convert.projectFee")}><input type="number" min="0" value={convertForm.project_fee} onChange={e => setConvertForm(p => ({ ...p, project_fee: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
               )}
-              <FL label={t("pipeline.convert.startDate" as any)}><input type="date" value={convertForm.subscription_start_date} onChange={e => setConvertForm(p => ({ ...p, subscription_start_date: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+              <FL label={t("pipeline.convert.startDate")}><input type="date" value={convertForm.subscription_start_date} onChange={e => setConvertForm(p => ({ ...p, subscription_start_date: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowConvert(false)} className="btn-secondary text-[15px]">{t("common.cancel" as any)}</button>
+              <button onClick={() => setShowConvert(false)} className="btn-secondary text-[15px]">{t("common.cancel")}</button>
               <button onClick={convertLead} disabled={converting} className="text-[15px] px-4 py-2 rounded-[var(--radius-6)] flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed" style={{ background: "var(--color-success)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
-                <UserPlus size={16} /> {t("common.confirmCreate" as any)}
+                <UserPlus size={16} /> {t("common.confirmCreate")}
               </button>
             </div>
           </div>
@@ -459,7 +508,7 @@ export function LeadsView() {
 }
 
 /* ── Sortable Lead Card ────────────────────────────────────────── */
-function SortableLeadCard({ lead, onEdit, onDelete, score, isOverlay }: { lead: any; onEdit: (l: any) => void; onDelete: (id: number) => void; score?: LeadAnalysis; isOverlay?: boolean }) {
+const SortableLeadCard: React.FC<SortableLeadCardProps> = ({ lead, onEdit, onDelete, score, isOverlay }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: lead.id.toString(), disabled: isOverlay });
   const scoreColors: Record<string, { bg: string; color: string; label: string }> = {
     high: { bg: "var(--color-success-light)", color: "var(--color-success)", label: "高" },
@@ -493,24 +542,24 @@ function SortableLeadCard({ lead, onEdit, onDelete, score, isOverlay }: { lead: 
       </div>
     </div>
   );
-}
+};
 
 /* ── DnD helpers ───────────────────────────────────────────────── */
-function findLeadColumn(leads: Record<string, any[]>, id: string): string | null {
+function findLeadColumn(leads: Record<string, Lead[]>, id: string): string | null {
   for (const [colId, items] of Object.entries(leads)) {
-    if (items.some((l: any) => l.id.toString() === id)) return colId;
+    if (items.some((l: Lead) => l.id.toString() === id)) return colId;
   }
   return null;
 }
 
-function useLeadDnd(leads: Record<string, any[]>, columns: any[], onDragEnd: (r: any) => void) {
+function useLeadDnd(leads: Record<string, Lead[]>, columns: LeadColumn[], onDragEnd: (r: DragResult) => void) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: isMobile ? 99999 : 5 } }),
   );
   const allLeads = useMemo(() => Object.values(leads).flat(), [leads]);
-  const activeLead = activeId ? allLeads.find((l: any) => l.id.toString() === activeId) : null;
+  const activeLead = activeId ? allLeads.find((l: Lead) => l.id.toString() === activeId) : null;
 
   const handleDragStart = useCallback((e: DragStartEvent) => setActiveId(e.active.id as string), []);
   const handleDragEnd = useCallback((event: DragEndEvent) => {
@@ -521,10 +570,10 @@ function useLeadDnd(leads: Record<string, any[]>, columns: any[], onDragEnd: (r:
     if (!src) return;
     let dest = findLeadColumn(leads, over.id as string);
     let destIdx = 0;
-    if (dest) { destIdx = leads[dest].findIndex((l: any) => l.id.toString() === (over.id as string)); }
-    else if (columns.some((c: any) => c.id === over.id)) { dest = over.id as string; }
+    if (dest) { destIdx = leads[dest].findIndex((l: Lead) => l.id.toString() === (over.id as string)); }
+    else if (columns.some((c: LeadColumn) => c.id === over.id)) { dest = over.id as string; }
     else return;
-    const srcIdx = leads[src].findIndex((l: any) => l.id.toString() === (active.id as string));
+    const srcIdx = leads[src].findIndex((l: Lead) => l.id.toString() === (active.id as string));
     onDragEnd({ source: { droppableId: src, index: srcIdx }, destination: { droppableId: dest, index: destIdx } });
   }, [leads, columns, onDragEnd]);
 
@@ -532,22 +581,22 @@ function useLeadDnd(leads: Record<string, any[]>, columns: any[], onDragEnd: (r:
 }
 
 /* ── Lead Kanban ──────────────────────────────────────────────── */
-function LeadKanban({ leads, columns, onDragEnd, onAdd, onEdit, onDelete, emptyText, leadScores }: any) {
+function LeadKanban({ leads, columns, onDragEnd, onAdd, onEdit, onDelete, emptyText, leadScores }: LeadKanbanProps) {
   const { sensors, activeLead, handleDragStart, handleDragEnd } = useLeadDnd(leads, columns, onDragEnd);
   return (
     <div className="flex-1 overflow-x-auto overflow-y-hidden ios-scroll pb-4 -mx-4 px-4 md:-mx-6 md:px-6 lg:mx-0 lg:px-0 snap-x snap-mandatory lg:snap-none lg:overflow-x-visible">
       <div className="flex h-full gap-3 min-w-max lg:min-w-0">
         <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          {columns.map((col: any) => {
+          {columns.map((col: LeadColumn) => {
             const items = leads[col.id] || [];
-            const itemIds = items.map((l: any) => l.id.toString());
+            const itemIds = items.map((l: Lead) => l.id.toString());
             return (
               <div key={col.id} className="flex flex-col flex-1 min-w-[240px] lg:min-w-0 h-full snap-start lg:snap-align-none">
                 <div className="flex items-center justify-between mb-2 px-1">
                   <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-[var(--radius-2)]" style={{ background: col.color }} />
-                    <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" as any }}>{col.title}</h3>
-                    <span className="text-[13px] tabular-nums" style={{ color: "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" as any }}>{items.length}</span>
+                    <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" }}>{col.title}</h3>
+                    <span className="text-[13px] tabular-nums" style={{ color: "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" }}>{items.length}</span>
                   </div>
                   <button onClick={() => onAdd(null, col.id)} className="btn-icon-sm" aria-label="Add lead"><Plus size={14} /></button>
                 </div>
@@ -561,8 +610,8 @@ function LeadKanban({ leads, columns, onDragEnd, onAdd, onEdit, onDelete, emptyT
                           <span className="text-[13px]" style={{ color: "var(--color-text-quaternary)" }}>{emptyText}</span>
                         </div>
                       )}
-                      {items.map((lead: any) => (
-                        <SortableLeadCard key={lead.id} lead={lead} onEdit={(l: any) => onEdit(l, col.id)} onDelete={onDelete} score={leadScores?.[lead.id]} />
+                      {items.map((lead: Lead) => (
+                        <SortableLeadCard key={lead.id} lead={lead} onEdit={(l: Lead) => onEdit(l, col.id)} onDelete={onDelete} score={leadScores?.[lead.id]} />
                       ))}
                     </div>
                   </div>
@@ -580,21 +629,21 @@ function LeadKanban({ leads, columns, onDragEnd, onAdd, onEdit, onDelete, emptyT
 }
 
 /* ── Lead Swimlane ────────────────────────────────────────────── */
-function LeadSwimlane({ leads, columns, onDragEnd, onAdd, onEdit, onDelete, onMove, emptyText }: any) {
+function LeadSwimlane({ leads, columns, onDragEnd, onAdd, onEdit, onDelete, onMove, emptyText }: LeadSwimlaneProps) {
   const { sensors, activeLead, handleDragStart, handleDragEnd } = useLeadDnd(leads, columns, onDragEnd);
   return (
     <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="space-y-3 pb-4">
-        {columns.map((col: any) => {
-          const items: any[] = leads[col.id] || [];
-          const itemIds = items.map((l: any) => l.id.toString());
+        {columns.map((col: LeadColumn) => {
+          const items: Lead[] = leads[col.id] || [];
+          const itemIds = items.map((l: Lead) => l.id.toString());
           return (
             <section key={col.id}>
               <div className="flex items-center justify-between mb-1 px-1">
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-[var(--radius-2)]" style={{ background: col.color }} />
-                  <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" as any }}>{col.title}</h3>
-                  <span className="text-[13px] tabular-nums" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" as any }}>{items.length}</span>
+                  <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" }}>{col.title}</h3>
+                  <span className="text-[13px] tabular-nums" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" }}>{items.length}</span>
                 </div>
                 <button onClick={() => onAdd(null, col.id)} className="btn-icon-sm" aria-label="Add lead"><Plus size={14} /></button>
               </div>
@@ -609,7 +658,7 @@ function LeadSwimlane({ leads, columns, onDragEnd, onAdd, onEdit, onDelete, onMo
                     </button>
                   ) : (
                     <div className="p-1.5 space-y-1">
-                      {items.map((lead: any) => {
+                      {items.map((lead: Lead) => {
                         const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: lead.id.toString() });
                         return (
                           <div key={lead.id} ref={setNodeRef} {...attributes} {...listeners}
@@ -621,18 +670,18 @@ function LeadSwimlane({ leads, columns, onDragEnd, onAdd, onEdit, onDelete, onMo
                                 <h4 className="text-[15px] truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{lead.name || "—"}</h4>
                                 <p className="text-[13px] truncate mt-0.5" style={{ color: "var(--color-text-secondary)" }}>{lead.industry || "—"}</p>
                               </div>
-                              <div className="flex items-center gap-1 shrink-0" onClick={(e: any) => e.stopPropagation()}>
-                                <select value={col.id} onChange={(e: any) => onMove(lead.id, e.target.value)}
+                              <div className="flex items-center gap-1 shrink-0" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                                <select value={col.id} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onMove(lead.id, e.target.value)}
                                   className="input-base compact cursor-pointer text-[13px] px-2"
                                   style={{ fontWeight: "var(--font-weight-medium)", height: "28px" } as React.CSSProperties}>
-                                  {columns.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
+                                  {columns.map((c: LeadColumn) => <option key={c.id} value={c.id}>{c.title}</option>)}
                                 </select>
                               </div>
                             </div>
                             {lead.needs && <p className="text-[13px] line-clamp-2 mb-1" style={{ color: "var(--color-text-secondary)" }}>{lead.needs}</p>}
                             <div className="flex items-center justify-between mt-1">
                               {lead.source ? <span className="badge">{lead.source}</span> : <span />}
-                              <button onClick={(e: any) => { e.stopPropagation(); onDelete(lead.id); }} className="btn-icon-sm" aria-label="Delete lead"><Trash2 size={14} /></button>
+                              <button onClick={(e: React.MouseEvent) => { e.stopPropagation(); onDelete(lead.id); }} className="btn-icon-sm" aria-label="Delete lead"><Trash2 size={14} /></button>
                             </div>
                           </div>
                         );

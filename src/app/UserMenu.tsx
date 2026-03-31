@@ -16,7 +16,7 @@ export interface UserMenuProps {
   syncStatus: "idle" | "syncing";
   pendingOps: number;
   isExpanded: boolean;
-  user: any;
+  user: { email?: string } | null;
   themeMode: ThemeMode;
   setThemeMode: (mode: ThemeMode) => void;
   setActiveTab: (tab: string) => void;
@@ -55,7 +55,7 @@ export function UserMenu({
   };
 
   const handleSettingsClick = () => {
-    setActiveTab("settings" as any);
+    setActiveTab("settings");
     setUserMenuOpen(false);
   };
 
@@ -163,8 +163,8 @@ export function UserMenu({
               />
               <span>
                 {isOnline
-                  ? t("app.cloudConnected" as any)
-                  : t("app.offline" as any)}
+                  ? t("app.cloudConnected")
+                  : t("app.offline")}
               </span>
             </div>
             {/* Theme mode — 3-way segmented control */}
@@ -173,7 +173,7 @@ export function UserMenu({
                 className="text-[12px] mb-1.5"
                 style={{ color: "var(--color-text-quaternary)" }}
               >
-                {t("settings.colorMode" as any) || "Color Mode"}
+                {t("settings.colorMode") || "Color Mode"}
               </div>
               <div
                 className="flex rounded-[var(--radius-6)] overflow-hidden"
@@ -199,10 +199,10 @@ export function UserMenu({
                       fontSize: "12px",
                       fontWeight: "var(--font-weight-medium)",
                     } as React.CSSProperties}
-                    title={t(`settings.theme${value.charAt(0).toUpperCase() + value.slice(1)}` as any) || value}
+                    title={t(`settings.theme${value.charAt(0).toUpperCase() + value.slice(1)}`) || value}
                   >
                     <Icon size={13} />
-                    <span>{t(`settings.theme${value.charAt(0).toUpperCase() + value.slice(1)}` as any) || value}</span>
+                    <span>{t(`settings.theme${value.charAt(0).toUpperCase() + value.slice(1)}`) || value}</span>
                   </button>
                 ))}
               </div>
@@ -219,7 +219,7 @@ export function UserMenu({
                 aria-hidden="true"
                 style={{ color: "var(--color-text-quaternary)" }}
               />
-              {t("nav.settings" as any)}
+              {t("nav.settings")}
             </button>
             {/* Divider */}
             <div
@@ -237,7 +237,7 @@ export function UserMenu({
               style={{ color: "var(--color-danger)" }}
             >
               <LogOut size={14} aria-hidden="true" />
-              {t("common.signOut" as any) || "Sign out"}
+              {t("common.signOut") || "Sign out"}
             </button>
           </motion.div>
         )}

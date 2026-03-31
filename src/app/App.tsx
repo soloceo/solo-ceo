@@ -117,7 +117,7 @@ function App() {
   };
   const themeIcon = themeMode === "dark" ? <Moon size={14} /> : themeMode === "auto" ? <Monitor size={14} /> : <Sun size={14} />;
   const themeMobileIcon = themeMode === "dark" ? <Moon size={16} /> : themeMode === "auto" ? <Monitor size={16} /> : <Sun size={16} />;
-  const themeLabel = t(`settings.theme${themeMode.charAt(0).toUpperCase() + themeMode.slice(1)}` as any) || themeMode;
+  const themeLabel = t(`settings.theme${themeMode.charAt(0).toUpperCase() + themeMode.slice(1)}`) || themeMode;
 
   const {
     operatorName, operatorAvatar,
@@ -174,15 +174,15 @@ function App() {
 
   // Reusable quick create groups for both desktop and mobile
   const getQuickCreateGroups = () => [
-    { label: t("app.quickCreate.groupWork" as any), items: [
-      { icon: <ListTodo size={14} aria-hidden="true" />, label: t("app.quickCreate.task" as any), action: () => { setActiveTab("work"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "task" } })), 100); } },
-      { icon: <UserPlus size={14} aria-hidden="true" />, label: t("app.quickCreate.lead" as any), action: () => { setActiveTab("leads" as any); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "lead" } })), 100); } },
-      { icon: <Users size={14} aria-hidden="true" />, label: t("app.quickCreate.client" as any), action: () => { setActiveTab("clients"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "client" } })), 100); } },
-      { icon: <FileText size={14} aria-hidden="true" />, label: t("app.quickCreate.bizFinance" as any), action: () => { setActiveTab("finance"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "biz-transaction" } })), 100); } },
+    { label: t("app.quickCreate.groupWork"), items: [
+      { icon: <ListTodo size={14} aria-hidden="true" />, label: t("app.quickCreate.task"), action: () => { setActiveTab("work"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "task" } })), 100); } },
+      { icon: <UserPlus size={14} aria-hidden="true" />, label: t("app.quickCreate.lead"), action: () => { setActiveTab("leads"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "lead" } })), 100); } },
+      { icon: <Users size={14} aria-hidden="true" />, label: t("app.quickCreate.client"), action: () => { setActiveTab("clients"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "client" } })), 100); } },
+      { icon: <FileText size={14} aria-hidden="true" />, label: t("app.quickCreate.bizFinance"), action: () => { setActiveTab("finance"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "biz-transaction" } })), 100); } },
     ]},
-    { label: t("app.quickCreate.groupPersonal" as any), items: [
-      { icon: <ListTodo size={14} aria-hidden="true" />, label: t("app.quickCreate.personalTask" as any), action: () => { setActiveTab("work"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "personal-task" } })), 100); } },
-      { icon: <FileText size={14} aria-hidden="true" />, label: t("app.quickCreate.personalFinance" as any), action: () => { setActiveTab("finance"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "personal-transaction" } })), 100); } },
+    { label: t("app.quickCreate.groupPersonal"), items: [
+      { icon: <ListTodo size={14} aria-hidden="true" />, label: t("app.quickCreate.personalTask"), action: () => { setActiveTab("work"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "personal-task" } })), 100); } },
+      { icon: <FileText size={14} aria-hidden="true" />, label: t("app.quickCreate.personalFinance"), action: () => { setActiveTab("finance"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "personal-transaction" } })), 100); } },
     ]},
   ];
 
@@ -289,7 +289,7 @@ function App() {
 
   const operatorDisplayName = operatorName.trim() || user?.email?.split("@")[0] || "User";
   const currentTab = TAB_MAP[activeTab];
-  const pageTitle = currentTab ? t(currentTab.labelKey as any) : t("nav.home" as any);
+  const pageTitle = currentTab ? t(currentTab.labelKey) : t("nav.home");
 
   // Auth gate
   if (authLoading && !offlineMode) {
@@ -353,10 +353,10 @@ function App() {
               onClick={() => useUIStore.getState().setCommandPaletteOpen(true)}
               className="flex-1 flex items-center gap-2 px-2 h-8 min-w-0 rounded-[var(--radius-6)] text-[13px] transition-colors hover:bg-[var(--color-bg-tertiary)]"
               style={{ color: "var(--color-text-quaternary)", background: "var(--color-bg-translucent)" }}
-              aria-label={t("common.search" as any)}
+              aria-label={t("common.search")}
             >
               <Search size={14} className="shrink-0" />
-              <span className="flex-1 text-left truncate">{t("common.search" as any)}</span>
+              <span className="flex-1 text-left truncate">{t("common.search")}</span>
               <kbd className="shrink-0 text-[10px] px-1 py-px rounded-[var(--radius-2)]" style={{ fontFamily: "inherit", color: "var(--color-text-quaternary)", background: "var(--color-bg-tertiary)", border: "1px solid var(--color-border-primary)" }}>⌘K</kbd>
             </button>
             <QuickCreateMenu setActiveTab={setActiveTab} />
@@ -371,7 +371,7 @@ function App() {
               onClick={toggleSidebar}
               className="flex items-center justify-center rounded-[var(--radius-8)] transition-all hover:bg-[var(--color-bg-tertiary)] hover:scale-105 active:scale-95"
               style={{ width: 32, height: 32, color: "var(--color-text-secondary)" }}
-              title={t("nav.pinSidebar" as any) || "Expand sidebar"}
+              title={t("nav.pinSidebar") || "Expand sidebar"}
               aria-label="Expand sidebar"
             >
               <PanelLeft size={16} />
@@ -380,7 +380,7 @@ function App() {
               onClick={() => useUIStore.getState().setCommandPaletteOpen(true)}
               className="flex items-center justify-center rounded-[var(--radius-6)] transition-colors hover:bg-[var(--color-bg-tertiary)]"
               style={{ width: 32, height: 32, color: "var(--color-text-quaternary)" }}
-              title={`${t("common.search" as any)} (⌘K)`}
+              title={`${t("common.search")} (⌘K)`}
               aria-label="Search"
             >
               <Search size={14} />
@@ -391,14 +391,14 @@ function App() {
         {/* Nav */}
         <nav className="flex-1 flex flex-col gap-px px-3">
           {isExpanded && (
-            <span className="section-label px-2 pt-2 pb-1">{t("nav.workspace" as any) || "Workspace"}</span>
+            <span className="section-label px-2 pt-2 pb-1">{t("nav.workspace") || "Workspace"}</span>
           )}
           {MAIN_TABS.map((tab) => (
             <SidebarItem
               key={tab.id}
               id={tab.id}
               icon={tab.icon}
-              label={t(tab.labelKey as any)}
+              label={t(tab.labelKey)}
               active={activeTab === tab.id}
               expanded={isExpanded}
               onClick={setActiveTab}
@@ -427,7 +427,7 @@ function App() {
                 onClick={() => setActiveTab("settings")}
                 className="btn-icon-sm"
                 style={{ color: activeTab === "settings" ? "var(--color-text-primary)" : "var(--color-text-quaternary)" }}
-                title={t("nav.settings" as any)}
+                title={t("nav.settings")}
                 aria-label="Settings"
               >
                 <SettingsIcon size={14} />
@@ -535,7 +535,7 @@ function App() {
                   key={tab.id}
                   id={tab.id}
                   icon={tab.icon}
-                  label={t(tab.labelKey as any)}
+                  label={t(tab.labelKey)}
                   active={activeTab === tab.id}
                   onClick={setActiveTab}
                 />
@@ -611,7 +611,7 @@ const SidebarItem = React.memo(function SidebarItem({
   id, icon, label, active, expanded, onClick, badge, badgeSegments,
 }: {
   id: string; icon: React.ReactNode; label: string; active: boolean; expanded: boolean;
-  onClick: (id: any) => void; badge?: number; badgeSegments?: BadgeSegment[];
+  onClick: (id: string) => void; badge?: number; badgeSegments?: BadgeSegment[];
 }) {
   // No native title — we use a custom tooltip for collapsed state
   const hasSegments = badgeSegments && badgeSegments.some(s => s.count > 0);
@@ -686,7 +686,7 @@ const SidebarItem = React.memo(function SidebarItem({
 const MobileNavItem = React.memo(function MobileNavItem({
   id, icon, label, active, onClick,
 }: {
-  id: string; icon: React.ReactNode; label: string; active: boolean; onClick: (id: any) => void;
+  id: string; icon: React.ReactNode; label: string; active: boolean; onClick: (id: string) => void;
 }) {
   return (
     <button

@@ -35,11 +35,11 @@ export default function SecuritySection({ showToast }: SecuritySectionProps) {
   const handleChangePassword = async () => {
     setPwMsg(null);
     if (!newPassword || newPassword.length < 8) {
-      setPwMsg({ status: 'error', message: t('auth.passwordTooShort' as any) });
+      setPwMsg({ status: 'error', message: t('auth.passwordTooShort') });
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPwMsg({ status: 'error', message: t('auth.passwordMismatch' as any) });
+      setPwMsg({ status: 'error', message: t('auth.passwordMismatch') });
       return;
     }
     setPwLoading(true);
@@ -47,7 +47,7 @@ export default function SecuritySection({ showToast }: SecuritySectionProps) {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) setPwMsg({ status: 'error', message: error.message });
       else {
-        setPwMsg({ status: 'success', message: t('auth.passwordUpdated' as any) });
+        setPwMsg({ status: 'success', message: t('auth.passwordUpdated') });
         setNewPassword(''); setConfirmPassword('');
       }
     } finally { setPwLoading(false); }
@@ -56,7 +56,7 @@ export default function SecuritySection({ showToast }: SecuritySectionProps) {
   const handleChangeEmail = async () => {
     setEmailMsg(null);
     if (!newEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail.trim())) {
-      setEmailMsg({ status: 'error', message: t('auth.fillAll' as any) });
+      setEmailMsg({ status: 'error', message: t('auth.fillAll') });
       return;
     }
     setEmailLoading(true);
@@ -64,7 +64,7 @@ export default function SecuritySection({ showToast }: SecuritySectionProps) {
       const { error } = await supabase.auth.updateUser({ email: newEmail.trim() });
       if (error) setEmailMsg({ status: 'error', message: error.message });
       else {
-        setEmailMsg({ status: 'success', message: t('auth.changeEmailSent' as any) });
+        setEmailMsg({ status: 'success', message: t('auth.changeEmailSent') });
         setNewEmail('');
       }
     } finally { setEmailLoading(false); }
@@ -72,7 +72,7 @@ export default function SecuritySection({ showToast }: SecuritySectionProps) {
 
   return (
     <section>
-      <SectionLabel>{t("settings.accountSecurity" as any)}</SectionLabel>
+      <SectionLabel>{t("settings.accountSecurity")}</SectionLabel>
       <div className="card overflow-hidden">
         {/* Collapsible header */}
         <button
@@ -85,10 +85,10 @@ export default function SecuritySection({ showToast }: SecuritySectionProps) {
             </div>
             <div>
               <div className="text-[15px]" style={{ color: 'var(--color-text-primary)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>
-                {t("settings.accountSecurity" as any)}
+                {t("settings.accountSecurity")}
               </div>
               <div className="text-[13px] mt-0.5" style={{ color: 'var(--color-text-tertiary)' }}>
-                {t("auth.changePassword" as any)} · {t("auth.changeEmail" as any)}
+                {t("auth.changePassword")} · {t("auth.changeEmail")}
               </div>
             </div>
           </div>
@@ -104,15 +104,15 @@ export default function SecuritySection({ showToast }: SecuritySectionProps) {
               <div className="flex items-center gap-2">
                 <Lock size={16} style={{ color: 'var(--color-text-tertiary)' }} />
                 <span className="text-[14px]" style={{ color: 'var(--color-text-secondary)', fontWeight: 'var(--font-weight-semibold)' } as React.CSSProperties}>
-                  {t("auth.changePassword" as any)}
+                  {t("auth.changePassword")}
                 </span>
               </div>
-              <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder={t("auth.newPassword" as any)} className="input-base w-full px-3 py-2 text-[15px]" autoComplete="new-password" />
-              <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder={t("auth.confirmNewPassword" as any)} className="input-base w-full px-3 py-2 text-[15px]" autoComplete="new-password" />
+              <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder={t("auth.newPassword")} className="input-base w-full px-3 py-2 text-[15px]" autoComplete="new-password" />
+              <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder={t("auth.confirmNewPassword")} className="input-base w-full px-3 py-2 text-[15px]" autoComplete="new-password" />
               {pwMsg && <StatusMsg status={pwMsg.status} message={pwMsg.message} />}
               <button onClick={handleChangePassword} disabled={pwLoading} className="btn-primary text-[15px] w-full disabled:opacity-50">
                 {pwLoading ? <Loader2 size={14} className="animate-spin" /> : <Lock size={14} />}
-                {t("auth.changePassword" as any)}
+                {t("auth.changePassword")}
               </button>
             </div>
 
@@ -123,15 +123,15 @@ export default function SecuritySection({ showToast }: SecuritySectionProps) {
               <div className="flex items-center gap-2">
                 <Mail size={16} style={{ color: 'var(--color-text-tertiary)' }} />
                 <span className="text-[14px]" style={{ color: 'var(--color-text-secondary)', fontWeight: 'var(--font-weight-semibold)' } as React.CSSProperties}>
-                  {t("auth.changeEmail" as any)}
+                  {t("auth.changeEmail")}
                 </span>
               </div>
-              <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder={t("auth.newEmail" as any)} className="input-base w-full px-3 py-2 text-[15px]" autoComplete="email" />
-              <div className="text-[13px]" style={{ color: 'var(--color-text-tertiary)' }}>{t("auth.changeEmailHint" as any)}</div>
+              <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder={t("auth.newEmail")} className="input-base w-full px-3 py-2 text-[15px]" autoComplete="email" />
+              <div className="text-[13px]" style={{ color: 'var(--color-text-tertiary)' }}>{t("auth.changeEmailHint")}</div>
               {emailMsg && <StatusMsg status={emailMsg.status} message={emailMsg.message} />}
               <button onClick={handleChangeEmail} disabled={emailLoading} className="btn-primary text-[15px] w-full disabled:opacity-50">
                 {emailLoading ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
-                {t("auth.changeEmail" as any)}
+                {t("auth.changeEmail")}
               </button>
             </div>
           </div>

@@ -48,7 +48,8 @@ export function useMilestones(clientId: number | null, projectFee: number) {
     try {
       const res = await fetch(`/api/clients/${cid}/milestones`);
       setMilestones(await res.json());
-    } catch {
+    } catch (e) {
+      console.warn('[useMilestones] fetchMilestones', e);
       setMilestones([]);
     } finally {
       setMsLoading(false);
@@ -78,17 +79,18 @@ export function useMilestones(clientId: number | null, projectFee: number) {
       }
       if (msForm.alreadyPaid && newMsId) {
         await fetch(`/api/milestones/${newMsId}/mark-paid`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ payment_method: msForm.payMethod }) });
-        showToast(t("pipeline.milestones.autoFinance" as any));
+        showToast(t("pipeline.milestones.autoFinance"));
       } else {
-        showToast(t("pipeline.milestones.saved" as any));
+        showToast(t("pipeline.milestones.saved"));
       }
       setShowAddMs(false);
       setEditMsId(null);
       setMsForm(EMPTY_MS);
       fetchMilestones(clientId);
       onDone?.();
-    } catch {
-      showToast(t("common.saveFailed" as any));
+    } catch (e) {
+      console.warn('[useMilestones] saveMilestone', e);
+      showToast(t("common.saveFailed"));
     } finally {
       setSavingMs(false);
     }
@@ -97,23 +99,25 @@ export function useMilestones(clientId: number | null, projectFee: number) {
   const deleteMilestone = useCallback(async (msId: number) => {
     try {
       await fetch(`/api/milestones/${msId}`, { method: "DELETE" });
-      showToast(t("pipeline.milestones.deleted" as any));
+      showToast(t("pipeline.milestones.deleted"));
       if (clientId) fetchMilestones(clientId);
-    } catch {
-      showToast(t("common.deleteFailed" as any));
+    } catch (e) {
+      console.warn('[useMilestones] deleteMilestone', e);
+      showToast(t("common.deleteFailed"));
     }
   }, [clientId, fetchMilestones, showToast, t]);
 
   const undoMarkPaid = useCallback(async (msId: number, onDone?: () => void) => {
     try {
       await fetch(`/api/milestones/${msId}/undo-paid`, { method: "POST" });
-      showToast(t("pipeline.milestones.undone" as any));
+      showToast(t("pipeline.milestones.undone"));
       if (clientId) {
         fetchMilestones(clientId);
         onDone?.();
       }
-    } catch {
-      showToast(t("common.saveFailed" as any));
+    } catch (e) {
+      console.warn('[useMilestones] undoMarkPaid', e);
+      showToast(t("common.saveFailed"));
     }
   }, [clientId, fetchMilestones, showToast, t]);
 
@@ -121,12 +125,13 @@ export function useMilestones(clientId: number | null, projectFee: number) {
     if (!markPaidId) return;
     try {
       await fetch(`/api/milestones/${markPaidId}/mark-paid`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ payment_method: markPaidMethod }) });
-      showToast(t("pipeline.milestones.autoFinance" as any));
+      showToast(t("pipeline.milestones.autoFinance"));
       setMarkPaidId(null);
       setMarkPaidMethod("bank_transfer");
       if (clientId) fetchMilestones(clientId);
-    } catch {
-      showToast(t("common.saveFailed" as any));
+    } catch (e) {
+      console.warn('[useMilestones] confirmMarkPaid', e);
+      showToast(t("common.saveFailed"));
     }
   }, [clientId, markPaidId, markPaidMethod, fetchMilestones, showToast, t]);
 
@@ -136,7 +141,7 @@ export function useMilestones(clientId: number | null, projectFee: number) {
     const pct = pctMap[preset];
     setMsForm(p => ({
       ...p,
-      label: t(`pipeline.milestones.presets.${preset}` as any),
+      label: t(`pipeline.milestones.presets.${preset}`),
       percentage: String(pct),
       amount: String(Math.round(fee * pct / 100)),
     }));

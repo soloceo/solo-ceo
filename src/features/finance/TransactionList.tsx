@@ -11,10 +11,27 @@ import {
 import { catLabel, STATUS_I18N } from "../../lib/tax";
 import { fmtDate } from "../../lib/format";
 
+/* ── Types ── */
+interface TxRecord {
+  id: number;
+  type?: string;
+  amount?: number;
+  tax_amount?: number;
+  tax_mode?: string;
+  source?: string;
+  description?: string;
+  desc?: string;
+  client_name?: string;
+  category?: string;
+  date?: string;
+  status?: string;
+  [key: string]: unknown;
+}
+
 /* ── Helpers ── */
-const stLabel = (st: string, t: (k: any) => string) => {
+const stLabel = (st: string, t: (k: string) => string) => {
   const key = STATUS_I18N[st];
-  return key ? t(key as any) : st;
+  return key ? t(key) : st;
 };
 
 /* ── Stat Card ── */
@@ -35,7 +52,7 @@ export function StatCard({ label, value, sub, icon, color }: {
 
 /* ── Transaction Row (memoized) ── */
 export const TxRow = React.memo(function TxRow({ tx, t, lang, fmtAmt, fmtAmtColor, onEdit, onDelete, isSystem, expanded, onClientClick }: {
-  tx: any; t: (k: any) => string; lang?: string; fmtAmt: (n: number) => string; fmtAmtColor: (n: number) => string;
+  tx: TxRecord; t: (k: string) => string; lang?: string; fmtAmt: (n: number) => string; fmtAmtColor: (n: number) => string;
   onEdit: () => void; onDelete: () => void; isSystem: boolean; expanded?: boolean; onClientClick?: (name: string) => void;
 }) {
   const rawAmt = Number(tx.amount || 0);
@@ -52,19 +69,19 @@ export const TxRow = React.memo(function TxRow({ tx, t, lang, fmtAmt, fmtAmtColo
     : rawAmt;
   const src = tx.source || 'manual';
   const sourceBadge = src === "subscription"
-    ? t("finance.source.subscription" as any)
+    ? t("finance.source.subscription")
     : src === "milestone"
-    ? t("finance.source.milestone" as any)
+    ? t("finance.source.milestone")
     : src === "project_fee"
-    ? t("finance.source.project" as any)
+    ? t("finance.source.project")
     : null;
 
   const actionBtns = isSystem ? (
-    <span className="btn-icon-sm" title={t("finance.locked.hint" as any)} role="img" aria-label={t("finance.locked.hint" as any)}><Lock size={14} /></span>
+    <span className="btn-icon-sm" title={t("finance.locked.hint")} role="img" aria-label={t("finance.locked.hint")}><Lock size={14} /></span>
   ) : (
     <div className="flex gap-1">
-      <button onClick={onEdit} className="btn-icon-sm" aria-label={t("common.edit" as any)}><Edit2 size={14} /></button>
-      <button onClick={onDelete} className="btn-icon-sm" aria-label={t("common.delete" as any)}><Trash2 size={14} /></button>
+      <button onClick={onEdit} className="btn-icon-sm" aria-label={t("common.edit")}><Edit2 size={14} /></button>
+      <button onClick={onDelete} className="btn-icon-sm" aria-label={t("common.delete")}><Trash2 size={14} /></button>
     </div>
   );
 
@@ -81,7 +98,7 @@ export const TxRow = React.memo(function TxRow({ tx, t, lang, fmtAmt, fmtAmtColo
           <span className="text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{catLabel(tx.category || "", t)}</span>
           <div className="text-right">
             <span className="text-[15px] tabular-nums" style={{ color: fmtAmtColor(amt), fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{fmtAmt(amt)}</span>
-            {tax > 0 && <div className="text-[13px] tabular-nums" style={{ color: "var(--color-text-secondary)" }}>{taxMode === "exclusive" ? `+${t("finance.tax" as any)} $${tax.toLocaleString()}` : taxMode === "inclusive" ? `${t("finance.taxIncluded" as any)} $${tax.toLocaleString()}` : ""}</div>}
+            {tax > 0 && <div className="text-[13px] tabular-nums" style={{ color: "var(--color-text-secondary)" }}>{taxMode === "exclusive" ? `+${t("finance.tax")} $${tax.toLocaleString()}` : taxMode === "inclusive" ? `${t("finance.taxIncluded")} $${tax.toLocaleString()}` : ""}</div>}
           </div>
           <span className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{stLabel(tx.status || "", t)}</span>
           <div className="flex gap-1">{actionBtns}</div>
@@ -100,7 +117,7 @@ export const TxRow = React.memo(function TxRow({ tx, t, lang, fmtAmt, fmtAmtColo
           </div>
           <div className="text-right shrink-0">
             <div className="text-[15px] tabular-nums" style={{ color: fmtAmtColor(amt), fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{fmtAmt(amt)}</div>
-            {tax > 0 && <div className="text-[13px] tabular-nums" style={{ color: "var(--color-text-secondary)" }}>{taxMode === "exclusive" ? `+${t("finance.tax" as any)} $${tax.toLocaleString()}` : taxMode === "inclusive" ? `${t("finance.taxIncluded" as any)} $${tax.toLocaleString()}` : ""}</div>}
+            {tax > 0 && <div className="text-[13px] tabular-nums" style={{ color: "var(--color-text-secondary)" }}>{taxMode === "exclusive" ? `+${t("finance.tax")} $${tax.toLocaleString()}` : taxMode === "inclusive" ? `${t("finance.taxIncluded")} $${tax.toLocaleString()}` : ""}</div>}
             <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{stLabel(tx.status || "", t)}</div>
           </div>
           {isSystem ? <span className="p-1" style={{ color: "var(--color-text-secondary)" }}><Lock size={16} /></span> : <span className="p-1" style={{ color: "var(--color-text-secondary)", opacity: 0.4 }}><ChevronRight size={16} /></span>}
@@ -135,8 +152,8 @@ export const TxRow = React.memo(function TxRow({ tx, t, lang, fmtAmt, fmtAmtColo
 
 /* ── Virtual scrolled transaction list ── */
 export function VirtualTxList({ items, t, lang, fmtAmt, fmtAmtColor, onEdit, onDelete, onClientClick }: {
-  items: any[]; t: any; lang?: string; fmtAmt: any; fmtAmtColor: any;
-  onEdit: (tx: any) => void; onDelete: (tx: any) => void; onClientClick?: (name: string) => void;
+  items: TxRecord[]; t: (k: string) => string; lang?: string; fmtAmt: (n: number) => string; fmtAmtColor: (n: number) => string;
+  onEdit: (tx: TxRecord) => void; onDelete: (tx: TxRecord) => void; onClientClick?: (name: string) => void;
 }) {
   const parentRef = useRef<HTMLDivElement>(null);
   const rowVirtualizer = useVirtualizer({

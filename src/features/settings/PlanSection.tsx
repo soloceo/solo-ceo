@@ -12,7 +12,7 @@ interface Plan {
   price: number;
   deliverySpeed?: string;
   features?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export default function PlanSection({ showToast }: PlanSectionProps) {
@@ -36,7 +36,7 @@ export default function PlanSection({ showToast }: PlanSectionProps) {
     try {
       if (editing === "new") { await fetch("/api/plans", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }); }
       else { await fetch(`/api/plans/${editing.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }); }
-      showToast(t("common.saved" as any));
+      showToast(t("common.saved"));
       setEditing(null); fetchPlans();
     } catch { showToast("Error"); }
     finally { setSaving(false); }
@@ -45,9 +45,10 @@ export default function PlanSection({ showToast }: PlanSectionProps) {
   const del = async (id: number) => {
     try {
       await fetch(`/api/plans/${id}`, { method: "DELETE" });
-      showToast(t("settings.planDeleted" as any));
-    } catch {
-      showToast(t("common.deleteFailed" as any));
+      showToast(t("settings.planDeleted"));
+    } catch (e) {
+      console.warn('[PlanSection] deletePlan', e);
+      showToast(t("common.deleteFailed"));
     }
     setConfirmDeleteId(null);
     fetchPlans();
@@ -56,9 +57,9 @@ export default function PlanSection({ showToast }: PlanSectionProps) {
   return (
     <section>
       <div className="flex items-center justify-between mb-3">
-        <span className="section-label flex items-center gap-1.5"><Package size={14} /> {t("settings.planManager" as any)}</span>
+        <span className="section-label flex items-center gap-1.5"><Package size={14} /> {t("settings.planManager")}</span>
         <button onClick={openNew} className="btn-ghost compact" style={{ color: "var(--color-accent)" }}>
-          <Plus size={14} /> {t("common.add" as any)}
+          <Plus size={14} /> {t("common.add")}
         </button>
       </div>
 
@@ -66,7 +67,7 @@ export default function PlanSection({ showToast }: PlanSectionProps) {
         {plans.length === 0 && (
           <div className="p-6 text-center">
             <Package size={24} className="mx-auto mb-2" style={{ color: "var(--color-text-quaternary)", opacity: 0.5 }} />
-            <div className="text-[15px]" style={{ color: "var(--color-text-tertiary)" }}>{t("settings.noPlans" as any)}</div>
+            <div className="text-[15px]" style={{ color: "var(--color-text-tertiary)" }}>{t("settings.noPlans")}</div>
           </div>
         )}
         {plans.map(p => {
@@ -81,15 +82,15 @@ export default function PlanSection({ showToast }: PlanSectionProps) {
                 <div className="text-[13px] mt-0.5 truncate" style={{ color: "var(--color-text-tertiary)" }}>
                   ${Number(p.price || 0).toLocaleString()}/mo
                   {p.deliverySpeed ? ` · ${p.deliverySpeed}` : ""}
-                  {features.length > 0 ? ` · ${features.length} ${t("settings.planFeatures" as any).split('\n')[0]}` : ""}
+                  {features.length > 0 ? ` · ${features.length} ${t("settings.planFeatures").split('\n')[0]}` : ""}
                 </div>
               </div>
               <div className="flex gap-1 shrink-0">
                 <button onClick={() => openEdit(p)} className="btn-icon" style={{ color: "var(--color-text-quaternary)" }} aria-label="Edit plan"><Edit2 size={16} /></button>
                 {confirmDeleteId === p.id ? (
                   <div className="flex items-center gap-1.5">
-                    <button onClick={() => del(p.id)} className="text-[14px] px-3 py-1.5 rounded-[var(--radius-6)] transition-colors" style={{ background: "var(--color-danger)", color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("common.confirm" as any)}</button>
-                    <button onClick={() => setConfirmDeleteId(null)} className="text-[14px] px-3 py-1.5 rounded-[var(--radius-6)] transition-colors hover:bg-[var(--color-bg-quaternary)]" style={{ color: "var(--color-text-tertiary)" }}>{t("common.cancel" as any)}</button>
+                    <button onClick={() => del(p.id)} className="text-[14px] px-3 py-1.5 rounded-[var(--radius-6)] transition-colors" style={{ background: "var(--color-danger)", color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("common.confirm")}</button>
+                    <button onClick={() => setConfirmDeleteId(null)} className="text-[14px] px-3 py-1.5 rounded-[var(--radius-6)] transition-colors hover:bg-[var(--color-bg-quaternary)]" style={{ color: "var(--color-text-tertiary)" }}>{t("common.cancel")}</button>
                   </div>
                 ) : (
                   <button onClick={() => setConfirmDeleteId(p.id)} className="btn-icon" style={{ color: "var(--color-danger)" }} aria-label="Delete plan"><Trash2 size={16} /></button>
@@ -105,20 +106,20 @@ export default function PlanSection({ showToast }: PlanSectionProps) {
         <div className="card p-4 mt-3 space-y-3">
           <div className="flex items-center justify-between">
             <div className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
-              {editing === "new" ? t("common.add" as any) : t("common.edit" as any)}
+              {editing === "new" ? t("common.add") : t("common.edit")}
             </div>
             <button onClick={() => setEditing(null)} className="btn-icon" style={{ color: "var(--color-text-quaternary)" }} aria-label="Close"><X size={16} /></button>
           </div>
-          <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder={t("settings.planName" as any)} className="input-base w-full px-3 py-2 text-[15px]" />
+          <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder={t("settings.planName")} className="input-base w-full px-3 py-2 text-[15px]" />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <input value={form.price} onChange={e => setForm(p => ({ ...p, price: e.target.value }))} placeholder={t("settings.planPrice" as any)} type="number" className="input-base w-full px-3 py-2 text-[15px]" />
-            <input value={form.deliverySpeed} onChange={e => setForm(p => ({ ...p, deliverySpeed: e.target.value }))} placeholder={t("settings.planSpeed" as any)} className="input-base w-full px-3 py-2 text-[15px]" />
+            <input value={form.price} onChange={e => setForm(p => ({ ...p, price: e.target.value }))} placeholder={t("settings.planPrice")} type="number" className="input-base w-full px-3 py-2 text-[15px]" />
+            <input value={form.deliverySpeed} onChange={e => setForm(p => ({ ...p, deliverySpeed: e.target.value }))} placeholder={t("settings.planSpeed")} className="input-base w-full px-3 py-2 text-[15px]" />
           </div>
-          <textarea value={form.features} onChange={e => setForm(p => ({ ...p, features: e.target.value }))} placeholder={t("settings.planFeatures" as any)} className="input-base w-full px-3 py-2 text-[15px] h-20 resize-none" />
+          <textarea value={form.features} onChange={e => setForm(p => ({ ...p, features: e.target.value }))} placeholder={t("settings.planFeatures")} className="input-base w-full px-3 py-2 text-[15px] h-20 resize-none" />
           <div className="flex gap-2">
-            <button onClick={() => setEditing(null)} className="btn-secondary text-[15px] flex-1">{t("common.cancel" as any)}</button>
+            <button onClick={() => setEditing(null)} className="btn-secondary text-[15px] flex-1">{t("common.cancel")}</button>
             <button onClick={save} disabled={saving} className="btn-primary text-[15px] flex-1">
-              {saving ? t("common.loading" as any) : t("common.save" as any)}
+              {saving ? t("common.loading") : t("common.save")}
             </button>
           </div>
         </div>

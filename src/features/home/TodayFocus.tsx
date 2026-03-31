@@ -42,7 +42,7 @@ export function TodayFocus({
   const [showForm, setShowForm] = useState(false);
   const [editKey, setEditKey] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const emptyForm: ManualForm = { type: t("home.form.type.system" as any), title: "", note: "" };
+  const emptyForm: ManualForm = { type: t("home.form.type.system"), title: "", note: "" };
   const [form, setForm] = useState<ManualForm>(emptyForm);
 
   const skipKey = `today-focus-skipped-${todayDateKey()}`;
@@ -121,8 +121,8 @@ export function TodayFocus({
 
   const [showCompleted, setShowCompleted] = useState(false);
 
-  const revenueLabel = t("home.focus.revenue" as any);
-  const deliveryLabel = t("home.focus.delivery" as any);
+  const revenueLabel = t("home.focus.revenue");
+  const deliveryLabel = t("home.focus.delivery");
 
   const badgeVariant = (type: string): "success" | "warning" | "accent" =>
     type === revenueLabel ? "success" : type === deliveryLabel ? "accent" : "warning";
@@ -133,7 +133,7 @@ export function TodayFocus({
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
-            {t("home.focus.title" as any)}
+            {t("home.focus.title")}
           </h3>
           {skipped.length > 0 && (
             <button
@@ -141,7 +141,7 @@ export function TodayFocus({
               className="text-[12px] px-1.5 py-0.5 rounded-[var(--radius-4)] transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback"
               style={{ color: "var(--color-text-quaternary)" }}
             >
-              {t("home.focus.reset" as any)}
+              {t("home.focus.reset")}
             </button>
           )}
         </div>
@@ -150,7 +150,7 @@ export function TodayFocus({
           className="flex items-center gap-1 text-[13px] transition-colors hover:opacity-80 press-feedback"
           style={{ color: "var(--color-accent)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
         >
-          <Plus size={14} /> {t("home.quickMemo" as any)}
+          <Plus size={14} /> {t("home.quickMemo")}
         </button>
       </div>
 
@@ -187,7 +187,7 @@ export function TodayFocus({
         {!loading && !pending.length && !pendingManual.length && (
           <div className="px-4 py-5 text-center">
             <div className="text-[15px]" style={{ color: "var(--color-success)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-              {t("home.focus.allDoneEmoji" as any)}
+              {t("home.focus.allDoneEmoji")}
             </div>
           </div>
         )}
@@ -202,7 +202,7 @@ export function TodayFocus({
             style={{ color: "var(--color-text-quaternary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
           >
             {showCompleted ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-            {t("home.completed.title" as any, { count: completed.length + completedManual.length })}
+            {t("home.completed.title", { count: completed.length + completedManual.length })}
           </button>
           {showCompleted && (
             <div className="card mt-1.5 overflow-hidden divide-y divide-[var(--color-line-secondary)]">
@@ -228,15 +228,15 @@ export function TodayFocus({
       )}
 
       {/* Manual event form modal */}
-      <Modal open={showForm} onClose={() => { setShowForm(false); setEditKey(null); }} title={editKey ? t("home.form.editEvent" as any) : t("home.quickMemo" as any)}>
+      <Modal open={showForm} onClose={() => { setShowForm(false); setEditKey(null); }} title={editKey ? t("home.form.editEvent") : t("home.quickMemo")}>
         <form onSubmit={handleSave} className="space-y-3">
           <div className="space-y-1.5">
-            <span className="text-[14px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("home.form.type" as any)}</span>
+            <span className="text-[14px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("home.form.type")}</span>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { key: "revenue", label: t("home.form.type.revenue" as any), hint: t("home.form.typeHint.revenue" as any) },
-                { key: "delivery", label: t("home.form.type.delivery" as any), hint: t("home.form.typeHint.delivery" as any) },
-                { key: "system", label: t("home.form.type.system" as any), hint: t("home.form.typeHint.system" as any) },
+                { key: "revenue", label: t("home.form.type.revenue"), hint: t("home.form.typeHint.revenue") },
+                { key: "delivery", label: t("home.form.type.delivery"), hint: t("home.form.typeHint.delivery") },
+                { key: "system", label: t("home.form.type.system"), hint: t("home.form.typeHint.system") },
               ].map((opt) => {
                 const active = form.type === opt.label;
                 return (
@@ -259,19 +259,19 @@ export function TodayFocus({
             </div>
           </div>
           <label className="flex flex-col gap-1">
-            <span className="text-[14px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("home.form.title" as any)}</span>
-            <input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder={t("home.form.titlePlaceholder" as any)} className="input-base w-full px-3 py-2 text-[15px]" />
+            <span className="text-[14px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("home.form.title")}</span>
+            <input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder={t("home.form.titlePlaceholder")} className="input-base w-full px-3 py-2 text-[15px]" />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-[14px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("home.form.note" as any)}</span>
-            <input value={form.note} onChange={(e) => setForm((p) => ({ ...p, note: e.target.value }))} placeholder={t("home.form.notePlaceholder" as any)} className="input-base w-full px-3 py-2 text-[15px]" />
+            <span className="text-[14px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("home.form.note")}</span>
+            <input value={form.note} onChange={(e) => setForm((p) => ({ ...p, note: e.target.value }))} placeholder={t("home.form.notePlaceholder")} className="input-base w-full px-3 py-2 text-[15px]" />
           </label>
           <div className="flex justify-end gap-2 pt-1">
             <Button variant="secondary" size="sm" type="button" onClick={() => { setShowForm(false); setEditKey(null); }}>
-              {t("common.cancel" as any)}
+              {t("common.cancel")}
             </Button>
             <Button size="sm" type="submit" disabled={submitting || !form.title.trim()} loading={submitting}>
-              {editKey ? t("home.form.saveEdit" as any) : t("common.save" as any)}
+              {editKey ? t("home.form.saveEdit") : t("common.save")}
             </Button>
           </div>
         </form>
@@ -329,7 +329,7 @@ function FocusRow({ item, badgeVariant, saving, canSwap, onToggle, onSkip, onEdi
             className="text-[13px] px-2 py-1 rounded-[var(--radius-4)] hover:bg-[var(--color-bg-quaternary)] transition-colors"
             style={{ color: "var(--color-text-quaternary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
           >
-            {t("home.focus.swap" as any)}
+            {t("home.focus.swap")}
           </button>
         )}
         {onEdit && (

@@ -7,6 +7,106 @@ import { supabase } from './supabase-client';
 import { todayDateKey, dateToKey, monthKey, currentMonth } from '../lib/date-utils';
 import { str, enumVal } from '../lib/validate';
 
+// ── Types ─────────────────────────────────────────────────────────
+
+interface SubscriptionLedgerRow {
+  user_id: string;
+  type: string;
+  source: string;
+  source_id: number;
+  amount: number;
+  category: string;
+  description: string;
+  date: string;
+  status: string;
+  client_id: number;
+  client_name: string;
+  tax_mode: string;
+  tax_rate: number;
+  tax_amount: number;
+}
+
+interface LedgerUpdateData {
+  amount: number;
+  description: string;
+  date: string;
+  status: string;
+  tax_mode: string;
+  tax_rate: number;
+  tax_amount: number;
+  client_name: string;
+}
+
+interface AmountRow {
+  amount: number;
+}
+
+interface TaxAmountRow {
+  amount: number;
+  tax_amount: number;
+}
+
+interface FinanceTransactionRow {
+  id: number;
+  date: string;
+  amount: number;
+  type: string;
+  status: string;
+  description: string;
+  category?: string;
+  tax_amount?: number;
+}
+
+interface MilestoneRow {
+  id: number;
+  status: string;
+  due_date: string;
+  [key: string]: unknown;
+}
+
+interface TaskRow {
+  id: number;
+  title: string;
+  client: string;
+  priority: string;
+  due: string;
+  column: string;
+  scope: string;
+  parent_id: number | null;
+}
+
+interface LeadRow {
+  id: number;
+  name: string;
+  industry: string;
+  needs: string;
+  column: string;
+}
+
+interface ClientMrrRow {
+  id: number;
+  mrr: number;
+}
+
+interface FocusCandidate {
+  key: string;
+  type: string;
+  title: string;
+  reason: string;
+  actionHint: string;
+  isManual?: boolean;
+  status?: string;
+}
+
+interface OverdueMilestoneRow {
+  id: number;
+  label: string;
+  amount: number;
+  due_date: string;
+  client_id: number;
+  clients: { name: string } | null;
+}
+
 // ── helpers ────────────────────────────────────────────────────────
 
 // Cache userId from session (local, no network call) instead of getUser() (network)
@@ -93,7 +193,7 @@ async function syncClientSubscriptionLedger(userId: string) {
   // Collect all months that SHOULD have subscription income
   const now = new Date();
   const cm = currentMonth();
-  const shouldExist: Map<string, any> = new Map(); // key: "${clientId}-${month}"
+  const shouldExist: Map<string, SubscriptionLedgerRow> = new Map(); // key: "${clientId}-${month}"
 
   for (const client of (clients || [])) {
     const joined = client.joined_at ? new Date(String(client.joined_at).replace(' ', 'T')) : now;
@@ -172,8 +272,8 @@ async function syncClientSubscriptionLedger(userId: string) {
   }
 
   // Upsert: insert missing, update changed, soft-delete removed
-  const toInsert: any[] = [];
-  const toUpdate: { id: number; data: any }[] = [];
+  const toInsert: SubscriptionLedgerRow[] = [];
+  const toUpdate: { id: number; data: LedgerUpdateData }[] = [];
 
   for (const [key, row] of shouldExist) {
     const existId = existingMap.get(key);
@@ -447,7 +547,7 @@ export async function handleSupabaseRequest(
         .order('created_at', { ascending: true });
       if (e) return err(500, e.message);
       // Mark overdue milestones
-      const rows = (data || []).map((m: any) => ({
+      const rows = (data || []).map((m: MilestoneRow) => ({
         ...m,
         status: m.status === 'pending' && m.due_date && m.due_date < today ? 'overdue' : m.status,
       }));
@@ -474,9 +574,9 @@ export async function handleSupabaseRequest(
       const txAmt = Number(amount || 0);
       const tm = client?.tax_mode || 'none';
       const tr = Number(client?.tax_rate || 0);
-      // Auto-create receivable finance transaction
+      // Auto-create receivable finance transaction (with rollback on failure)
       if (txAmt > 0) {
-        const { data: tx } = await supabase.from('finance_transactions').insert({
+        const { data: tx, error: txErr } = await supabase.from('finance_transactions').insert({
           user_id: userId, type: 'income', source: 'milestone', source_id: data!.id,
           amount: txAmt, category: '项目收入',
           description: `${cName} · ${label || '项目付款'}`,
@@ -484,6 +584,12 @@ export async function handleSupabaseRequest(
           client_id: clientId, client_name: cName,
           tax_mode: tm, tax_rate: tr, tax_amount: calcTax(txAmt, tm, tr),
         }).select('id').single();
+        if (txErr) {
+          // Rollback: delete the milestone we just created
+          console.warn('[supabase-api] Finance tx failed, rolling back milestone', txErr);
+          await supabase.from('payment_milestones').delete().eq('id', data!.id).eq('user_id', userId);
+          return err(500, `创建财务记录失败: ${txErr.message}`);
+        }
         // Link milestone to finance transaction
         if (tx) await supabase.from('payment_milestones').update({ finance_tx_id: tx.id }).eq('id', data!.id);
       }
@@ -550,7 +656,7 @@ export async function handleSupabaseRequest(
       const txAmount = Number(milestone.amount || 0);
       const tm = client?.tax_mode || 'none';
       const tr = Number(client?.tax_rate || 0);
-      const { data: tx } = await supabase.from('finance_transactions').insert({
+      const { data: tx, error: txErr } = await supabase.from('finance_transactions').insert({
         user_id: userId, type: 'income', source: 'milestone', source_id: id,
         amount: txAmount, category: '项目收入',
         description: `${clientName} · ${milestone.label || '项目付款'}`,
@@ -558,6 +664,10 @@ export async function handleSupabaseRequest(
         client_id: milestone.client_id, client_name: clientName,
         tax_mode: tm, tax_rate: tr, tax_amount: calcTax(txAmount, tm, tr),
       }).select('id').single();
+      if (txErr) {
+        console.warn('[supabase-api] Mark-paid finance tx failed', txErr);
+        return err(500, `创建收款记录失败: ${txErr.message}`);
+      }
       if (tx) await supabase.from('payment_milestones').update({ finance_tx_id: tx.id }).eq('id', id).eq('user_id', userId);
     }
 
@@ -685,7 +795,7 @@ export async function handleSupabaseRequest(
     const rows = (plans || []).map((p) => {
       const al = aliases[p.name as string] || [p.name];
       const clients = al.reduce((s, a) => s + (countMap.get(a) || 0), 0);
-      let features: any;
+      let features: unknown;
       try { features = JSON.parse(p.features as string); } catch { features = []; }
       return { ...p, features, clients };
     });
@@ -762,12 +872,12 @@ export async function handleSupabaseRequest(
       supabase.from('finance_transactions').select('amount, tax_amount').eq('user_id', userId).eq('status', '已完成').eq('soft_deleted', false).gt('tax_amount', 0),
       supabase.from('finance_transactions').select('*').eq('user_id', userId).eq('soft_deleted', false).order('date', { ascending: false }).limit(50),
     ]);
-    const completedIncome = (completedIncomeRows || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
-    const completedExpense = (completedExpenseRows || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
-    const receivables = (receivablesRows || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
-    const payables = (payablesRows || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
-    const totalTax = (taxableRows || []).reduce((s: number, r: any) => s + Number(r.tax_amount || 0), 0);
-    const rows = (recentRows || []).map((t: any) => { const taxInfo = Number(t.tax_amount || 0) > 0 ? ` (税$${Number(t.tax_amount).toLocaleString()})` : ''; return `<tr><td>${t.date || ''}</td><td>${t.description || ''}</td><td>${t.category || ''}</td><td>${t.type === 'income' ? '+' : '-'}$${Number(t.amount || 0).toLocaleString()}${taxInfo}</td><td>${t.status || '已完成'}</td></tr>`; }).join('');
+    const completedIncome = (completedIncomeRows || []).reduce((s: number, r: AmountRow) => s + Number(r.amount || 0), 0);
+    const completedExpense = (completedExpenseRows || []).reduce((s: number, r: AmountRow) => s + Number(r.amount || 0), 0);
+    const receivables = (receivablesRows || []).reduce((s: number, r: AmountRow) => s + Number(r.amount || 0), 0);
+    const payables = (payablesRows || []).reduce((s: number, r: AmountRow) => s + Number(r.amount || 0), 0);
+    const totalTax = (taxableRows || []).reduce((s: number, r: TaxAmountRow) => s + Number(r.tax_amount || 0), 0);
+    const rows = (recentRows || []).map((t: FinanceTransactionRow) => { const taxInfo = Number(t.tax_amount || 0) > 0 ? ` (税$${Number(t.tax_amount).toLocaleString()})` : ''; return `<tr><td>${t.date || ''}</td><td>${t.description || ''}</td><td>${t.category || ''}</td><td>${t.type === 'income' ? '+' : '-'}$${Number(t.amount || 0).toLocaleString()}${taxInfo}</td><td>${t.status || '已完成'}</td></tr>`; }).join('');
     const html = `<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"/><title>一人CEO - 财务月度报表</title><style>body{font-family:-apple-system,sans-serif;padding:32px;color:#18181b}h1{font-size:28px;margin:0 0 8px}p{color:#71717a;margin:0 0 24px}.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}.card{border:1px solid #e4e4e7;border-radius:16px;padding:16px}.label{font-size:12px;color:#71717a;margin-bottom:8px}.value{font-size:24px;font-weight:700}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 12px;border-bottom:1px solid #e4e4e7;font-size:12px}th{background:#f4f4f5;color:#52525b}</style></head><body><h1>财务月度报表</h1><p>一人CEO · 导出时间 ${new Date().toLocaleString('zh-CN')}</p><div class="grid"><div class="card"><div class="label">已完成收入</div><div class="value">$${completedIncome.toLocaleString()}</div></div><div class="card"><div class="label">已完成支出</div><div class="value">$${completedExpense.toLocaleString()}</div></div><div class="card"><div class="label">净利润</div><div class="value">$${(completedIncome - completedExpense).toLocaleString()}</div></div><div class="card"><div class="label">应收 / 应付</div><div class="value">$${receivables.toLocaleString()} / $${payables.toLocaleString()}</div></div><div class="card"><div class="label">税费合计</div><div class="value">$${totalTax.toLocaleString()}</div></div></div><table><thead><tr><th>日期</th><th>描述</th><th>分类</th><th>金额</th><th>状态</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
     return { status: 200, data: html };
   }
@@ -965,27 +1075,27 @@ export async function handleSupabaseRequest(
     ]);
 
     // Derive subsets from merged queries (client-side filtering, zero network cost)
-    const taskData = (allTasks || []).filter((t: any) => t.column !== 'done');
+    const taskData = (allTasks || []).filter((t: TaskRow) => t.column !== 'done');
     const leadData = allLeads || [];
-    const ledgerSeries = (allFinance || []).filter((t: any) => t.type === 'income' && t.status === '已完成');
-    const receivablesData = (allFinance || []).filter((t: any) => (t.status || '').includes('应收'));
-    const bestLeadArr = leadData.filter((l: any) => ['proposal', 'contacted', 'new'].includes(l.column)).slice(0, 4);
-    const urgentTaskArr = taskData.sort((a: any, b: any) => { const p: Record<string, number> = { High: 0, Medium: 1, Low: 2 }; return (p[a.priority] ?? 1) - (p[b.priority] ?? 1); }).slice(0, 4);
+    const ledgerSeries = (allFinance || []).filter((t: FinanceTransactionRow) => t.type === 'income' && t.status === '已完成');
+    const receivablesData = (allFinance || []).filter((t: FinanceTransactionRow) => (t.status || '').includes('应收'));
+    const bestLeadArr = leadData.filter((l: LeadRow) => ['proposal', 'contacted', 'new'].includes(l.column)).slice(0, 4);
+    const urgentTaskArr = taskData.sort((a: TaskRow, b: TaskRow) => { const p: Record<string, number> = { High: 0, Medium: 1, Low: 2 }; return (p[a.priority] ?? 1) - (p[b.priority] ?? 1); }).slice(0, 4);
 
     const clientsCount = activeClients?.length || 0;
     // Derive MRR from current month's income transactions (more accurate than static client.mrr)
     const currentMonthStr = `${currentYear}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
     // MRR = sum of subscription clients' monthly fee (not one-time project income)
-    const mrr = (activeClients || []).reduce((s: number, r: any) => s + Number(r.mrr || 0), 0);
+    const mrr = (activeClients || []).reduce((s: number, r: ClientMrrRow) => s + Number(r.mrr || 0), 0);
     const activeTasks = taskData?.length || 0;
-    const todoCount = (taskData || []).filter((t: any) => t.column === 'todo').length;
-    const inProgressCount = (taskData || []).filter((t: any) => t.column === 'inProgress').length;
-    const workTasks = (taskData || []).filter((t: any) => t.scope !== 'personal' && t.column !== 'done').length;
-    const personalTasks = (taskData || []).filter((t: any) => t.scope === 'personal' && t.column !== 'done' && !t.parent_id).length;
+    const todoCount = (taskData || []).filter((t: TaskRow) => t.column === 'todo').length;
+    const inProgressCount = (taskData || []).filter((t: TaskRow) => t.column === 'inProgress').length;
+    const workTasks = (taskData || []).filter((t: TaskRow) => t.scope !== 'personal' && t.column !== 'done').length;
+    const personalTasks = (taskData || []).filter((t: TaskRow) => t.scope === 'personal' && t.column !== 'done' && !t.parent_id).length;
     const leadsCount = (leadData || []).length;
-    const leadsNew = (leadData || []).filter((l: any) => l.column === 'new').length;
-    const leadsContacted = (leadData || []).filter((l: any) => l.column === 'contacted').length;
-    const leadsProposal = (leadData || []).filter((l: any) => l.column === 'proposal').length;
+    const leadsNew = (leadData || []).filter((l: LeadRow) => l.column === 'new').length;
+    const leadsContacted = (leadData || []).filter((l: LeadRow) => l.column === 'contacted').length;
+    const leadsProposal = (leadData || []).filter((l: LeadRow) => l.column === 'proposal').length;
 
     const monthTotals = new Map<string, number>();
     for (const r of (ledgerSeries || [])) {
@@ -1025,10 +1135,10 @@ export async function handleSupabaseRequest(
     const receivables = receivablesData || [];
     const leads = bestLeadArr || [];
     const tasks = urgentTaskArr || [];
-    const overdueMs = overdueMsArr?.[0] as Record<string, any> | undefined;
+    const overdueMs = overdueMsArr?.[0] as unknown as OverdueMilestoneRow | undefined;
 
     // Build multiple candidates per category so "swap" has replacements
-    const revenueCandidates: any[] = leads.map((l: any) => ({
+    const revenueCandidates: FocusCandidate[] = leads.map((l: LeadRow) => ({
       key: `revenue-lead-${l.id}`, type: '收入',
       title: `推进线索：${l.name || '未命名线索'}`,
       reason: l.column === 'proposal' ? '它已经接近成交，今天推进最有机会带来收入。' : '这是当前最值得跟进的销售机会。',
@@ -1036,7 +1146,7 @@ export async function handleSupabaseRequest(
     }));
     if (!revenueCandidates.length) revenueCandidates.push({ key: 'revenue-fallback', type: '收入', title: '跟进一位潜在客户', reason: '今天至少推进一件直接指向收入的动作。', actionHint: 'home.focus.hint.leads' });
 
-    const deliveryCandidates: any[] = tasks.map((t: any) => ({
+    const deliveryCandidates: FocusCandidate[] = tasks.map((t: TaskRow) => ({
       key: `delivery-task-${t.id}`, type: '交付',
       title: `推进任务：${t.title || '未命名任务'}`,
       reason: t.priority === 'High' ? '高优先级任务最容易影响客户满意度和交付节奏。' : '先推进当前最接近交付的任务。',
@@ -1044,7 +1154,7 @@ export async function handleSupabaseRequest(
     }));
     if (!deliveryCandidates.length) deliveryCandidates.push({ key: 'delivery-fallback', type: '交付', title: '完成一个关键交付', reason: '每天至少推进一件真实交付，避免系统只转不产出。', actionHint: 'home.focus.hint.tasks' });
 
-    const systemCandidates: any[] = [];
+    const systemCandidates: FocusCandidate[] = [];
     if (overdueMs) systemCandidates.push({ key: `system-overdue-ms-${overdueMs.id}`, type: '系统', title: `催收逾期款：${overdueMs.clients?.name || '客户'} — ${overdueMs.label} $${Number(overdueMs.amount||0).toLocaleString()}`, reason: `该笔款项已于 ${overdueMs.due_date} 到期，需要尽快催收。`, actionHint: '去客户面板确认收款并标记已付' });
     for (const r of receivables.slice(0, 2)) systemCandidates.push({ key: `system-receivable-${r.id}`, type: '系统', title: `处理应收：${r.description || '未命名账款'}`, reason: '有待收款项时，先收钱比继续堆工作更重要。', actionHint: '去财务管理跟进回款' });
     for (const l of leads.slice(0, 2)) systemCandidates.push({ key: `system-lead-${l.id}`, type: '系统', title: `补齐线索信息：${l.name || '未命名线索'}`, reason: '把高潜在线索信息补完整，后续跟进效率更高。', actionHint: '完善需求、来源和下一步动作' });
@@ -1066,7 +1176,7 @@ export async function handleSupabaseRequest(
       status: focusStateMap[`manual-${row.id}`] || 'pending',
     }));
 
-    const todayFocus = autoFocus.map((item: any) => ({ ...item, status: focusStateMap[item.key] || 'pending' }));
+    const todayFocus = autoFocus.map((item: FocusCandidate) => ({ ...item, status: focusStateMap[item.key] || 'pending' }));
 
     return ok({ clientsCount, mrr, activeTasks, todoCount, inProgressCount, leadsCount, leadsNew, leadsContacted, leadsProposal, mrrSeries, recentActivity, ytdRevenue, todayIncome, monthlyIncome, todayFocus, manualTodayEvents, workTasks, personalTasks });
   }

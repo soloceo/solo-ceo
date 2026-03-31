@@ -71,7 +71,7 @@ export function BottomSheet({ open, onClose, title, children, className }: Botto
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+            transition={{ duration: 0.2 }}
             onClick={onClose}
           />
 
@@ -81,7 +81,7 @@ export function BottomSheet({ open, onClose, title, children, className }: Botto
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
-            transition={{ duration: 0.35, ease: [0.25, 1, 0.5, 1] }}
+            transition={{ type: "spring", stiffness: 320, damping: 30 }}
             className={cn(
               "relative w-full max-h-[90vh] flex flex-col overflow-hidden",
               "rounded-t-[var(--radius-16)]",

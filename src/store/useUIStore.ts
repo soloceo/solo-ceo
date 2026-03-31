@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-type TabId = "home" | "work" | "leads" | "clients" | "finance" | "settings";
+export type TabId = "home" | "work" | "leads" | "clients" | "finance" | "settings";
 type ViewMode = "vertical" | "horizontal";
 type ThemeMode = "light" | "dark" | "auto";
 

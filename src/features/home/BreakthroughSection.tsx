@@ -52,7 +52,7 @@ export function BreakthroughSection() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
-                {t("home.breakthroughPhase" as any)} · {activePhase.label[lang as "zh" | "en"]}
+                {t("home.breakthroughPhase")} · {activePhase.label[lang as "zh" | "en"]}
               </span>
               <span className="text-[13px] tabular-nums" style={{ color: "var(--color-text-quaternary)" }}>
                 {phaseDone}/{phaseTotal}

@@ -154,7 +154,7 @@ function MiniCalendarWidget() {
               className="press-feedback rounded-full"
               style={{ fontSize: s(9), color: "var(--color-accent)", padding: `${s(1)}px ${s(6)}px`, background: "var(--color-accent-tint)" }}
             >
-              {t("widgets.calendar.today" as any)}
+              {t("widgets.calendar.today")}
             </button>
           )}
           <button onClick={goPrev} className="flex items-center justify-center press-feedback" style={{ width: s(22), height: s(22), color: "var(--color-text-quaternary)" }} aria-label="Prev">
@@ -241,7 +241,7 @@ function MiniCalendarWidget() {
           ))}
           {selectedTasks.length > 3 && (
             <div style={{ fontSize: s(10), color: "var(--color-text-quaternary)", marginTop: s(3) }}>
-              +{selectedTasks.length - 3} {t("widgets.calendar.more" as any)}
+              +{selectedTasks.length - 3} {t("widgets.calendar.more")}
             </div>
           )}
         </div>

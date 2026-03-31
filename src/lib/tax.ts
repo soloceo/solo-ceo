@@ -31,7 +31,7 @@ export const STATUS_I18N: Record<string, string> = {
   "待支付 (应付)": "money.st.payable",
 };
 
-export const catLabel = (cat: string, t: (k: any) => string) => {
+export const catLabel = (cat: string, t: (k: string) => string) => {
   const key = CATEGORY_I18N[cat];
-  return key ? t(key as any) : cat;
+  return key ? t(key) : cat;
 };

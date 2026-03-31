@@ -107,13 +107,13 @@ function useDisplayText(item: CountdownItem, t: (key: string) => string) {
   const progress = calcProgress(item.createdAt, item.date);
 
   if (days < 0) {
-    const passedText = (t("widgets.countdown.passed" as any) || "{n} days ago").replace("{n}", String(Math.abs(days)));
+    const passedText = (t("widgets.countdown.passed") || "{n} days ago").replace("{n}", String(Math.abs(days)));
     return { label: passedText, value: "", passed: true, progress: 1, color: item.color };
   }
-  if (days <= 1) return { label: t("widgets.countdown.hours" as any), value: String(hours), passed: false, progress, color: item.color };
-  if (days <= 30) return { label: t("widgets.countdown.days" as any), value: String(days), passed: false, progress, color: item.color };
+  if (days <= 1) return { label: t("widgets.countdown.hours"), value: String(hours), passed: false, progress, color: item.color };
+  if (days <= 30) return { label: t("widgets.countdown.days"), value: String(days), passed: false, progress, color: item.color };
   const w = Math.floor(days / 7), d = days % 7;
-  const value = `${w}${t("widgets.countdown.weeks" as any)}${d}${t("widgets.countdown.days" as any)}`;
+  const value = `${w}${t("widgets.countdown.weeks")}${d}${t("widgets.countdown.days")}`;
   return { label: "", value, passed: false, progress, color: item.color };
 }
 
@@ -127,7 +127,7 @@ function CompactItem({ item, onRemove, onEdit, t, s }: {
       <div className="rounded-full shrink-0" style={{ width: s(5), height: s(5), backgroundColor: item.color }} />
       <button onClick={() => onEdit(item)} className="flex-1 flex items-center justify-between min-w-0 text-left">
         <span className="truncate max-w-[55%]" style={{ fontSize: s(11), color: d.passed ? "var(--color-text-quaternary)" : "var(--color-text-secondary)" }}>
-          {item.name || t("widgets.countdown.name" as any)}
+          {item.name || t("widgets.countdown.name")}
         </span>
         <span className="font-semibold tabular-nums shrink-0" style={{ fontSize: s(11), color: d.passed ? "var(--color-text-quaternary)" : item.color }}>
           {d.passed ? d.label : d.value || d.label}
@@ -137,7 +137,7 @@ function CompactItem({ item, onRemove, onEdit, t, s }: {
         onClick={(e) => { e.stopPropagation(); onRemove(item.id); }}
         className=" shrink-0 press-feedback p-0.5 rounded-full"
         style={{ color: "var(--color-text-quaternary)" }}
-        aria-label={t("common.delete" as any)}
+        aria-label={t("common.delete")}
       >
         <X size={s(9)} />
       </button>
@@ -171,7 +171,7 @@ function LargeItem({ item, onRemove, onEdit, t, s }: {
         onClick={() => onRemove(item.id)}
         className="absolute top-0 right-0  press-feedback p-0.5 rounded-full"
         style={{ color: "var(--color-text-quaternary)" }}
-        aria-label={t("common.delete" as any)}
+        aria-label={t("common.delete")}
       >
         <X size={s(9)} />
       </button>
@@ -189,11 +189,11 @@ function EditForm({ initialName, initialDate, isNew, onSave, onCancel, t, s }: {
   return (
     <div className="flex flex-col items-center w-full px-1" style={{ gap: s(6) }}>
       <span style={{ fontSize: s(11), fontWeight: 600, color: "var(--color-text-primary)" }}>
-        {isNew ? t("widgets.countdown.addTitle" as any) : t("widgets.countdown.editTitle" as any)}
+        {isNew ? t("widgets.countdown.addTitle") : t("widgets.countdown.editTitle")}
       </span>
       <input
         type="text" value={name} onChange={(e) => setName(e.target.value)}
-        placeholder={t("widgets.countdown.name" as any)}
+        placeholder={t("widgets.countdown.name")}
         className="w-full bg-transparent outline-none text-center placeholder:text-[var(--color-text-quaternary)]"
         style={{ fontSize: s(11), color: "var(--color-text-primary)", padding: `${s(5)}px ${s(8)}px`, borderRadius: s(8), border: "1.5px solid var(--color-border-translucent)" }}
       />
@@ -208,14 +208,14 @@ function EditForm({ initialName, initialDate, isNew, onSave, onCancel, t, s }: {
           className="flex-1 press-feedback rounded-[var(--radius-8)] active:scale-[0.97] transition-transform"
           style={{ padding: `${s(5)}px 0`, fontSize: s(10), color: "var(--color-text-quaternary)", border: "1px solid var(--color-border-translucent)" }}
         >
-          {t("widgets.countdown.cancel" as any)}
+          {t("widgets.countdown.cancel")}
         </button>
         <button
           onClick={() => date && onSave(name.trim(), date)}
           className="flex-1 press-feedback rounded-[var(--radius-8)] active:scale-[0.97] transition-transform"
           style={{ padding: `${s(5)}px 0`, fontSize: s(10), fontWeight: 600, background: "var(--color-accent-tint)", color: "var(--color-accent)" }}
         >
-          {t("widgets.countdown.confirm" as any)}
+          {t("widgets.countdown.confirm")}
         </button>
       </div>
     </div>
@@ -262,7 +262,7 @@ function CountdownWidget() {
     return items.find((i) => i.id === editingId) || null;
   }, [editingId, items]);
 
-  const title = t("widgets.countdown" as any) || "Countdown";
+  const title = t("widgets.countdown") || "Countdown";
   const isEditing = editingId !== null;
   const canAdd = items.length < MAX_ITEMS && !isEditing;
 
@@ -287,7 +287,7 @@ function CountdownWidget() {
         ) : items.length === 0 ? (
           <div className="flex flex-col items-center" style={{ gap: s(2) }}>
             <span style={{ fontSize: s(11), color: "var(--color-text-quaternary)", textAlign: "center" }}>
-              {t("widgets.countdown.trackDates" as any)}
+              {t("widgets.countdown.trackDates")}
             </span>
             <button
               onClick={handleAdd}
@@ -295,7 +295,7 @@ function CountdownWidget() {
               style={{ padding: `${s(6)}px ${s(14)}px`, fontSize: s(11), fontWeight: 600, background: "var(--color-accent-tint)", color: "var(--color-accent)" }}
             >
               <Plus size={s(11)} />
-              {t("widgets.countdown.new" as any)}
+              {t("widgets.countdown.new")}
             </button>
           </div>
         ) : items.length === 1 ? (
@@ -315,7 +315,7 @@ function CountdownWidget() {
             style={{ padding: `${s(5)}px 0`, color: "var(--color-accent)", fontSize: s(10), fontWeight: 500, gap: s(2), border: "1px dashed var(--color-border-translucent)" }}
           >
             <Plus size={s(10)} />
-            {t("widgets.countdown.add" as any)}
+            {t("widgets.countdown.add")}
           </button>
         )}
       </div>

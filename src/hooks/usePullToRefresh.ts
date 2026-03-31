@@ -66,7 +66,7 @@ export function usePullToRefresh(
         refreshing.current = true;
         el.style.transform = 'translateX(-50%) translateY(40px)';
         (el.firstChild as SVGElement).style.animation = 'spin 0.6s linear infinite';
-        try { await onRefresh(); } catch {}
+        try { await onRefresh(); } catch (e) { console.warn('[usePullToRefresh] onRefresh', e); }
         refreshing.current = false;
       }
 

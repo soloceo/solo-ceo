@@ -41,7 +41,7 @@ export function ProtocolSection({ title, steps, state, streak, doneCount, onTogg
               background: "color-mix(in srgb, var(--color-accent) 10%, transparent)",
               fontWeight: "var(--font-weight-semibold)",
             } as React.CSSProperties}>
-            <Flame size={11} /> {streak.count} {t("home.dayStreak" as any)}
+            <Flame size={11} /> {streak.count} {t("home.dayStreak")}
           </span>
         )}
       </div>

@@ -22,8 +22,8 @@ export function useDueReminders(lang: string, t?: (key: string) => string) {
         const today = todayDateKey();
 
         // Find overdue/due-today tasks
-        const dueTasks = (Array.isArray(tasks) ? tasks : []).filter((t: any) =>
-          t.due && t.due <= today && t.column !== "done" && !t.soft_deleted
+        const dueTasks = (Array.isArray(tasks) ? tasks : []).filter((t: Record<string, unknown>) =>
+          t.due && (t.due as string) <= today && t.column !== "done" && !t.soft_deleted
         );
 
         const total = dueTasks.length;

@@ -66,10 +66,13 @@ export async function getDb(): Promise<Database> {
 export function all(
   db: Database,
   sql: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- sql.js rows are dynamically typed
   params: any[] = []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Record<string, any>[] {
   const stmt = db.prepare(sql);
   stmt.bind(params);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rows: Record<string, any>[] = [];
   while (stmt.step()) rows.push(stmt.getAsObject());
   stmt.free();
@@ -79,7 +82,9 @@ export function all(
 export function get(
   db: Database,
   sql: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   params: any[] = []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Record<string, any> | null {
   return all(db, sql, params)[0] ?? null;
 }
@@ -87,6 +92,7 @@ export function get(
 export function run(
   db: Database,
   sql: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   params: any[] = []
 ): { lastInsertRowid: number } {
   db.run(sql, params);

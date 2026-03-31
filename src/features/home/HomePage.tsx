@@ -38,13 +38,13 @@ type DashboardData = {
 };
 
 /* ── Helpers ────────────────────────────────────────────────────── */
-function greeting(t: (k: any) => string) {
+function greeting(t: (k: string) => string) {
   const h = new Date().getHours();
-  if (h < 6) return t("home.greeting.late" as any);
-  if (h < 12) return t("home.greeting.morning" as any);
-  if (h < 14) return t("home.greeting.noon" as any);
-  if (h < 18) return t("home.greeting.afternoon" as any);
-  return t("home.greeting.evening" as any);
+  if (h < 6) return t("home.greeting.late");
+  if (h < 12) return t("home.greeting.morning");
+  if (h < 14) return t("home.greeting.noon");
+  if (h < 18) return t("home.greeting.afternoon");
+  return t("home.greeting.evening");
 }
 
 function todayStr(lang: string) {
@@ -98,7 +98,7 @@ function ProgressRing({ completed, total }: { completed: number; total: number }
 /* ── Component ──────────────────────────────────────────────────── */
 export default function HomePage() {
   const { t, lang } = useT();
-  useDueReminders(lang, t as any);
+  useDueReminders(lang, t);
   const { operatorName } = useSettingsStore();
   const showToast = useUIStore((s) => s.showToast);
 
@@ -119,8 +119,9 @@ export default function HomePage() {
         recentActivity: Array.isArray(raw.recentActivity) ? raw.recentActivity : [],
         mrrSeries: Array.isArray(raw.mrrSeries) ? raw.mrrSeries : [],
       });
-    } catch {
-      showToast(t("home.loadFailed" as any));
+    } catch (e) {
+      console.warn('[HomePage] fetchData', e);
+      showToast(t("home.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -151,7 +152,7 @@ export default function HomePage() {
       body: JSON.stringify({ focusKey: key, status }),
     });
     if (!res.ok) {
-      showToast(t("common.updateFailed" as any) || "Update failed");
+      showToast(t("common.updateFailed") || "Update failed");
       return;
     }
     setData((prev) => ({
@@ -172,7 +173,7 @@ export default function HomePage() {
       },
     );
     if (!res.ok) {
-      showToast(t("common.saveFailed" as any) || "Save failed");
+      showToast(t("common.saveFailed") || "Save failed");
       throw new Error("Save failed");
     }
     await fetchData();
@@ -181,7 +182,7 @@ export default function HomePage() {
   const handleDeleteManual = async (item: FocusItem) => {
     const res = await fetch(`/api/today-focus/manual/${manualIdFromKey(item.key)}`, { method: "DELETE" });
     if (!res.ok) {
-      showToast(t("common.deleteFailed" as any) || "Delete failed");
+      showToast(t("common.deleteFailed") || "Delete failed");
       throw new Error("Delete failed");
     }
     await fetchData();
@@ -296,11 +297,11 @@ export default function HomePage() {
               onClick={() => setReportOpen(true)}
               className="flex items-center gap-1 px-2 py-1 rounded-[var(--radius-4)] transition-colors hover:bg-[var(--color-bg-quaternary)]"
               style={{ color: "var(--color-text-quaternary)" }}
-              title={t("home.report.generate" as any)}
+              title={t("home.report.generate")}
             >
               <BarChart3 size={14} />
               <span className="text-[13px] hidden sm:inline" style={{ fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-                {t("home.report.generate" as any)}
+                {t("home.report.generate")}
               </span>
             </button>
             <span className="text-[13px]" style={{ color: "var(--color-text-quaternary)" }}>{todayStr(lang)}</span>
@@ -322,8 +323,8 @@ export default function HomePage() {
               } as React.CSSProperties}
             >
               {tab === "dashboard"
-                ? t("home.tab.dashboard" as any)
-                : t("home.tab.widgets" as any)}
+                ? t("home.tab.dashboard")
+                : t("home.tab.widgets")}
             </button>
           ))}
         </div>
@@ -375,7 +376,7 @@ export default function HomePage() {
 
         {/* ── 每日协议 ── */}
         <ProtocolSection
-          title={t("home.dailyProtocol" as any)}
+          title={t("home.dailyProtocol")}
           steps={PROTOCOL_STEPS}
           state={protocolState}
           streak={protocolStreak}

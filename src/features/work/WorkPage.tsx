@@ -20,7 +20,7 @@ interface ClientItem {
   id: number;
   name: string;
   company_name?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 const WORK_TABLES = ["tasks"] as const;
@@ -29,10 +29,10 @@ export default function WorkPage() {
   const { t, lang } = useT();
 
   const COLS = useMemo<ColDef[]>(() => [
-    { id: "todo", title: t("work.col.todo" as any), color: "var(--color-text-tertiary)" },
-    { id: "inProgress", title: t("work.col.inProgress" as any), color: "var(--color-info)" },
-    { id: "review", title: t("work.col.review" as any), color: "var(--color-warning)" },
-    { id: "done", title: t("work.col.done" as any), color: "var(--color-success)" },
+    { id: "todo", title: t("work.col.todo"), color: "var(--color-text-tertiary)" },
+    { id: "inProgress", title: t("work.col.inProgress"), color: "var(--color-info)" },
+    { id: "review", title: t("work.col.review"), color: "var(--color-warning)" },
+    { id: "done", title: t("work.col.done"), color: "var(--color-success)" },
   ], [t]);
 
   const { settings: appSettings } = useAppSettings();
@@ -71,13 +71,13 @@ export default function WorkPage() {
       const data = Array.isArray(raw) ? raw : [];
       setAllTasks(data);
       // Group work tasks only (exclude personal + work-memo) for kanban
-      const workData = data.filter((t: any) => t.scope !== "personal" && t.scope !== "work-memo");
-      const grouped = workData.reduce((acc: any, t: any) => {
+      const workData = data.filter((t: Task) => t.scope !== "personal" && t.scope !== "work-memo");
+      const grouped = workData.reduce((acc: TaskMap, t: Task) => {
         const col = t.column || "todo";
         if (!acc[col]) acc[col] = [];
         acc[col].push(t);
         return acc;
-      }, {} as Record<string, any[]>);
+      }, {} as TaskMap);
       setTasks({
         todo: grouped.todo || [],
         inProgress: grouped.inProgress || [],
@@ -86,8 +86,9 @@ export default function WorkPage() {
       });
       // Notify other components (e.g. MiniCalendarWidget) that tasks changed
       window.dispatchEvent(new CustomEvent("tasks-changed"));
-    } catch {
-      showToast(t("work.loadFailed" as any));
+    } catch (e) {
+      console.warn('[WorkPage] fetchTasks', e);
+      showToast(t("work.loadFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -112,7 +113,7 @@ export default function WorkPage() {
   }, []);
 
   /* ── Drag & Drop ── */
-  const onDragEnd = async (result: any) => {
+  const onDragEnd = async (result: { source: { droppableId: string; index: number }; destination?: { droppableId: string; index: number } | null }) => {
     if (!result.destination) return;
     const { source: s, destination: d } = result;
     if (s.droppableId !== d.droppableId) {
@@ -128,8 +129,9 @@ export default function WorkPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(moved),
         });
-      } catch {
-        showToast(t("common.updateFailed" as any));
+      } catch (e) {
+        console.warn('[WorkPage] onDragEnd', e);
+        showToast(t("common.updateFailed"));
         fetchTasks();
       }
     } else {
@@ -155,27 +157,28 @@ export default function WorkPage() {
     const keyMap = AI_KEY_MAP;
     const apiKey = provider ? appSettings?.[keyMap[provider]] : undefined;
     if (!provider || !apiKey) {
-      showToast(t("work.ai.noKey" as any), 5000, {
-        label: t("common.goSettings" as any),
-        fn: () => setActiveTab("settings" as any),
+      showToast(t("work.ai.noKey"), 5000, {
+        label: t("common.goSettings"),
+        fn: () => setActiveTab("settings"),
       });
       return;
     }
     setAiParsing(true);
     try {
-      const clientNames = clientList.map((c: any) => c.company_name || c.name).filter(Boolean);
+      const clientNames = clientList.map((c: ClientItem) => c.company_name || c.name).filter(Boolean);
       const parsed = await parseWorkTask(text, clientNames, lang, provider, apiKey) as { title: string; client?: string; priority: string; due?: string; column: string; originalRequest: string };
       // Resolve client_id from parsed client name
-      const matchedClient = parsed.client ? clientList.find((c: any) => (c.company_name || c.name) === parsed.client) : null;
+      const matchedClient = parsed.client ? clientList.find((c: ClientItem) => (c.company_name || c.name) === parsed.client) : null;
       await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...parsed, client_id: matchedClient?.id || null, scope: "work" }),
       });
-      showToast(`✓ ${t("work.ai.created" as any)}: ${parsed.title}`);
+      showToast(`✓ ${t("work.ai.created")}: ${parsed.title}`);
       setAiInput("");
       fetchTasks();
-    } catch {
+    } catch (e) {
+      console.warn('[WorkPage] handleAiTask', e);
       showToast("AI failed");
     } finally {
       setAiParsing(false);
@@ -196,18 +199,19 @@ export default function WorkPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(form),
         });
-        showToast(t("work.taskUpdated" as any));
+        showToast(t("work.taskUpdated"));
       } else {
         await fetch("/api/tasks", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(form),
         });
-        showToast(t("work.taskAdded" as any));
+        showToast(t("work.taskAdded"));
       }
       fetchTasks();
-    } catch {
-      showToast(t("common.saveFailed" as any));
+    } catch (e) {
+      console.warn('[WorkPage] handleSave', e);
+      showToast(t("common.saveFailed"));
     }
   };
 
@@ -218,8 +222,8 @@ export default function WorkPage() {
     try {
       await fetch(`/api/tasks/${id}`, { method: "DELETE" });
       fetchTasks();
-      showToast(t("work.taskDeleted" as any), 5000, cached ? {
-        label: t("common.undo" as any),
+      showToast(t("work.taskDeleted"), 5000, cached ? {
+        label: t("common.undo"),
         fn: async () => {
           try {
             await fetch("/api/tasks", {
@@ -236,11 +240,12 @@ export default function WorkPage() {
               }),
             });
             fetchTasks();
-          } catch {}
+          } catch (e) { console.warn('[WorkPage] undoDelete', e); }
         },
       } : undefined);
-    } catch {
-      showToast(t("common.deleteFailed" as any));
+    } catch (e) {
+      console.warn('[WorkPage] handleDelete', e);
+      showToast(t("common.deleteFailed"));
     }
   };
 
@@ -255,8 +260,9 @@ export default function WorkPage() {
         body: JSON.stringify({ ...task, column: col }),
       });
       fetchTasks();
-    } catch {
-      showToast(t("work.moveFailed" as any));
+    } catch (e) {
+      console.warn('[WorkPage] handleMove', e);
+      showToast(t("work.moveFailed"));
     }
   };
 
@@ -269,7 +275,7 @@ export default function WorkPage() {
     setTasks({ ...tasks });
     try {
       await fetch(`/api/tasks/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...task, priority }) });
-    } catch { showToast(t("common.updateFailed" as any)); fetchTasks(); }
+    } catch (e) { console.warn('[WorkPage] handlePriorityChange', e); showToast(t("common.updateFailed")); fetchTasks(); }
   };
 
   /** Inline due date change */
@@ -281,7 +287,7 @@ export default function WorkPage() {
     setTasks({ ...tasks });
     try {
       await fetch(`/api/tasks/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...task, due: due || null }) });
-    } catch { showToast(t("common.updateFailed" as any)); fetchTasks(); }
+    } catch (e) { console.warn('[WorkPage] handleDueChange', e); showToast(t("common.updateFailed")); fetchTasks(); }
   };
 
   const applyFilter = (map: TaskMap): TaskMap => {
@@ -311,10 +317,10 @@ export default function WorkPage() {
             onChange={(e) => setFilterPriority(e.target.value)}
             className="input-base compact px-2 text-[14px]"
           >
-            <option value="All">{t("work.filter.all" as any)}</option>
-            <option value="High">{t("work.filter.high" as any)}</option>
-            <option value="Medium">{t("work.filter.medium" as any)}</option>
-            <option value="Low">{t("work.filter.low" as any)}</option>
+            <option value="All">{t("work.filter.all")}</option>
+            <option value="High">{t("work.filter.high")}</option>
+            <option value="Medium">{t("work.filter.medium")}</option>
+            <option value="Low">{t("work.filter.low")}</option>
           </select>
         </div>
         <div className="segment-switcher">
@@ -340,7 +346,7 @@ export default function WorkPage() {
           ]);
         }} className="btn-ghost compact"><Download size={16} /></button>
         <button onClick={() => openPanel(null, "todo")} className="btn-primary compact">
-          <Plus size={16} /> <span className="hidden sm:inline">{t("work.new" as any)}</span>
+          <Plus size={16} /> <span className="hidden sm:inline">{t("work.new")}</span>
         </button>
       </div>
 
@@ -353,7 +359,7 @@ export default function WorkPage() {
             value={aiInput}
             onChange={e => setAiInput(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAiTask(); }}
-            placeholder={t("work.ai.placeholder" as any)}
+            placeholder={t("work.ai.placeholder")}
             disabled={aiParsing}
             className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]"
           />
@@ -396,7 +402,7 @@ export default function WorkPage() {
 
   return (
     <div className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col p-4 md:p-6 lg:p-8 relative">
-      <h1 className="sr-only">{t("nav.work" as any)}</h1>
+      <h1 className="sr-only">{t("nav.work")}</h1>
 
       {/* ── Segmented Tab Switcher ── */}
       <div className="flex items-center gap-1 p-0.5 rounded-[var(--radius-8)] mb-2" style={{ background: "var(--color-bg-tertiary)" }}>
@@ -413,7 +419,7 @@ export default function WorkPage() {
             } as React.CSSProperties}
           >
             {tab === "work" ? <Building2 size={13} /> : <UserIcon size={13} />}
-            {tab === "work" ? t("work.tab.work" as any) : t("work.tab.personal" as any)}
+            {tab === "work" ? t("work.tab.work") : t("work.tab.personal")}
           </button>
         ))}
       </div>
@@ -431,7 +437,7 @@ export default function WorkPage() {
             onEdit={(task) => openPanel(task, task.column)}
             onDelete={handleDelete}
             onClientClick={() => setActiveTab("clients")}
-            emptyText={t("work.empty" as any)}
+            emptyText={t("work.empty")}
             onPriorityChange={handlePriorityChange}
             onDueChange={handleDueChange}
             onColumnChange={handleMove}
@@ -471,7 +477,7 @@ export default function WorkPage() {
               onEdit={(task) => openPanel(task, task.column)}
               onDelete={handleDelete}
               onClientClick={() => setActiveTab("clients")}
-              emptyText={t("work.empty" as any)}
+              emptyText={t("work.empty")}
               onPriorityChange={handlePriorityChange}
               onDueChange={handleDueChange}
               onColumnChange={handleMove}
@@ -485,7 +491,7 @@ export default function WorkPage() {
               onEdit={(task) => openPanel(task, task.column)}
               onDelete={handleDelete}
               onMove={handleMove}
-              emptyText={t("work.empty" as any)}
+              emptyText={t("work.empty")}
               onPriorityChange={handlePriorityChange}
               onDueChange={handleDueChange}
               onColumnChange={handleMove}

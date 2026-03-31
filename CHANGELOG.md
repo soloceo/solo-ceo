@@ -3,6 +3,39 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.11.0] - 2026-03-31
+
+### Added
+- Shared API client utility (`src/lib/api.ts`) with typed `get/post/put/patch/del` methods and `ApiError` class
+- RLS migration `001_split_rls_policies.sql`: per-operation policies (SELECT/INSERT/UPDATE/DELETE) for all 12 tables
+- RLS migration `002_soft_delete_rls_guard.sql`: automatic `soft_deleted = false` filter on SELECT for 8 tables
+- Cross-table RLS validation: `payment_milestones` INSERT/UPDATE verifies `client_id` belongs to current user
+- Window type declarations for debounce timers (`__cliSearchT`, `__finSearchT`)
+- 14 new unit tests (format, cn, api client) — total: 6 files, 57 tests
+- Rollback safety net for milestone creation (deletes milestone if finance tx fails)
+- `destroySyncManager()` cleanup function with proper auth subscription disposal
+
+### Changed
+- **TypeScript `any` eliminated**: 653 → 5 justified instances across 50+ files
+  - i18n `TKey` widened to `KnownKey | (string & {})` — removes 580 `as any` casts
+  - `TabId` exported from `useUIStore` — removes `setActiveTab("x" as any)` pattern
+  - 20+ new interfaces in LeadsBoard, supabase-api, TransactionList, WorkPage, FinancePage
+  - All `[key: string]: any` index signatures → `[key: string]: unknown`
+- **Empty catch blocks**: 30 of 78 now log `console.warn('[Module]', e)` for debugging
+- `validate.ts`: `str()` and `enumVal()` emit dev-mode warnings on truncation/fallback
+- Supabase fetch timeout: auth endpoints 8s → 15s; data endpoints remain 8s
+- Offline queue: 409/429 now treated as retryable (was permanent failure); user notified on permanent failures via `sync-status` event
+- All Framer Motion animations switched from cubic-bezier to `spring(stiffness: 320, damping: 30)`
+
+### Fixed
+- InlinePopover trigger: `<div onClick>` → `<button>` with `aria-haspopup`, `aria-expanded`, keyboard accessible
+- PopoverOption: added `role="option"`, `aria-selected`, checkmark `aria-hidden`
+- Popover panel: added `role="listbox"`
+- Toast action button: added `aria-label`
+- Avatar fallback alt text: empty string → `"User avatar"`
+- Mark-paid flow: returns error instead of silently ignoring finance tx creation failure
+- `requestIdleCallback` properly typed (was `Record<string, any>`)
+
 ## [2.10.0] - 2026-03-31
 
 ### Added

@@ -25,24 +25,24 @@ export function KPIGrid({ mrr, ytdRevenue, todayIncome, clientsCount, leadsCount
       color: "var(--color-accent)",
     },
     {
-      label: t("home.kpi.ytdRevenue" as any),
+      label: t("home.kpi.ytdRevenue"),
       value: loading ? "—" : `$${animYtd.toLocaleString()}`,
       color: "var(--color-success)",
       sub: todayIncome > 0 ? `+$${todayIncome.toLocaleString()}` : undefined,
     },
     {
-      label: t("home.kpi.activeClients" as any),
+      label: t("home.kpi.activeClients"),
       value: loading ? "—" : String(clientsCount),
       color: "var(--color-blue)",
-      sub: leadsCount > 0 ? `+${leadsCount} ${t("home.kpi.leads" as any)}` : undefined,
+      sub: leadsCount > 0 ? `+${leadsCount} ${t("home.kpi.leads")}` : undefined,
     },
     {
       label: null,
       value: null,
       color: "var(--color-accent)",
       lines: [
-        { label: t("home.kpi.workTasks" as any), count: workTasks, color: "var(--color-accent)" },
-        { label: t("home.kpi.personalTasks" as any), count: personalTasks, color: "var(--color-info)" },
+        { label: t("home.kpi.workTasks"), count: workTasks, color: "var(--color-accent)" },
+        { label: t("home.kpi.personalTasks"), count: personalTasks, color: "var(--color-info)" },
       ],
     },
   ];
@@ -59,7 +59,7 @@ export function KPIGrid({ mrr, ytdRevenue, todayIncome, clientsCount, leadsCount
           </div>}
           {s.lines ? (
             <div className="flex items-center">
-              {s.lines.map((l: any, i: number) => (
+              {s.lines.map((l: { label: string; count: number; color: string }, i: number) => (
                 <React.Fragment key={l.label}>
                   {i > 0 && <div className="mx-2.5 self-stretch" style={{ width: 1, background: "var(--color-border-primary)" }} />}
                   <div className="flex-1 text-center">

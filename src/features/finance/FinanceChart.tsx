@@ -21,7 +21,7 @@ export interface ChartDataPoint {
 interface FinanceChartProps {
   chartData: ChartDataPoint[];
   isMobile: boolean;
-  t: (k: any) => string;
+  t: (k: string) => string;
 }
 
 export default function FinanceChart({ chartData, isMobile, t }: FinanceChartProps) {
@@ -29,13 +29,13 @@ export default function FinanceChart({ chartData, isMobile, t }: FinanceChartPro
     <div className="card p-4 mb-4">
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("money.chart.title" as any)}</h3>
-          <p className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{t("money.chart.subtitle" as any)}</p>
+          <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("money.chart.title")}</h3>
+          <p className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{t("money.chart.subtitle")}</p>
         </div>
         <div className="flex items-center gap-3 text-[13px]" style={{ color: "var(--color-text-secondary)" }}>
-          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-[var(--radius-4)]" style={{ background: "var(--color-success)" }} />{t("money.chart.revenue" as any)}</span>
-          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-[var(--radius-4)]" style={{ background: "var(--color-danger)" }} />{t("money.chart.expense" as any)}</span>
-          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-[var(--radius-4)]" style={{ background: "var(--color-accent)" }} />{t("money.chart.net" as any)}</span>
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-[var(--radius-4)]" style={{ background: "var(--color-success)" }} />{t("money.chart.revenue")}</span>
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-[var(--radius-4)]" style={{ background: "var(--color-danger)" }} />{t("money.chart.expense")}</span>
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-[var(--radius-4)]" style={{ background: "var(--color-accent)" }} />{t("money.chart.net")}</span>
         </div>
       </div>
       <div className="h-[200px]">
@@ -46,8 +46,8 @@ export default function FinanceChart({ chartData, isMobile, t }: FinanceChartPro
             <YAxis tick={{ fontSize: 11, fill: "var(--color-text-secondary)" }} tickLine={false} axisLine={false} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
             <Tooltip
               contentStyle={{ background: "var(--color-bg-primary)", border: "1px solid var(--color-border-primary)", borderRadius: "var(--radius-8)", fontSize: 12 }}
-              formatter={(value: number, name: string) => [`$${value.toLocaleString()}`, name === "income" ? t("money.chart.revenue" as any) : name === "expense" ? t("money.chart.expense" as any) : t("money.chart.net" as any)]}
-              labelFormatter={(label: string) => `${label}${t("money.monthSuffix" as any)}`}
+              formatter={(value: number, name: string) => [`$${value.toLocaleString()}`, name === "income" ? t("money.chart.revenue") : name === "expense" ? t("money.chart.expense") : t("money.chart.net")]}
+              labelFormatter={(label: string) => `${label}${t("money.monthSuffix")}`}
             />
             <Bar dataKey="income" fill="var(--color-success)" radius={[3, 3, 0, 0]} opacity={0.8} />
             <Bar dataKey="expense" fill="var(--color-danger)" radius={[3, 3, 0, 0]} opacity={0.8} />

@@ -73,7 +73,7 @@ export default function SettingsPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ OPERATOR_NAME: cleanedName, OPERATOR_AVATAR: operatorAvatar || '' }),
     }).catch(() => { /* save failed — toast already shown */ });
-    showToast(t("settings.saved" as any));
+    showToast(t("settings.saved"));
   };
 
   /* ── Avatar ── */
@@ -99,7 +99,7 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ OPERATOR_AVATAR: compressed }),
       }).catch(() => { /* avatar save failed */ });
-      showToast(t("settings.avatarUpdated" as any));
+      showToast(t("settings.avatarUpdated"));
     };
     img.src = dataUrl;
   };
@@ -107,8 +107,8 @@ export default function SettingsPage() {
   const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) { showToast(t("settings.avatarInvalid" as any)); return; }
-    if (file.size > MAX_AVATAR_SIZE) { showToast(t("settings.avatarTooLarge" as any)); return; }
+    if (!file.type.startsWith('image/')) { showToast(t("settings.avatarInvalid")); return; }
+    if (file.size > MAX_AVATAR_SIZE) { showToast(t("settings.avatarTooLarge")); return; }
     const reader = new FileReader();
     reader.onload = () => {
       const result = typeof reader.result === 'string' ? reader.result : '';
@@ -126,14 +126,14 @@ export default function SettingsPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ OPERATOR_AVATAR: '' }),
     }).catch(() => { /* avatar remove failed */ });
-    showToast(t("settings.avatarRemoved" as any));
+    showToast(t("settings.avatarRemoved"));
   };
 
   /* ── Render ── */
   return (
     <div className="mobile-page max-w-[1680px] mx-auto min-h-full p-4 md:p-6 lg:p-8 relative">
 
-      <h1 className="sr-only">{t("settings.title" as any)}</h1>
+      <h1 className="sr-only">{t("settings.title")}</h1>
 
       <div className="space-y-6 md:space-y-8">
 
@@ -174,7 +174,7 @@ export default function SettingsPage() {
         {/* Version info */}
         <div className="text-center py-4 space-y-2">
           <div className="text-[15px]" style={{ color: 'var(--color-text-tertiary)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>
-            {t("auth.title" as any)} v{__APP_VERSION__}
+            {t("auth.title")} v{__APP_VERSION__}
           </div>
           <button
             onClick={async () => {
@@ -190,7 +190,7 @@ export default function SettingsPage() {
             className="btn-ghost compact text-[13px] px-3 rounded-[var(--radius-4)] mx-auto"
             style={{ color: 'var(--color-accent)' }}
           >
-            {t("settings.version.forceUpdate" as any)}
+            {t("settings.version.forceUpdate")}
           </button>
         </div>
 

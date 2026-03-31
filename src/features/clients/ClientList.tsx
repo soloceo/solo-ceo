@@ -46,18 +46,18 @@ interface ClientRow {
   tax_rate: number;
   drive_folder_url?: string;
   payment_method: "auto" | "manual";
-  [key: string]: any; // For unknown fields from API
+  [key: string]: unknown; // For unknown fields from API
 }
 
 interface PlanRow {
   id: number;
   name: string;
   price: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /* ── Finance helpers ── */
-const stLabel = (st: string, t: (k: string) => string) => { const key = STATUS_I18N[st]; return key ? t(key as any) : st; };
+const stLabel = (st: string, t: (k: string) => string) => { const key = STATUS_I18N[st]; return key ? t(key) : st; };
 
 const CLIENTS_TABLES = ['clients', 'plans', 'payment_milestones', 'finance_transactions'] as const;
 
@@ -107,8 +107,8 @@ export function ClientsView() {
   /* ── Form validation ── */
   const [formErrors, setFormErrors] = useState<Record<string, boolean>>({});
 
-  const fetchPlans = async () => { try { const d = await (await fetch("/api/plans")).json(); setPlans(Array.isArray(d) ? d : []); } catch { showToast(t("common.loadFailed" as any) || "Load failed"); } };
-  const fetchClients = async () => { try { const res = await fetch("/api/clients"); const data = await res.json(); setClients(Array.isArray(data) ? data : []); } catch { showToast(t("pipeline.toast.clientLoadFailed" as any)); } finally { setLoading(false); } };
+  const fetchPlans = async () => { try { const d = await (await fetch("/api/plans")).json(); setPlans(Array.isArray(d) ? d : []); } catch { showToast(t("common.loadFailed") || "Load failed"); } };
+  const fetchClients = async () => { try { const res = await fetch("/api/clients"); const data = await res.json(); setClients(Array.isArray(data) ? data : []); } catch { showToast(t("pipeline.toast.clientLoadFailed")); } finally { setLoading(false); } };
 
   useEffect(() => { fetchClients(); fetchPlans(); tx.fetchFinance(); }, []);
   useRealtimeRefresh(CLIENTS_TABLES, () => { fetchClients(); tx.fetchFinance(); if (editId && form.billing_type === "project") ms.fetchMilestones(editId); });
@@ -162,7 +162,7 @@ export function ClientsView() {
 
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
-      showToast(t("common.validationFailed" as any) || "Please fill in all required fields");
+      showToast(t("common.validationFailed") || "Please fill in all required fields");
       return;
     }
 
@@ -170,14 +170,14 @@ export function ClientsView() {
     const startEvt = form.timeline.find(e => e.type === "start");
     const d = { name: form.name, company_name: form.company_name, contact_name: form.contact_name, contact_email: form.contact_email, contact_phone: form.contact_phone, billing_type: form.billing_type, plan_tier: form.billing_type === "subscription" ? form.plan : "", status: form.status, mrr: form.billing_type === "subscription" ? (Number(form.mrr) || 0) : 0, project_fee: form.billing_type === "project" ? (Number(form.project_fee) || 0) : 0, subscription_start_date: startEvt?.date || form.subscription_start_date, project_end_date: form.project_end_date, paused_at: form.timeline.filter(e => e.type === "pause").pop()?.date || "", resumed_at: form.timeline.filter(e => e.type === "resume").pop()?.date || "", cancelled_at: form.timeline.find(e => e.type === "cancel")?.date || "", mrr_effective_from: startEvt?.date || form.subscription_start_date, subscription_timeline: JSON.stringify(form.timeline), tax_mode: form.tax_mode, tax_rate: Number(form.tax_rate) || 0, drive_folder_url: form.drive_folder_url, payment_method: form.payment_method };
     try {
-      if (editId) { await fetch(`/api/clients/${editId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(d) }); showToast(t("pipeline.toast.clientUpdated" as any)); }
-      else { await fetch("/api/clients", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(d) }); showToast(t("pipeline.toast.clientAdded" as any)); }
+      if (editId) { await fetch(`/api/clients/${editId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(d) }); showToast(t("pipeline.toast.clientUpdated")); }
+      else { await fetch("/api/clients", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(d) }); showToast(t("pipeline.toast.clientAdded")); }
       setShowPanel(false); fetchClients();
-    } catch { showToast(t("common.saveFailed" as any)); }
+    } catch { showToast(t("common.saveFailed")); }
     finally { setSavingClient(false); }
   };
 
-  const deleteClient = async (id: number) => { try { await fetch(`/api/clients/${id}`, { method: "DELETE" }); setShowPanel(false); showToast(t("pipeline.toast.clientDeleted" as any)); fetchClients(); } catch { showToast(t("common.deleteFailed" as any)); } };
+  const deleteClient = async (id: number) => { try { await fetch(`/api/clients/${id}`, { method: "DELETE" }); setShowPanel(false); showToast(t("pipeline.toast.clientDeleted")); fetchClients(); } catch { showToast(t("common.deleteFailed")); } };
 
   const uniquePlanTiers = [...new Set(clients.filter(c => c.billing_type === "subscription" && c.plan_tier).map(c => c.plan_tier))];
   const filtered = useMemo(() => clients.filter(c => {
@@ -216,7 +216,7 @@ export function ClientsView() {
     a.href = url; a.download = `clients-${todayDateKey()}.csv`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    showToast(t("pipeline.clients.csvExported" as any));
+    showToast(t("pipeline.clients.csvExported"));
   };
 
   const rowV = useVirtualizer({ count: filtered.length, getScrollElement: () => parentRef.current, estimateSize: () => 72, overscan: 6 });
@@ -239,62 +239,62 @@ export function ClientsView() {
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-            <div className="stat-card anim-appear"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-4)]" style={{ background: "color-mix(in srgb, var(--color-success) 12%, transparent)" }}><PlayCircle size={16} style={{ color: "var(--color-success)" }} /></div><span className="text-[13px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("common.active" as any)}</span></div><span className="text-[18px] tabular-nums tracking-tight" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{activeN}</span></div>
-            <div className="stat-card anim-appear"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-4)]" style={{ background: "color-mix(in srgb, var(--color-warning) 12%, transparent)" }}><PauseCircle size={16} style={{ color: "var(--color-warning)" }} /></div><span className="text-[13px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("common.paused" as any)}</span></div><span className="text-[18px] tabular-nums tracking-tight" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{pausedN}</span></div>
-            <div className="stat-card anim-appear"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-4)]" style={{ background: "color-mix(in srgb, var(--color-accent) 12%, transparent)" }}><Layers size={16} style={{ color: "var(--color-accent)" }} /></div><span className="text-[13px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("pipeline.clients.contractTotal" as any)}</span></div><span className="text-[18px] tabular-nums tracking-tight" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>${contractTotal.toLocaleString()}</span></div>
-            <div className="stat-card anim-appear"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-4)]" style={{ background: "color-mix(in srgb, var(--color-success) 12%, transparent)" }}><CircleCheck size={16} style={{ color: "var(--color-success)" }} /></div><span className="text-[13px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("pipeline.clients.totalReceived" as any)}</span></div><span className="text-[18px] tabular-nums tracking-tight" style={{ color: "var(--color-success)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>${totalReceived.toLocaleString()}</span></div>
+            <div className="stat-card anim-appear"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-4)]" style={{ background: "color-mix(in srgb, var(--color-success) 12%, transparent)" }}><PlayCircle size={16} style={{ color: "var(--color-success)" }} /></div><span className="text-[13px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("common.active")}</span></div><span className="text-[18px] tabular-nums tracking-tight" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{activeN}</span></div>
+            <div className="stat-card anim-appear"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-4)]" style={{ background: "color-mix(in srgb, var(--color-warning) 12%, transparent)" }}><PauseCircle size={16} style={{ color: "var(--color-warning)" }} /></div><span className="text-[13px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("common.paused")}</span></div><span className="text-[18px] tabular-nums tracking-tight" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{pausedN}</span></div>
+            <div className="stat-card anim-appear"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-4)]" style={{ background: "color-mix(in srgb, var(--color-accent) 12%, transparent)" }}><Layers size={16} style={{ color: "var(--color-accent)" }} /></div><span className="text-[13px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("pipeline.clients.contractTotal")}</span></div><span className="text-[18px] tabular-nums tracking-tight" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>${contractTotal.toLocaleString()}</span></div>
+            <div className="stat-card anim-appear"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-4)]" style={{ background: "color-mix(in srgb, var(--color-success) 12%, transparent)" }}><CircleCheck size={16} style={{ color: "var(--color-success)" }} /></div><span className="text-[13px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("pipeline.clients.totalReceived")}</span></div><span className="text-[18px] tabular-nums tracking-tight" style={{ color: "var(--color-success)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>${totalReceived.toLocaleString()}</span></div>
           </div>
 
           <div className="space-y-2 mb-3">
             {/* Unified toolbar row */}
             <div className="flex items-center gap-2 flex-wrap">
               <div className="relative flex-1 min-w-[140px]">
-                <label htmlFor="client-search" className="sr-only">{t("pipeline.clients.search" as any)}</label>
+                <label htmlFor="client-search" className="sr-only">{t("pipeline.clients.search")}</label>
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={14} style={{ color: "var(--color-text-tertiary)" }} aria-hidden="true" />
-                <input id="client-search" defaultValue={search} onChange={e => { const v = e.target.value; clearTimeout((window as any).__cliSearchT); (window as any).__cliSearchT = setTimeout(() => setSearch(v), 300); }} placeholder={t("pipeline.clients.search" as any)} className="input-base compact w-full pl-9 pr-3 text-[14px]" />
+                <input id="client-search" defaultValue={search} onChange={e => { const v = e.target.value; clearTimeout(window.__cliSearchT); window.__cliSearchT = setTimeout(() => setSearch(v), 300); }} placeholder={t("pipeline.clients.search")} className="input-base compact w-full pl-9 pr-3 text-[14px]" />
               </div>
               <div className="w-px h-5 shrink-0 hidden sm:block" style={{ background: "var(--color-border-primary)" }} />
               <Filter size={14} className="shrink-0" style={{ color: "var(--color-text-tertiary)" }} aria-hidden="true" />
               <select value={filterSt} onChange={e => setFilterSt(e.target.value)} aria-label="Filter by status" className="input-base compact px-2 text-[14px]">
-                <option value="All">{t("common.all" as any)}</option><option value="Active">{t("common.active" as any)}</option><option value="Paused">{t("common.paused" as any)}</option>
+                <option value="All">{t("common.all")}</option><option value="Active">{t("common.active")}</option><option value="Paused">{t("common.paused")}</option>
               </select>
               <select value={filterBilling} onChange={e => setFilterBilling(e.target.value)} aria-label="Filter by billing type" className="input-base compact px-2 text-[14px]">
-                <option value="All">{t("pipeline.filter.billingAll" as any)}</option>
-                <option value="subscription">{t("pipeline.clients.billingSubscription" as any)}</option>
-                <option value="project">{t("pipeline.clients.billingProject" as any)}</option>
+                <option value="All">{t("pipeline.filter.billingAll")}</option>
+                <option value="subscription">{t("pipeline.clients.billingSubscription")}</option>
+                <option value="project">{t("pipeline.clients.billingProject")}</option>
               </select>
               {uniquePlanTiers.length > 0 && (
                 <select value={filterPlan} onChange={e => setFilterPlan(e.target.value)} aria-label="Filter by plan" className="input-base compact px-2 text-[14px]">
-                  <option value="All">{t("pipeline.filter.planAll" as any)}</option>
-                  {uniquePlanTiers.map(p => <option key={p} value={p}>{p === "Basic" ? t("pipeline.convert.planBasic" as any) : p === "Pro" ? t("pipeline.convert.planPro" as any) : p === "Enterprise" ? t("pipeline.convert.planEnterprise" as any) : p}</option>)}
+                  <option value="All">{t("pipeline.filter.planAll")}</option>
+                  {uniquePlanTiers.map(p => <option key={p} value={p}>{p === "Basic" ? t("pipeline.convert.planBasic") : p === "Pro" ? t("pipeline.convert.planPro") : p === "Enterprise" ? t("pipeline.convert.planEnterprise") : p}</option>)}
                 </select>
               )}
               <div className="flex-1" />
               <button onClick={exportClientsCSV} className="btn-ghost compact shrink-0"><Download size={16} /></button>
-              <button onClick={() => openPanel()} className="btn-primary compact shrink-0"><Plus size={16} /> <span className="hidden sm:inline">{t("pipeline.addClient" as any)}</span></button>
+              <button onClick={() => openPanel()} className="btn-primary compact shrink-0"><Plus size={16} /> <span className="hidden sm:inline">{t("pipeline.addClient")}</span></button>
             </div>
           </div>
 
           {/* Mobile cards */}
           <div className="md:hidden space-y-2 pb-4">
-            {!filtered.length && <div className="py-10 text-center text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{clients.length === 0 ? t("pipeline.clients.empty" as any) : t("pipeline.clients.noMatch" as any)}</div>}
+            {!filtered.length && <div className="py-10 text-center text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{clients.length === 0 ? t("pipeline.clients.empty") : t("pipeline.clients.noMatch")}</div>}
             {filtered.map(c => {
-              const plan = c.plan_tier === "Basic" ? t("pipeline.convert.planBasic" as any) : c.plan_tier === "Pro" ? t("pipeline.convert.planPro" as any) : c.plan_tier === "Enterprise" ? t("pipeline.convert.planEnterprise" as any) : (c.plan_tier || c.plan);
+              const plan = c.plan_tier === "Basic" ? t("pipeline.convert.planBasic") : c.plan_tier === "Pro" ? t("pipeline.convert.planPro") : c.plan_tier === "Enterprise" ? t("pipeline.convert.planEnterprise") : (c.plan_tier || c.plan);
               return (
                 <button key={c.id} onClick={() => openPanel(c)} className="w-full text-left card-interactive p-3 flex items-center gap-3 press-feedback">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-6)] text-[13px]" style={{ background: "var(--color-accent-tint)", color: "var(--color-accent)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>{(c.company_name || c.name || "?").charAt(0).toUpperCase()}</div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 min-w-0"><span className="text-[15px] truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{c.company_name || c.name}</span>
-                      <span className="badge" style={c.status === "Active" ? { background: "var(--color-success-light)", color: "var(--color-success)" } : { background: "var(--color-warning-light)", color: "var(--color-warning)" }}>{c.status === "Active" ? t("common.active" as any) : t("common.paused" as any)}</span>
+                      <span className="badge" style={c.status === "Active" ? { background: "var(--color-success-light)", color: "var(--color-success)" } : { background: "var(--color-warning-light)", color: "var(--color-warning)" }}>{c.status === "Active" ? t("common.active") : t("common.paused")}</span>
                     </div>
                     {c.contact_name && <div className="text-[13px] mt-0.5 truncate" style={{ color: "var(--color-text-secondary)" }}>{c.contact_name}{c.contact_phone ? ` · ${c.contact_phone}` : ""}</div>}
                     <div className="text-[13px] mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
                       {c.billing_type === "project"
-                        ? <>{t("pipeline.clients.billingProject" as any)} · {t("pipeline.clients.contract" as any)} <strong style={{ color: "var(--color-text-primary)" }}>${Number(c.project_fee || 0).toLocaleString()}</strong></>
-                        : <>{plan} · <strong style={{ color: "var(--color-text-primary)" }}>${Number(c.mrr || 0).toLocaleString()}</strong>{t("pipeline.clients.perMonth" as any)}</>
+                        ? <>{t("pipeline.clients.billingProject")} · {t("pipeline.clients.contract")} <strong style={{ color: "var(--color-text-primary)" }}>${Number(c.project_fee || 0).toLocaleString()}</strong></>
+                        : <>{plan} · <strong style={{ color: "var(--color-text-primary)" }}>${Number(c.mrr || 0).toLocaleString()}</strong>{t("pipeline.clients.perMonth")}</>
                       }
-                      {(() => { const cR = tx.finTxs.filter((r: any) => r.type === "income" && (r.status || "已完成") === "已完成" && r.client_id === c.id).reduce((s: number, r: any) => s + Number(r.amount || 0), 0); return cR > 0 ? <> · <span style={{ color: "var(--color-success)" }}>{t("pipeline.clients.received" as any)} ${cR.toLocaleString()}</span></> : null; })()}
-                      {c.tax_mode && c.tax_mode !== "none" && <> · <span style={{ color: "var(--color-accent)" }}>{c.tax_mode === "exclusive" ? t("money.form.taxExclBtn" as any) : t("money.form.taxIncl" as any)} {c.tax_rate}%</span></>}
+                      {(() => { const cR = tx.finTxs.filter((r: FinanceTransaction) => r.type === "income" && (r.status || "已完成") === "已完成" && r.client_id === c.id).reduce((s: number, r: FinanceTransaction) => s + Number(r.amount || 0), 0); return cR > 0 ? <> · <span style={{ color: "var(--color-success)" }}>{t("pipeline.clients.received")} ${cR.toLocaleString()}</span></> : null; })()}
+                      {c.tax_mode && c.tax_mode !== "none" && <> · <span style={{ color: "var(--color-accent)" }}>{c.tax_mode === "exclusive" ? t("money.form.taxExclBtn") : t("money.form.taxIncl")} {c.tax_rate}%</span></>}
                     </div>
                   </div>
                 </button>
@@ -307,14 +307,14 @@ export function ClientsView() {
             <table className="w-full text-left min-w-[960px]">
               <thead className="sticky top-0 z-10" style={{ background: "var(--color-bg-primary)", borderBottom: "1px solid var(--color-border-primary)" }}>
                 <tr className="section-label">
-                  <th className="px-4 py-3" style={{ fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.clients.table.name" as any)}</th><th className="px-4 py-3" style={{ fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.clients.table.contact" as any)}</th><th className="px-4 py-3" style={{ fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.clients.table.type" as any)}</th><th className="px-4 py-3" style={{ fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.clients.table.plan" as any)}</th><th className="px-4 py-3" style={{ fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.clients.table.status" as any)}</th><th className="px-4 py-3" style={{ fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.clients.table.expectedActual" as any)}</th><th className="px-4 py-3" style={{ fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.clients.startDate" as any)}</th><th className="px-4 py-3" style={{ fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.clients.taxSetting" as any)}</th><th className="px-4 py-3 text-right" style={{ fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.clients.table.actions" as any)}</th>
+                  <th className="px-4 py-3" style={{ fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.clients.table.name")}</th><th className="px-4 py-3" style={{ fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.clients.table.contact")}</th><th className="px-4 py-3" style={{ fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.clients.table.type")}</th><th className="px-4 py-3" style={{ fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.clients.table.plan")}</th><th className="px-4 py-3" style={{ fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.clients.table.status")}</th><th className="px-4 py-3" style={{ fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.clients.table.expectedActual")}</th><th className="px-4 py-3" style={{ fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.clients.startDate")}</th><th className="px-4 py-3" style={{ fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.clients.taxSetting")}</th><th className="px-4 py-3 text-right" style={{ fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.clients.table.actions")}</th>
                 </tr>
               </thead>
               <tbody className="text-[15px]">
                 {padTop > 0 && <tr><td style={{ height: padTop, padding: 0 }} colSpan={9} /></tr>}
                 {vItems.map(vr => {
                   const c = filtered[vr.index];
-                  const plan = c.plan_tier === "Basic" ? t("pipeline.convert.planBasic" as any) : c.plan_tier === "Pro" ? t("pipeline.convert.planPro" as any) : c.plan_tier === "Enterprise" ? t("pipeline.convert.planEnterprise" as any) : (c.plan_tier || c.plan);
+                  const plan = c.plan_tier === "Basic" ? t("pipeline.convert.planBasic") : c.plan_tier === "Pro" ? t("pipeline.convert.planPro") : c.plan_tier === "Enterprise" ? t("pipeline.convert.planEnterprise") : (c.plan_tier || c.plan);
                   const displayName = c.company_name || c.name;
                   const displayInitial = displayName.charAt(0).toUpperCase();
                   return (
@@ -323,24 +323,24 @@ export function ClientsView() {
                       onMouseEnter={e => (e.currentTarget.style.background = "var(--color-bg-tertiary)")} onMouseLeave={e => (e.currentTarget.style.background = "")}>
                       <td className="px-4 py-3 max-w-[200px]"><div className="flex items-center gap-3 min-w-0"><div className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-4)] text-[13px] shrink-0" style={{ background: "var(--color-accent-tint)", color: "var(--color-accent)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>{displayInitial}</div><span className="truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{displayName}</span></div></td>
                       <td className="px-4 py-3"><div className="min-w-0">{c.contact_name && <span className="text-[15px] block truncate" style={{ color: "var(--color-text-primary)" }}>{c.contact_name}</span>}{c.contact_email && <span className="text-[13px] block truncate" style={{ color: "var(--color-text-secondary)" }}>{c.contact_email}</span>}</div></td>
-                      <td className="px-4 py-3"><span className="badge" style={c.billing_type === "project" ? { background: "color-mix(in srgb, var(--color-orange) 12%, transparent)", color: "var(--color-orange)" } : { background: "color-mix(in srgb, var(--color-blue) 12%, transparent)", color: "var(--color-blue)" }}>{c.billing_type === "project" ? t("pipeline.clients.billingProject" as any) : t("pipeline.clients.billingSubscription" as any)}</span></td>
+                      <td className="px-4 py-3"><span className="badge" style={c.billing_type === "project" ? { background: "color-mix(in srgb, var(--color-orange) 12%, transparent)", color: "var(--color-orange)" } : { background: "color-mix(in srgb, var(--color-blue) 12%, transparent)", color: "var(--color-blue)" }}>{c.billing_type === "project" ? t("pipeline.clients.billingProject") : t("pipeline.clients.billingSubscription")}</span></td>
                       <td className="px-4 py-3"><span className="badge">{c.billing_type === "project" ? "—" : plan}</span></td>
-                      <td className="px-4 py-3"><span className="badge" style={c.status === "Active" ? { background: "var(--color-success-light)", color: "var(--color-success)" } : { background: "var(--color-warning-light)", color: "var(--color-warning)" }}>{c.status === "Active" ? t("common.active" as any) : t("common.paused" as any)}</span></td>
+                      <td className="px-4 py-3"><span className="badge" style={c.status === "Active" ? { background: "var(--color-success-light)", color: "var(--color-success)" } : { background: "var(--color-warning-light)", color: "var(--color-warning)" }}>{c.status === "Active" ? t("common.active") : t("common.paused")}</span></td>
                       <td className="px-4 py-3 tabular-nums" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
                         <div>${c.billing_type === "project" ? Number(c.project_fee || 0).toLocaleString() : Number(c.lifetimeRevenue || 0).toLocaleString()}</div>
-                        {(() => { const cReceived = tx.finTxs.filter((r: any) => r.type === "income" && (r.status || "已完成") === "已完成" && r.client_id === c.id).reduce((s: number, r: any) => s + Number(r.amount || 0), 0); return cReceived > 0 ? <div className="text-[13px]" style={{ color: "var(--color-success)" }}>{t("pipeline.clients.received" as any)} ${cReceived.toLocaleString()}</div> : null; })()}
-                        {c.billing_type === "subscription" && <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>${Number(c.mrr || 0).toLocaleString()}{t("pipeline.clients.perMonth" as any)}</div>}
+                        {(() => { const cReceived = tx.finTxs.filter((r: FinanceTransaction) => r.type === "income" && (r.status || "已完成") === "已完成" && r.client_id === c.id).reduce((s: number, r: FinanceTransaction) => s + Number(r.amount || 0), 0); return cReceived > 0 ? <div className="text-[13px]" style={{ color: "var(--color-success)" }}>{t("pipeline.clients.received")} ${cReceived.toLocaleString()}</div> : null; })()}
+                        {c.billing_type === "subscription" && <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>${Number(c.mrr || 0).toLocaleString()}{t("pipeline.clients.perMonth")}</div>}
                       </td>
                       <td className="px-4 py-3 text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{c.subscription_start_date || c.joined_at?.split("T")[0] || "—"}</td>
-                      <td className="px-4 py-3">{c.tax_mode && c.tax_mode !== "none" ? <span className="badge" style={{ background: "color-mix(in srgb, var(--color-accent) 12%, transparent)", color: "var(--color-accent)" }}>{c.tax_mode === "exclusive" ? t("money.form.taxExclBtn" as any) : t("money.form.taxIncl" as any)} {c.tax_rate}%</span> : <span style={{ color: "var(--color-text-secondary)" }}>—</span>}</td>
-                      <td className="px-4 py-3 text-right"><button onClick={e => { e.stopPropagation(); openPanel(c); }} className="btn-ghost text-[13px]"><Edit2 size={16} /> {t("common.edit" as any)}</button></td>
+                      <td className="px-4 py-3">{c.tax_mode && c.tax_mode !== "none" ? <span className="badge" style={{ background: "color-mix(in srgb, var(--color-accent) 12%, transparent)", color: "var(--color-accent)" }}>{c.tax_mode === "exclusive" ? t("money.form.taxExclBtn") : t("money.form.taxIncl")} {c.tax_rate}%</span> : <span style={{ color: "var(--color-text-secondary)" }}>—</span>}</td>
+                      <td className="px-4 py-3 text-right"><button onClick={e => { e.stopPropagation(); openPanel(c); }} className="btn-ghost text-[13px]"><Edit2 size={16} /> {t("common.edit")}</button></td>
                     </tr>
                   );
                 })}
                 {padBot > 0 && <tr><td style={{ height: padBot, padding: 0 }} colSpan={9} /></tr>}
               </tbody>
             </table>
-            {!filtered.length && <div className="p-8 text-center text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{clients.length === 0 ? t("pipeline.clients.empty" as any) : t("pipeline.clients.noMatch" as any)}</div>}
+            {!filtered.length && <div className="p-8 text-center text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{clients.length === 0 ? t("pipeline.clients.empty") : t("pipeline.clients.noMatch")}</div>}
           </div>
         </>
       )}
@@ -364,57 +364,57 @@ export function ClientsView() {
               <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: "var(--color-border-primary)" }}>
                 <div className="flex items-center gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-6)]" style={{ background: "var(--color-accent-tint)", color: "var(--color-accent)" }}><UserPlus size={16} /></div>
-                  <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{editId ? t("pipeline.panel.editClient" as any) : t("pipeline.panel.newClient" as any)}</span>
+                  <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{editId ? t("pipeline.panel.editClient") : t("pipeline.panel.newClient")}</span>
                 </div>
                 <button onClick={() => setShowPanel(false)} className="btn-icon" aria-label="Close panel">{isMobile ? <X size={18} /> : <PanelRightClose size={18} />}</button>
               </div>
               <div className="flex-1 overflow-y-auto overflow-x-hidden ios-scroll p-5 space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <FL label={t("pipeline.clients.companyName" as any)}>
+                    <FL label={t("pipeline.clients.companyName")}>
                       <div>
                         <input required value={form.company_name} onChange={e => { setForm(p => ({ ...p, company_name: e.target.value, name: e.target.value || p.contact_name })); setFormErrors(prev => ({...prev, company_name: false})); }} className="input-base w-full px-3 py-2 text-[15px]" style={{ borderColor: formErrors.company_name ? 'var(--color-danger)' : undefined }} />
                         {formErrors.company_name && <span style={{ color: 'var(--color-danger)', fontSize: 12 }}>必填项</span>}
                       </div>
                     </FL>
                   </div>
-                  <FL label={t("pipeline.clients.contactName" as any)}><input value={form.contact_name} onChange={e => setForm(p => ({ ...p, contact_name: e.target.value, name: p.company_name || e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+                  <FL label={t("pipeline.clients.contactName")}><input value={form.contact_name} onChange={e => setForm(p => ({ ...p, contact_name: e.target.value, name: p.company_name || e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <FL label={t("pipeline.clients.contactEmail" as any)}><input type="email" value={form.contact_email} onChange={e => setForm(p => ({ ...p, contact_email: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
-                  <FL label={t("pipeline.clients.contactPhone" as any)}><input type="tel" value={form.contact_phone} onChange={e => setForm(p => ({ ...p, contact_phone: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+                  <FL label={t("pipeline.clients.contactEmail")}><input type="email" value={form.contact_email} onChange={e => setForm(p => ({ ...p, contact_email: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+                  <FL label={t("pipeline.clients.contactPhone")}><input type="tel" value={form.contact_phone} onChange={e => setForm(p => ({ ...p, contact_phone: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
                 </div>
                 {/* Google Drive folder link */}
-                <FL label={t("pipeline.clients.driveFolder" as any)}>
+                <FL label={t("pipeline.clients.driveFolder")}>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
                       <FolderOpen size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--color-text-secondary)" }} />
-                      <input value={form.drive_folder_url} onChange={e => setForm(p => ({ ...p, drive_folder_url: e.target.value }))} placeholder={t("pipeline.clients.drivePlaceholder" as any)} className="input-base w-full pl-9 pr-3 py-2 text-[15px]" />
+                      <input value={form.drive_folder_url} onChange={e => setForm(p => ({ ...p, drive_folder_url: e.target.value }))} placeholder={t("pipeline.clients.drivePlaceholder")} className="input-base w-full pl-9 pr-3 py-2 text-[15px]" />
                     </div>
                     {form.drive_folder_url && (
                       <button type="button" onClick={() => window.open(form.drive_folder_url, '_blank')} className="btn-ghost flex items-center gap-1 px-3 shrink-0 text-[13px]" style={{ color: "var(--color-accent)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-                        <ExternalLink size={16} /> {t("pipeline.clients.openDrive" as any)}
+                        <ExternalLink size={16} /> {t("pipeline.clients.openDrive")}
                       </button>
                     )}
                   </div>
                 </FL>
                 <div className="border-t" style={{ borderColor: "var(--color-border-primary)" }} />
                 {/* Billing type switcher */}
-                <FL label={t("pipeline.clients.billingType" as any)}>
+                <FL label={t("pipeline.clients.billingType")}>
                   <div className="segment-switcher">
                     {(["subscription", "project"] as const).map(bt => (
                       <button key={bt} onClick={() => {
                         if (editId && bt !== form.billing_type) {
                           // Switching billing type on existing client — confirm first
                           const message = bt === "project"
-                            ? t("pipeline.clients.switchToProjectConfirm" as any)
-                            : t("pipeline.clients.switchToSubConfirm" as any);
+                            ? t("pipeline.clients.switchToProjectConfirm")
+                            : t("pipeline.clients.switchToSubConfirm");
                           setBillingConfirm({ type: bt, message });
                         } else {
                           setForm(p => ({ ...p, billing_type: bt }));
                         }
                       }} data-active={form.billing_type === bt}>
-                        {bt === "subscription" ? t("pipeline.clients.billingSubscription" as any) : t("pipeline.clients.billingProject" as any)}
+                        {bt === "subscription" ? t("pipeline.clients.billingSubscription") : t("pipeline.clients.billingProject")}
                       </button>
                     ))}
                   </div>
@@ -422,18 +422,18 @@ export function ClientsView() {
                 {form.billing_type === "subscription" ? (
                   <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <FL label={t("pipeline.convert.plan" as any)}><select value={form.plan} onChange={e => { const v = e.target.value; const p = plans.find((x: PlanRow) => x.name === v); setForm(prev => ({ ...prev, plan: v, mrr: p ? String(p.price) : prev.mrr })); }} className="input-base w-full px-3 py-2 text-[15px]"><option value="">{t("pipeline.convert.planSelect" as any)}</option>{plans.map((p: PlanRow) => <option key={p.id} value={p.name}>{p.name}</option>)}</select></FL>
-                      <FL label={t("common.status" as any)}><select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]"><option value="Active">{t("common.active" as any)}</option><option value="Paused">{t("common.paused" as any)}</option></select></FL>
+                      <FL label={t("pipeline.convert.plan")}><select value={form.plan} onChange={e => { const v = e.target.value; const p = plans.find((x: PlanRow) => x.name === v); setForm(prev => ({ ...prev, plan: v, mrr: p ? String(p.price) : prev.mrr })); }} className="input-base w-full px-3 py-2 text-[15px]"><option value="">{t("pipeline.convert.planSelect")}</option>{plans.map((p: PlanRow) => <option key={p.id} value={p.name}>{p.name}</option>)}</select></FL>
+                      <FL label={t("common.status")}><select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]"><option value="Active">{t("common.active")}</option><option value="Paused">{t("common.paused")}</option></select></FL>
                     </div>
-                    <FL label={t("pipeline.convert.mrr" as any)}><input type="number" required min="0" value={form.mrr} onChange={e => setForm(p => ({ ...p, mrr: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+                    <FL label={t("pipeline.convert.mrr")}><input type="number" required min="0" value={form.mrr} onChange={e => setForm(p => ({ ...p, mrr: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
                     {/* Payment method */}
-                    <FL label={t("pipeline.clients.paymentMethod" as any)}>
+                    <FL label={t("pipeline.clients.paymentMethod")}>
                       <div className="flex gap-2">
                         {([
-                          ["auto", t("pipeline.clients.payAuto" as any), t("pipeline.clients.payAutoHint" as any)],
-                          ["manual", t("pipeline.clients.payManual" as any), t("pipeline.clients.payManualHint" as any)],
+                          ["auto", t("pipeline.clients.payAuto"), t("pipeline.clients.payAutoHint")],
+                          ["manual", t("pipeline.clients.payManual"), t("pipeline.clients.payManualHint")],
                         ] as [string, string, string][]).map(([val, label, hint]) => (
-                          <button key={val} type="button" onClick={() => setForm(p => ({ ...p, payment_method: val as any }))}
+                          <button key={val} type="button" onClick={() => setForm(p => ({ ...p, payment_method: val }))}
                             className="flex-1 card p-3 text-left transition-colors"
                             style={form.payment_method === val ? { borderColor: "var(--color-accent)", background: "var(--color-accent-tint)" } : {}}>
                             <div className="text-[15px]" style={{ color: form.payment_method === val ? "var(--color-accent)" : "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{label}</div>
@@ -443,10 +443,10 @@ export function ClientsView() {
                       </div>
                     </FL>
                     {/* Tax settings — after amount */}
-                    <FL label={t("pipeline.clients.taxSetting" as any)}>
+                    <FL label={t("pipeline.clients.taxSetting")}>
                       <div className="flex flex-wrap gap-2 mb-2">
-                        {([["none", t("money.form.taxNone" as any)], ["exclusive", t("money.form.taxExclBtn" as any)], ["inclusive", t("money.form.taxIncl" as any)]] as [string, string][]).map(([mode, label]) => (
-                          <button key={mode} type="button" onClick={() => setForm(p => ({ ...p, tax_mode: mode as any }))}
+                        {([["none", t("money.form.taxNone")], ["exclusive", t("money.form.taxExclBtn")], ["inclusive", t("money.form.taxIncl")]] as [string, string][]).map(([mode, label]) => (
+                          <button key={mode} type="button" onClick={() => setForm(p => ({ ...p, tax_mode: mode }))}
                             className="flex-1 py-2 rounded-full text-[15px] transition-all"
                             style={form.tax_mode === mode ? { background: "var(--color-accent)", color: "var(--color-brand-text)", fontWeight: "var(--font-weight-medium)" } : { background: "var(--color-bg-tertiary)", color: "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
                             {label}
@@ -462,15 +462,15 @@ export function ClientsView() {
                               {r}%
                             </button>
                           ))}
-                          <input type="number" min="0" max="100" step="0.01" value={form.tax_rate} onChange={e => setForm(p => ({ ...p, tax_rate: e.target.value }))} placeholder={t("money.form.customTaxPlaceholder" as any)} className="input-base flex-1 px-3 py-2 text-[15px] min-w-0" />
+                          <input type="number" min="0" max="100" step="0.01" value={form.tax_rate} onChange={e => setForm(p => ({ ...p, tax_rate: e.target.value }))} placeholder={t("money.form.customTaxPlaceholder")} className="input-base flex-1 px-3 py-2 text-[15px] min-w-0" />
                         </div>
                       )}
                     </FL>
                     <div className="border-t" style={{ borderColor: "var(--color-border-primary)" }} />
-                    <span className="section-label">{t("pipeline.clients.timeline" as any)}</span>
+                    <span className="section-label">{t("pipeline.clients.timeline")}</span>
                     <div className="space-y-2">
                       {form.timeline.map((evt, i) => {
-                        const labels: Record<string, string> = { start: t("pipeline.clients.start" as any), pause: t("pipeline.clients.pause" as any), resume: t("pipeline.clients.resume" as any), cancel: t("pipeline.clients.cancel" as any) };
+                        const labels: Record<string, string> = { start: t("pipeline.clients.start"), pause: t("pipeline.clients.pause"), resume: t("pipeline.clients.resume"), cancel: t("pipeline.clients.cancel") };
                         const colors: Record<string, string> = { start: "var(--color-success)", pause: "var(--color-warning)", resume: "var(--color-blue)", cancel: "var(--color-danger)" };
                         return (
                           <div key={i} className="flex items-center gap-2">
@@ -488,14 +488,14 @@ export function ClientsView() {
                           const today = todayDateKey();
                           if (!last || last.type === "start" || last.type === "resume") {
                             return (<>
-                              <button type="button" onClick={() => setForm(p => ({ ...p, timeline: [...p.timeline, { type: "pause", date: today }] }))} className="btn-ghost text-[13px] flex items-center gap-1" style={{ color: "var(--color-warning)" }}><Plus size={12} /> {t("pipeline.clients.pause" as any)}</button>
-                              <button type="button" onClick={() => setForm(p => ({ ...p, timeline: [...p.timeline, { type: "cancel", date: today }] }))} className="btn-ghost text-[13px] flex items-center gap-1" style={{ color: "var(--color-danger)" }}><Plus size={12} /> {t("pipeline.clients.cancel" as any)}</button>
+                              <button type="button" onClick={() => setForm(p => ({ ...p, timeline: [...p.timeline, { type: "pause", date: today }] }))} className="btn-ghost text-[13px] flex items-center gap-1" style={{ color: "var(--color-warning)" }}><Plus size={12} /> {t("pipeline.clients.pause")}</button>
+                              <button type="button" onClick={() => setForm(p => ({ ...p, timeline: [...p.timeline, { type: "cancel", date: today }] }))} className="btn-ghost text-[13px] flex items-center gap-1" style={{ color: "var(--color-danger)" }}><Plus size={12} /> {t("pipeline.clients.cancel")}</button>
                             </>);
                           }
                           if (last.type === "pause") {
                             return (<>
-                              <button type="button" onClick={() => setForm(p => ({ ...p, timeline: [...p.timeline, { type: "resume", date: today }] }))} className="btn-ghost text-[13px] flex items-center gap-1" style={{ color: "var(--color-blue)" }}><Plus size={12} /> {t("pipeline.clients.resume" as any)}</button>
-                              <button type="button" onClick={() => setForm(p => ({ ...p, timeline: [...p.timeline, { type: "cancel", date: today }] }))} className="btn-ghost text-[13px] flex items-center gap-1" style={{ color: "var(--color-danger)" }}><Plus size={12} /> {t("pipeline.clients.cancel" as any)}</button>
+                              <button type="button" onClick={() => setForm(p => ({ ...p, timeline: [...p.timeline, { type: "resume", date: today }] }))} className="btn-ghost text-[13px] flex items-center gap-1" style={{ color: "var(--color-blue)" }}><Plus size={12} /> {t("pipeline.clients.resume")}</button>
+                              <button type="button" onClick={() => setForm(p => ({ ...p, timeline: [...p.timeline, { type: "cancel", date: today }] }))} className="btn-ghost text-[13px] flex items-center gap-1" style={{ color: "var(--color-danger)" }}><Plus size={12} /> {t("pipeline.clients.cancel")}</button>
                             </>);
                           }
                           return null;
@@ -506,14 +506,14 @@ export function ClientsView() {
                 ) : (
                   <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <FL label={t("pipeline.clients.projectFee" as any)}><input type="number" required min="0" value={form.project_fee} onChange={e => setForm(p => ({ ...p, project_fee: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
-                      <FL label={t("common.status" as any)}><select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]"><option value="Active">{t("common.active" as any)}</option><option value="Paused">{t("common.paused" as any)}</option></select></FL>
+                      <FL label={t("pipeline.clients.projectFee")}><input type="number" required min="0" value={form.project_fee} onChange={e => setForm(p => ({ ...p, project_fee: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+                      <FL label={t("common.status")}><select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]"><option value="Active">{t("common.active")}</option><option value="Paused">{t("common.paused")}</option></select></FL>
                     </div>
                     {/* Tax settings — after amount */}
-                    <FL label={t("pipeline.clients.taxSetting" as any)}>
+                    <FL label={t("pipeline.clients.taxSetting")}>
                       <div className="flex flex-wrap gap-2 mb-2">
-                        {([["none", t("money.form.taxNone" as any)], ["exclusive", t("money.form.taxExclBtn" as any)], ["inclusive", t("money.form.taxIncl" as any)]] as [string, string][]).map(([mode, label]) => (
-                          <button key={mode} type="button" onClick={() => setForm(p => ({ ...p, tax_mode: mode as any }))}
+                        {([["none", t("money.form.taxNone")], ["exclusive", t("money.form.taxExclBtn")], ["inclusive", t("money.form.taxIncl")]] as [string, string][]).map(([mode, label]) => (
+                          <button key={mode} type="button" onClick={() => setForm(p => ({ ...p, tax_mode: mode }))}
                             className="flex-1 py-2 rounded-full text-[15px] transition-all"
                             style={form.tax_mode === mode ? { background: "var(--color-accent)", color: "var(--color-brand-text)", fontWeight: "var(--font-weight-medium)" } : { background: "var(--color-bg-tertiary)", color: "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
                             {label}
@@ -529,15 +529,15 @@ export function ClientsView() {
                               {r}%
                             </button>
                           ))}
-                          <input type="number" min="0" max="100" step="0.01" value={form.tax_rate} onChange={e => setForm(p => ({ ...p, tax_rate: e.target.value }))} placeholder={t("money.form.customTaxPlaceholder" as any)} className="input-base flex-1 px-3 py-2 text-[15px] min-w-0" />
+                          <input type="number" min="0" max="100" step="0.01" value={form.tax_rate} onChange={e => setForm(p => ({ ...p, tax_rate: e.target.value }))} placeholder={t("money.form.customTaxPlaceholder")} className="input-base flex-1 px-3 py-2 text-[15px] min-w-0" />
                         </div>
                       )}
                     </FL>
                     <div className="border-t" style={{ borderColor: "var(--color-border-primary)" }} />
-                    <span className="section-label">{t("pipeline.clients.projectTimeline" as any)}</span>
+                    <span className="section-label">{t("pipeline.clients.projectTimeline")}</span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <FL label={t("pipeline.clients.projectStart" as any)}><input type="date" value={form.subscription_start_date} onChange={e => setForm(p => ({ ...p, subscription_start_date: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
-                      <FL label={t("pipeline.clients.projectEnd" as any)}><input type="date" value={form.project_end_date} onChange={e => setForm(p => ({ ...p, project_end_date: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+                      <FL label={t("pipeline.clients.projectStart")}><input type="date" value={form.subscription_start_date} onChange={e => setForm(p => ({ ...p, subscription_start_date: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+                      <FL label={t("pipeline.clients.projectEnd")}><input type="date" value={form.project_end_date} onChange={e => setForm(p => ({ ...p, project_end_date: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
                     </div>
 
                     {/* ═══ Payment Milestones ═══ */}
@@ -545,10 +545,10 @@ export function ClientsView() {
                       <>
                         <div className="border-t" style={{ borderColor: "var(--color-border-primary)" }} />
                         <div className="flex items-center justify-between">
-                          <span className="section-label flex items-center gap-1.5"><DollarSign size={16} /> {t("pipeline.milestones.title" as any)}</span>
-                          <button onClick={() => ms.openAddForm()} className="btn-ghost text-[13px] flex items-center gap-1" style={{ color: "var(--color-accent)" }}><Plus size={16} /> {t("pipeline.milestones.add" as any)}</button>
+                          <span className="section-label flex items-center gap-1.5"><DollarSign size={16} /> {t("pipeline.milestones.title")}</span>
+                          <button onClick={() => ms.openAddForm()} className="btn-ghost text-[13px] flex items-center gap-1" style={{ color: "var(--color-accent)" }}><Plus size={16} /> {t("pipeline.milestones.add")}</button>
                         </div>
-                        <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.milestones.hint" as any)}</div>
+                        <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.milestones.hint")}</div>
 
                         {/* Progress bar */}
                         {ms.milestones.length > 0 && (() => {
@@ -559,7 +559,7 @@ export function ClientsView() {
                             <div>
                               <div className="flex items-center justify-between mb-2">
                                 <span className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>
-                                  {ms.milestones.filter((m: any) => m.status === "paid").length}/{ms.milestones.length} {t("pipeline.milestones.status.paid" as any).toLowerCase()} · ${paidAmt.toLocaleString()} / ${totalAmt.toLocaleString()}
+                                  {ms.milestones.filter((m: MilestoneRow) => m.status === "paid").length}/{ms.milestones.length} {t("pipeline.milestones.status.paid").toLowerCase()} · ${paidAmt.toLocaleString()} / ${totalAmt.toLocaleString()}
                                 </span>
                                 <span className="text-[13px] tabular-nums" style={{ color: pct === 100 ? "var(--color-success)" : "var(--color-accent)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{pct}%</span>
                               </div>
@@ -577,7 +577,7 @@ export function ClientsView() {
                             <Skeleton className="h-16 rounded-[var(--radius-12)]" />
                           </div>
                         ) : ms.milestones.length === 0 && !ms.showAddMs ? (
-                          <div className="text-center py-4 text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.milestones.noPlan" as any)}</div>
+                          <div className="text-center py-4 text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.milestones.noPlan")}</div>
                         ) : (
                           <div className="space-y-2">
                             {ms.milestones.map((msItem: MilestoneRow) => (
@@ -590,28 +590,28 @@ export function ClientsView() {
                                       msItem.status === "paid" ? { background: "var(--color-success-light)", color: "var(--color-success)" }
                                       : msItem.status === "overdue" ? { background: "color-mix(in srgb, var(--color-danger) 12%, transparent)", color: "var(--color-danger)" }
                                       : { background: "color-mix(in srgb, var(--color-warning) 12%, transparent)", color: "var(--color-warning)" }
-                                    }>{t(`pipeline.milestones.status.${msItem.status}` as any)}</span>
+                                    }>{t(`pipeline.milestones.status.${msItem.status}`)}</span>
                                   </div>
                                   <span className="text-[15px] tabular-nums" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>${Number(msItem.amount || 0).toLocaleString()}</span>
                                 </div>
                                 <div className="flex items-center gap-3 text-[13px]" style={{ color: "var(--color-text-secondary)" }}>
                                   {msItem.percentage > 0 && <span>{msItem.percentage}%</span>}
-                                  {msItem.due_date && <span>{t("pipeline.milestones.dueDate" as any)}: {msItem.due_date}</span>}
-                                  {msItem.paid_date && <span>{t("pipeline.milestones.paidDate" as any)}: {msItem.paid_date}</span>}
-                                  {msItem.payment_method && <span>{t(`pipeline.milestones.method.${msItem.payment_method}` as any)}</span>}
+                                  {msItem.due_date && <span>{t("pipeline.milestones.dueDate")}: {msItem.due_date}</span>}
+                                  {msItem.paid_date && <span>{t("pipeline.milestones.paidDate")}: {msItem.paid_date}</span>}
+                                  {msItem.payment_method && <span>{t(`pipeline.milestones.method.${msItem.payment_method}`)}</span>}
                                 </div>
                                 {msItem.note && <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{msItem.note}</div>}
                                 {msItem.status === "paid" ? (
                                   <div className="flex items-center justify-between" onClick={e => e.stopPropagation()}>
-                                    <span className="text-[13px]" style={{ color: "var(--color-success)" }}>{t("pipeline.milestones.autoRecorded" as any)}</span>
+                                    <span className="text-[13px]" style={{ color: "var(--color-success)" }}>{t("pipeline.milestones.autoRecorded")}</span>
                                     <button onClick={() => ms.undoMarkPaid(msItem.id, () => tx.fetchFinance())} className="btn-ghost text-[13px] flex items-center gap-1" style={{ color: "var(--color-warning)" }}>
-                                      <Undo2 size={12} /> {t("pipeline.milestones.undoPaid" as any)}
+                                      <Undo2 size={12} /> {t("pipeline.milestones.undoPaid")}
                                     </button>
                                   </div>
                                 ) : (
                                   <div className="flex items-center gap-2 pt-1" onClick={e => e.stopPropagation()}>
                                     <button onClick={() => { ms.setMarkPaidId(msItem.id); ms.setMarkPaidMethod("bank_transfer"); }} className="text-[14px] px-3 py-1.5 rounded-full flex items-center gap-1" style={{ background: "var(--color-success-light)", color: "var(--color-success)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-                                      <CircleCheck size={16} /> {t("pipeline.milestones.markPaid" as any)}
+                                      <CircleCheck size={16} /> {t("pipeline.milestones.markPaid")}
                                     </button>
                                     <button onClick={() => ms.openEditForm(msItem)} className="btn-icon-sm"><Edit2 size={16} /></button>
                                     <button onClick={() => ms.setDeleteMsId(msItem.id)} className="btn-icon-sm" style={{ color: "var(--color-danger)" }}><Trash2 size={16} /></button>
@@ -628,7 +628,7 @@ export function ClientsView() {
                             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
                               <div className="rounded-[var(--radius-6)] p-3 space-y-3" style={{ background: "var(--color-bg-tertiary)", border: "1px solid var(--color-accent)", borderStyle: "dashed" }}>
                                 <div className="flex items-center justify-between">
-                                  <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{ms.editMsId ? t("common.edit" as any) : t("pipeline.milestones.add" as any)}</span>
+                                  <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{ms.editMsId ? t("common.edit") : t("pipeline.milestones.add")}</span>
                                   <button onClick={() => ms.closeForm()} className="btn-icon" aria-label="Close"><X size={18} /></button>
                                 </div>
                                 {/* Preset buttons */}
@@ -636,34 +636,34 @@ export function ClientsView() {
                                   <div className="flex flex-wrap gap-1.5">
                                     {(["deposit", "midway", "final"] as const).map(p => (
                                       <button key={p} onClick={() => ms.applyPreset(p)} className="text-[14px] px-3 py-1.5 rounded-full transition-colors" style={{ background: "color-mix(in srgb, var(--color-accent) 10%, transparent)", color: "var(--color-accent)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-                                        {t(`pipeline.milestones.presets.${p}` as any)}
+                                        {t(`pipeline.milestones.presets.${p}`)}
                                       </button>
                                     ))}
                                   </div>
                                 )}
-                                <FL label={t("pipeline.milestones.label" as any)}><input value={ms.msForm.label} onChange={e => ms.setMsForm(p => ({ ...p, label: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" placeholder={t("pipeline.milestones.presets.deposit" as any)} /></FL>
+                                <FL label={t("pipeline.milestones.label")}><input value={ms.msForm.label} onChange={e => ms.setMsForm(p => ({ ...p, label: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" placeholder={t("pipeline.milestones.presets.deposit")} /></FL>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                  <FL label={t("pipeline.milestones.amount" as any)}><input type="number" min="0" value={ms.msForm.amount} onChange={e => { const amt = e.target.value; const fee = Number(form.project_fee) || 1; ms.setMsForm(p => ({ ...p, amount: amt, percentage: fee > 0 ? String(Math.round(Number(amt) / fee * 100)) : p.percentage })); }} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
-                                  <FL label={t("pipeline.milestones.percentage" as any)}><input type="number" min="0" max="100" value={ms.msForm.percentage} onChange={e => { const pct = e.target.value; const fee = Number(form.project_fee) || 0; ms.setMsForm(p => ({ ...p, percentage: pct, amount: fee > 0 ? String(Math.round(fee * Number(pct) / 100)) : p.amount })); }} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+                                  <FL label={t("pipeline.milestones.amount")}><input type="number" min="0" value={ms.msForm.amount} onChange={e => { const amt = e.target.value; const fee = Number(form.project_fee) || 1; ms.setMsForm(p => ({ ...p, amount: amt, percentage: fee > 0 ? String(Math.round(Number(amt) / fee * 100)) : p.percentage })); }} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+                                  <FL label={t("pipeline.milestones.percentage")}><input type="number" min="0" max="100" value={ms.msForm.percentage} onChange={e => { const pct = e.target.value; const fee = Number(form.project_fee) || 0; ms.setMsForm(p => ({ ...p, percentage: pct, amount: fee > 0 ? String(Math.round(fee * Number(pct) / 100)) : p.amount })); }} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
                                 </div>
-                                <FL label={t("pipeline.milestones.dueDate" as any)}><input type="date" value={ms.msForm.due_date} onChange={e => ms.setMsForm(p => ({ ...p, due_date: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
-                                <FL label={t("pipeline.milestones.note" as any)}><input value={ms.msForm.note} onChange={e => ms.setMsForm(p => ({ ...p, note: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+                                <FL label={t("pipeline.milestones.dueDate")}><input type="date" value={ms.msForm.due_date} onChange={e => ms.setMsForm(p => ({ ...p, due_date: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+                                <FL label={t("pipeline.milestones.note")}><input value={ms.msForm.note} onChange={e => ms.setMsForm(p => ({ ...p, note: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
                                 {!ms.editMsId && (
                                   <label className="flex items-center gap-2 cursor-pointer py-1">
                                     <input type="checkbox" checked={ms.msForm.alreadyPaid} onChange={e => ms.setMsForm(p => ({ ...p, alreadyPaid: e.target.checked }))} className="w-4 h-4 rounded accent-[var(--color-success)]" />
-                                    <span className="text-[15px]" style={{ color: ms.msForm.alreadyPaid ? "var(--color-success)" : "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("pipeline.milestones.alreadyPaid" as any)}</span>
+                                    <span className="text-[15px]" style={{ color: ms.msForm.alreadyPaid ? "var(--color-success)" : "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("pipeline.milestones.alreadyPaid")}</span>
                                   </label>
                                 )}
                                 {ms.msForm.alreadyPaid && !ms.editMsId && (
-                                  <FL label={t("pipeline.milestones.paymentMethod" as any)}>
+                                  <FL label={t("pipeline.milestones.paymentMethod")}>
                                     <select value={ms.msForm.payMethod} onChange={e => ms.setMsForm(p => ({ ...p, payMethod: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]">
-                                      {PAYMENT_METHODS.map(m => <option key={m} value={m}>{t(`pipeline.milestones.method.${m}` as any)}</option>)}
+                                      {PAYMENT_METHODS.map(m => <option key={m} value={m}>{t(`pipeline.milestones.method.${m}`)}</option>)}
                                     </select>
                                   </FL>
                                 )}
                                 <div className="flex justify-end gap-2">
-                                  <button onClick={() => ms.closeForm()} className="btn-secondary text-[15px]">{t("common.cancel" as any)}</button>
-                                  <button onClick={() => ms.saveMilestone(() => tx.fetchFinance())} disabled={!ms.msForm.label || !ms.msForm.amount || ms.savingMs} className="btn-primary text-[15px]">{ms.savingMs ? t("common.loading" as any) : ms.msForm.alreadyPaid && !ms.editMsId ? t("pipeline.milestones.saveAndRecord" as any) : t("common.save" as any)}</button>
+                                  <button onClick={() => ms.closeForm()} className="btn-secondary text-[15px]">{t("common.cancel")}</button>
+                                  <button onClick={() => ms.saveMilestone(() => tx.fetchFinance())} disabled={!ms.msForm.label || !ms.msForm.amount || ms.savingMs} className="btn-primary text-[15px]">{ms.savingMs ? t("common.loading") : ms.msForm.alreadyPaid && !ms.editMsId ? t("pipeline.milestones.saveAndRecord") : t("common.save")}</button>
                                 </div>
                               </div>
                             </motion.div>
@@ -673,10 +673,10 @@ export function ClientsView() {
                         {/* Delete milestone confirmation */}
                         {ms.deleteMsId !== null && (
                           <div className="rounded-[var(--radius-6)] p-3 space-y-3" style={{ background: "color-mix(in srgb, var(--color-danger) 6%, var(--color-bg-primary))", border: "1px solid var(--color-danger)" }}>
-                            <div className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("pipeline.milestones.deleteConfirm" as any)}</div>
+                            <div className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("pipeline.milestones.deleteConfirm")}</div>
                             <div className="flex justify-end gap-2">
-                              <button onClick={() => ms.setDeleteMsId(null)} className="btn-secondary text-[15px]">{t("common.cancel" as any)}</button>
-                              <button onClick={() => { ms.deleteMilestone(ms.deleteMsId!); ms.setDeleteMsId(null); }} className="text-[15px] px-3 py-2 rounded-[var(--radius-6)]" style={{ background: "var(--color-danger)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("common.confirm" as any)}</button>
+                              <button onClick={() => ms.setDeleteMsId(null)} className="btn-secondary text-[15px]">{t("common.cancel")}</button>
+                              <button onClick={() => { ms.deleteMilestone(ms.deleteMsId!); ms.setDeleteMsId(null); }} className="text-[15px] px-3 py-2 rounded-[var(--radius-6)]" style={{ background: "var(--color-danger)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("common.confirm")}</button>
                             </div>
                           </div>
                         )}
@@ -684,16 +684,16 @@ export function ClientsView() {
                         {/* Mark Paid confirmation modal */}
                         {ms.markPaidId && (
                           <div className="rounded-[var(--radius-6)] p-3 space-y-3" style={{ background: "color-mix(in srgb, var(--color-success) 6%, var(--color-bg-primary))", border: "1px solid var(--color-success)" }}>
-                            <div className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("pipeline.milestones.markPaidConfirm" as any)}</div>
-                            <FL label={t("pipeline.milestones.paymentMethod" as any)}>
+                            <div className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("pipeline.milestones.markPaidConfirm")}</div>
+                            <FL label={t("pipeline.milestones.paymentMethod")}>
                               <select value={ms.markPaidMethod} onChange={e => ms.setMarkPaidMethod(e.target.value)} className="input-base w-full px-3 py-2 text-[15px]">
-                                {PAYMENT_METHODS.map(m => <option key={m} value={m}>{t(`pipeline.milestones.method.${m}` as any)}</option>)}
+                                {PAYMENT_METHODS.map(m => <option key={m} value={m}>{t(`pipeline.milestones.method.${m}`)}</option>)}
                               </select>
                             </FL>
                             <div className="flex justify-end gap-2">
-                              <button onClick={() => ms.setMarkPaidId(null)} className="btn-secondary text-[15px]">{t("common.cancel" as any)}</button>
+                              <button onClick={() => ms.setMarkPaidId(null)} className="btn-secondary text-[15px]">{t("common.cancel")}</button>
                               <button onClick={ms.confirmMarkPaid} className="text-[15px] px-3 py-2 rounded-[var(--radius-6)]" style={{ background: "var(--color-success)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
-                                <Check size={16} className="inline mr-1" />{t("pipeline.milestones.markPaid" as any)}
+                                <Check size={16} className="inline mr-1" />{t("pipeline.milestones.markPaid")}
                               </button>
                             </div>
                           </div>
@@ -708,10 +708,10 @@ export function ClientsView() {
                   <>
                     <div className="border-t" style={{ borderColor: "var(--color-border-primary)" }} />
                     <div className="flex items-center justify-between">
-                      <span className="section-label flex items-center gap-1.5"><DollarSign size={16} /> {t("pipeline.tx.title" as any)}</span>
-                      <button onClick={() => tx.openNewTx({ taxMode: form.tax_mode, taxRate: form.tax_rate })} className="btn-ghost text-[13px] flex items-center gap-1" style={{ color: "var(--color-accent)" }}><Plus size={16} /> {t("pipeline.tx.add" as any)}</button>
+                      <span className="section-label flex items-center gap-1.5"><DollarSign size={16} /> {t("pipeline.tx.title")}</span>
+                      <button onClick={() => tx.openNewTx({ taxMode: form.tax_mode, taxRate: form.tax_rate })} className="btn-ghost text-[13px] flex items-center gap-1" style={{ color: "var(--color-accent)" }}><Plus size={16} /> {t("pipeline.tx.add")}</button>
                     </div>
-                    <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.tx.hint" as any)}</div>
+                    <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.tx.hint")}</div>
 
                     {/* Summary bar */}
                     {tx.clientTxs.length > 0 && (() => {
@@ -721,9 +721,9 @@ export function ClientsView() {
                       const expense = tx.clientTxs.filter((r: FinanceTransaction) => r.type === "expense" && (r.status || "已完成") === "已完成").reduce((s: number, r: FinanceTransaction) => { const a = Number(r.amount || 0); const t2 = Number(r.tax_amount || 0); return s + ((r.tax_mode || 'none') === 'exclusive' ? a + t2 : a); }, 0);
                       return (
                         <div className="flex items-center gap-3 text-[13px]" style={{ fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-                          <span style={{ color: "var(--color-success)" }}>{t("pipeline.tx.received" as any)} ${received.toLocaleString()}{receivedTax > 0 ? ` (+${t("finance.tax" as any)} $${receivedTax.toLocaleString()})` : ""}</span>
-                          {pending > 0 && <span style={{ color: "var(--color-warning)" }}>{t("pipeline.tx.pending" as any)} ${pending.toLocaleString()}</span>}
-                          {expense > 0 && <span style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.tx.expense" as any)} ${expense.toLocaleString()}</span>}
+                          <span style={{ color: "var(--color-success)" }}>{t("pipeline.tx.received")} ${received.toLocaleString()}{receivedTax > 0 ? ` (+${t("finance.tax")} $${receivedTax.toLocaleString()})` : ""}</span>
+                          {pending > 0 && <span style={{ color: "var(--color-warning)" }}>{t("pipeline.tx.pending")} ${pending.toLocaleString()}</span>}
+                          {expense > 0 && <span style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.tx.expense")} ${expense.toLocaleString()}</span>}
                         </div>
                       );
                     })()}
@@ -746,7 +746,7 @@ export function ClientsView() {
                                     <span className="text-[15px] tabular-nums shrink-0" style={{ color: isInc ? "var(--color-success)" : "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
                                       {isInc ? "+" : "-"}${displayAmt.toLocaleString()}
                                     </span>
-                                    {txTax > 0 && <span className="text-[13px] tabular-nums shrink-0" style={{ color: "var(--color-text-secondary)" }}>{txMode === "exclusive" ? `+${t("finance.tax" as any)} $${txTax.toLocaleString()}` : txMode === "inclusive" ? `${t("finance.taxIncluded" as any)} $${txTax.toLocaleString()}` : ""}</span>}
+                                    {txTax > 0 && <span className="text-[13px] tabular-nums shrink-0" style={{ color: "var(--color-text-secondary)" }}>{txMode === "exclusive" ? `+${t("finance.tax")} $${txTax.toLocaleString()}` : txMode === "inclusive" ? `${t("finance.taxIncluded")} $${txTax.toLocaleString()}` : ""}</span>}
                                   </>);
                                 })()}
                                 <span className="text-[15px] truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{txItem.description || txItem.desc}</span>
@@ -765,14 +765,14 @@ export function ClientsView() {
                                 background: (txItem.status || "已完成") === "已完成" ? "var(--color-success-light)" : (txItem.status || "").includes("应收") ? "var(--color-warning-light)" : "var(--color-danger-light)",
                                 color: (txItem.status || "已完成") === "已完成" ? "var(--color-success)" : (txItem.status || "").includes("应收") ? "var(--color-warning)" : "var(--color-danger)",
                               }}>{stLabel(txItem.status || "已完成", t)}</span>
-                              {txItem.source === "client_subscription" && <span className="badge text-[13px]" style={{ background: "color-mix(in srgb, var(--color-blue) 12%, transparent)", color: "var(--color-blue)" }}>{t("money.badge.subscription" as any)}</span>}
-                              {txItem.source === "client_project" && <span className="badge text-[13px]" style={{ background: "color-mix(in srgb, var(--color-orange) 12%, transparent)", color: "var(--color-orange)" }}>{t("money.badge.project" as any)}</span>}
+                              {txItem.source === "client_subscription" && <span className="badge text-[13px]" style={{ background: "color-mix(in srgb, var(--color-blue) 12%, transparent)", color: "var(--color-blue)" }}>{t("money.badge.subscription")}</span>}
+                              {txItem.source === "client_project" && <span className="badge text-[13px]" style={{ background: "color-mix(in srgb, var(--color-orange) 12%, transparent)", color: "var(--color-orange)" }}>{t("money.badge.project")}</span>}
                             </div>
                           </div>
                         ))}
                       </div>
                     ) : !tx.showTxForm && (
-                      <div className="text-center py-3 text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.tx.empty" as any)}</div>
+                      <div className="text-center py-3 text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.tx.empty")}</div>
                     )}
 
                     {/* Add/Edit transaction form */}
@@ -781,28 +781,28 @@ export function ClientsView() {
                         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
                           <div className="rounded-[var(--radius-6)] p-3 space-y-3" style={{ background: "var(--color-bg-tertiary)", border: "1px solid var(--color-accent)", borderStyle: "dashed" }}>
                             <div className="flex items-center justify-between">
-                              <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{tx.editTxId ? t("common.edit" as any) : t("pipeline.tx.add" as any)}</span>
+                              <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{tx.editTxId ? t("common.edit") : t("pipeline.tx.add")}</span>
                               <button onClick={() => tx.closeTxForm()} className="btn-icon" aria-label="Close"><X size={18} /></button>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              <FL label={t("pipeline.tx.date" as any)}><input type="date" value={tx.txForm.date} onChange={e => tx.setTxForm(p => ({ ...p, date: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
-                              <FL label={t("pipeline.tx.category" as any)}><select value={tx.txForm.category} onChange={e => tx.setTxForm(p => ({ ...p, category: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]">{TX_CATEGORIES.map(c => <option key={c} value={c}>{catLabel(c, t)}</option>)}</select></FL>
+                              <FL label={t("pipeline.tx.date")}><input type="date" value={tx.txForm.date} onChange={e => tx.setTxForm(p => ({ ...p, date: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+                              <FL label={t("pipeline.tx.category")}><select value={tx.txForm.category} onChange={e => tx.setTxForm(p => ({ ...p, category: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]">{TX_CATEGORIES.map(c => <option key={c} value={c}>{catLabel(c, t)}</option>)}</select></FL>
                             </div>
-                            <FL label={t("pipeline.tx.description" as any)}><input value={tx.txForm.desc} onChange={e => tx.setTxForm(p => ({ ...p, desc: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+                            <FL label={t("pipeline.tx.description")}><input value={tx.txForm.desc} onChange={e => tx.setTxForm(p => ({ ...p, desc: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              <FL label={t("pipeline.tx.amount" as any)}>
+                              <FL label={t("pipeline.tx.amount")}>
                                 <div className="relative">
                                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[15px]" style={{ color: "var(--color-text-secondary)" }}>$</span>
                                   <input type="number" min="0" step="0.01" value={tx.txForm.amount} onChange={e => tx.setTxForm(p => ({ ...p, amount: e.target.value }))} className="input-base w-full pl-7 pr-3 py-2 text-[15px]" />
                                 </div>
                               </FL>
-                              <FL label={t("pipeline.tx.status" as any)}><select value={tx.txForm.status} onChange={e => tx.setTxForm(p => ({ ...p, status: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]">{TX_STATUSES.map(s => <option key={s} value={s}>{stLabel(s, t)}</option>)}</select></FL>
+                              <FL label={t("pipeline.tx.status")}><select value={tx.txForm.status} onChange={e => tx.setTxForm(p => ({ ...p, status: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]">{TX_STATUSES.map(s => <option key={s} value={s}>{stLabel(s, t)}</option>)}</select></FL>
                             </div>
                             {/* Tax */}
-                            <FL label={t("pipeline.clients.taxSetting" as any)}>
+                            <FL label={t("pipeline.clients.taxSetting")}>
                               <div className="flex gap-2 mb-2">
-                                {([["none", t("money.form.taxNone" as any)], ["exclusive", t("money.form.taxExclBtn" as any)], ["inclusive", t("money.form.taxIncl" as any)]] as [string, string][]).map(([mode, label]) => (
-                                  <button key={mode} type="button" onClick={() => tx.setTxForm(p => ({ ...p, taxMode: mode as any }))}
+                                {([["none", t("money.form.taxNone")], ["exclusive", t("money.form.taxExclBtn")], ["inclusive", t("money.form.taxIncl")]] as [string, string][]).map(([mode, label]) => (
+                                  <button key={mode} type="button" onClick={() => tx.setTxForm(p => ({ ...p, taxMode: mode }))}
                                     className="flex-1 py-2 rounded-full text-[15px] transition-all"
                                     style={tx.txForm.taxMode === mode ? { background: "var(--color-accent)", color: "var(--color-brand-text)", fontWeight: "var(--font-weight-medium)" } : { background: "var(--color-bg-tertiary)", color: "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
                                     {label}
@@ -818,7 +818,7 @@ export function ClientsView() {
                                       {r}%
                                     </button>
                                   ))}
-                                  <input type="number" min="0" max="100" step="0.01" value={tx.txForm.taxRate} onChange={e => tx.setTxForm(p => ({ ...p, taxRate: e.target.value }))} placeholder={t("money.form.customTaxPlaceholder" as any)} className="input-base flex-1 px-3 py-2 text-[15px] min-w-0" />
+                                  <input type="number" min="0" max="100" step="0.01" value={tx.txForm.taxRate} onChange={e => tx.setTxForm(p => ({ ...p, taxRate: e.target.value }))} placeholder={t("money.form.customTaxPlaceholder")} className="input-base flex-1 px-3 py-2 text-[15px] min-w-0" />
                                 </div>
                               )}
                             </FL>
@@ -830,15 +830,15 @@ export function ClientsView() {
                               const base = tx.txForm.taxMode === "inclusive" ? amt - tax : amt;
                               return (
                                 <div className="rounded-[var(--radius-6)] p-3 text-[13px] tabular-nums" style={{ background: "var(--color-bg-tertiary)", border: "1px solid var(--color-border-primary)" }}>
-                                  <div className="flex justify-between"><span style={{ color: "var(--color-text-secondary)" }}>{tx.txForm.taxMode === "inclusive" ? t("pipeline.tx.baseAmount" as any) : t("pipeline.tx.amount" as any)}</span><span style={{ color: "var(--color-text-primary)" }}>${base.toLocaleString()}</span></div>
-                                  <div className="flex justify-between"><span style={{ color: "var(--color-text-secondary)" }}>{t("finance.tax" as any)} ({rate}%)</span><span style={{ color: "var(--color-text-primary)" }}>${tax.toLocaleString()}</span></div>
-                                  <div className="flex justify-between border-t pt-1 mt-1" style={{ borderColor: "var(--color-border-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}><span style={{ color: "var(--color-text-primary)" }}>{t("pipeline.tx.total" as any)}</span><span style={{ color: "var(--color-success)" }}>${total.toLocaleString()}</span></div>
+                                  <div className="flex justify-between"><span style={{ color: "var(--color-text-secondary)" }}>{tx.txForm.taxMode === "inclusive" ? t("pipeline.tx.baseAmount") : t("pipeline.tx.amount")}</span><span style={{ color: "var(--color-text-primary)" }}>${base.toLocaleString()}</span></div>
+                                  <div className="flex justify-between"><span style={{ color: "var(--color-text-secondary)" }}>{t("finance.tax")} ({rate}%)</span><span style={{ color: "var(--color-text-primary)" }}>${tax.toLocaleString()}</span></div>
+                                  <div className="flex justify-between border-t pt-1 mt-1" style={{ borderColor: "var(--color-border-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}><span style={{ color: "var(--color-text-primary)" }}>{t("pipeline.tx.total")}</span><span style={{ color: "var(--color-success)" }}>${total.toLocaleString()}</span></div>
                                 </div>
                               );
                             })()}
                             <div className="flex justify-end gap-2">
-                              <button onClick={() => tx.closeTxForm()} className="btn-secondary text-[15px]">{t("common.cancel" as any)}</button>
-                              <button onClick={() => tx.saveTx(form.company_name || form.name)} disabled={!tx.txForm.amount} className="btn-primary text-[15px]">{t("common.save" as any)}</button>
+                              <button onClick={() => tx.closeTxForm()} className="btn-secondary text-[15px]">{t("common.cancel")}</button>
+                              <button onClick={() => tx.saveTx(form.company_name || form.name)} disabled={!tx.txForm.amount} className="btn-primary text-[15px]">{t("common.save")}</button>
                             </div>
                           </div>
                         </motion.div>
@@ -848,10 +848,10 @@ export function ClientsView() {
                 )}
               </div>
               <div className="flex items-center justify-between px-5 py-3 border-t pb-safe" style={{ borderColor: "var(--color-border-primary)" }}>
-                {editId ? <button type="button" onClick={() => setDeleteClientId(editId)} className="btn-ghost text-[15px]" style={{ color: "var(--color-danger)" }}><Trash2 size={16} /> {t("common.delete" as any)}</button> : <div />}
+                {editId ? <button type="button" onClick={() => setDeleteClientId(editId)} className="btn-ghost text-[15px]" style={{ color: "var(--color-danger)" }}><Trash2 size={16} /> {t("common.delete")}</button> : <div />}
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => setShowPanel(false)} className="btn-secondary text-[15px]">{t("common.cancel" as any)}</button>
-                  <button type="button" onClick={saveClient} disabled={savingClient} className="btn-primary text-[15px]">{savingClient ? t("common.loading" as any) : editId ? t("common.save" as any) : t("common.create" as any)}</button>
+                  <button type="button" onClick={() => setShowPanel(false)} className="btn-secondary text-[15px]">{t("common.cancel")}</button>
+                  <button type="button" onClick={saveClient} disabled={savingClient} className="btn-primary text-[15px]">{savingClient ? t("common.loading") : editId ? t("common.save") : t("common.create")}</button>
                 </div>
               </div>
             </motion.div>
@@ -863,10 +863,10 @@ export function ClientsView() {
       {billingConfirm !== null && createPortal(
         <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: "var(--layer-confirm)", background: "var(--color-overlay-primary)", paddingBottom: "16px" }}>
           <div className="card-elevated w-full max-w-sm p-5" role="dialog" aria-modal="true" aria-label="Confirm billing type change">
-            <h3 className="text-[15px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("common.confirm" as any)}</h3>
+            <h3 className="text-[15px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("common.confirm")}</h3>
             <p className="text-[15px] mb-4" style={{ color: "var(--color-text-secondary)" }}>{billingConfirm.message}</p>
             <div className="flex justify-end gap-2">
-              <button onClick={() => setBillingConfirm(null)} className="btn-secondary text-[15px]">{t("common.cancel" as any)}</button>
+              <button onClick={() => setBillingConfirm(null)} className="btn-secondary text-[15px]">{t("common.cancel")}</button>
               <button onClick={() => {
                 const bt = billingConfirm.type;
                 // Auto-cleanup when switching
@@ -887,7 +887,7 @@ export function ClientsView() {
                   }));
                 }
                 setBillingConfirm(null);
-              }} className="text-[15px] px-4 py-2 rounded-[var(--radius-6)]" style={{ background: "var(--color-warning)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("common.confirm" as any)}</button>
+              }} className="text-[15px] px-4 py-2 rounded-[var(--radius-6)]" style={{ background: "var(--color-warning)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("common.confirm")}</button>
             </div>
           </div>
         </div>
@@ -897,11 +897,11 @@ export function ClientsView() {
       {deleteClientId !== null && createPortal(
         <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: "var(--layer-confirm)", background: "var(--color-overlay-primary)", paddingBottom: "16px" }}>
           <div className="card-elevated w-full max-w-sm p-5" role="dialog" aria-modal="true" aria-label="Confirm delete">
-            <h3 className="text-[15px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.delete.clientTitle" as any)}</h3>
-            <p className="text-[15px] mb-4" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.delete.clientWarning" as any)}</p>
+            <h3 className="text-[15px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.delete.clientTitle")}</h3>
+            <p className="text-[15px] mb-4" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.delete.clientWarning")}</p>
             <div className="flex justify-end gap-2">
-              <button onClick={() => setDeleteClientId(null)} className="btn-secondary text-[15px]">{t("common.cancel" as any)}</button>
-              <button onClick={() => { deleteClient(deleteClientId); setDeleteClientId(null); }} className="text-[15px] px-4 py-2 rounded-[var(--radius-6)]" style={{ background: "var(--color-danger)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.delete.confirm" as any)}</button>
+              <button onClick={() => setDeleteClientId(null)} className="btn-secondary text-[15px]">{t("common.cancel")}</button>
+              <button onClick={() => { deleteClient(deleteClientId); setDeleteClientId(null); }} className="text-[15px] px-4 py-2 rounded-[var(--radius-6)]" style={{ background: "var(--color-danger)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.delete.confirm")}</button>
             </div>
           </div>
         </div>
@@ -911,11 +911,11 @@ export function ClientsView() {
       {tx.deleteTxId !== null && createPortal(
         <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: "var(--layer-confirm)", background: "var(--color-overlay-primary)", paddingBottom: "16px" }}>
           <div className="card-elevated w-full max-w-sm p-5" role="dialog" aria-modal="true" aria-label="Confirm delete">
-            <h3 className="text-[15px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.tx.deleteTitle" as any)}</h3>
-            <p className="text-[15px] mb-4" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.tx.deleteWarning" as any)}</p>
+            <h3 className="text-[15px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.tx.deleteTitle")}</h3>
+            <p className="text-[15px] mb-4" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.tx.deleteWarning")}</p>
             <div className="flex justify-end gap-2">
-              <button onClick={() => tx.setDeleteTxId(null)} className="btn-secondary text-[15px]">{t("common.cancel" as any)}</button>
-              <button onClick={() => { tx.deleteTx(tx.deleteTxId!); tx.setDeleteTxId(null); }} className="text-[15px] px-4 py-2 rounded-[var(--radius-6)]" style={{ background: "var(--color-danger)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("common.confirm" as any)}</button>
+              <button onClick={() => tx.setDeleteTxId(null)} className="btn-secondary text-[15px]">{t("common.cancel")}</button>
+              <button onClick={() => { tx.deleteTx(tx.deleteTxId!); tx.setDeleteTxId(null); }} className="text-[15px] px-4 py-2 rounded-[var(--radius-6)]" style={{ background: "var(--color-danger)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("common.confirm")}</button>
             </div>
           </div>
         </div>

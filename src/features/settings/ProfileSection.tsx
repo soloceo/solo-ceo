@@ -56,12 +56,12 @@ export default function ProfileSection({ operatorName, setOperatorName, operator
         <div className="px-5 pb-5 space-y-4" style={{ borderTop: '1px solid var(--color-line-secondary)' }}>
           {/* Name input */}
           <label className="flex flex-col gap-1.5 pt-4">
-            <span className="section-label">{t("settings.profile" as any)}</span>
+            <span className="section-label">{t("settings.profile")}</span>
             <input
               type="text"
               value={operatorName}
               onChange={(e) => setOperatorName(e.target.value)}
-              placeholder={t("settings.namePlaceholder" as any)}
+              placeholder={t("settings.namePlaceholder")}
               className="input-base w-full px-3 py-2 text-[15px]"
             />
           </label>
@@ -69,19 +69,19 @@ export default function ProfileSection({ operatorName, setOperatorName, operator
           {/* Avatar actions */}
           <div className="flex items-center gap-2">
             <label className="btn-secondary text-[15px] flex-1 cursor-pointer">
-              <Upload size={14} /> {t("settings.uploadAvatar" as any)}
+              <Upload size={14} /> {t("settings.uploadAvatar")}
               <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
             </label>
             {operatorAvatar && (
               <button type="button" onClick={clearAvatar} className="btn-secondary text-[15px]" style={{ color: 'var(--color-danger)' }}>
-                <Trash2 size={14} /> {t("settings.removeAvatar" as any)}
+                <Trash2 size={14} /> {t("settings.removeAvatar")}
               </button>
             )}
           </div>
 
           {/* Save button */}
           <button onClick={handleSave} className="btn-primary text-[15px] w-full">
-            <Save size={16} /> {t("settings.saveBtn" as any)}
+            <Save size={16} /> {t("settings.saveBtn")}
           </button>
         </div>
       </div>

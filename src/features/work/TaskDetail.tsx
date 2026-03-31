@@ -35,7 +35,7 @@ export interface TaskForm {
   originalRequest: string;
 }
 
-function quickDates(t: (k: any) => string) {
+function quickDates(t: (k: string) => string) {
   const today = new Date();
   const tomorrow = new Date(today);
   tomorrow.setDate(today.getDate() + 1);
@@ -44,9 +44,9 @@ function quickDates(t: (k: any) => string) {
   const nextMon = new Date(today);
   nextMon.setDate(today.getDate() + daysUntilMon);
   return [
-    { label: t("common.today" as any), value: dateToKey(today) },
-    { label: t("common.tomorrow" as any), value: dateToKey(tomorrow) },
-    { label: t("common.nextMonday" as any), value: dateToKey(nextMon) },
+    { label: t("common.today"), value: dateToKey(today) },
+    { label: t("common.tomorrow"), value: dateToKey(tomorrow) },
+    { label: t("common.nextMonday"), value: dateToKey(nextMon) },
   ];
 }
 
@@ -179,7 +179,7 @@ export function TaskDetail({ open, onClose, editTask, columns, defaultColumn, cl
                   {editId ? <Edit2 size={14} /> : <Plus size={14} />}
                 </div>
                 <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
-                  {editId ? t("work.panel.edit" as any) : t("work.panel.new" as any)}
+                  {editId ? t("work.panel.edit") : t("work.panel.new")}
                 </span>
               </div>
               <button onClick={onClose} className="btn-icon">
@@ -191,12 +191,12 @@ export function TaskDetail({ open, onClose, editTask, columns, defaultColumn, cl
             <div className="flex-1 overflow-y-auto overflow-x-hidden">
               <div className="p-5 space-y-3">
                 {/* Title */}
-                <FieldLabel label={t("work.form.title" as any)}>
+                <FieldLabel label={t("work.form.title")}>
                   <input
                     required
                     value={form.title}
                     onChange={(e) => { setForm((p) => ({ ...p, title: e.target.value })); setTitleError(false); }}
-                    placeholder={t("work.form.titlePlaceholder" as any)}
+                    placeholder={t("work.form.titlePlaceholder")}
                     className="input-base w-full px-3 py-2 text-[15px]"
                     style={titleError ? { borderColor: "var(--color-danger)", boxShadow: "0 0 0 2px color-mix(in srgb, var(--color-danger) 15%, transparent)" } : undefined}
                   />
@@ -204,7 +204,7 @@ export function TaskDetail({ open, onClose, editTask, columns, defaultColumn, cl
 
                 {/* Client + Due */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <FieldLabel label={t("work.form.client" as any)}>
+                  <FieldLabel label={t("work.form.client")}>
                     <select
                       value={form.client_id ? String(form.client_id) : ""}
                       onChange={(e) => {
@@ -218,7 +218,7 @@ export function TaskDetail({ open, onClose, editTask, columns, defaultColumn, cl
                       }}
                       className="input-base w-full px-3 py-2 text-[15px]"
                     >
-                      <option value="">{t("work.form.clientNone" as any)}</option>
+                      <option value="">{t("work.form.clientNone")}</option>
                       {clientList.map((c) => (
                         <option key={c.id} value={String(c.id)}>
                           {c.company_name || c.name}
@@ -226,7 +226,7 @@ export function TaskDetail({ open, onClose, editTask, columns, defaultColumn, cl
                       ))}
                     </select>
                   </FieldLabel>
-                  <FieldLabel label={t("work.form.due" as any)}>
+                  <FieldLabel label={t("work.form.due")}>
                     <input
                       type="date"
                       value={form.due}
@@ -255,18 +255,18 @@ export function TaskDetail({ open, onClose, editTask, columns, defaultColumn, cl
 
                 {/* Priority + Status */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <FieldLabel label={t("work.form.priority" as any)}>
+                  <FieldLabel label={t("work.form.priority")}>
                     <select
                       value={form.priority}
                       onChange={(e) => setForm((p) => ({ ...p, priority: e.target.value }))}
                       className="input-base w-full px-3 py-2 text-[15px]"
                     >
-                      <option value="High">{t("work.filter.high" as any)}</option>
-                      <option value="Medium">{t("work.filter.medium" as any)}</option>
-                      <option value="Low">{t("work.filter.low" as any)}</option>
+                      <option value="High">{t("work.filter.high")}</option>
+                      <option value="Medium">{t("work.filter.medium")}</option>
+                      <option value="Low">{t("work.filter.low")}</option>
                     </select>
                   </FieldLabel>
-                  <FieldLabel label={t("work.form.status" as any)}>
+                  <FieldLabel label={t("work.form.status")}>
                     <select
                       value={form.column}
                       onChange={(e) => setForm((p) => ({ ...p, column: e.target.value }))}
@@ -283,11 +283,11 @@ export function TaskDetail({ open, onClose, editTask, columns, defaultColumn, cl
                 <div style={{ borderTop: "1px solid var(--color-line-secondary)" }} />
 
                 {/* Notes / original request */}
-                <FieldLabel label={t("work.form.request" as any)}>
+                <FieldLabel label={t("work.form.request")}>
                   <textarea
                     value={form.originalRequest}
                     onChange={(e) => setForm((p) => ({ ...p, originalRequest: e.target.value }))}
-                    placeholder={t("work.form.requestPlaceholder" as any)}
+                    placeholder={t("work.form.requestPlaceholder")}
                     className="input-base w-full h-20 px-3 py-2 text-[15px] resize-none"
                   />
                 </FieldLabel>
@@ -301,15 +301,15 @@ export function TaskDetail({ open, onClose, editTask, columns, defaultColumn, cl
             >
               {editId ? (
                 <Button variant="ghost" size="sm" onClick={() => setShowDeleteConfirm(true)} className="text-[var(--color-danger)]">
-                  <Trash2 size={14} /> {t("common.delete" as any)}
+                  <Trash2 size={14} /> {t("common.delete")}
                 </Button>
               ) : <div />}
               <div className="flex gap-2">
                 <Button variant="secondary" size="sm" onClick={onClose}>
-                  {t("common.cancel" as any)}
+                  {t("common.cancel")}
                 </Button>
                 <Button size="sm" onClick={handleSave}>
-                  {editId ? t("common.save" as any) : t("common.create" as any)}
+                  {editId ? t("common.save") : t("common.create")}
                 </Button>
               </div>
             </div>
@@ -322,11 +322,11 @@ export function TaskDetail({ open, onClose, editTask, columns, defaultColumn, cl
   {showDeleteConfirm && createPortal(
     <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: "var(--layer-confirm)", background: "var(--color-overlay-primary)", paddingBottom: "16px" }}>
       <div className="card-elevated w-full max-w-sm p-5" role="dialog" aria-modal="true" aria-label="Confirm delete">
-        <h3 className="text-[15px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("work.delete.title" as any)}</h3>
-        <p className="text-[15px] mb-4" style={{ color: "var(--color-text-secondary)" }}>{t("work.delete.warning" as any)}</p>
+        <h3 className="text-[15px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("work.delete.title")}</h3>
+        <p className="text-[15px] mb-4" style={{ color: "var(--color-text-secondary)" }}>{t("work.delete.warning")}</p>
         <div className="flex justify-end gap-2">
-          <button onClick={() => setShowDeleteConfirm(false)} className="btn-secondary text-[15px]">{t("common.cancel" as any)}</button>
-          <button onClick={handleDelete} className="text-[15px] px-4 py-2 rounded-[var(--radius-6)]" style={{ background: "var(--color-danger)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("common.confirm" as any)}</button>
+          <button onClick={() => setShowDeleteConfirm(false)} className="btn-secondary text-[15px]">{t("common.cancel")}</button>
+          <button onClick={handleDelete} className="text-[15px] px-4 py-2 rounded-[var(--radius-6)]" style={{ background: "var(--color-danger)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("common.confirm")}</button>
         </div>
       </div>
     </div>,

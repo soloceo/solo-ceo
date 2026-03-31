@@ -25,7 +25,7 @@ export interface ColDef {
 interface KanbanBoardProps {
   columns: ColDef[];
   tasks: Record<string, Task[]>;
-  onDragEnd: (result: any) => void;
+  onDragEnd: (result: { source: { droppableId: string; index: number }; destination?: { droppableId: string; index: number } | null }) => void;
   onAdd: (col: string) => void;
   onEdit: (task: Task) => void;
   onDelete: (id: number) => void;
@@ -218,7 +218,7 @@ function KanbanColumn({ col, items, onAdd, onEdit, onDelete, onClientClick, empt
 interface SwimlaneProps {
   columns: ColDef[];
   tasks: Record<string, Task[]>;
-  onDragEnd: (result: any) => void;
+  onDragEnd: (result: { source: { droppableId: string; index: number }; destination?: { droppableId: string; index: number } | null }) => void;
   onAdd: (col: string) => void;
   onEdit: (task: Task) => void;
   onDelete: (id: number) => void;

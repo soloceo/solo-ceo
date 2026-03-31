@@ -62,7 +62,8 @@ export default function AppearanceSection({ themeMode, setThemeMode, lang, setLa
       const diff = Math.abs(localNow - serverUnix) / 1000;
       setOffsetSec(Math.round(diff));
       setSyncState(diff < 3 ? 'ok' : 'offset');
-    } catch {
+    } catch (e) {
+      console.warn('[AppearanceSection] checkTimeDrift', e);
       setSyncState('error');
     }
   }, []);
@@ -75,7 +76,7 @@ export default function AppearanceSection({ themeMode, setThemeMode, lang, setLa
 
   return (
     <section>
-      <SectionLabel>{t("settings.appearance" as any)}</SectionLabel>
+      <SectionLabel>{t("settings.appearance")}</SectionLabel>
       <div className="card overflow-hidden divide-y divide-[var(--color-line-secondary)]">
 
         {/* Theme mode — 3-way segmented control */}
@@ -85,13 +86,13 @@ export default function AppearanceSection({ themeMode, setThemeMode, lang, setLa
               {themeMode === 'dark' ? <Moon size={20} /> : themeMode === 'auto' ? <Monitor size={20} /> : <Sun size={20} />}
             </div>
             <div>
-              <div className="text-[15px]" style={{ color: 'var(--color-text-primary)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>{t("settings.colorMode" as any)}</div>
+              <div className="text-[15px]" style={{ color: 'var(--color-text-primary)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>{t("settings.colorMode")}</div>
               <div className="text-[13px] mt-0.5" style={{ color: 'var(--color-text-tertiary)' }}>
                 {themeMode === 'auto'
-                  ? t("settings.themeAutoDesc" as any)
+                  ? t("settings.themeAutoDesc")
                   : themeMode === 'dark'
-                  ? t("settings.darkModeOn" as any)
-                  : t("settings.darkModeOff" as any)}
+                  ? t("settings.darkModeOn")
+                  : t("settings.darkModeOff")}
               </div>
             </div>
           </div>
@@ -110,7 +111,7 @@ export default function AppearanceSection({ themeMode, setThemeMode, lang, setLa
                 aria-label={value}
               >
                 <Icon size={15} />
-                <span className="hidden sm:inline">{t(`settings.theme${value.charAt(0).toUpperCase() + value.slice(1)}` as any)}</span>
+                <span className="hidden sm:inline">{t(`settings.theme${value.charAt(0).toUpperCase() + value.slice(1)}`)}</span>
               </button>
             ))}
           </div>
@@ -122,7 +123,7 @@ export default function AppearanceSection({ themeMode, setThemeMode, lang, setLa
             <div className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-8)]" style={{ background: 'color-mix(in srgb, var(--color-blue) 10%, transparent)', color: 'var(--color-blue)' }}>
               <Globe size={20} />
             </div>
-            <div className="text-[15px]" style={{ color: 'var(--color-text-primary)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>{t("settings.language" as any)}</div>
+            <div className="text-[15px]" style={{ color: 'var(--color-text-primary)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>{t("settings.language")}</div>
           </div>
           <div className="flex rounded-[var(--radius-6)] overflow-hidden" style={{ border: '1px solid var(--color-border-primary)' }}>
             {([["zh", "中文"], ["en", "EN"]] as [Lang, string][]).map(([l, label]) => (
@@ -148,7 +149,7 @@ export default function AppearanceSection({ themeMode, setThemeMode, lang, setLa
             <div className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-8)]" style={{ background: 'color-mix(in srgb, var(--color-success) 10%, transparent)', color: 'var(--color-success)' }}>
               <DollarSign size={20} />
             </div>
-            <div className="text-[15px]" style={{ color: 'var(--color-text-primary)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>{t("settings.currency" as any)}</div>
+            <div className="text-[15px]" style={{ color: 'var(--color-text-primary)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>{t("settings.currency")}</div>
           </div>
           <select value={currency} onChange={e => setCurrency(e.target.value)} className="input-base px-3 py-2 text-[15px]">
             {[['USD', '$ USD'], ['CNY', '¥ CNY'], ['EUR', '€ EUR'], ['GBP', '£ GBP'], ['JPY', '¥ JPY'], ['CAD', '$ CAD'], ['AUD', '$ AUD'], ['HKD', '$ HKD'], ['TWD', '$ TWD'], ['SGD', '$ SGD']].map(([v, l]) => (
@@ -167,7 +168,7 @@ export default function AppearanceSection({ themeMode, setThemeMode, lang, setLa
               </div>
               <div>
                 <div className="text-[15px]" style={{ color: 'var(--color-text-primary)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>
-                  {t("settings.timezone" as any)}
+                  {t("settings.timezone")}
                 </div>
                 <div className="text-[13px] mt-0.5" style={{ color: 'var(--color-text-tertiary)' }}>
                   {timezone.replace(/_/g, ' ')}{isAutoDetected ? (lang === 'zh' ? '（自动）' : ' (auto)') : ''}
@@ -181,17 +182,17 @@ export default function AppearanceSection({ themeMode, setThemeMode, lang, setLa
               <div className="flex items-center justify-end gap-1.5 mt-0.5">
                 {syncState === 'ok' && (
                   <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--color-success)' }}>
-                    <Check size={11} /> {t("settings.timeSynced" as any)}
+                    <Check size={11} /> {t("settings.timeSynced")}
                   </span>
                 )}
                 {syncState === 'offset' && (
                   <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--color-warning)' }}>
-                    <AlertCircle size={11} /> {(t("settings.timeOffset" as any) as string).replace('{n}', String(offsetSec))}
+                    <AlertCircle size={11} /> {(t("settings.timeOffset") as string).replace('{n}', String(offsetSec))}
                   </span>
                 )}
                 {syncState === 'error' && (
                   <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--color-error)' }}>
-                    <AlertCircle size={11} /> {t("settings.timeSyncFail" as any)}
+                    <AlertCircle size={11} /> {t("settings.timeSyncFail")}
                   </span>
                 )}
                 <button
@@ -201,7 +202,7 @@ export default function AppearanceSection({ themeMode, setThemeMode, lang, setLa
                   style={{ color: 'var(--color-accent)' }}
                 >
                   <RefreshCw size={11} className={syncState === 'checking' ? 'animate-spin' : ''} />
-                  {t("settings.timeSyncCheck" as any)}
+                  {t("settings.timeSyncCheck")}
                 </button>
               </div>
             </div>
@@ -230,7 +231,7 @@ export default function AppearanceSection({ themeMode, setThemeMode, lang, setLa
                     className="btn-ghost compact px-2 py-2 rounded-[var(--radius-6)] text-[12px] whitespace-nowrap"
                     style={{ color: 'var(--color-accent)' }}
                   >
-                    {t("settings.detectTimezone" as any)}
+                    {t("settings.detectTimezone")}
                   </button>
                 )}
               </div>

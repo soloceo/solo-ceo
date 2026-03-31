@@ -100,20 +100,20 @@ export async function triggerFullSync(): Promise<void> {
 // ── Init: register all automatic triggers ────────────────────────
 
 let initialized = false;
+let authSubscription: { unsubscribe: () => void } | null = null;
 
 export function initSyncManager(): void {
   if (initialized) return;
   initialized = true;
 
   // 1. Sync when auth becomes ready (covers cold start)
-  // Note: This subscription is never unsubscribed, but initSyncManager is only called once
-  // during app startup and the app never unmounts, so no listener accumulation occurs.
-  supabase.auth.onAuthStateChange((_event, session) => {
+  const { data } = supabase.auth.onAuthStateChange((_event, session) => {
     if (session && navigator.onLine) {
       // Small delay to let other init complete
       setTimeout(() => triggerFullSync(), 500);
     }
   });
+  authSubscription = data.subscription;
 
   // 2. Sync when coming back online
   window.addEventListener('online', () => {
@@ -129,5 +129,14 @@ export function initSyncManager(): void {
 
   // 4. Try immediate sync on init
   triggerFullSync();
+}
 
+/** Cleanup — call on app teardown (tests, HMR) */
+export function destroySyncManager(): void {
+  if (authSubscription) {
+    authSubscription.unsubscribe();
+    authSubscription = null;
+  }
+  initialized = false;
+  syncing = false;
 }

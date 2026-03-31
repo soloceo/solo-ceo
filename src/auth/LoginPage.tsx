@@ -21,7 +21,7 @@ export default function LoginPage() {
     setSuccess('');
 
     if (!email.trim() || (mode !== 'forgot' && !password)) {
-      setError(t('auth.fillAll' as any));
+      setError(t('auth.fillAll'));
       return;
     }
 
@@ -30,18 +30,18 @@ export default function LoginPage() {
       try {
         const { error: e } = await supabase.auth.resetPasswordForEmail(email.trim());
         if (e) setError(e.message);
-        else setSuccess(t('auth.resetPasswordSent' as any));
+        else setSuccess(t('auth.resetPasswordSent'));
       } finally { setLoading(false); }
       return;
     }
 
     if (mode === 'register' && password !== confirmPassword) {
-      setError(t('auth.passwordMismatch' as any));
+      setError(t('auth.passwordMismatch'));
       return;
     }
 
     if (password.length < 8) {
-      setError(t('auth.passwordTooShort' as any));
+      setError(t('auth.passwordTooShort'));
       return;
     }
 
@@ -52,7 +52,7 @@ export default function LoginPage() {
         if (result.error) {
           setError(result.error);
         } else {
-          setSuccess(t('auth.checkEmail' as any));
+          setSuccess(t('auth.checkEmail'));
         }
       } else {
         const result = await signIn(email.trim(), password);
@@ -90,10 +90,10 @@ export default function LoginPage() {
             S
           </div>
           <h1 className="text-xl" style={{ color: 'var(--color-text-primary)', fontWeight: 'var(--font-weight-bold)' } as React.CSSProperties}>
-            {t('auth.title' as any)}
+            {t('auth.title')}
           </h1>
           <p className="mt-1 text-[15px]" style={{ color: 'var(--color-text-tertiary)' }}>
-            {t('auth.subtitle' as any)}
+            {t('auth.subtitle')}
           </p>
         </div>
 
@@ -110,7 +110,7 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder={t('auth.emailPlaceholder' as any)}
+                placeholder={t('auth.emailPlaceholder')}
                 className="input-base w-full py-3 pl-10 pr-3 text-[16px]"
                 autoComplete="email"
                 autoFocus
@@ -128,7 +128,7 @@ export default function LoginPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder={t('auth.passwordPlaceholder' as any)}
+                  placeholder={t('auth.passwordPlaceholder')}
                   className="input-base w-full py-3 pl-10 pr-3 text-[16px]"
                   autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
                 />
@@ -146,7 +146,7 @@ export default function LoginPage() {
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder={t('auth.confirmPasswordPlaceholder' as any)}
+                  placeholder={t('auth.confirmPasswordPlaceholder')}
                   className="input-base w-full py-3 pl-10 pr-3 text-[16px]"
                   autoComplete="new-password"
                 />
@@ -184,17 +184,17 @@ export default function LoginPage() {
             ) : mode === 'forgot' ? (
               <>
                 <KeyRound size={16} />
-                {t('auth.resetPasswordBtn' as any)}
+                {t('auth.resetPasswordBtn')}
               </>
             ) : mode === 'login' ? (
               <>
                 <LogIn size={16} />
-                {t('auth.loginBtn' as any)}
+                {t('auth.loginBtn')}
               </>
             ) : (
               <>
                 <UserPlus size={16} />
-                {t('auth.registerBtn' as any)}
+                {t('auth.registerBtn')}
               </>
             )}
           </button>
@@ -212,10 +212,10 @@ export default function LoginPage() {
             style={{ color: 'var(--color-accent)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}
           >
             {mode === 'forgot'
-              ? t('auth.switchToLogin' as any)
+              ? t('auth.switchToLogin')
               : mode === 'login'
-              ? t('auth.switchToRegister' as any)
-              : t('auth.switchToLogin' as any)}
+              ? t('auth.switchToRegister')
+              : t('auth.switchToLogin')}
           </button>
           {mode === 'login' && (
             <div>
@@ -224,7 +224,7 @@ export default function LoginPage() {
                 className="text-[14px]"
                 style={{ color: 'var(--color-text-tertiary)' }}
               >
-                {t('auth.forgotPassword' as any)}
+                {t('auth.forgotPassword')}
               </button>
             </div>
           )}
@@ -238,10 +238,10 @@ export default function LoginPage() {
             style={{ color: 'var(--color-text-tertiary)' }}
           >
             <WifiOff size={14} />
-            {t('auth.skipLogin' as any)}
+            {t('auth.skipLogin')}
           </button>
           <p className="mt-2 text-[12px] leading-relaxed px-2" style={{ color: 'var(--color-text-quaternary)' }}>
-            {t('auth.skipLoginHint' as any)}
+            {t('auth.skipLoginHint')}
           </p>
         </div>
       </div>

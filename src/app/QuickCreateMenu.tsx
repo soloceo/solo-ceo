@@ -25,11 +25,11 @@ export function QuickCreateMenu({ setActiveTab }: QuickCreateMenuProps) {
 
   const quickCreateGroups = [
     {
-      label: t("app.quickCreate.groupWork" as any),
+      label: t("app.quickCreate.groupWork"),
       items: [
         {
           icon: <ListTodo size={14} aria-hidden="true" />,
-          label: t("app.quickCreate.task" as any),
+          label: t("app.quickCreate.task"),
           action: () => {
             setActiveTab("work");
             setTimeout(
@@ -45,9 +45,9 @@ export function QuickCreateMenu({ setActiveTab }: QuickCreateMenuProps) {
         },
         {
           icon: <UserPlus size={14} aria-hidden="true" />,
-          label: t("app.quickCreate.lead" as any),
+          label: t("app.quickCreate.lead"),
           action: () => {
-            setActiveTab("leads" as any);
+            setActiveTab("leads");
             setTimeout(
               () =>
                 window.dispatchEvent(
@@ -61,7 +61,7 @@ export function QuickCreateMenu({ setActiveTab }: QuickCreateMenuProps) {
         },
         {
           icon: <Users size={14} aria-hidden="true" />,
-          label: t("app.quickCreate.client" as any),
+          label: t("app.quickCreate.client"),
           action: () => {
             setActiveTab("clients");
             setTimeout(
@@ -77,7 +77,7 @@ export function QuickCreateMenu({ setActiveTab }: QuickCreateMenuProps) {
         },
         {
           icon: <FileText size={14} aria-hidden="true" />,
-          label: t("app.quickCreate.bizFinance" as any),
+          label: t("app.quickCreate.bizFinance"),
           action: () => {
             setActiveTab("finance");
             setTimeout(
@@ -94,11 +94,11 @@ export function QuickCreateMenu({ setActiveTab }: QuickCreateMenuProps) {
       ],
     },
     {
-      label: t("app.quickCreate.groupPersonal" as any),
+      label: t("app.quickCreate.groupPersonal"),
       items: [
         {
           icon: <ListTodo size={14} aria-hidden="true" />,
-          label: t("app.quickCreate.personalTask" as any),
+          label: t("app.quickCreate.personalTask"),
           action: () => {
             setActiveTab("work");
             setTimeout(
@@ -114,7 +114,7 @@ export function QuickCreateMenu({ setActiveTab }: QuickCreateMenuProps) {
         },
         {
           icon: <FileText size={14} aria-hidden="true" />,
-          label: t("app.quickCreate.personalFinance" as any),
+          label: t("app.quickCreate.personalFinance"),
           action: () => {
             setActiveTab("finance");
             setTimeout(
@@ -143,8 +143,8 @@ export function QuickCreateMenu({ setActiveTab }: QuickCreateMenuProps) {
           color: quickCreateOpen ? "var(--color-accent)" : "var(--color-text-quaternary)",
           background: quickCreateOpen ? "var(--color-accent-tint)" : "var(--color-bg-translucent)",
         }}
-        title={t("app.quickCreate" as any)}
-        aria-label={t("app.quickCreate" as any)}
+        title={t("app.quickCreate")}
+        aria-label={t("app.quickCreate")}
       >
         <Plus
           size={14}

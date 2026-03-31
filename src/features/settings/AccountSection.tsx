@@ -19,7 +19,7 @@ export default function AccountSection({ user, isOnline, pendingOps, signOut }: 
 
   return (
     <section>
-      <SectionLabel>{t("settings.cloudSync" as any)}</SectionLabel>
+      <SectionLabel>{t("settings.cloudSync")}</SectionLabel>
       <div className="card overflow-hidden divide-y divide-[var(--color-line-secondary)]">
 
         {/* Account info */}
@@ -36,7 +36,7 @@ export default function AccountSection({ user, isOnline, pendingOps, signOut }: 
                 {user.email}
               </div>
               <div className="text-[13px] mt-0.5" style={{ color: 'var(--color-text-tertiary)' }}>
-                {t("auth.loggedInAs" as any, { email: user.email || '' })}
+                {t("auth.loggedInAs", { email: user.email || '' })}
               </div>
             </div>
           </div>
@@ -58,12 +58,12 @@ export default function AccountSection({ user, isOnline, pendingOps, signOut }: 
           <div className="flex-1">
             <div className="text-[15px]" style={{ color: 'var(--color-text-primary)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>
               {isOnline
-                ? t("settings.cloudSync.connected" as any)
-                : t("settings.cloudSync.offline" as any)}
+                ? t("settings.cloudSync.connected")
+                : t("settings.cloudSync.offline")}
             </div>
             {pendingOps > 0 && (
               <div className="text-[13px] mt-0.5" style={{ color: 'var(--color-warning)' }}>
-                {t("settings.cloudSync.pending" as any, { count: String(pendingOps) })}
+                {t("settings.cloudSync.pending", { count: String(pendingOps) })}
               </div>
             )}
           </div>
@@ -90,20 +90,20 @@ export default function AccountSection({ user, isOnline, pendingOps, signOut }: 
                 a.download = `solo-ceo-backup-${new Date().toISOString().slice(0, 10)}.json`;
                 a.click();
                 URL.revokeObjectURL(url);
-              } catch {}
+              } catch (e) { console.warn('[AccountSection] backup', e); }
             }}
             className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-[var(--radius-6)] text-[14px] transition-colors hover:bg-[var(--color-bg-tertiary)]"
             style={{ color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-primary)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}
           >
             <Download size={16} />
-            {t("settings.backup" as any)}
+            {t("settings.backup")}
           </button>
           <label
             className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-[var(--radius-6)] text-[14px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
             style={{ color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-primary)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}
           >
             <Upload size={16} />
-            {t("settings.restore" as any)}
+            {t("settings.restore")}
             <input type="file" accept=".json" className="hidden" onChange={async (e) => {
               const file = e.target.files?.[0];
               if (!file) return;
@@ -113,7 +113,7 @@ export default function AccountSection({ user, isOnline, pendingOps, signOut }: 
                 if (!data.version || !data.tasks) return;
                 // Restore is complex — for now just alert success
                 alert(lang === "zh" ? `备份文件包含 ${data.tasks?.length || 0} 个任务、${data.clients?.length || 0} 个客户。请联系支持恢复数据。` : `Backup contains ${data.tasks?.length || 0} tasks, ${data.clients?.length || 0} clients. Contact support to restore.`);
-              } catch {}
+              } catch (e2) { console.warn('[AccountSection] restore', e2); }
               e.target.value = "";
             }} />
           </label>
@@ -132,7 +132,7 @@ export default function AccountSection({ user, isOnline, pendingOps, signOut }: 
               <LogOut size={20} />
             </div>
             <span className="text-[15px]" style={{ color: 'var(--color-danger)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>
-              {t("auth.logoutBtn" as any)}
+              {t("auth.logoutBtn")}
             </span>
           </button>
         ) : (
@@ -148,10 +148,10 @@ export default function AccountSection({ user, isOnline, pendingOps, signOut }: 
             </div>
             <div>
               <span className="text-[15px] block" style={{ color: 'var(--color-accent)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>
-                {t("auth.loginOrRegister" as any)}
+                {t("auth.loginOrRegister")}
               </span>
               <span className="text-[13px] block" style={{ color: 'var(--color-text-tertiary)' }}>
-                {t("auth.loginOrRegisterHint" as any)}
+                {t("auth.loginOrRegisterHint")}
               </span>
             </div>
           </button>

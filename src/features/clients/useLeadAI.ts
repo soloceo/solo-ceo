@@ -7,6 +7,7 @@ import { generateOutreach, analyzeLeadQuality, AI_KEY_MAP, type AIProvider, type
 export type { LeadAnalysis };
 
 interface LeadLike {
+  id: number;
   name: string;
   industry?: string;
   needs?: string;
@@ -42,7 +43,7 @@ export function useLeadAI(lang: string) {
   const requireAiConfig = useCallback(() => {
     const config = getAiConfig();
     if (!config.provider || !config.apiKey) {
-      showToast(t("money.ai.noKey" as any), 5000, { label: t("common.goSettings" as any), fn: () => setActiveTab("settings" as any) });
+      showToast(t("money.ai.noKey"), 5000, { label: t("common.goSettings"), fn: () => setActiveTab("settings") });
       return null;
     }
     return config as { provider: AIProvider; apiKey: string };
@@ -51,14 +52,15 @@ export function useLeadAI(lang: string) {
   const handleGenerateOutreach = useCallback(async (lead: LeadLike) => {
     const config = requireAiConfig();
     if (!config) return;
-    if (!lead.name.trim()) { showToast(t("pipeline.ai.needName" as any)); return; }
+    if (!lead.name.trim()) { showToast(t("pipeline.ai.needName")); return; }
     setAiGenerating(true);
     try {
       const draft = await generateOutreach(lead, aiTone, aiLang, config.provider, config.apiKey);
       setAiDraft(draft);
-      showToast(`✓ ${t("pipeline.ai.generated" as any)}`);
-    } catch {
-      showToast(t("pipeline.ai.genFailed" as any));
+      showToast(`✓ ${t("pipeline.ai.generated")}`);
+    } catch (e) {
+      console.warn('[useLeadAI] generateOutreach', e);
+      showToast(t("pipeline.ai.genFailed"));
     } finally {
       setAiGenerating(false);
     }
@@ -67,13 +69,14 @@ export function useLeadAI(lang: string) {
   const handleAnalyzeLead = useCallback(async (lead: LeadLike) => {
     const config = requireAiConfig();
     if (!config) return;
-    if (!lead.name.trim()) { showToast(t("pipeline.ai.needName" as any)); return; }
+    if (!lead.name.trim()) { showToast(t("pipeline.ai.needName")); return; }
     setAiAnalyzing(true);
     try {
       const result = await analyzeLeadQuality(lead, lang, config.provider, config.apiKey);
       setAiAnalysis(result);
-    } catch {
-      showToast(t("pipeline.ai.genFailed" as any));
+    } catch (e) {
+      console.warn('[useLeadAI] analyzeLead', e);
+      showToast(t("pipeline.ai.genFailed"));
     } finally {
       setAiAnalyzing(false);
     }
@@ -88,12 +91,12 @@ export function useLeadAI(lang: string) {
     for (const lead of allLeads) {
       try {
         const result = await analyzeLeadQuality(lead, lang, config.provider, config.apiKey);
-        results[(lead as any).id] = result;
+        results[lead.id] = result;
       } catch { /* skip failed */ }
     }
     setLeadScores(prev => ({ ...prev, ...results }));
     setBatchAnalyzing(false);
-    showToast(t("pipeline.ai.analyzed" as any).replace("{count}", String(Object.keys(results).length)));
+    showToast(t("pipeline.ai.analyzed").replace("{count}", String(Object.keys(results).length)));
   }, [requireAiConfig, lang, showToast, t]);
 
   const resetForPanel = useCallback((existingDraft?: string) => {

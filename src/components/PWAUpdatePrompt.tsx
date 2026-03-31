@@ -39,7 +39,7 @@ export default function PWAUpdatePrompt() {
       >
         <RefreshCw size={16} className="shrink-0" />
         <span className="text-[14px]" style={{ fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-          {t("app.pwa.newVersion" as any)}
+          {t("app.pwa.newVersion")}
         </span>
         <button
           onClick={() => updateServiceWorker(true)}
@@ -50,7 +50,7 @@ export default function PWAUpdatePrompt() {
             fontWeight: "var(--font-weight-semibold)",
           } as React.CSSProperties}
         >
-          {t("app.pwa.update" as any)}
+          {t("app.pwa.update")}
         </button>
       </div>
     </div>

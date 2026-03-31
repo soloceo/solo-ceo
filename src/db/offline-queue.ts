@@ -4,9 +4,11 @@
  *
  * Features:
  *   - Retry up to 3 times per operation (with exponential backoff)
- *   - 4xx errors (client errors) are discarded (permanent failure)
- *   - 5xx errors are retried
- *   - Stale ops older than 30 days are discarded
+ *   - 409 Conflict / 429 Rate-limited: retried (transient)
+ *   - Other 4xx errors: permanent failure (kept for user review)
+ *   - 5xx errors: retried
+ *   - Stale ops older than 30 days: discarded with user notification
+ *   - Failed ops notify user via sync-status event
  */
 import { handleSupabaseRequest } from './supabase-api';
 
@@ -24,6 +26,8 @@ const DB_NAME = 'soloceo-offline-queue';
 const STORE_NAME = 'ops';
 const MAX_RETRIES = 3;
 const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+/** HTTP status codes that are transient despite being 4xx — eligible for retry */
+const RETRYABLE_4XX = new Set([408, 409, 429]);
 let replaying = false;
 
 // ── IndexedDB helpers ─────────────────────────────────────────────
@@ -92,6 +96,15 @@ async function updateOp(op: QueuedOp): Promise<void> {
   });
 }
 
+// ── Event helpers ────────────────────────────────────────────────
+
+function dispatchQueueWarning(message: string) {
+  console.warn('[offline-queue]', message);
+  window.dispatchEvent(new CustomEvent('sync-status', {
+    detail: { warning: message, type: 'queue-failure' },
+  }));
+}
+
 // ── Replay queue ──────────────────────────────────────────────────
 
 export async function replayQueue(): Promise<{ replayed: number; failed: number }> {
@@ -107,20 +120,31 @@ export async function replayQueue(): Promise<{ replayed: number; failed: number 
 
     const now = Date.now();
     // Pre-filter: discard stale and over-retried ops
-    const validOps = [];
+    const validOps: QueuedOp[] = [];
+    const permanentlyFailed: QueuedOp[] = [];
+
     for (const op of ops) {
       if (now - op.timestamp > MAX_AGE_MS) {
         const ageDays = Math.round((now - op.timestamp) / 86400000);
-        window.dispatchEvent(new CustomEvent('sync-status', { detail: { warning: `离线操作已过期(${ageDays}天)：${op.path}`, pending: ops.length } }));
+        dispatchQueueWarning(`离线操作已过期(${ageDays}天)：${op.path}`);
         await removeOp(op.id);
+        failed++;
         continue;
       }
       if ((op.retryCount || 0) >= MAX_RETRIES) {
+        permanentlyFailed.push(op);
         await removeOp(op.id);
         failed++;
         continue;
       }
       validOps.push(op);
+    }
+
+    // Notify user about permanently failed ops
+    if (permanentlyFailed.length > 0) {
+      dispatchQueueWarning(
+        `${permanentlyFailed.length} 条离线操作多次重试后失败已丢弃: ${permanentlyFailed.map(o => o.failReason || o.path).join(', ')}`
+      );
     }
 
     // Replay in batches of 5 (parallel within batch, sequential across batches)
@@ -138,24 +162,29 @@ export async function replayQueue(): Promise<{ replayed: number; failed: number 
         if (r.status === "fulfilled") {
           const { op, result } = r.value;
           if (result.status < 400) {
+            // Success
             await removeOp(op.id);
             replayed++;
-          } else if (result.status < 500) {
-            // 4xx client error — mark as failed but keep for review
-            op.retryCount = MAX_RETRIES; // prevent further retries
+          } else if (RETRYABLE_4XX.has(result.status) || result.status >= 500) {
+            // Transient error (409 Conflict, 429 Rate-limit, 5xx) — retry later
+            op.retryCount = (op.retryCount || 0) + 1;
             op.failReason = `HTTP ${result.status}`;
             await updateOp(op);
             failed++;
           } else {
-            op.retryCount = (op.retryCount || 0) + 1;
+            // Permanent 4xx client error (400, 403, 404, 422…) — no retry
+            op.retryCount = MAX_RETRIES;
+            op.failReason = `HTTP ${result.status} (permanent)`;
             await updateOp(op);
+            dispatchQueueWarning(`离线操作失败(${result.status})：${op.method} ${op.path}`);
             failed++;
           }
         } else {
-          // Promise rejected — network error
+          // Promise rejected — network error, retry later
           const op = batch[results.indexOf(r)];
           if (op) {
             op.retryCount = (op.retryCount || 0) + 1;
+            op.failReason = 'Network error';
             await updateOp(op);
           }
           failed++;

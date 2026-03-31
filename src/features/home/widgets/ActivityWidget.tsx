@@ -38,14 +38,14 @@ function dotColor(type?: string, action?: string): string {
   }
 }
 
-function ago(iso: string, t: (k: any) => string) {
+function ago(iso: string, t: (k: string) => string) {
   if (!iso) return "";
   const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
-  if (m < 1) return t("home.activity.justNow" as any);
-  if (m < 60) return String(t("home.activity.minutesAgo" as any) || "").replace("{n}", String(m));
+  if (m < 1) return t("home.activity.justNow");
+  if (m < 60) return String(t("home.activity.minutesAgo") || "").replace("{n}", String(m));
   const h = Math.floor(m / 60);
-  if (h < 24) return String(t("home.activity.hoursAgo" as any) || "").replace("{n}", String(h));
-  return String(t("home.activity.daysAgo" as any) || "").replace("{n}", String(Math.floor(h / 24)));
+  if (h < 24) return String(t("home.activity.hoursAgo") || "").replace("{n}", String(h));
+  return String(t("home.activity.daysAgo") || "").replace("{n}", String(Math.floor(h / 24)));
 }
 
 function groupItems(items: ActivityItem[]): GroupedItem[] {
@@ -118,10 +118,10 @@ function ActivityWidget() {
     return (
       <div ref={rootRef} className="h-full flex flex-col items-center justify-center overflow-hidden" style={{ padding: `${s(12)}px ${s(6)}px ${s(6)}px`, gap: s(6) }}>
         <span style={{ fontSize: s(13), fontWeight: 700, color: "var(--color-accent)", lineHeight: 1 }}>
-          {t("home.activity.title" as any)}
+          {t("home.activity.title")}
         </span>
         <span style={{ fontSize: s(11), color: "var(--color-text-quaternary)" }}>
-          {t("home.activity.emptyHint" as any)}
+          {t("home.activity.emptyHint")}
         </span>
       </div>
     );
@@ -132,7 +132,7 @@ function ActivityWidget() {
       {/* Header */}
       <div className="flex items-center justify-between shrink-0" style={{ paddingInline: s(4), marginBottom: s(6) }}>
         <span style={{ fontSize: s(13), fontWeight: 700, color: "var(--color-accent)", lineHeight: 1 }}>
-          {t("home.activity.title" as any)}
+          {t("home.activity.title")}
         </span>
         <span className="tabular-nums" style={{ fontSize: s(10), color: "var(--color-text-quaternary)" }}>
           {rawItems.length}
@@ -180,8 +180,8 @@ function ActivityWidget() {
             style={{ fontSize: s(9), color: "var(--color-accent)", background: "none", border: "none", padding: 0 }}
           >
             {expanded
-              ? t("common.collapse" as any)
-              : `+${grouped.length - VISIBLE_COUNT} ${t("widgets.calendar.more" as any)}`
+              ? t("common.collapse")
+              : `+${grouped.length - VISIBLE_COUNT} ${t("widgets.calendar.more")}`
             }
           </button>
         </div>

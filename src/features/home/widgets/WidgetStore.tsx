@@ -39,7 +39,7 @@ export default function WidgetStore({ open, onClose }: Props) {
             </div>
             <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: "1px solid var(--color-line-tertiary)" }}>
               <h3 className="text-[15px]" style={{ fontWeight: "var(--font-weight-semibold)", color: "var(--color-text-primary)" } as React.CSSProperties}>
-                {t("widgets.store" as any)}
+                {t("widgets.store")}
               </h3>
               <button onClick={onClose} className="btn-icon-sm" aria-label="Close"><X size={16} /></button>
             </div>
@@ -64,10 +64,10 @@ export default function WidgetStore({ open, onClose }: Props) {
                     </div>
                     <div className="flex-1 text-left min-w-0">
                       <div className="text-[13px]" style={{ fontWeight: "var(--font-weight-medium)", color: "var(--color-text-primary)" } as React.CSSProperties}>
-                        {t(w.nameKey as any) || w.id}
+                        {t(w.nameKey) || w.id}
                       </div>
                       <div className="text-[11px]" style={{ color: "var(--color-text-tertiary)" }}>
-                        {t(w.descKey as any) || ""}
+                        {t(w.descKey) || ""}
                       </div>
                     </div>
                     <div

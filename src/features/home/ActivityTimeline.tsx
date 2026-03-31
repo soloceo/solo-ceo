@@ -38,18 +38,18 @@ function activityIcon(type?: string, action?: string) {
 }
 
 /* ── Relative time ── */
-function relativeTime(isoTime: string, t: (k: any) => string): string {
+function relativeTime(isoTime: string, t: (k: string) => string): string {
   if (!isoTime) return "";
   const now = Date.now();
   const then = new Date(isoTime).getTime();
   const diffMs = now - then;
   const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return t("home.activity.justNow" as any);
-  if (diffMin < 60) return String(t("home.activity.minutesAgo" as any) || "").replace("{n}", String(diffMin));
+  if (diffMin < 1) return t("home.activity.justNow");
+  if (diffMin < 60) return String(t("home.activity.minutesAgo") || "").replace("{n}", String(diffMin));
   const diffHours = Math.floor(diffMin / 60);
-  if (diffHours < 24) return String(t("home.activity.hoursAgo" as any) || "").replace("{n}", String(diffHours));
+  if (diffHours < 24) return String(t("home.activity.hoursAgo") || "").replace("{n}", String(diffHours));
   const diffDays = Math.floor(diffHours / 24);
-  return String(t("home.activity.daysAgo" as any) || "").replace("{n}", String(diffDays));
+  return String(t("home.activity.daysAgo") || "").replace("{n}", String(diffDays));
 }
 
 export function ActivityTimeline({ items, loading }: ActivityTimelineProps) {
@@ -62,11 +62,11 @@ export function ActivityTimeline({ items, loading }: ActivityTimelineProps) {
         <div className="flex items-center gap-2 mb-2 px-1">
           <Activity size={14} style={{ color: "var(--color-text-quaternary)" }} />
           <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
-            {t("home.activity.title" as any)}
+            {t("home.activity.title")}
           </h3>
         </div>
         <div className="card">
-          <EmptyState title={t("home.activity.empty" as any)} />
+          <EmptyState title={t("home.activity.empty")} />
         </div>
       </section>
     );
@@ -77,7 +77,7 @@ export function ActivityTimeline({ items, loading }: ActivityTimelineProps) {
       <div className="flex items-center gap-2 mb-2 px-1">
         <Activity size={14} style={{ color: "var(--color-text-quaternary)" }} />
         <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
-          {t("home.activity.title" as any)}
+          {t("home.activity.title")}
         </h3>
         <span className="text-[13px] tabular-nums" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
           {items.length}

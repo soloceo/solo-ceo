@@ -43,43 +43,43 @@ export function WeeklyReport({ open, onClose }: WeeklyReportProps) {
   };
 
   const period = data
-    ? String(t("home.report.period" as any) || "").replace("{start}", formatDate(data.weekStart)).replace("{end}", formatDate(data.weekEnd))
+    ? String(t("home.report.period") || "").replace("{start}", formatDate(data.weekStart)).replace("{end}", formatDate(data.weekEnd))
     : "";
 
   const stats = data ? [
     {
-      label: t("home.report.income" as any),
+      label: t("home.report.income"),
       value: `$${data.income.toLocaleString()}`,
       icon: <TrendingUp size={14} />,
       color: "var(--color-success)",
     },
     {
-      label: t("home.report.expenses" as any),
+      label: t("home.report.expenses"),
       value: `$${data.expenses.toLocaleString()}`,
       icon: <TrendingDown size={14} />,
       color: "var(--color-danger)",
     },
     {
-      label: t("home.report.netIncome" as any),
+      label: t("home.report.netIncome"),
       value: `${data.netIncome >= 0 ? "+" : ""}$${data.netIncome.toLocaleString()}`,
       icon: <DollarSign size={14} />,
       color: data.netIncome >= 0 ? "var(--color-success)" : "var(--color-danger)",
       highlight: true,
     },
     {
-      label: t("home.report.tasksCompleted" as any),
+      label: t("home.report.tasksCompleted"),
       value: String(data.tasksCompleted),
       icon: <CheckCircle2 size={14} />,
       color: "var(--color-warning)",
     },
     {
-      label: t("home.report.newClients" as any),
+      label: t("home.report.newClients"),
       value: String(data.newClients),
       icon: <Users size={14} />,
       color: "var(--color-blue)",
     },
     {
-      label: t("home.report.newLeads" as any),
+      label: t("home.report.newLeads"),
       value: String(data.newLeads),
       icon: <UserPlus size={14} />,
       color: "var(--color-accent)",
@@ -99,7 +99,7 @@ export function WeeklyReport({ open, onClose }: WeeklyReportProps) {
           <div className="flex items-center gap-2">
             <BarChart3 size={16} style={{ color: "var(--color-accent)" }} />
             <h2 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
-              {t("home.report.title" as any)}
+              {t("home.report.title")}
             </h2>
           </div>
           <button onClick={onClose} className="btn-icon" aria-label="Close report">
@@ -116,7 +116,7 @@ export function WeeklyReport({ open, onClose }: WeeklyReportProps) {
               ))}
             </div>
           ) : !data ? (
-            <EmptyState title={t("home.report.noData" as any)} />
+            <EmptyState title={t("home.report.noData")} />
           ) : (
             <>
               {/* Period badge */}

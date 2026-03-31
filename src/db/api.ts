@@ -7,6 +7,7 @@ import { getDb, saveDb, all, get, run, exec } from './index';
 import { todayDateKey, dateToKey, monthKey, currentMonth } from '../lib/date-utils';
 
 // ── Type definitions ────────────────────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- sql.js rows have dynamic columns
 type DbRow = Record<string, any>;
 
 // ── helpers ────────────────────────────────────────────────────────────────
@@ -125,7 +126,7 @@ function syncClientSubscriptionLedger(db: Database) {
   }
 }
 
-function getRecentSubscriptionEvents(db: Database): any[] {
+function getRecentSubscriptionEvents(db: Database): DbRow[] {
   const rows = all(
     db,
     `SELECT client_id, client_name, amount, ledger_month
@@ -421,10 +422,10 @@ export async function exportAllData(): Promise<Record<string, any>> {
   return snapshot;
 }
 
-export async function importAllData(data: Record<string, any>): Promise<void> {
+export async function importAllData(data: Record<string, unknown>): Promise<void> {
   const db = await getDb();
   for (const table of SYNC_TABLES) {
-    const rows: any[] = data[table] ?? [];
+    const rows: DbRow[] = (data[table] as DbRow[]) ?? [];
     db.run(`DELETE FROM ${table}`);
     for (const row of rows) {
       const keys = Object.keys(row);
@@ -438,15 +439,16 @@ export async function importAllData(data: Record<string, any>): Promise<void> {
     }
   }
   // Restore settings (avatar, name) — write to Zustand persisted storage
-  if (data.settings && typeof data.settings === 'object' && !Array.isArray(data.settings)) {
+  const settings = data.settings as Record<string, string> | undefined;
+  if (settings && typeof settings === 'object' && !Array.isArray(settings)) {
     try {
       const stored = JSON.parse(localStorage.getItem('solo-ceo-settings') || '{}');
       const state = stored?.state || {};
-      if (data.settings.OPERATOR_NAME) state.operatorName = data.settings.OPERATOR_NAME;
-      if (data.settings.OPERATOR_AVATAR) state.operatorAvatar = data.settings.OPERATOR_AVATAR;
+      if (settings.OPERATOR_NAME) state.operatorName = settings.OPERATOR_NAME;
+      if (settings.OPERATOR_AVATAR) state.operatorAvatar = settings.OPERATOR_AVATAR;
       stored.state = state;
       localStorage.setItem('solo-ceo-settings', JSON.stringify(stored));
-    } catch {}
+    } catch (e) { console.warn('[api] restoreSettings', e); }
     window.dispatchEvent(new Event('operator-name-updated'));
     window.dispatchEvent(new Event('operator-avatar-updated'));
   }
@@ -464,7 +466,7 @@ export async function initDb(): Promise<void> {
 
 // ── Finance helpers ────────────────────────────────────────────────────────
 
-function getFinanceRows(db: Database): any[] {
+function getFinanceRows(db: Database): DbRow[] {
   // Single table query — matches online supabase-api.ts behavior
   return all(db, 'SELECT * FROM finance_transactions ORDER BY date DESC, id DESC');
 }
@@ -474,9 +476,11 @@ function getFinanceRows(db: Database): any[] {
 export async function handleApiRequest(
   method: string,
   path: string,
-  body: any
-): Promise<{ status: number; data: any }> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- request body is dynamically typed JSON
+  body: Record<string, any>
+): Promise<{ status: number; data: unknown }> {
   const db = await getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- response data varies by endpoint
   const ok = (data: any) => ({ status: 200, data });
   const err = (status: number, msg: string) => ({ status, data: { error: msg } });
 
@@ -828,13 +832,13 @@ export async function handleApiRequest(
 
   if (path === '/api/finance/report' && method === 'GET') {
     const transactions = getFinanceRows(db);
-    const completedIncome = transactions.filter((t: any) => t.type === 'income' && (t.status||'已完成') === '已完成').reduce((s,t) => s + Number(t.amount||0), 0);
-    const completedExpense = transactions.filter((t: any) => t.type === 'expense' && (t.status||'已完成') === '已完成').reduce((s,t) => s + Number(t.amount||0), 0);
-    const receivables = transactions.filter((t: any) => String(t.status||'').includes('应收')).reduce((s,t) => s + Number(t.amount||0), 0);
-    const payables = transactions.filter((t: any) => String(t.status||'').includes('应付')).reduce((s,t) => s + Number(t.amount||0), 0);
-    const totalTax = transactions.filter((t: any) => (t.status||'已完成') === '已完成' && Number(t.tax_amount||0) > 0).reduce((s,t) => s + Number(t.tax_amount||0), 0);
+    const completedIncome = transactions.filter((t: DbRow) => t.type === 'income' && (t.status||'已完成') === '已完成').reduce((s,t) => s + Number(t.amount||0), 0);
+    const completedExpense = transactions.filter((t: DbRow) => t.type === 'expense' && (t.status||'已完成') === '已完成').reduce((s,t) => s + Number(t.amount||0), 0);
+    const receivables = transactions.filter((t: DbRow) => String(t.status||'').includes('应收')).reduce((s,t) => s + Number(t.amount||0), 0);
+    const payables = transactions.filter((t: DbRow) => String(t.status||'').includes('应付')).reduce((s,t) => s + Number(t.amount||0), 0);
+    const totalTax = transactions.filter((t: DbRow) => (t.status||'已完成') === '已完成' && Number(t.tax_amount||0) > 0).reduce((s,t) => s + Number(t.tax_amount||0), 0);
     const esc = (s: string) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    const rows = transactions.slice(0,50).map((t: any) => { const taxInfo = Number(t.tax_amount||0) > 0 ? ` (税$${Number(t.tax_amount).toLocaleString()})` : ''; return `<tr><td>${esc(t.date||'')}</td><td>${esc(t.description||'')}</td><td>${esc(t.category||'')}</td><td>${t.type==='income'?'+':'-'}$${Number(t.amount||0).toLocaleString()}${taxInfo}</td><td>${esc(t.status||'已完成')}</td></tr>`; }).join('');
+    const rows = transactions.slice(0,50).map((t: DbRow) => { const taxInfo = Number(t.tax_amount||0) > 0 ? ` (税$${Number(t.tax_amount).toLocaleString()})` : ''; return `<tr><td>${esc(t.date||'')}</td><td>${esc(t.description||'')}</td><td>${esc(t.category||'')}</td><td>${t.type==='income'?'+':'-'}$${Number(t.amount||0).toLocaleString()}${taxInfo}</td><td>${esc(t.status||'已完成')}</td></tr>`; }).join('');
     const html = `<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"/><title>一人CEO - 财务月度报表</title><style>body{font-family:-apple-system,sans-serif;padding:32px;color:#18181b}h1{font-size:28px;margin:0 0 8px}p{color:#71717a;margin:0 0 24px}.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}.card{border:1px solid #e4e4e7;border-radius:16px;padding:16px}.label{font-size:12px;color:#71717a;margin-bottom:8px}.value{font-size:24px;font-weight:700}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 12px;border-bottom:1px solid #e4e4e7;font-size:12px}th{background:#f4f4f5;color:#52525b}</style></head><body><h1>财务月度报表</h1><p>一人CEO · 导出时间 ${new Date().toLocaleString('zh-CN')}</p><div class="grid"><div class="card"><div class="label">已完成收入</div><div class="value">$${completedIncome.toLocaleString()}</div></div><div class="card"><div class="label">已完成支出</div><div class="value">$${completedExpense.toLocaleString()}</div></div><div class="card"><div class="label">净利润</div><div class="value">$${(completedIncome-completedExpense).toLocaleString()}</div></div><div class="card"><div class="label">应收 / 应付</div><div class="value">$${receivables.toLocaleString()} / $${payables.toLocaleString()}</div></div><div class="card"><div class="label">税费合计</div><div class="value">$${totalTax.toLocaleString()}</div></div></div><table><thead><tr><th>日期</th><th>描述</th><th>分类</th><th>金额</th><th>状态</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
     return { status: 200, data: html };
   }
@@ -985,17 +989,17 @@ export async function handleApiRequest(
     const monthlyIncomeRow = get(db,
       `SELECT COALESCE(SUM(amount), 0) as total FROM finance_transactions WHERE type='income' AND status='已完成' AND date LIKE ?`,
       [`${currentMonthStr}%`]);
-    const monthlyIncome = Number((monthlyIncomeRow as any)?.total || 0);
+    const monthlyIncome = Number((monthlyIncomeRow as Record<string, unknown>)?.total || 0);
 
     const recentActivityRows = all(db,
       `SELECT title as activity, detail, created_at as time, entity_type as type, action
        FROM activity_log ORDER BY datetime(created_at) DESC, id DESC LIMIT 8`);
 
     const recentActivity = [...recentActivityRows, ...getRecentSubscriptionEvents(db)]
-      .sort((a: any, b: any) => String(b.time||b.sortKey||'').localeCompare(String(a.time||a.sortKey||'')))
+      .sort((a: DbRow, b: DbRow) => String(b.time||b.sortKey||'').localeCompare(String(a.time||a.sortKey||'')))
       .slice(0, 8);
 
-    const receivables = getFinanceRows(db).filter((t: any) => String(t.status||'').includes('应收'));
+    const receivables = getFinanceRows(db).filter((t: DbRow) => String(t.status||'').includes('应收'));
     const bestLead = get(db,
       `SELECT id, name, industry, needs, column FROM leads WHERE column IN ('proposal','contacted','new')
        ORDER BY CASE column WHEN 'proposal' THEN 1 WHEN 'contacted' THEN 2 ELSE 3 END, id DESC LIMIT 1`) as DbRow;
@@ -1045,7 +1049,7 @@ export async function handleApiRequest(
       status: focusStateMap[`manual-${row.id}`] || 'pending',
     }));
 
-    const todayFocus = autoFocus.map((item: any) => ({ ...item, status: focusStateMap[item.key] || 'pending' }));
+    const todayFocus = autoFocus.map((item) => ({ ...item, status: focusStateMap[item.key] || 'pending' }));
 
     return ok({ clientsCount, mrr, activeTasks, workTasks, personalTasks, leadsCount, mrrSeries, recentActivity, ytdRevenue, monthlyIncome, todayFocus, manualTodayEvents });
   }
@@ -1063,9 +1067,9 @@ export async function handleApiRequest(
     const weekEnd = dateToKey(sunday);
 
     const txRows = getFinanceRows(db);
-    const weekTx = txRows.filter((t: any) => t.date >= weekStart && t.date <= weekEnd && (t.status || '已完成') === '已完成');
-    const income = weekTx.filter((t: any) => t.type === 'income').reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-    const expenses = Math.abs(weekTx.filter((t: any) => t.type === 'expense').reduce((s: number, t: any) => s + Number(t.amount || 0), 0));
+    const weekTx = txRows.filter((t: DbRow) => t.date >= weekStart && t.date <= weekEnd && (t.status || '已完成') === '已完成');
+    const income = weekTx.filter((t: DbRow) => t.type === 'income').reduce((s: number, t: DbRow) => s + Number(t.amount || 0), 0);
+    const expenses = Math.abs(weekTx.filter((t: DbRow) => t.type === 'expense').reduce((s: number, t: DbRow) => s + Number(t.amount || 0), 0));
 
     const tasksCompleted = Number(get(db, `SELECT COUNT(*) as c FROM tasks WHERE column='done'`)?.c || 0);
     const newClients = Number(get(db, `SELECT COUNT(*) as c FROM clients WHERE created_at >= ? AND created_at <= ?`, [`${weekStart}T00:00:00`, `${weekEnd}T23:59:59`])?.c || 0);

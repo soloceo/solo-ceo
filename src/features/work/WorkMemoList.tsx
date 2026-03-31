@@ -273,7 +273,8 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
       }
       setAiInput("");
       onRefresh();
-    } catch {
+    } catch (e) {
+      console.warn('[WorkMemoList] AI parse failed, using fallback', e);
       // Fallback: create directly
       await fetch("/api/tasks", {
         method: "POST",
@@ -297,7 +298,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
         style={{ color: "var(--color-text-quaternary)" }}
       >
         <Pin size={12} />
-        {t(`${prefix}.add` as any)}
+        {t(`${prefix}.add`)}
       </button>
     );
   }
@@ -311,7 +312,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
       >
         <Pin size={13} style={{ color: accent }} />
         <span className="text-[13px]" style={{ color: "var(--color-text-secondary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
-          {t(`${prefix}.title` as any)}
+          {t(`${prefix}.title`)}
         </span>
         {undoneCount > 0 && (
           <span className="text-[12px] tabular-nums px-1.5 py-0.5 rounded-full" style={{ background: `color-mix(in srgb, ${accent} 12%, transparent)`, color: accent }}>
@@ -375,10 +376,10 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
             <div className="flex items-center justify-between px-3 py-1.5" style={{ background: "var(--color-bg-tertiary)" }}>
               <span className="text-[12px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
                 {selectedDay === todayStr
-                  ? t("work.memo.today" as any)
+                  ? t("work.memo.today")
                   : new Date(selectedDay + "T00:00:00").toLocaleDateString(lang === "zh" ? "zh-CN" : "en-US", { month: "short", day: "numeric", weekday: "short" })
                 }
-                {displayedMemos.length === 0 && ` — ${t("work.memo.noItems" as any)}`}
+                {displayedMemos.length === 0 && ` — ${t("work.memo.noItems")}`}
               </span>
               <button onClick={() => setSelectedDay(null)} className="btn-icon-sm">
                 <X size={12} />
@@ -420,7 +421,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
                     const datePart = selectedDay
                       ? null
                       : ds === todayStr
-                        ? t("work.memo.today" as any)
+                        ? t("work.memo.today")
                         : new Date(ds + "T00:00:00").toLocaleDateString(lang === "zh" ? "zh-CN" : "en-US", { month: "numeric", day: "numeric" });
                     if (datePart && timeStr) return `${datePart} ${timeStr}`;
                     if (datePart) return datePart;
@@ -442,7 +443,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
                         autoFocus
                       />
                       <button onClick={saveEdit} disabled={!editTitle.trim()} className="btn-primary compact text-[13px] disabled:opacity-40">
-                        {t("common.save" as any)}
+                        {t("common.save")}
                       </button>
                       <button onClick={cancelEdit} className="btn-icon-sm">
                         <X size={14} />
@@ -525,12 +526,12 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
                   value={simpleTitle}
                   onChange={e => setSimpleTitle(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) addMemo(); if (e.key === "Escape") { setAddingSimple(false); setSimpleTitle(""); setSimpleDate(""); setSimpleTime(""); } }}
-                  placeholder={t(`${prefix}.placeholder` as any)}
+                  placeholder={t(`${prefix}.placeholder`)}
                   className="input-base flex-1 px-2 py-1.5 text-[14px]"
                   autoFocus
                 />
                 <button onClick={addMemo} disabled={!simpleTitle.trim()} className="btn-primary compact text-[13px] disabled:opacity-40">
-                  {t("common.add" as any)}
+                  {t("common.add")}
                 </button>
                 <button onClick={() => { setAddingSimple(false); setSimpleTitle(""); setSimpleDate(""); setSimpleTime(""); }} className="btn-icon-sm">
                   <X size={14} />
@@ -560,7 +561,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
               style={{ color: "var(--color-text-quaternary)", borderColor: "var(--color-line-secondary)" }}
             >
               <Plus size={13} />
-              {t(`${prefix}.add` as any)}
+              {t(`${prefix}.add`)}
             </button>
           )}
         </div>

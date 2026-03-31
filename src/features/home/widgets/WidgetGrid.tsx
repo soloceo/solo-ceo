@@ -84,7 +84,7 @@ export default function WidgetGrid() {
     <section>
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-[12px]" style={{ color: "var(--color-text-quaternary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-          {t("widgets.title" as any)}
+          {t("widgets.title")}
         </h2>
         <button
           onClick={() => setEditMode((e) => !e)}

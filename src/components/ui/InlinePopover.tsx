@@ -22,7 +22,7 @@ interface InlinePopoverProps {
 
 export function InlinePopover({ trigger, children, align = "start", className = "", onOpenChange }: InlinePopoverProps) {
   const [open, setOpen] = useState(false);
-  const triggerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ top: 0, left: 0 });
 
@@ -76,12 +76,20 @@ export function InlinePopover({ trigger, children, align = "start", className = 
 
   return (
     <>
-      <div ref={triggerRef} onClick={toggle} className="inline-flex cursor-pointer">
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={toggle}
+        className="inline-flex cursor-pointer items-center bg-transparent border-none p-0"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
         {trigger}
-      </div>
+      </button>
       {open && createPortal(
         <div
           ref={panelRef}
+          role="listbox"
           className={`fixed z-[var(--layer-toasts)] rounded-[var(--radius-8)] shadow-lg overflow-hidden ${className}`}
           style={{
             top: pos.top,
@@ -117,12 +125,14 @@ export function PopoverOption({
 }) {
   return (
     <button
+      role="option"
+      aria-selected={!!selected}
       onClick={(e) => { e.stopPropagation(); onClick(e); }}
       className="flex items-center gap-2 w-full px-3 py-2 text-[14px] transition-colors hover:bg-[var(--color-bg-tertiary)] cursor-pointer text-left"
       style={{ color: color || "var(--color-text-primary)", fontWeight: selected ? "var(--font-weight-semibold)" : "var(--font-weight-normal)", background: "transparent", border: "none" } as React.CSSProperties}
     >
       <span className="flex-1">{children}</span>
-      {selected && <span style={{ color: "var(--color-accent)", fontSize: "14px" }}>✓</span>}
+      {selected && <span aria-hidden="true" style={{ color: "var(--color-accent)", fontSize: "14px" }}>✓</span>}
     </button>
   );
 }

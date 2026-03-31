@@ -50,7 +50,7 @@ export function KnowledgeBaseSection() {
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
-              {t("home.dailyLesson" as any)}
+              {t("home.dailyLesson")}
             </span>
             <span className="text-[11px] px-1.5 py-0.5 rounded-[var(--radius-4)]"
               style={{ background: "var(--color-bg-tertiary)", color: "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
@@ -63,7 +63,7 @@ export function KnowledgeBaseSection() {
             style={{ color: "var(--color-accent)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
           >
             <BookOpen size={12} />
-            {t("home.browseAllPrinciples" as any).replace("{count}", String(allPrinciples.length))}
+            {t("home.browseAllPrinciples").replace("{count}", String(allPrinciples.length))}
           </button>
         </div>
 
@@ -95,7 +95,7 @@ export function KnowledgeBaseSection() {
               style={{ color: "var(--color-accent)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
             >
               <BookOpen size={12} />
-              {t("home.studied" as any)}
+              {t("home.studied")}
               {(studyCounts[todayPrinciple.id] || 0) > 0 && (
                 <span className="text-[12px] tabular-nums" style={{ color: "var(--color-text-quaternary)" }}>
                   ×{studyCounts[todayPrinciple.id]}
@@ -119,13 +119,13 @@ export function KnowledgeBaseSection() {
                     {todayPrinciple.explanation[lang as "zh" | "en"]}
                   </p>
                   {todayPrinciple.actionSteps && todayPrinciple.actionSteps.length > 0 && (
-                    <PrincipleList icon="→" color="var(--color-accent)" label={t("home.actionSteps" as any)} items={todayPrinciple.actionSteps} lang={lang} />
+                    <PrincipleList icon="→" color="var(--color-accent)" label={t("home.actionSteps")} items={todayPrinciple.actionSteps} lang={lang} />
                   )}
                   {todayPrinciple.checks && todayPrinciple.checks.length > 0 && (
-                    <PrincipleList icon="✓" color="var(--color-success)" label={t("home.selfCheck" as any)} items={todayPrinciple.checks} lang={lang} bullet="☐" />
+                    <PrincipleList icon="✓" color="var(--color-success)" label={t("home.selfCheck")} items={todayPrinciple.checks} lang={lang} bullet="☐" />
                   )}
                   {todayPrinciple.antiPatterns && todayPrinciple.antiPatterns.length > 0 && (
-                    <PrincipleList icon="✗" color="var(--color-danger)" label={t("home.antiPatterns" as any)} items={todayPrinciple.antiPatterns} lang={lang} bullet="✗" />
+                    <PrincipleList icon="✗" color="var(--color-danger)" label={t("home.antiPatterns")} items={todayPrinciple.antiPatterns} lang={lang} bullet="✗" />
                   )}
                 </div>
               </motion.div>
@@ -161,7 +161,7 @@ export function KnowledgeBaseSection() {
                   <X size={18} />
                 </button>
                 <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
-                  {t("home.allPrinciples" as any)}
+                  {t("home.allPrinciples")}
                 </span>
                 <span style={{ width: 18 }} />
               </div>
@@ -175,7 +175,7 @@ export function KnowledgeBaseSection() {
                       style={{ color: "var(--color-accent)" }}
                     >
                       <ChevronRight size={12} style={{ transform: "rotate(180deg)" }} />
-                      {t("home.back" as any)}
+                      {t("home.back")}
                     </button>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-[18px]">{selectedPrinciple.catEmoji}</span>
@@ -193,13 +193,13 @@ export function KnowledgeBaseSection() {
                         </div>
                       )}
                       {selectedPrinciple.actionSteps && selectedPrinciple.actionSteps.length > 0 && (
-                        <PrincipleList icon="→" color="var(--color-accent)" label={t("home.actionSteps" as any)} items={selectedPrinciple.actionSteps} lang={lang} />
+                        <PrincipleList icon="→" color="var(--color-accent)" label={t("home.actionSteps")} items={selectedPrinciple.actionSteps} lang={lang} />
                       )}
                       {selectedPrinciple.checks && selectedPrinciple.checks.length > 0 && (
-                        <PrincipleList icon="✓" color="var(--color-success)" label={t("home.selfCheck" as any)} items={selectedPrinciple.checks} lang={lang} bullet="☐" />
+                        <PrincipleList icon="✓" color="var(--color-success)" label={t("home.selfCheck")} items={selectedPrinciple.checks} lang={lang} bullet="☐" />
                       )}
                       {selectedPrinciple.antiPatterns && selectedPrinciple.antiPatterns.length > 0 && (
-                        <PrincipleList icon="✗" color="var(--color-danger)" label={t("home.antiPatterns" as any)} items={selectedPrinciple.antiPatterns} lang={lang} bullet="✗" />
+                        <PrincipleList icon="✗" color="var(--color-danger)" label={t("home.antiPatterns")} items={selectedPrinciple.antiPatterns} lang={lang} bullet="✗" />
                       )}
                     </div>
                     <button
@@ -208,7 +208,7 @@ export function KnowledgeBaseSection() {
                       style={{ color: "var(--color-accent)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
                     >
                       <BookOpen size={14} />
-                      {t("home.studied" as any)}
+                      {t("home.studied")}
                       {(studyCounts[selectedPrinciple.id] || 0) > 0 && (
                         <span className="text-[13px] tabular-nums" style={{ color: "var(--color-text-quaternary)" }}>
                           ×{studyCounts[selectedPrinciple.id]}
@@ -254,7 +254,7 @@ export function KnowledgeBaseSection() {
                                   {isToday && (
                                     <span className="text-[10px] px-1.5 py-0.5 rounded-[var(--radius-4)] shrink-0"
                                       style={{ background: "var(--color-accent)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-                                      {t("home.today" as any)}
+                                      {t("home.today")}
                                     </span>
                                   )}
                                   {(studyCounts[p.id] || 0) > 0 && (

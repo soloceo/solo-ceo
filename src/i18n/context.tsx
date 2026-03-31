@@ -3,7 +3,9 @@ import zh from "./zh";
 
 export type Lang = "zh" | "en";
 type Translations = typeof zh;
-type TKey = keyof Translations;
+/** Known keys from zh bundle — used for autocomplete, but t() also accepts any string for flexibility */
+type KnownKey = keyof Translations;
+type TKey = KnownKey | (string & {});
 
 const STORAGE_KEY = "APP_LANGUAGE";
 
@@ -47,7 +49,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       // Use requestIdleCallback if available, otherwise setTimeout
       const load = () => loadEn();
       if ('requestIdleCallback' in window) {
-        (window as Record<string, any>).requestIdleCallback(load);
+        (window as unknown as { requestIdleCallback: (cb: () => void) => void }).requestIdleCallback(load);
       } else {
         setTimeout(load, 2000);
       }
@@ -65,7 +67,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   const t = useCallback(
     (key: TKey, vars?: Record<string, string | number>) => {
-      let str = dictionaries[lang][key] ?? dictionaries.zh[key] ?? key;
+      let str = dictionaries[lang][key as KnownKey] ?? dictionaries.zh[key as KnownKey] ?? key;
       if (vars) {
         for (const [k, v] of Object.entries(vars)) {
           str = str.replace(new RegExp(`\\{${k}\\}`, "g"), String(v));

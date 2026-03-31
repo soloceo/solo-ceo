@@ -62,7 +62,7 @@ export default function AISection({ settings, save }: AISectionProps) {
 
   return (
     <section>
-      <h3 className="section-label mb-3">{t("settings.ai" as any)}</h3>
+      <h3 className="section-label mb-3">{t("settings.ai")}</h3>
       <div className="card overflow-hidden divide-y divide-[var(--color-line-secondary)]">
         {PROVIDERS.map(({ id, label, model, keyName, applyUrl }) => {
           const currentKey = localKeys[keyName] || "";
@@ -91,7 +91,7 @@ export default function AISection({ settings, save }: AISectionProps) {
                     style={{ color: "var(--color-text-tertiary)" }}
                   >
                     <ExternalLink size={11} />
-                    {t("settings.ai.getKey" as any)}
+                    {t("settings.ai.getKey")}
                   </a>
                   <button
                     onClick={() => handleSelect(id)}
@@ -104,7 +104,7 @@ export default function AISection({ settings, save }: AISectionProps) {
                       fontWeight: "var(--font-weight-medium)",
                     } as React.CSSProperties}
                   >
-                    {isActive ? t("settings.ai.active" as any) : t("settings.ai.select" as any)}
+                    {isActive ? t("settings.ai.active") : t("settings.ai.select")}
                   </button>
                 </div>
               </div>
@@ -136,7 +136,7 @@ export default function AISection({ settings, save }: AISectionProps) {
                     className="btn-primary compact text-[13px] shrink-0 gap-1"
                   >
                     <Save size={12} />
-                    {t("settings.ai.save" as any)}
+                    {t("settings.ai.save")}
                   </button>
                 )}
                 <button
@@ -144,7 +144,7 @@ export default function AISection({ settings, save }: AISectionProps) {
                   disabled={!currentKey || testing === id}
                   className="btn-ghost compact text-[13px] shrink-0 disabled:opacity-40"
                 >
-                  {testing === id ? <Loader2 size={14} className="animate-spin" /> : t("settings.ai.test" as any)}
+                  {testing === id ? <Loader2 size={14} className="animate-spin" /> : t("settings.ai.test")}
                 </button>
                 {currentKey && !isDirty && (
                   <button
@@ -156,7 +156,7 @@ export default function AISection({ settings, save }: AISectionProps) {
                     }}
                     className="btn-icon-sm shrink-0"
                     aria-label="Clear API key"
-                    title={t("settings.ai.clear" as any)}
+                    title={t("settings.ai.clear")}
                   >
                     <Trash2 size={14} />
                   </button>

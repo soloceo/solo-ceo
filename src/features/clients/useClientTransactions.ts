@@ -66,8 +66,9 @@ export function useClientTransactions(clientId: number | null) {
       const res = await fetch("/api/finance");
       const d = await res.json();
       setFinTxs(Array.isArray(d) ? d : []);
-    } catch {
-      showToast(t("common.loadFailed" as any) || "Load failed");
+    } catch (e) {
+      console.warn('[useClientTransactions] fetchFinance', e);
+      showToast(t("common.loadFailed") || "Load failed");
     }
   }, [showToast, t]);
 
@@ -97,23 +98,25 @@ export function useClientTransactions(clientId: number | null) {
       } else {
         await fetch("/api/finance", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(txData) });
       }
-      showToast(t("pipeline.tx.saved" as any));
+      showToast(t("pipeline.tx.saved"));
       setShowTxForm(false);
       setEditTxId(null);
       setTxForm(createEmptyTx());
       fetchFinance();
-    } catch {
-      showToast(t("common.saveFailed" as any));
+    } catch (e) {
+      console.warn('[useClientTransactions] saveTx', e);
+      showToast(t("common.saveFailed"));
     }
   }, [clientId, txForm, editTxId, fetchFinance, showToast, t]);
 
   const deleteTx = useCallback(async (txId: number) => {
     try {
       await fetch(`/api/finance/${txId}`, { method: "DELETE" });
-      showToast(t("pipeline.tx.deleted" as any));
+      showToast(t("pipeline.tx.deleted"));
       fetchFinance();
-    } catch {
-      showToast(t("common.deleteFailed" as any));
+    } catch (e) {
+      console.warn('[useClientTransactions] deleteTx', e);
+      showToast(t("common.deleteFailed"));
     }
   }, [fetchFinance, showToast, t]);
 

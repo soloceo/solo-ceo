@@ -48,20 +48,20 @@ interface FinanceTransaction {
   tax_mode: "none" | "exclusive" | "inclusive";
   tax_rate: number;
   tax_amount: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface ClientItem {
   id: number;
   name: string;
   company_name?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /* ── Helpers ── */
 const stLabel = (st: string, t: (k: string) => string) => {
   const key = STATUS_I18N[st];
-  return key ? t(key as any) : st;
+  return key ? t(key) : st;
 };
 
 function FL({ children }: { children: React.ReactNode }) {
@@ -155,7 +155,7 @@ export default function FinancePage() {
       const res = await fetch("/api/finance");
       const data = await res.json();
       setTransactions(Array.isArray(data) ? data : []);
-    } catch { showToast(t("money.loadFail" as any)); }
+    } catch { showToast(t("money.loadFail")); }
     finally { setIsLoading(false); }
   }, [showToast, t]);
 
@@ -297,7 +297,7 @@ export default function FinancePage() {
         }
         return true;
       })
-      .sort((a: any, b: any) => (b.date || "").localeCompare(a.date || ""));
+      .sort((a: FinanceTransaction, b: FinanceTransaction) => (b.date || "").localeCompare(a.date || ""));
   }, [tabTxs, filters]);
 
   /* ── Recent transactions (top 8) ── */
@@ -306,7 +306,7 @@ export default function FinancePage() {
   [tabTxs]);
 
   /* ── Panel open/close ── */
-  const openPanel = async (tx: any = null) => {
+  const openPanel = async (tx: FinanceTransaction | null = null) => {
     if (tx) {
       setEditingTx(tx);
       setFormData({
@@ -367,19 +367,20 @@ export default function FinancePage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(txData),
         });
-        showToast(t("money.toast.updated" as any));
+        showToast(t("money.toast.updated"));
       } else {
         await fetch("/api/finance", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(txData),
         });
-        showToast(t("money.toast.added" as any));
+        showToast(t("money.toast.added"));
       }
       setShowPanel(false);
       fetchFinance();
-    } catch {
-      showToast(t("money.saveFail" as any));
+    } catch (e) {
+      console.warn('[FinancePage] saveTx', e);
+      showToast(t("money.saveFail"));
     } finally {
       setSavingTx(false);
     }
@@ -393,9 +394,9 @@ export default function FinancePage() {
     const keyMap = AI_KEY_MAP;
     const apiKey = provider ? appSettings?.[keyMap[provider]] : undefined;
     if (!provider || !apiKey) {
-      showToast(t("money.ai.noKey" as any), 5000, {
-        label: t("common.goSettings" as any),
-        fn: () => setActiveTab("settings" as any),
+      showToast(t("money.ai.noKey"), 5000, {
+        label: t("common.goSettings"),
+        fn: () => setActiveTab("settings"),
       });
       return;
     }
@@ -422,11 +423,12 @@ export default function FinancePage() {
           tax_amount: 0,
         }),
       });
-      showToast(`✓ ${t("money.ai.recorded" as any).replace("{desc}", parsed.description).replace("{amount}", `$${parsed.amount}`)}`);
+      showToast(`✓ ${t("money.ai.recorded").replace("{desc}", parsed.description).replace("{amount}", `$${parsed.amount}`)}`);
       setAiInput("");
       fetchFinance();
-    } catch {
-      showToast(t("money.ai.error" as any));
+    } catch (e) {
+      console.warn('[FinancePage] handleAiRecord', e);
+      showToast(t("money.ai.error"));
     } finally {
       setAiParsing(false);
     }
@@ -440,8 +442,8 @@ export default function FinancePage() {
       await fetch(`/api/finance/${id}`, { method: "DELETE" });
       setDeleteId(null);
       fetchFinance();
-      showToast(t("money.toast.deleted" as any), 5000, cached ? {
-        label: t("common.undo" as any),
+      showToast(t("money.toast.deleted"), 5000, cached ? {
+        label: t("common.undo"),
         fn: async () => {
           try {
             const isIncome = cached.type === "income";
@@ -463,16 +465,16 @@ export default function FinancePage() {
               }),
             });
             fetchFinance();
-          } catch {}
+          } catch (e) { console.warn('[FinancePage] undoDelete', e); }
         },
       } : undefined);
-    } catch { showToast(t("money.deleteFail" as any)); }
+    } catch (e) { console.warn('[FinancePage] deleteTx', e); showToast(t("money.deleteFail")); }
   };
 
   /* ── Export CSV ── */
   const exportCSV = () => {
     const data = filteredTxs.length > 0 ? filteredTxs : transactions;
-    const header = [t("money.table.date" as any), t("money.table.description" as any), t("money.table.category" as any), t("money.table.amount" as any), t("finance.tax" as any), t("money.table.status" as any), t("money.filter.client" as any)].join(",");
+    const header = [t("money.table.date"), t("money.table.description"), t("money.table.category"), t("money.table.amount"), t("finance.tax"), t("money.table.status"), t("money.filter.client")].join(",");
     const rows = data.map(tx =>
       [tx.date, `"${(tx.description || tx.desc || "").replace(/"/g, '""')}"`, tx.category, tx.amount, tx.tax_amount || 0, tx.status, `"${tx.client_name || ""}"`].join(",")
     );
@@ -484,7 +486,7 @@ export default function FinancePage() {
     a.download = `finance-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    showToast(t("money.export.csvDone" as any));
+    showToast(t("money.export.csvDone"));
   };
 
   /* ── Format helpers ── */
@@ -515,7 +517,7 @@ export default function FinancePage() {
 
   return (
     <div className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col p-4 md:p-6 lg:p-8 relative">
-      <h1 className="sr-only">{t("nav.finance" as any)}</h1>
+      <h1 className="sr-only">{t("nav.finance")}</h1>
 
       {/* ── Segmented Tab Switcher ── */}
       <div className="flex items-center gap-1 p-0.5 rounded-[var(--radius-8)] mb-2" style={{ background: "var(--color-bg-tertiary)" }}>
@@ -532,7 +534,7 @@ export default function FinancePage() {
             } as React.CSSProperties}
           >
             {tab === "business" ? <Building2 size={13} /> : <UserIcon size={13} />}
-            {tab === "business" ? t("money.tab.business" as any) : t("money.tab.personal" as any)}
+            {tab === "business" ? t("money.tab.business") : t("money.tab.personal")}
           </button>
         ))}
       </div>
@@ -541,10 +543,10 @@ export default function FinancePage() {
       <div className="flex items-center gap-2 mb-2">
         <div className="flex-1" />
         <button onClick={exportCSV} className="btn-ghost compact">
-          <Download size={16} /> <span className="hidden sm:inline">{t("money.export.csv" as any)}</span>
+          <Download size={16} /> <span className="hidden sm:inline">{t("money.export.csv")}</span>
         </button>
         <button onClick={() => openPanel()} className="btn-primary compact">
-          <Plus size={16} /> <span className="hidden sm:inline">{t("finance.addRecord" as any)}</span><span className="sm:hidden">{t("money.addShort" as any)}</span>
+          <Plus size={16} /> <span className="hidden sm:inline">{t("finance.addRecord")}</span><span className="sm:hidden">{t("money.addShort")}</span>
         </button>
       </div>
 
@@ -567,7 +569,7 @@ export default function FinancePage() {
                 value={financeTab === "business" ? aiInput : ""}
                 onChange={e => setAiInput(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAiRecord(); }}
-                placeholder={t("money.tab.bizPlaceholder" as any)}
+                placeholder={t("money.tab.bizPlaceholder")}
                 disabled={aiParsing || financeTab !== "business"}
                 className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]"
               />
@@ -580,36 +582,36 @@ export default function FinancePage() {
           {/* KPI Stat Cards — Business */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
             <StatCard
-              label={t("money.stat.completedRevenue" as any)}
+              label={t("money.stat.completedRevenue")}
               value={`$${stats.totalIncome.toLocaleString()}`}
-              sub={`${t("finance.thisMonth" as any)} $${stats.monthIncome.toLocaleString()}`}
+              sub={`${t("finance.thisMonth")} $${stats.monthIncome.toLocaleString()}`}
               icon={<TrendingUp size={16} />}
               color="var(--color-success)"
             />
             <StatCard
-              label={t("money.stat.completedExpense" as any)}
+              label={t("money.stat.completedExpense")}
               value={`$${stats.totalExpense.toLocaleString()}`}
-              sub={`${t("finance.thisMonth" as any)} $${stats.monthExpense.toLocaleString()}`}
+              sub={`${t("finance.thisMonth")} $${stats.monthExpense.toLocaleString()}`}
               icon={<TrendingDown size={16} />}
               color="var(--color-danger)"
             />
             <StatCard
-              label={t("money.stat.netProfit" as any)}
+              label={t("money.stat.netProfit")}
               value={stats.netProfit < 0 ? `-$${Math.abs(stats.netProfit).toLocaleString()}` : `$${stats.netProfit.toLocaleString()}`}
-              sub={`${t("money.stat.margin" as any)} ${stats.margin}%`}
+              sub={`${t("money.stat.margin")} ${stats.margin}%`}
               icon={<Wallet size={16} />}
               color={stats.netProfit >= 0 ? "var(--color-success)" : "var(--color-danger)"}
             />
             <StatCard
-              label={t("money.stat.receivable" as any)}
+              label={t("money.stat.receivable")}
               value={`$${stats.receivable.toLocaleString()}`}
-              sub={stats.payable > 0 ? `${t("money.st.payable" as any)} $${stats.payable.toLocaleString()}` : ""}
+              sub={stats.payable > 0 ? `${t("money.st.payable")} $${stats.payable.toLocaleString()}` : ""}
               icon={<AlertCircle size={16} />}
               color="var(--color-warning)"
             />
             {stats.totalTax > 0 && (
               <StatCard
-                label={t("finance.totalTax" as any)}
+                label={t("finance.totalTax")}
                 value={`$${stats.totalTax.toLocaleString()}`}
                 sub=""
                 icon={<Receipt size={16} />}
@@ -624,9 +626,9 @@ export default function FinancePage() {
 
           <div className="card p-4 flex-1 min-h-0">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("money.recent.title" as any)}</h3>
+              <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("money.recent.title")}</h3>
               <button onClick={() => setShowAll(true)} className="btn-ghost compact">
-                {t("money.recent.viewAll" as any)} ({tabTxs.length})
+                {t("money.recent.viewAll")} ({tabTxs.length})
               </button>
             </div>
             <div className="space-y-0">
@@ -643,7 +645,7 @@ export default function FinancePage() {
               {recentTxs.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-12 gap-2">
                   <Receipt size={32} style={{ color: "var(--color-text-secondary)" }} />
-                  <p className="text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{t("money.noData" as any)}</p>
+                  <p className="text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{t("money.noData")}</p>
                 </div>
               )}
             </div>
@@ -661,7 +663,7 @@ export default function FinancePage() {
                 value={financeTab === "personal" ? aiInput : ""}
                 onChange={e => setAiInput(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAiRecord(); }}
-                placeholder={t("money.tab.personalPlaceholder" as any)}
+                placeholder={t("money.tab.personalPlaceholder")}
                 disabled={aiParsing || financeTab !== "personal"}
                 className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]"
               />
@@ -674,14 +676,14 @@ export default function FinancePage() {
           {/* KPI Stat Cards — Personal */}
           <div className="grid grid-cols-2 gap-3 mb-4">
             <StatCard
-              label={t("money.stat.monthExpense" as any)}
+              label={t("money.stat.monthExpense")}
               value={`$${personalStats.monthTotal.toLocaleString()}`}
               sub=""
               icon={<TrendingDown size={16} />}
               color="var(--color-danger)"
             />
             <StatCard
-              label={t("money.stat.dailyAvg" as any)}
+              label={t("money.stat.dailyAvg")}
               value={`$${Math.round(personalStats.dailyAvg).toLocaleString()}`}
               sub=""
               icon={<Wallet size={16} />}
@@ -695,9 +697,9 @@ export default function FinancePage() {
 
           <div className="card p-4 flex-1 min-h-0">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("money.recent.title" as any)}</h3>
+              <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("money.recent.title")}</h3>
               <button onClick={() => setShowAll(true)} className="btn-ghost compact">
-                {t("money.recent.viewAll" as any)} ({tabTxs.length})
+                {t("money.recent.viewAll")} ({tabTxs.length})
               </button>
             </div>
             <div className="space-y-0">
@@ -714,7 +716,7 @@ export default function FinancePage() {
               {recentTxs.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-12 gap-2">
                   <Receipt size={32} style={{ color: "var(--color-text-secondary)" }} />
-                  <p className="text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{t("money.noData" as any)}</p>
+                  <p className="text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{t("money.noData")}</p>
                 </div>
               )}
             </div>
@@ -726,11 +728,11 @@ export default function FinancePage() {
       {deleteId !== null && createPortal(
         <div className="fixed inset-0 flex items-center justify-center p-4 animate-fade-in" style={{ zIndex: "var(--layer-confirm)", background: "var(--color-overlay-primary)", paddingBottom: "16px" }}>
           <div className="card-elevated p-5 max-w-sm w-full" role="dialog" aria-modal="true" aria-label="Confirm delete">
-            <h3 className="text-[15px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("money.delete.title" as any)}</h3>
-            <p className="text-[15px] mb-4" style={{ color: "var(--color-text-secondary)" }}>{t("money.delete.message" as any)}</p>
+            <h3 className="text-[15px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("money.delete.title")}</h3>
+            <p className="text-[15px] mb-4" style={{ color: "var(--color-text-secondary)" }}>{t("money.delete.message")}</p>
             <div className="flex justify-end gap-2">
-              <button onClick={() => setDeleteId(null)} className="btn-ghost text-[15px]">{t("money.cancel" as any)}</button>
-              <button onClick={() => deleteTx(deleteId)} className="text-[15px] px-4 py-2 rounded-[var(--radius-6)] transition-colors" style={{ background: "var(--color-danger)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("money.delete.confirm" as any)}</button>
+              <button onClick={() => setDeleteId(null)} className="btn-ghost text-[15px]">{t("money.cancel")}</button>
+              <button onClick={() => deleteTx(deleteId)} className="text-[15px] px-4 py-2 rounded-[var(--radius-6)] transition-colors" style={{ background: "var(--color-danger)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("money.delete.confirm")}</button>
             </div>
           </div>
         </div>
@@ -742,8 +744,8 @@ export default function FinancePage() {
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-3 border-b shrink-0" style={{ borderColor: "var(--color-border-primary)", paddingTop: "max(12px, var(--mobile-header-pt, env(safe-area-inset-top, 0px)))" }}>
               <div>
-                <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("money.allTx.title" as any)}</h3>
-                <p className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{t("money.filter.results" as any).replace("{count}", String(filteredTxs.length))}</p>
+                <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("money.allTx.title")}</h3>
+                <p className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{t("money.filter.results").replace("{count}", String(filteredTxs.length))}</p>
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={exportCSV} className="btn-ghost compact gap-1" aria-label="Export CSV"><Download size={16} /></button>
@@ -756,25 +758,25 @@ export default function FinancePage() {
               <div className="relative min-w-[140px] max-w-[240px] shrink-0">
                 <Search size={16} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: "var(--color-text-secondary)" }} />
                 <input
-                  type="text" defaultValue={filterSearch} onChange={e => { const v = e.target.value; clearTimeout((window as any).__finSearchT); (window as any).__finSearchT = setTimeout(() => setFilter("search", v), 300); }}
-                  placeholder={t("finance.searchPlaceholder" as any)}
+                  type="text" defaultValue={filterSearch} onChange={e => { const v = e.target.value; clearTimeout(window.__finSearchT); window.__finSearchT = setTimeout(() => setFilter("search", v), 300); }}
+                  placeholder={t("finance.searchPlaceholder")}
                   className="input-base compact w-full pl-8 pr-3 text-[15px]"
                 />
               </div>
               {financeTab === "business" && (
                 <select value={filterType} onChange={e => setFilter("type", e.target.value)} className="input-base compact px-2 text-[15px] shrink-0">
-                  <option value="all">{t("money.filter.typeAll" as any)}</option>
-                  <option value="income">{t("money.filter.income" as any)}</option>
-                  <option value="expense">{t("money.filter.expense" as any)}</option>
+                  <option value="all">{t("money.filter.typeAll")}</option>
+                  <option value="income">{t("money.filter.income")}</option>
+                  <option value="expense">{t("money.filter.expense")}</option>
                 </select>
               )}
               <select value={filterCategory} onChange={e => setFilter("category", e.target.value)} className="input-base compact px-2 text-[15px] shrink-0">
-                <option value="all">{t("money.filter.categoryAll" as any)}</option>
+                <option value="all">{t("money.filter.categoryAll")}</option>
                 {(financeTab === "business" ? BIZ_CATEGORIES : PERSONAL_CATEGORIES_LIST).map(c => <option key={c} value={c}>{catLabel(c, t)}</option>)}
               </select>
               {financeTab === "business" && (
                 <select value={filterStatus} onChange={e => setFilter("status", e.target.value)} className="input-base compact px-2 text-[15px] shrink-0">
-                  <option value="all">{t("money.filter.statusAll" as any)}</option>
+                  <option value="all">{t("money.filter.statusAll")}</option>
                   {statuses.map(s => <option key={s} value={s}>{stLabel(s, t)}</option>)}
                 </select>
               )}
@@ -784,17 +786,17 @@ export default function FinancePage() {
                 <button
                   onClick={() => setFilters({ type: "all", category: "all", status: "all", dateFrom: "", dateTo: "", search: "" })}
                   className="btn-ghost compact text-[13px]"
-                >{t("money.filter.clear" as any)}</button>
+                >{t("money.filter.clear")}</button>
               )}
             </div>
 
             {/* Table — virtualized for 500+ rows */}
             <div className="hidden md:grid grid-cols-[100px_1fr_120px_120px_120px_80px] gap-2 px-5 py-2 text-[13px] shrink-0" style={{ color: "var(--color-text-secondary)", borderBottom: "1px solid var(--color-border-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-              <span>{t("money.table.date" as any)}</span>
-              <span>{t("money.table.description" as any)}</span>
-              <span>{t("money.table.category" as any)}</span>
-              <span className="text-right">{t("money.table.amount" as any)}</span>
-              <span>{t("money.table.status" as any)}</span>
+              <span>{t("money.table.date")}</span>
+              <span>{t("money.table.description")}</span>
+              <span>{t("money.table.category")}</span>
+              <span className="text-right">{t("money.table.amount")}</span>
+              <span>{t("money.table.status")}</span>
               <span></span>
             </div>
             <VirtualTxList
@@ -803,14 +805,14 @@ export default function FinancePage() {
               lang={lang}
               fmtAmt={fmtAmt}
               fmtAmtColor={fmtAmtColor}
-              onEdit={(tx: any) => { if (!tx.source || tx.source === 'manual') openPanel(tx); }}
-              onDelete={(tx: any) => { if (!tx.source || tx.source === 'manual') setDeleteId(tx.id); }}
+              onEdit={(tx: FinanceTransaction) => { if (!tx.source || tx.source === 'manual') openPanel(tx); }}
+              onDelete={(tx: FinanceTransaction) => { if (!tx.source || tx.source === 'manual') setDeleteId(tx.id); }}
               onClientClick={() => setActiveTab("clients")}
             />
             {filteredTxs.length === 0 && (
               <div className="flex flex-col items-center justify-center py-20 gap-2">
                 <Receipt size={32} style={{ color: "var(--color-text-secondary)" }} />
-                <p className="text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{t("money.noData" as any)}</p>
+                <p className="text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{t("money.noData")}</p>
               </div>
             )}
           </div>,
@@ -849,10 +851,10 @@ export default function FinancePage() {
                   </div>
                   <div>
                     <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
-                      {editingTx ? t("money.panel.edit" as any) : t("money.panel.new" as any)}
+                      {editingTx ? t("money.panel.edit") : t("money.panel.new")}
                     </h3>
                     <p className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>
-                      {editingTx ? t("money.panel.editDesc" as any) : t("money.panel.newDesc" as any)}
+                      {editingTx ? t("money.panel.editDesc") : t("money.panel.newDesc")}
                     </p>
                   </div>
                 </div>
@@ -865,11 +867,11 @@ export default function FinancePage() {
               <form id="finance-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto overflow-x-hidden p-5 space-y-3 ios-scroll">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <FL>{t("money.form.date" as any)}</FL>
+                    <FL>{t("money.form.date")}</FL>
                     <input type="date" required value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} className="input-base w-full px-3 py-2 text-[15px]" />
                   </div>
                   <div>
-                    <FL>{t("money.form.category" as any)}</FL>
+                    <FL>{t("money.form.category")}</FL>
                     <select value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} className="input-base w-full px-3 py-2 text-[15px]">
                       {(financeTab === "business" ? BIZ_CATEGORIES : PERSONAL_CATEGORIES_LIST).map(c => <option key={c} value={c}>{catLabel(c, t)}</option>)}
                     </select>
@@ -877,13 +879,13 @@ export default function FinancePage() {
                 </div>
 
                 <div>
-                  <FL>{t("money.form.description" as any)}</FL>
-                  <input type="text" value={formData.desc} onChange={e => setFormData({ ...formData, desc: e.target.value })} placeholder={t("money.form.descPlaceholder" as any)} className="input-base w-full px-3 py-2 text-[15px]" />
+                  <FL>{t("money.form.description")}</FL>
+                  <input type="text" value={formData.desc} onChange={e => setFormData({ ...formData, desc: e.target.value })} placeholder={t("money.form.descPlaceholder")} className="input-base w-full px-3 py-2 text-[15px]" />
                 </div>
 
                 <div className={financeTab === "business" ? "grid grid-cols-1 sm:grid-cols-2 gap-3" : ""}>
                   <div>
-                    <FL>{t("money.form.amount" as any)}</FL>
+                    <FL>{t("money.form.amount")}</FL>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[15px]" style={{ color: "var(--color-text-secondary)" }}>$</span>
                       <input type="number" required min="0" step="0.01" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} placeholder="0.00" className="input-base w-full pl-7 pr-3 py-2 text-[15px]" />
@@ -891,7 +893,7 @@ export default function FinancePage() {
                   </div>
                   {financeTab === "business" && (
                     <div>
-                      <FL>{t("money.form.status" as any)}</FL>
+                      <FL>{t("money.form.status")}</FL>
                       <select value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })} className="input-base w-full px-3 py-2 text-[15px]">
                         {statuses.map(s => <option key={s} value={s}>{stLabel(s, t)}</option>)}
                       </select>
@@ -901,7 +903,7 @@ export default function FinancePage() {
 
                 {/* Tax — business only */}
                 {financeTab === "business" && <><div>
-                  <FL>{t("money.form.tax" as any)}</FL>
+                  <FL>{t("money.form.tax")}</FL>
                   <div className="flex gap-2 mb-2">
                     {(["none", "exclusive", "inclusive"] as const).map(mode => (
                       <button
@@ -911,7 +913,7 @@ export default function FinancePage() {
                         className="flex-1 text-[15px] py-2 rounded-full transition-all"
                         style={formData.taxMode === mode ? { background: "var(--color-accent)", color: "var(--color-brand-text)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties : { background: "var(--color-bg-tertiary)", color: "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
                       >
-                        {mode === "none" ? t("money.form.taxNone" as any) : mode === "exclusive" ? t("money.form.taxExcl" as any) : t("money.form.taxIncl" as any)}
+                        {mode === "none" ? t("money.form.taxNone") : mode === "exclusive" ? t("money.form.taxExcl") : t("money.form.taxIncl")}
                       </button>
                     ))}
                   </div>
@@ -936,7 +938,7 @@ export default function FinancePage() {
                         min="0" max="100" step="0.1"
                         value={formData.taxRate}
                         onChange={e => setFormData({ ...formData, taxRate: e.target.value })}
-                        placeholder={t("money.form.customTaxPlaceholder" as any)}
+                        placeholder={t("money.form.customTaxPlaceholder")}
                         className="input-base flex-1 px-2 py-1 text-[15px]"
                       />
                     </div>
@@ -950,9 +952,9 @@ export default function FinancePage() {
                   const base = formData.taxMode === "inclusive" ? amt - tax : amt;
                   return (
                     <div className="rounded-[var(--radius-6)] p-3 text-[13px] tabular-nums" style={{ background: "var(--color-bg-tertiary)", border: "1px solid var(--color-border-primary)" }}>
-                      <div className="flex justify-between"><span style={{ color: "var(--color-text-secondary)" }}>{formData.taxMode === "inclusive" ? t("pipeline.tx.baseAmount" as any) : t("pipeline.tx.amount" as any)}</span><span style={{ color: "var(--color-text-primary)" }}>${base.toLocaleString()}</span></div>
-                      <div className="flex justify-between"><span style={{ color: "var(--color-text-secondary)" }}>{t("finance.tax" as any)} ({rate}%)</span><span style={{ color: "var(--color-text-primary)" }}>${tax.toLocaleString()}</span></div>
-                      <div className="flex justify-between border-t pt-1 mt-1" style={{ borderColor: "var(--color-border-primary)", color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}><span>{t("pipeline.tx.total" as any)}</span><span style={{ color: "var(--color-success)" }}>${total.toLocaleString()}</span></div>
+                      <div className="flex justify-between"><span style={{ color: "var(--color-text-secondary)" }}>{formData.taxMode === "inclusive" ? t("pipeline.tx.baseAmount") : t("pipeline.tx.amount")}</span><span style={{ color: "var(--color-text-primary)" }}>${base.toLocaleString()}</span></div>
+                      <div className="flex justify-between"><span style={{ color: "var(--color-text-secondary)" }}>{t("finance.tax")} ({rate}%)</span><span style={{ color: "var(--color-text-primary)" }}>${tax.toLocaleString()}</span></div>
+                      <div className="flex justify-between border-t pt-1 mt-1" style={{ borderColor: "var(--color-border-primary)", color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}><span>{t("pipeline.tx.total")}</span><span style={{ color: "var(--color-success)" }}>${total.toLocaleString()}</span></div>
                     </div>
                   );
                 })()}</>}
@@ -960,8 +962,8 @@ export default function FinancePage() {
 
               {/* Footer */}
               <div className="flex items-center justify-end gap-2 px-5 py-3 border-t pb-safe shrink-0" style={{ borderColor: "var(--color-border-primary)" }}>
-                <button type="button" onClick={() => setShowPanel(false)} className="btn-ghost text-[15px]">{t("money.cancel" as any)}</button>
-                <button type="submit" form="finance-form" disabled={savingTx} className="btn-primary text-[15px]">{savingTx ? t("common.loading" as any) : t("money.saveRecord" as any)}</button>
+                <button type="button" onClick={() => setShowPanel(false)} className="btn-ghost text-[15px]">{t("money.cancel")}</button>
+                <button type="submit" form="finance-form" disabled={savingTx} className="btn-primary text-[15px]">{savingTx ? t("common.loading") : t("money.saveRecord")}</button>
               </div>
             </motion.div>
           </>

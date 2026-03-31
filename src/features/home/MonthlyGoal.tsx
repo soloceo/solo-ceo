@@ -56,7 +56,7 @@ export function MonthlyGoal({ monthlyIncome, loading }: MonthlyGoalProps) {
         </div>
         <div className="flex-1 min-w-0">
           <span className="text-[15px]" style={{ color: "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-            {t("home.goal.setGoal" as any)}
+            {t("home.goal.setGoal")}
           </span>
         </div>
         {editing && (
@@ -69,7 +69,7 @@ export function MonthlyGoal({ monthlyIncome, loading }: MonthlyGoalProps) {
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={handleKeyDown}
               onBlur={handleSave}
-              placeholder={t("home.goal.placeholder" as any)}
+              placeholder={t("home.goal.placeholder")}
               className="input-base compact px-2 text-[15px] w-28"
             />
           </div>
@@ -86,9 +86,9 @@ export function MonthlyGoal({ monthlyIncome, loading }: MonthlyGoalProps) {
 
   const statusText = achieved
     ? monthlyIncome === goal
-      ? t("home.goal.achieved" as any)
-      : String(t("home.goal.exceeded" as any) || "").replace("${amount}", `$${diff.toLocaleString()}`)
-    : String(t("home.goal.remaining" as any) || "").replace("${amount}", `$${diff.toLocaleString()}`);
+      ? t("home.goal.achieved")
+      : String(t("home.goal.exceeded") || "").replace("${amount}", `$${diff.toLocaleString()}`)
+    : String(t("home.goal.remaining") || "").replace("${amount}", `$${diff.toLocaleString()}`);
 
   const barColor = achieved ? "var(--color-success)" : "var(--color-accent)";
 
@@ -104,7 +104,7 @@ export function MonthlyGoal({ monthlyIncome, loading }: MonthlyGoalProps) {
             {achieved ? <Check size={14} /> : <Target size={14} />}
           </div>
           <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
-            {t("home.goal.title" as any)}
+            {t("home.goal.title")}
           </span>
         </div>
 
@@ -126,7 +126,7 @@ export function MonthlyGoal({ monthlyIncome, loading }: MonthlyGoalProps) {
             onClick={() => { setDraft(String(goal)); setEditing(true); }}
             className="btn-icon-sm"
             aria-label="Edit goal"
-            title={t("home.goal.editGoal" as any)}
+            title={t("home.goal.editGoal")}
           >
             <Edit2 size={12} />
           </button>

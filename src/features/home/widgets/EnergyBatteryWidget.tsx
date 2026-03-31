@@ -136,7 +136,7 @@ function BatteryShape({ level, color, s }: { level: number; color: string; s: (p
 /* ── Main Widget ── */
 function EnergyBatteryWidget() {
   const { t } = useT();
-  const title = t("widgets.energy" as any);
+  const title = t("widgets.energy");
   const [data, setData] = useState<StorageData>(() => loadData());
   const [showRecharge, setShowRecharge] = useState(false);
   const [rechargeFlash, setRechargeFlash] = useState("");
@@ -251,11 +251,11 @@ function EnergyBatteryWidget() {
             <div className="flex items-center justify-center" style={{ marginTop: s(3) }}>
               {currentEnergy <= 20 && currentEnergy > 0 ? (
                 <span className="rounded-[var(--radius-4)]" style={{ fontSize: s(9), paddingInline: s(6), paddingBlock: s(1), background: "var(--color-danger-tint)", color: "var(--color-danger)", fontWeight: 500 }}>
-                  {t("widgets.energy.lowWarn" as any)}
+                  {t("widgets.energy.lowWarn")}
                 </span>
               ) : (
                 <span className="tabular-nums" style={{ fontSize: s(9), color: "var(--color-text-quaternary)" }}>
-                  {t("widgets.energy.awake" as any)} {Math.floor(hoursSinceWake)}h{Math.round((hoursSinceWake % 1) * 60).toString().padStart(2, "0")}m
+                  {t("widgets.energy.awake")} {Math.floor(hoursSinceWake)}h{Math.round((hoursSinceWake % 1) * 60).toString().padStart(2, "0")}m
                 </span>
               )}
             </div>
@@ -270,7 +270,7 @@ function EnergyBatteryWidget() {
                 style={{ padding: `${s(5)}px 0`, fontSize: s(10), fontWeight: 600, background: "var(--color-accent-tint)", color: "var(--color-accent)", gap: s(4) }}
               >
                 <Zap size={s(11)} />
-                {t("widgets.energy.recharge" as any)}
+                {t("widgets.energy.recharge")}
               </button>
             ) : (
               <div style={{ animation: "energyFadeIn 0.2s ease" }}>
@@ -297,7 +297,7 @@ function EnergyBatteryWidget() {
                   className="w-full press-feedback"
                   style={{ fontSize: s(9), color: "var(--color-text-quaternary)", marginTop: s(1), textAlign: "center" }}
                 >
-                  {t("widgets.energy.cancel" as any)}
+                  {t("widgets.energy.cancel")}
                 </button>
               </div>
             )}
