@@ -3,8 +3,8 @@ import {
   Plus, Trash2, Edit2, X, UserPlus, LayoutGrid, AlignJustify,
   ChevronDown, PanelRightClose, Sparkles, Search, Copy, RefreshCw, Loader2, Download,
 } from "lucide-react";
-import { useAppSettings } from "../../hooks/useAppSettings";
-import { generateOutreach, analyzeLeadQuality, AI_KEY_MAP, type AIProvider, type LeadAnalysis } from "../../lib/ai-client";
+import { useLeadAI } from "./useLeadAI";
+import type { LeadAnalysis } from "./useLeadAI";
 import { exportCSV } from "../../lib/csv-export";
 import { todayDateKey } from "../../lib/date-utils";
 import {
@@ -92,76 +92,7 @@ export function LeadsView() {
   const [convertForm, setConvertForm] = useState({ plan_tier: "", status: "Active", mrr: "", subscription_start_date: todayDateKey(), billing_type: "subscription" as "subscription" | "project", project_fee: "" });
   const [plans, setPlans] = useState<PlanRow[]>([]);
   const [form, setForm] = useState(EMPTY_LEAD);
-  const { settings: appSettings } = useAppSettings();
-  const [leadScores, setLeadScores] = useState<Record<number, LeadAnalysis>>({});
-  const [batchAnalyzing, setBatchAnalyzing] = useState(false);
-
-  // AI state
-  const [aiTone, setAiTone] = useState<"formal" | "friendly" | "direct">("friendly");
-  const [aiLang, setAiLang] = useState<"zh" | "en">(lang as "zh" | "en");
-  const [aiDraft, setAiDraft] = useState("");
-  const [aiGenerating, setAiGenerating] = useState(false);
-  const [aiAnalysis, setAiAnalysis] = useState<LeadAnalysis | null>(null);
-  const [aiAnalyzing, setAiAnalyzing] = useState(false);
-
-  const getAiConfig = () => {
-    const provider = appSettings?.ai_provider as AIProvider | undefined;
-    const keyMap = AI_KEY_MAP;
-    const apiKey = provider ? appSettings?.[keyMap[provider]] : undefined;
-    return { provider, apiKey };
-  };
-
-  const handleGenerateOutreach = async () => {
-    const { provider, apiKey } = getAiConfig();
-    if (!provider || !apiKey) {
-      showToast(t("money.ai.noKey" as any), 5000, { label: t("common.goSettings" as any), fn: () => setActiveTab("settings" as any) });
-      return;
-    }
-    if (!form.name.trim()) { showToast(t("pipeline.ai.needName" as any)); return; }
-    setAiGenerating(true);
-    try {
-      const draft = await generateOutreach(form, aiTone, aiLang, provider, apiKey);
-      setAiDraft(draft);
-      showToast(`✓ ${t("pipeline.ai.generated" as any)}`);
-    } catch { showToast(t("pipeline.ai.genFailed" as any)); }
-    finally { setAiGenerating(false); }
-  };
-
-  const handleAnalyzeLead = async () => {
-    const { provider, apiKey } = getAiConfig();
-    if (!provider || !apiKey) {
-      showToast(t("money.ai.noKey" as any), 5000, { label: t("common.goSettings" as any), fn: () => setActiveTab("settings" as any) });
-      return;
-    }
-    if (!form.name.trim()) { showToast(t("pipeline.ai.needName" as any)); return; }
-    setAiAnalyzing(true);
-    try {
-      const result = await analyzeLeadQuality(form, lang, provider, apiKey);
-      setAiAnalysis(result);
-    } catch { showToast(t("pipeline.ai.genFailed" as any)); }
-    finally { setAiAnalyzing(false); }
-  };
-
-  const handleBatchAnalyze = async () => {
-    const { provider, apiKey } = getAiConfig();
-    if (!provider || !apiKey) {
-      showToast(t("money.ai.noKey" as any), 5000, { label: t("common.goSettings" as any), fn: () => setActiveTab("settings" as any) });
-      return;
-    }
-    const allLeads: Lead[] = (Object.values(leads) as Lead[][]).flat();
-    if (!allLeads.length) return;
-    setBatchAnalyzing(true);
-    const results: Record<number, LeadAnalysis> = {};
-    for (const lead of allLeads) {
-      try {
-        const result = await analyzeLeadQuality(lead, lang, provider, apiKey);
-        results[lead.id] = result;
-      } catch { /* skip failed */ }
-    }
-    setLeadScores(prev => ({ ...prev, ...results }));
-    setBatchAnalyzing(false);
-    showToast(t("pipeline.ai.analyzed" as any).replace("{count}", String(Object.keys(results).length)));
-  };
+  const ai = useLeadAI(lang);
 
   const fetchPlans = async () => { try { const d = await (await fetch("/api/plans")).json(); setPlans(Array.isArray(d) ? d : []); } catch {} };
 
@@ -199,13 +130,12 @@ export function LeadsView() {
     if (lead) {
       setEditId(lead.id);
       setForm({ name: lead.name, industry: lead.industry, needs: lead.needs, website: lead.website || "", column: lead.column || col, source: lead.source || "" });
-      setAiDraft(lead.aiDraft || "");
+      ai.resetForPanel(lead.aiDraft || "");
     } else {
       setEditId(null);
       setForm({ ...EMPTY_LEAD, column: col });
-      setAiDraft("");
+      ai.resetForPanel();
     }
-    setAiAnalysis(null);
     setShowPanel(true);
   };
 
@@ -262,11 +192,11 @@ export function LeadsView() {
         </button>
         <div className="flex-1" />
         <button
-          onClick={handleBatchAnalyze}
-          disabled={batchAnalyzing}
+          onClick={() => ai.handleBatchAnalyze((Object.values(leads) as any[]).flat())}
+          disabled={ai.batchAnalyzing}
           className="btn-ghost compact gap-1 disabled:opacity-40"
         >
-          {batchAnalyzing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+          {ai.batchAnalyzing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
           <span className="hidden sm:inline">{t("pipeline.ai.analyzeAll" as any)}</span>
         </button>
         <button onClick={() => {
@@ -326,7 +256,7 @@ export function LeadsView() {
           ))}
         </div>
       ) : viewMode === "vertical" ? (
-        <LeadKanban leads={leads} columns={LEAD_COLS} onDragEnd={onDragEnd} onAdd={openPanel} onEdit={openPanel} onDelete={(id: number) => setDeleteId(id)} emptyText={t("pipeline.emptyCol" as any)} leadScores={leadScores} />
+        <LeadKanban leads={leads} columns={LEAD_COLS} onDragEnd={onDragEnd} onAdd={openPanel} onEdit={openPanel} onDelete={(id: number) => setDeleteId(id)} emptyText={t("pipeline.emptyCol" as any)} leadScores={ai.leadScores} />
       ) : (
         <LeadSwimlane leads={leads} columns={LEAD_COLS} onDragEnd={onDragEnd} onAdd={openPanel} onEdit={openPanel} onDelete={(id: number) => setDeleteId(id)} emptyText={t("pipeline.emptyCol" as any)} onMove={async (id: number, col: string) => {
           try {
@@ -389,24 +319,24 @@ export function LeadsView() {
                     <span className="text-[13px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
                       {t("pipeline.ai.analysis" as any)}
                     </span>
-                    <button onClick={handleAnalyzeLead} disabled={aiAnalyzing} className="btn-ghost compact text-[13px] gap-1 disabled:opacity-40">
-                      {aiAnalyzing ? <Loader2 size={12} className="animate-spin" /> : <Search size={12} />}
+                    <button onClick={() => ai.handleAnalyzeLead(form)} disabled={ai.aiAnalyzing} className="btn-ghost compact text-[13px] gap-1 disabled:opacity-40">
+                      {ai.aiAnalyzing ? <Loader2 size={12} className="animate-spin" /> : <Search size={12} />}
                       {t("pipeline.ai.analyze" as any)}
                     </button>
                   </div>
-                  {aiAnalysis && (
+                  {ai.aiAnalysis && (
                     <div className="rounded-[var(--radius-6)] p-2.5 text-[13px] mb-2" style={{
-                      background: aiAnalysis.score === "high" ? "color-mix(in srgb, var(--color-success) 8%, transparent)"
-                        : aiAnalysis.score === "medium" ? "color-mix(in srgb, var(--color-warning) 8%, transparent)"
+                      background: ai.aiAnalysis.score === "high" ? "color-mix(in srgb, var(--color-success) 8%, transparent)"
+                        : ai.aiAnalysis.score === "medium" ? "color-mix(in srgb, var(--color-warning) 8%, transparent)"
                         : "color-mix(in srgb, var(--color-danger) 8%, transparent)",
                     }}>
                       <span className="inline-block px-1.5 py-0.5 rounded-[var(--radius-4)] text-[11px] mb-1" style={{
-                        background: aiAnalysis.score === "high" ? "var(--color-success)" : aiAnalysis.score === "medium" ? "var(--color-warning)" : "var(--color-danger)",
+                        background: ai.aiAnalysis.score === "high" ? "var(--color-success)" : ai.aiAnalysis.score === "medium" ? "var(--color-warning)" : "var(--color-danger)",
                         color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)",
                       } as React.CSSProperties}>
-                        {aiAnalysis.score === "high" ? t("pipeline.ai.scoreHigh" as any) : aiAnalysis.score === "medium" ? t("pipeline.ai.scoreMedium" as any) : t("pipeline.ai.scoreLow" as any)}
+                        {ai.aiAnalysis.score === "high" ? t("pipeline.ai.scoreHigh" as any) : ai.aiAnalysis.score === "medium" ? t("pipeline.ai.scoreMedium" as any) : t("pipeline.ai.scoreLow" as any)}
                       </span>
-                      <p style={{ color: "var(--color-text-secondary)" }}>{aiAnalysis.reason}</p>
+                      <p style={{ color: "var(--color-text-secondary)" }}>{ai.aiAnalysis.reason}</p>
                     </div>
                   )}
                 </div>
@@ -420,9 +350,9 @@ export function LeadsView() {
                     {/* Tone */}
                     <div className="flex gap-1 flex-1">
                       {(["formal", "friendly", "direct"] as const).map(tone => (
-                        <button key={tone} onClick={() => setAiTone(tone)}
+                        <button key={tone} onClick={() => ai.setAiTone(tone)}
                           className="flex-1 text-[12px] py-1 rounded-[var(--radius-4)] transition-colors"
-                          style={aiTone === tone ? { background: "var(--color-accent)", color: "var(--color-brand-text)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties : { background: "var(--color-bg-tertiary)", color: "var(--color-text-tertiary)" }}
+                          style={ai.aiTone === tone ? { background: "var(--color-accent)", color: "var(--color-brand-text)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties : { background: "var(--color-bg-tertiary)", color: "var(--color-text-tertiary)" }}
                         >
                           {tone === "formal" ? t("pipeline.ai.toneFormal" as any) : tone === "friendly" ? t("pipeline.ai.toneFriendly" as any) : t("pipeline.ai.toneDirect" as any)}
                         </button>
@@ -431,29 +361,29 @@ export function LeadsView() {
                     {/* Language */}
                     <div className="flex gap-1">
                       {(["zh", "en"] as const).map(l => (
-                        <button key={l} onClick={() => setAiLang(l)}
+                        <button key={l} onClick={() => ai.setAiLang(l)}
                           className="text-[12px] px-2 py-1 rounded-[var(--radius-4)] transition-colors"
-                          style={aiLang === l ? { background: "var(--color-accent)", color: "var(--color-brand-text)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties : { background: "var(--color-bg-tertiary)", color: "var(--color-text-tertiary)" }}
+                          style={ai.aiLang === l ? { background: "var(--color-accent)", color: "var(--color-brand-text)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties : { background: "var(--color-bg-tertiary)", color: "var(--color-text-tertiary)" }}
                         >
                           {l === "zh" ? "中文" : "EN"}
                         </button>
                       ))}
                     </div>
                   </div>
-                  <button onClick={handleGenerateOutreach} disabled={aiGenerating} className="btn-primary compact w-full text-[14px] gap-1.5 mb-2 disabled:opacity-40">
-                    {aiGenerating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                    {aiGenerating ? t("pipeline.ai.generating" as any) : t("pipeline.ai.generate" as any)}
+                  <button onClick={() => ai.handleGenerateOutreach(form)} disabled={ai.aiGenerating} className="btn-primary compact w-full text-[14px] gap-1.5 mb-2 disabled:opacity-40">
+                    {ai.aiGenerating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                    {ai.aiGenerating ? t("pipeline.ai.generating" as any) : t("pipeline.ai.generate" as any)}
                   </button>
-                  {aiDraft && (
+                  {ai.aiDraft && (
                     <div>
                       <pre className="text-[13px] leading-relaxed whitespace-pre-wrap rounded-[var(--radius-6)] p-3 mb-2" style={{ background: "var(--color-bg-tertiary)", color: "var(--color-text-secondary)", fontFamily: "inherit" }}>
-                        {aiDraft}
+                        {ai.aiDraft}
                       </pre>
                       <div className="flex gap-2">
-                        <button onClick={() => { navigator.clipboard.writeText(aiDraft); showToast(t("pipeline.ai.copyDraft" as any)); }} className="btn-ghost compact text-[13px] gap-1">
+                        <button onClick={() => { navigator.clipboard.writeText(ai.aiDraft); showToast(t("pipeline.ai.copyDraft" as any)); }} className="btn-ghost compact text-[13px] gap-1">
                           <Copy size={12} /> {t("pipeline.ai.copyDraft" as any)}
                         </button>
-                        <button onClick={handleGenerateOutreach} disabled={aiGenerating} className="btn-ghost compact text-[13px] gap-1 disabled:opacity-40">
+                        <button onClick={() => ai.handleGenerateOutreach(form)} disabled={ai.aiGenerating} className="btn-ghost compact text-[13px] gap-1 disabled:opacity-40">
                           <RefreshCw size={12} /> {t("common.regenerate" as any)}
                         </button>
                       </div>
