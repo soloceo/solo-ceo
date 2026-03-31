@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
+import { api } from "../../lib/api";
 import { useUIStore } from "../../store/useUIStore";
 import { useT } from "../../i18n/context";
 import { calcTaxAmount } from "../../lib/tax";
@@ -63,8 +64,7 @@ export function useClientTransactions(clientId: number | null) {
 
   const fetchFinance = useCallback(async () => {
     try {
-      const res = await fetch("/api/finance");
-      const d = await res.json();
+      const d = await api.get<FinanceTransaction[]>("/api/finance");
       setFinTxs(Array.isArray(d) ? d : []);
     } catch (e) {
       console.warn('[useClientTransactions] fetchFinance', e);
@@ -94,9 +94,9 @@ export function useClientTransactions(clientId: number | null) {
     };
     try {
       if (editTxId) {
-        await fetch(`/api/finance/${editTxId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(txData) });
+        await api.put(`/api/finance/${editTxId}`, txData);
       } else {
-        await fetch("/api/finance", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(txData) });
+        await api.post("/api/finance", txData);
       }
       showToast(t("pipeline.tx.saved"));
       setShowTxForm(false);
@@ -111,7 +111,7 @@ export function useClientTransactions(clientId: number | null) {
 
   const deleteTx = useCallback(async (txId: number) => {
     try {
-      await fetch(`/api/finance/${txId}`, { method: "DELETE" });
+      await api.del(`/api/finance/${txId}`);
       showToast(t("pipeline.tx.deleted"));
       fetchFinance();
     } catch (e) {

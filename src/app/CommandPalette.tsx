@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useUIStore, type TabId } from "../store/useUIStore";
 import { useT } from "../i18n/context";
+import { api } from "../lib/api";
 
 const NAV_ITEMS = [
   { id: "home" as const, icon: Home, labelKey: "nav.home" },
@@ -56,16 +57,16 @@ export function CommandPalette() {
     if (!commandPaletteOpen) { setQuery(""); setResults([]); return; }
     if (query.length < 2) { setResults([]); return; }
 
-    const controller = new AbortController();
+    let cancelled = false;
     const search = async () => {
       try {
-        const [tasksRes, clientsRes, leadsRes, financeRes] = await Promise.all([
-          fetch("/api/tasks", { signal: controller.signal }),
-          fetch("/api/clients", { signal: controller.signal }),
-          fetch("/api/leads", { signal: controller.signal }),
-          fetch("/api/finance", { signal: controller.signal }),
+        const [tasks, clients, leads, finance] = await Promise.all([
+          api.get<any[]>("/api/tasks"),
+          api.get<any[]>("/api/clients"),
+          api.get<any[]>("/api/leads"),
+          api.get<any[]>("/api/finance"),
         ]);
-        const [tasks, clients, leads, finance] = await Promise.all([tasksRes.json(), clientsRes.json(), leadsRes.json(), financeRes.json()]);
+        if (cancelled) return;
         const q = query.toLowerCase();
         const matched: SearchResult[] = [];
 
@@ -96,7 +97,7 @@ export function CommandPalette() {
     };
 
     const debounce = setTimeout(search, 200);
-    return () => { clearTimeout(debounce); controller.abort(); };
+    return () => { clearTimeout(debounce); cancelled = true; };
   }, [query, commandPaletteOpen]);
 
   const go = (tab: string) => { setActiveTab(tab as TabId); setCommandPaletteOpen(false); };

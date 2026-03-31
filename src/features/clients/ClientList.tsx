@@ -8,6 +8,7 @@ import {
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
+import { api } from "../../lib/api";
 import { useT } from "../../i18n/context";
 import { useRealtimeRefresh } from "../../hooks/useRealtimeRefresh";
 import { useIsMobile } from "../../hooks/useIsMobile";
@@ -94,6 +95,7 @@ export function ClientsView() {
   const [savingClient, setSavingClient] = useState(false);
   const [form, setForm] = useState(createEmptyClient);
   const parentRef = useRef<HTMLDivElement>(null);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
 
   /* ── Milestones hook ── */
   const ms = useMilestones(editId, Number(form.project_fee) || 0);
@@ -107,11 +109,20 @@ export function ClientsView() {
   /* ── Form validation ── */
   const [formErrors, setFormErrors] = useState<Record<string, boolean>>({});
 
-  const fetchPlans = async () => { try { const d = await (await fetch("/api/plans")).json(); setPlans(Array.isArray(d) ? d : []); } catch { showToast(t("common.loadFailed") || "Load failed"); } };
-  const fetchClients = async () => { try { const res = await fetch("/api/clients"); const data = await res.json(); setClients(Array.isArray(data) ? data : []); } catch { showToast(t("pipeline.toast.clientLoadFailed")); } finally { setLoading(false); } };
+  const fetchPlans = async () => { try { const d = await api.get<unknown[]>("/api/plans"); setPlans(Array.isArray(d) ? d : []); } catch { showToast(t("common.loadFailed") || "Load failed"); } };
+  const fetchClients = async () => { try { const data = await api.get<unknown[]>("/api/clients"); setClients(Array.isArray(data) ? data : []); } catch { showToast(t("pipeline.toast.clientLoadFailed")); } finally { setLoading(false); } };
 
   useEffect(() => { fetchClients(); fetchPlans(); tx.fetchFinance(); }, []);
   useRealtimeRefresh(CLIENTS_TABLES, () => { fetchClients(); tx.fetchFinance(); if (editId && form.billing_type === "project") ms.fetchMilestones(editId); });
+
+  /* ── Pull-to-refresh listener ── */
+  useEffect(() => {
+    const handler = (e: Event) => {
+      if ((e as CustomEvent).detail?.target === "clients") { fetchClients(); fetchPlans(); }
+    };
+    window.addEventListener("pull-refresh", handler);
+    return () => window.removeEventListener("pull-refresh", handler);
+  }, []);
 
   /* ── FAB quick-create listener ── */
   useEffect(() => {
@@ -170,14 +181,14 @@ export function ClientsView() {
     const startEvt = form.timeline.find(e => e.type === "start");
     const d = { name: form.name, company_name: form.company_name, contact_name: form.contact_name, contact_email: form.contact_email, contact_phone: form.contact_phone, billing_type: form.billing_type, plan_tier: form.billing_type === "subscription" ? form.plan : "", status: form.status, mrr: form.billing_type === "subscription" ? (Number(form.mrr) || 0) : 0, project_fee: form.billing_type === "project" ? (Number(form.project_fee) || 0) : 0, subscription_start_date: startEvt?.date || form.subscription_start_date, project_end_date: form.project_end_date, paused_at: form.timeline.filter(e => e.type === "pause").pop()?.date || "", resumed_at: form.timeline.filter(e => e.type === "resume").pop()?.date || "", cancelled_at: form.timeline.find(e => e.type === "cancel")?.date || "", mrr_effective_from: startEvt?.date || form.subscription_start_date, subscription_timeline: JSON.stringify(form.timeline), tax_mode: form.tax_mode, tax_rate: Number(form.tax_rate) || 0, drive_folder_url: form.drive_folder_url, payment_method: form.payment_method };
     try {
-      if (editId) { await fetch(`/api/clients/${editId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(d) }); showToast(t("pipeline.toast.clientUpdated")); }
-      else { await fetch("/api/clients", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(d) }); showToast(t("pipeline.toast.clientAdded")); }
+      if (editId) { await api.put(`/api/clients/${editId}`, d); showToast(t("pipeline.toast.clientUpdated")); }
+      else { await api.post("/api/clients", d); showToast(t("pipeline.toast.clientAdded")); }
       setShowPanel(false); fetchClients();
     } catch { showToast(t("common.saveFailed")); }
     finally { setSavingClient(false); }
   };
 
-  const deleteClient = async (id: number) => { try { await fetch(`/api/clients/${id}`, { method: "DELETE" }); setShowPanel(false); showToast(t("pipeline.toast.clientDeleted")); fetchClients(); } catch { showToast(t("common.deleteFailed")); } };
+  const deleteClient = async (id: number) => { try { await api.del(`/api/clients/${id}`); setShowPanel(false); showToast(t("pipeline.toast.clientDeleted")); fetchClients(); } catch { showToast(t("common.deleteFailed")); } };
 
   const uniquePlanTiers = [...new Set(clients.filter(c => c.billing_type === "subscription" && c.plan_tier).map(c => c.plan_tier))];
   const filtered = useMemo(() => clients.filter(c => {
@@ -251,7 +262,7 @@ export function ClientsView() {
               <div className="relative flex-1 min-w-[140px]">
                 <label htmlFor="client-search" className="sr-only">{t("pipeline.clients.search")}</label>
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={14} style={{ color: "var(--color-text-tertiary)" }} aria-hidden="true" />
-                <input id="client-search" defaultValue={search} onChange={e => { const v = e.target.value; clearTimeout(window.__cliSearchT); window.__cliSearchT = setTimeout(() => setSearch(v), 300); }} placeholder={t("pipeline.clients.search")} className="input-base compact w-full pl-9 pr-3 text-[14px]" />
+                <input id="client-search" defaultValue={search} onChange={e => { const v = e.target.value; if (searchTimerRef.current) clearTimeout(searchTimerRef.current); searchTimerRef.current = setTimeout(() => setSearch(v), 300); }} placeholder={t("pipeline.clients.search")} className="input-base compact w-full pl-9 pr-3 text-[14px]" />
               </div>
               <div className="w-px h-5 shrink-0 hidden sm:block" style={{ background: "var(--color-border-primary)" }} />
               <Filter size={14} className="shrink-0" style={{ color: "var(--color-text-tertiary)" }} aria-hidden="true" />

@@ -17,6 +17,7 @@ import { BreakthroughSection } from "./BreakthroughSection";
 import { BarChart3 } from "lucide-react";
 import { PROTOCOL_STEPS } from "../../data/evolution-protocol";
 import { todayDateKey, dateToKey } from "../../lib/date-utils";
+import { api } from "../../lib/api";
 
 const WidgetGrid = lazy(() => import("./widgets/WidgetGrid"));
 
@@ -110,8 +111,7 @@ export default function HomePage() {
 
   const fetchData = async () => {
     try {
-      const res = await fetch("/api/dashboard");
-      const raw = await res.json();
+      const raw = await api.get<any>("/api/dashboard");
       setData({
         ...raw,
         todayFocus: Array.isArray(raw.todayFocus) ? raw.todayFocus : [],
@@ -146,12 +146,9 @@ export default function HomePage() {
 
   /* ── Focus handlers ── */
   const handleUpdateStatus = async (key: string, status: "pending" | "completed") => {
-    const res = await fetch("/api/today-focus/state", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ focusKey: key, status }),
-    });
-    if (!res.ok) {
+    try {
+      await api.post("/api/today-focus/state", { focusKey: key, status });
+    } catch {
       showToast(t("common.updateFailed") || "Update failed");
       return;
     }
@@ -164,15 +161,14 @@ export default function HomePage() {
 
   const handleSaveManual = async (form: { type: string; title: string; note: string }, editKey?: string) => {
     const isEdit = Boolean(editKey);
-    const res = await fetch(
-      isEdit ? `/api/today-focus/manual/${manualIdFromKey(editKey!)}` : "/api/today-focus/manual",
-      {
-        method: isEdit ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: form.type, title: form.title.trim(), note: form.note.trim() }),
-      },
-    );
-    if (!res.ok) {
+    const payload = { type: form.type, title: form.title.trim(), note: form.note.trim() };
+    try {
+      if (isEdit) {
+        await api.put(`/api/today-focus/manual/${manualIdFromKey(editKey!)}`, payload);
+      } else {
+        await api.post("/api/today-focus/manual", payload);
+      }
+    } catch {
       showToast(t("common.saveFailed") || "Save failed");
       throw new Error("Save failed");
     }
@@ -180,8 +176,9 @@ export default function HomePage() {
   };
 
   const handleDeleteManual = async (item: FocusItem) => {
-    const res = await fetch(`/api/today-focus/manual/${manualIdFromKey(item.key)}`, { method: "DELETE" });
-    if (!res.ok) {
+    try {
+      await api.del(`/api/today-focus/manual/${manualIdFromKey(item.key)}`);
+    } catch {
       showToast(t("common.deleteFailed") || "Delete failed");
       throw new Error("Delete failed");
     }

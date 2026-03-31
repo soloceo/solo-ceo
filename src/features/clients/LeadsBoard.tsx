@@ -3,6 +3,7 @@ import {
   Plus, Trash2, Edit2, X, UserPlus, LayoutGrid, AlignJustify,
   ChevronDown, PanelRightClose, Sparkles, Search, Copy, RefreshCw, Loader2, Download,
 } from "lucide-react";
+import { api } from "../../lib/api";
 import { useLeadAI } from "./useLeadAI";
 import type { LeadAnalysis } from "./useLeadAI";
 import { exportCSV } from "../../lib/csv-export";
@@ -147,12 +148,11 @@ export function LeadsView() {
   const [form, setForm] = useState(EMPTY_LEAD);
   const ai = useLeadAI(lang);
 
-  const fetchPlans = async () => { try { const d = await (await fetch("/api/plans")).json(); setPlans(Array.isArray(d) ? d : []); } catch (e) { console.warn('[LeadsBoard] fetchPlans', e); } };
+  const fetchPlans = async () => { try { const d = await api.get<unknown[]>("/api/plans"); setPlans(Array.isArray(d) ? d : []); } catch (e) { console.warn('[LeadsBoard] fetchPlans', e); } };
 
   const fetchLeads = async () => {
     try {
-      const res = await fetch("/api/leads");
-      const raw = await res.json();
+      const raw = await api.get<Lead[]>("/api/leads");
       const data = Array.isArray(raw) ? raw : [];
       setLeads({ new: data.filter((l: Lead) => l.column === "new"), contacted: data.filter((l: Lead) => l.column === "contacted"), proposal: data.filter((l: Lead) => l.column === "proposal"), won: data.filter((l: Lead) => l.column === "won"), lost: data.filter((l: Lead) => l.column === "lost") });
     } catch { showToast(t("pipeline.toast.loadFailed")); }
@@ -161,6 +161,15 @@ export function LeadsView() {
 
   useEffect(() => { fetchLeads(); fetchPlans(); }, []);
   useRealtimeRefresh(LEADS_TABLES, fetchLeads);
+
+  /* ── Pull-to-refresh listener ── */
+  useEffect(() => {
+    const handler = (e: Event) => {
+      if ((e as CustomEvent).detail?.target === "leads") { fetchLeads(); fetchPlans(); }
+    };
+    window.addEventListener("pull-refresh", handler);
+    return () => window.removeEventListener("pull-refresh", handler);
+  }, []);
   useEffect(() => {
     const show = isMobile && (showPanel || showConvert);
     window.dispatchEvent(new CustomEvent("mobile-nav-visibility", { detail: { hidden: show } }));
@@ -200,15 +209,15 @@ export function LeadsView() {
     setNameError(false);
     setSavingLead(true);
     try {
-      if (editId) { await fetch(`/api/leads/${editId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) }); showToast(t("pipeline.toast.leadUpdated")); }
-      else { await fetch("/api/leads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) }); showToast(t("pipeline.toast.leadAdded")); }
+      if (editId) { await api.put(`/api/leads/${editId}`, form); showToast(t("pipeline.toast.leadUpdated")); }
+      else { await api.post("/api/leads", form); showToast(t("pipeline.toast.leadAdded")); }
       setShowPanel(false); fetchLeads();
     } catch { showToast(t("common.saveFailed")); }
     finally { setSavingLead(false); }
   };
 
   const deleteLead = async (id: number) => {
-    try { await fetch(`/api/leads/${id}`, { method: "DELETE" }); setShowPanel(false); setDeleteId(null); showToast(t("pipeline.toast.leadDeleted")); fetchLeads(); } catch { showToast(t("common.deleteFailed")); }
+    try { await api.del(`/api/leads/${id}`); setShowPanel(false); setDeleteId(null); showToast(t("pipeline.toast.leadDeleted")); fetchLeads(); } catch { showToast(t("common.deleteFailed")); }
   };
 
   const onDragEnd = async (result: DragResult) => {
@@ -218,7 +227,7 @@ export function LeadsView() {
       const src = [...leads[s.droppableId as ColId]], dst = [...leads[d.droppableId as ColId]];
       const [moved] = src.splice(s.index, 1); moved.column = d.droppableId as ColId; dst.splice(d.index, 0, moved);
       setLeads({ ...leads, [s.droppableId]: src, [d.droppableId]: dst });
-      try { await fetch(`/api/leads/${moved.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(moved) }); } catch { showToast(t("common.updateFailed")); fetchLeads(); }
+      try { await api.put(`/api/leads/${moved.id}`, moved); } catch { showToast(t("common.updateFailed")); fetchLeads(); }
     } else { const col = [...leads[s.droppableId as ColId]]; const [moved] = col.splice(s.index, 1); col.splice(d.index, 0, moved); setLeads({ ...leads, [s.droppableId]: col }); }
   };
 
@@ -226,7 +235,7 @@ export function LeadsView() {
     if (!editId) return; setConverting(true);
     try {
       const mrrVal = parseFloat(convertForm.mrr); const projVal = parseFloat(convertForm.project_fee);
-      await fetch(`/api/leads/${editId}/convert`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan_tier: convertForm.plan_tier, status: convertForm.status, mrr: isNaN(mrrVal) ? 0 : mrrVal, subscription_start_date: convertForm.subscription_start_date, billing_type: convertForm.billing_type, project_fee: isNaN(projVal) ? 0 : projVal }) });
+      await api.post(`/api/leads/${editId}/convert`, { plan_tier: convertForm.plan_tier, status: convertForm.status, mrr: isNaN(mrrVal) ? 0 : mrrVal, subscription_start_date: convertForm.subscription_start_date, billing_type: convertForm.billing_type, project_fee: isNaN(projVal) ? 0 : projVal });
       setShowConvert(false); setShowPanel(false); showToast(t("pipeline.convert.success")); fetchLeads();
     } catch { showToast(t("pipeline.convert.failed")); }
     finally { setConverting(false); }
@@ -316,7 +325,7 @@ export function LeadsView() {
             const allLeads = Object.values(leads).flat();
             const lead = allLeads.find((l: Lead) => l.id === id);
             if (!lead) return;
-            await fetch(`/api/leads/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(Object.assign({}, lead, { column: col })) }); fetchLeads();
+            await api.put(`/api/leads/${id}`, Object.assign({}, lead, { column: col })); fetchLeads();
           } catch { showToast(t("pipeline.toast.moveFailed")); }
         }} />
       )}

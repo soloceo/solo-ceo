@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { Plus, Check, Circle, ChevronDown, ChevronRight, Trash2, Pin, X, Calendar, Pencil, Bot, Send, Loader2 } from "lucide-react";
+import { api } from "../../lib/api";
 import { useT } from "../../i18n/context";
 import { useAppSettings } from "../../hooks/useAppSettings";
 import { useUIStore } from "../../store/useUIStore";
@@ -133,16 +134,12 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
     const newColumn = task.column === "done" ? "todo" : "done";
     // Optimistic: refresh immediately, API in background
     onRefresh();
-    fetch(`/api/tasks/${task.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...task, column: newColumn }),
-    }).then(() => onRefresh());
+    api.put(`/api/tasks/${task.id}`, { ...task, column: newColumn }).then(() => onRefresh());
   };
 
   const deleteTask = (id: number) => {
     onRefresh();
-    fetch(`/api/tasks/${id}`, { method: "DELETE" }).then(() => onRefresh());
+    api.del(`/api/tasks/${id}`).then(() => onRefresh());
   };
 
   const startEdit = (task: Task) => {
@@ -162,11 +159,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
     const task = memoTasks.find(t => t.id === editingId);
     if (!task) return;
     setEditingId(null);
-    fetch(`/api/tasks/${editingId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...task, title: editTitle.trim(), due: buildDue(editDate, editTime) }),
-    }).then(() => onRefresh());
+    api.put(`/api/tasks/${editingId}`, { ...task, title: editTitle.trim(), due: buildDue(editDate, editTime) }).then(() => onRefresh());
   };
 
   const cancelEdit = () => {
@@ -184,16 +177,12 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
     setSimpleDate("");
     setSimpleTime("");
     setAddingSimple(false);
-    fetch("/api/tasks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title,
-        scope,
-        column: "todo",
-        priority: "Medium",
-        ...(due ? { due } : {}),
-      }),
+    api.post("/api/tasks", {
+      title,
+      scope,
+      column: "todo",
+      priority: "Medium",
+      ...(due ? { due } : {}),
     }).then(() => onRefresh());
   };
 
@@ -207,11 +196,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
 
     if (!provider || !apiKey) {
       // No AI key — just create directly with text as title
-      await fetch("/api/tasks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: text, scope: "work-memo", column: "todo", priority: "Medium" }),
-      });
+      await api.post("/api/tasks", { title: text, scope: "work-memo", column: "todo", priority: "Medium" });
       showToast(`✓ ${text}`);
       setAiInput("");
       onRefresh();
@@ -258,16 +243,12 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
       }
 
       if (result) {
-        await fetch("/api/tasks", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: result.title || text,
-            scope,
-            column: "todo",
-            priority: "Medium",
-            ...(result.due ? { due: result.due } : {}),
-          }),
+        await api.post("/api/tasks", {
+          title: result.title || text,
+          scope,
+          column: "todo",
+          priority: "Medium",
+          ...(result.due ? { due: result.due } : {}),
         });
         showToast(`✓ ${result.title || text}`);
       }
@@ -276,11 +257,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
     } catch (e) {
       console.warn('[WorkMemoList] AI parse failed, using fallback', e);
       // Fallback: create directly
-      await fetch("/api/tasks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: text, scope: "work-memo", column: "todo", priority: "Medium" }),
-      });
+      await api.post("/api/tasks", { title: text, scope: "work-memo", column: "todo", priority: "Medium" });
       showToast(`✓ ${text}`);
       setAiInput("");
       onRefresh();

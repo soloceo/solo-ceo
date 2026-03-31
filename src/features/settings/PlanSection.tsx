@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2, Plus, Edit2, Package, X } from 'lucide-react';
 import { useT } from '../../i18n/context';
+import { api } from '../../lib/api';
 
 interface PlanSectionProps {
   showToast: (msg: string) => void;
@@ -23,7 +24,7 @@ export default function PlanSection({ showToast }: PlanSectionProps) {
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [form, setForm] = useState({ name: "", price: "", deliverySpeed: "", features: "" });
 
-  const fetchPlans = async () => { try { setPlans(await (await fetch("/api/plans")).json()); } catch (e) { /* API error, silent fallback */ } };
+  const fetchPlans = async () => { try { setPlans(await api.get<Plan[]>("/api/plans")); } catch (e) { /* API error, silent fallback */ } };
   useEffect(() => { fetchPlans(); }, []);
 
   const openEdit = (p: Plan) => { setEditing(p); setForm({ name: p.name, price: String(p.price || 0), deliverySpeed: p.deliverySpeed || "", features: (JSON.parse(p.features || "[]") as string[]).join("\n") }); };
@@ -34,8 +35,8 @@ export default function PlanSection({ showToast }: PlanSectionProps) {
     setSaving(true);
     const data = { name: form.name, price: Number(form.price) || 0, deliverySpeed: form.deliverySpeed, features: JSON.stringify(form.features.split("\n").filter(Boolean)) };
     try {
-      if (editing === "new") { await fetch("/api/plans", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }); }
-      else { await fetch(`/api/plans/${editing.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }); }
+      if (editing === "new") { await api.post("/api/plans", data); }
+      else { await api.put(`/api/plans/${(editing as Plan).id}`, data); }
       showToast(t("common.saved"));
       setEditing(null); fetchPlans();
     } catch { showToast("Error"); }
@@ -44,7 +45,7 @@ export default function PlanSection({ showToast }: PlanSectionProps) {
 
   const del = async (id: number) => {
     try {
-      await fetch(`/api/plans/${id}`, { method: "DELETE" });
+      await api.del(`/api/plans/${id}`);
       showToast(t("settings.planDeleted"));
     } catch (e) {
       console.warn('[PlanSection] deletePlan', e);

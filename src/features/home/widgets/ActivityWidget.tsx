@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useT } from "../../../i18n/context";
 import { useWidgetScale } from "./useWidgetScale";
+import { api } from "../../../lib/api";
 
 interface ActivityItem {
   activity: string;
@@ -88,10 +89,9 @@ function ActivityWidget() {
   const { s } = useWidgetScale(rootRef);
 
   const fetchActivity = useCallback(() => {
-    fetch("/api/dashboard")
-      .then((r) => r.json())
+    api.get<any>("/api/dashboard")
       .then((d) => {
-        const items: ActivityItem[] = (d.recentActivity || []).slice(0, 20);
+        const items: ActivityItem[] = ((d.recentActivity as ActivityItem[]) || []).slice(0, 20);
         setRawItems(items);
         prevCountRef.current = items.length;
       })

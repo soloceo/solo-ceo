@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { todayDateKey } from "../lib/date-utils";
+import { api } from "../lib/api";
 
 /**
  * Check for overdue/due-today items and show browser notifications.
@@ -14,11 +15,10 @@ export function useDueReminders(lang: string, t?: (key: string) => string) {
 
     const check = async () => {
       try {
-        const [tasksRes, milestonesRes] = await Promise.all([
-          fetch("/api/tasks"),
-          fetch("/api/clients"), // milestones are embedded in client data
+        const [tasks] = await Promise.all([
+          api.get<any[]>("/api/tasks"),
+          api.get("/api/clients"), // milestones are embedded in client data
         ]);
-        const tasks = await tasksRes.json();
         const today = todayDateKey();
 
         // Find overdue/due-today tasks

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useT } from "../../../i18n/context";
 import { useWidgetScale } from "./useWidgetScale";
+import { api } from "../../../lib/api";
 
 interface Task {
   id: string;
@@ -34,8 +35,7 @@ function MiniCalendarWidget() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/tasks");
-        const data = await res.json();
+        const data = await api.get<Task[]>("/api/tasks");
         if (!cancelled && Array.isArray(data)) setTasks(data.filter((t: Task) => t.due));
       } catch {}
     })();

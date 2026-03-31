@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { BarChart3, TrendingUp, TrendingDown, Users, UserPlus, CheckCircle2, X, DollarSign } from "lucide-react";
 import { useT } from "../../i18n/context";
 import { EmptyState } from "../../components/ui/EmptyState";
+import { api } from "../../lib/api";
 
 interface ReportData {
   weekStart: string;
@@ -28,8 +29,7 @@ export function WeeklyReport({ open, onClose }: WeeklyReportProps) {
   useEffect(() => {
     if (!open) return;
     setLoading(true);
-    fetch("/api/weekly-report")
-      .then(r => r.json())
+    api.get<ReportData>("/api/weekly-report")
       .then(setData)
       .catch(() => { /* weekly report load failed */ })
       .finally(() => setLoading(false));

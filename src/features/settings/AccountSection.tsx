@@ -1,6 +1,7 @@
 import React from 'react';
 import { Cloud, CloudOff, LogOut, LogIn, User, Download, Upload } from 'lucide-react';
 import { useT } from '../../i18n/context';
+import { api } from '../../lib/api';
 import type { User as SupaUser } from '@supabase/supabase-js';
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -77,10 +78,10 @@ export default function AccountSection({ user, isOnline, pendingOps, signOut }: 
             onClick={async () => {
               try {
                 const [tasks, clients, leads, finance] = await Promise.all([
-                  fetch("/api/tasks").then(r => r.json()),
-                  fetch("/api/clients").then(r => r.json()),
-                  fetch("/api/leads").then(r => r.json()),
-                  fetch("/api/finance").then(r => r.json()),
+                  api.get("/api/tasks"),
+                  api.get("/api/clients"),
+                  api.get("/api/leads"),
+                  api.get("/api/finance"),
                 ]);
                 const backup = { version: 1, date: new Date().toISOString(), tasks, clients, leads, finance };
                 const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });

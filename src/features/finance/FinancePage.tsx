@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { motion, AnimatePresence } from "motion/react";
 import { createPortal } from "react-dom";
 import { useT } from "../../i18n/context";
+import { usePullToRefresh } from "../../hooks/usePullToRefresh";
 import { useRealtimeRefresh } from "../../hooks/useRealtimeRefresh";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import { useUIStore } from "../../store/useUIStore";
@@ -24,6 +25,7 @@ import {
   Send,
 } from "lucide-react";
 
+import { api } from "../../lib/api";
 import { calcTaxAmount, catLabel, STATUS_I18N } from "../../lib/tax";
 import { todayDateKey } from "../../lib/date-utils";
 import { parseExpense, AI_KEY_MAP, type AIProvider } from "../../lib/ai-client";
@@ -152,19 +154,22 @@ export default function FinancePage() {
   /* ── Fetch ── */
   const fetchFinance = useCallback(async () => {
     try {
-      const res = await fetch("/api/finance");
-      const data = await res.json();
+      const data = await api.get<FinanceTransaction[]>("/api/finance");
       setTransactions(Array.isArray(data) ? data : []);
     } catch { showToast(t("money.loadFail")); }
     finally { setIsLoading(false); }
   }, [showToast, t]);
 
   const fetchClients = useCallback(async () => {
-    try { const d = await (await fetch("/api/clients")).json(); setClientList(Array.isArray(d) ? d : []); } catch { /* client list unavailable */ }
+    try { const d = await api.get<{ id: number; name: string }[]>("/api/clients"); setClientList(Array.isArray(d) ? d : []); } catch { /* client list unavailable */ }
   }, []);
 
   useEffect(() => { Promise.allSettled([fetchFinance(), fetchClients()]); }, [fetchFinance, fetchClients]);
   useRealtimeRefresh(FINANCE_TABLES, fetchFinance);
+
+  const pullRef = useRef<HTMLDivElement>(null);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+  usePullToRefresh(pullRef, fetchFinance);
 
   useEffect(() => {
     const anyOpen = isMobile && (showPanel || showAll);
@@ -362,18 +367,10 @@ export default function FinancePage() {
 
     try {
       if (editingTx && !String(editingTx.id).includes("-")) {
-        await fetch(`/api/finance/${editingTx.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(txData),
-        });
+        await api.put(`/api/finance/${editingTx.id}`, txData);
         showToast(t("money.toast.updated"));
       } else {
-        await fetch("/api/finance", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(txData),
-        });
+        await api.post("/api/finance", txData);
         showToast(t("money.toast.added"));
       }
       setShowPanel(false);
@@ -408,20 +405,16 @@ export default function FinancePage() {
       );
       const parsed = await Promise.race([parseExpense(text, financeTab, lang, provider, apiKey), timeoutPromise]);
       const isIncome = financeTab === "business" && parsed.category === "收入";
-      await fetch("/api/finance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          date: parsed.date,
-          description: parsed.description,
-          category: parsed.category,
-          amount: isIncome ? parsed.amount : -parsed.amount,
-          type: isIncome ? "income" : "expense",
-          status: "已完成",
-          tax_mode: "none",
-          tax_rate: 0,
-          tax_amount: 0,
-        }),
+      await api.post("/api/finance", {
+        date: parsed.date,
+        description: parsed.description,
+        category: parsed.category,
+        amount: isIncome ? parsed.amount : -parsed.amount,
+        type: isIncome ? "income" : "expense",
+        status: "已完成",
+        tax_mode: "none",
+        tax_rate: 0,
+        tax_amount: 0,
       });
       showToast(`✓ ${t("money.ai.recorded").replace("{desc}", parsed.description).replace("{amount}", `$${parsed.amount}`)}`);
       setAiInput("");
@@ -439,7 +432,7 @@ export default function FinancePage() {
     // Cache for undo
     const cached = transactions.find(tx => tx.id === id);
     try {
-      await fetch(`/api/finance/${id}`, { method: "DELETE" });
+      await api.del(`/api/finance/${id}`);
       setDeleteId(null);
       fetchFinance();
       showToast(t("money.toast.deleted"), 5000, cached ? {
@@ -447,22 +440,18 @@ export default function FinancePage() {
         fn: async () => {
           try {
             const isIncome = cached.type === "income";
-            await fetch("/api/finance", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                date: cached.date,
-                description: cached.description || cached.desc || "",
-                category: cached.category,
-                amount: Math.abs(Number(cached.amount || 0)) * (isIncome ? 1 : -1),
-                type: cached.type,
-                status: cached.status,
-                tax_mode: cached.tax_mode || "none",
-                tax_rate: Number(cached.tax_rate || 0),
-                tax_amount: Number(cached.tax_amount || 0),
-                client_id: cached.client_id || null,
-                client_name: cached.client_name || "",
-              }),
+            await api.post("/api/finance", {
+              date: cached.date,
+              description: cached.description || cached.desc || "",
+              category: cached.category,
+              amount: Math.abs(Number(cached.amount || 0)) * (isIncome ? 1 : -1),
+              type: cached.type,
+              status: cached.status,
+              tax_mode: cached.tax_mode || "none",
+              tax_rate: Number(cached.tax_rate || 0),
+              tax_amount: Number(cached.tax_amount || 0),
+              client_id: cached.client_id || null,
+              client_name: cached.client_name || "",
             });
             fetchFinance();
           } catch (e) { console.warn('[FinancePage] undoDelete', e); }
@@ -516,7 +505,7 @@ export default function FinancePage() {
   }
 
   return (
-    <div className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col p-4 md:p-6 lg:p-8 relative">
+    <div ref={pullRef} className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col p-4 md:p-6 lg:p-8 relative">
       <h1 className="sr-only">{t("nav.finance")}</h1>
 
       {/* ── Segmented Tab Switcher ── */}
@@ -758,7 +747,7 @@ export default function FinancePage() {
               <div className="relative min-w-[140px] max-w-[240px] shrink-0">
                 <Search size={16} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: "var(--color-text-secondary)" }} />
                 <input
-                  type="text" defaultValue={filterSearch} onChange={e => { const v = e.target.value; clearTimeout(window.__finSearchT); window.__finSearchT = setTimeout(() => setFilter("search", v), 300); }}
+                  type="text" defaultValue={filterSearch} onChange={e => { const v = e.target.value; if (searchTimerRef.current) clearTimeout(searchTimerRef.current); searchTimerRef.current = setTimeout(() => setFilter("search", v), 300); }}
                   placeholder={t("finance.searchPlaceholder")}
                   className="input-base compact w-full pl-8 pr-3 text-[15px]"
                 />

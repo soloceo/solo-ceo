@@ -3,6 +3,21 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.12.0] - 2026-03-31
+
+### Added
+- Pull-to-refresh on ClientListPage and LeadsPage via event bridge pattern
+- `searchTimerRef` useRef-based debounce for search inputs (replaces global `window.__searchT` pattern)
+
+### Changed
+- `evolution-knowledge.ts` (53KB) lazy-loaded via dynamic `import()` — now a separate chunk, no longer in main bundle
+- InlinePopover: added `active` flag guard to prevent listener registration after effect cleanup (10ms race fix)
+- Search debounce in ClientList and FinancePage migrated from `window.__cliSearchT`/`window.__finSearchT` to local `useRef`
+- Removed Window interface extension for debounce timers in `vite-env.d.ts`
+
+### Removed
+- `@rollup/rollup-linux-arm64-gnu` dependency (platform-specific, unused on macOS)
+
 ## [2.11.0] - 2026-03-31
 
 ### Added

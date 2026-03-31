@@ -5,17 +5,24 @@ import { useT } from "../../i18n/context";
 import { useAppSettings, invalidateSettingsCache } from "../../hooks/useAppSettings";
 import { useUIStore } from "../../store/useUIStore";
 import { BookOpen, ChevronDown, ChevronRight, X } from "lucide-react";
-import { KNOWLEDGE_CATEGORIES } from "../../data/evolution-knowledge";
-import type { Principle } from "../../data/evolution-knowledge";
+import type { Principle, KnowledgeCategory } from "../../data/evolution-knowledge";
+
+/* Lazy-load the 53KB knowledge data — only fetched when this component mounts */
+const knowledgePromise = import("../../data/evolution-knowledge").then(m => m.KNOWLEDGE_CATEGORIES);
 
 export function KnowledgeBaseSection() {
   const { t, lang } = useT();
   const { settings, save } = useAppSettings();
   const setHideMobileNav = useUIStore((s) => s.setHideMobileNav);
 
+  const [categories, setCategories] = useState<KnowledgeCategory[]>([]);
   const [principleExpanded, setPrincipleExpanded] = useState(false);
   const [showAllPrinciples, setShowAllPrinciples] = useState(false);
   const [selectedPrinciple, setSelectedPrinciple] = useState<(Principle & { catEmoji: string }) | null>(null);
+
+  useEffect(() => {
+    knowledgePromise.then(setCategories);
+  }, []);
 
   useEffect(() => {
     setHideMobileNav(showAllPrinciples);
@@ -23,8 +30,8 @@ export function KnowledgeBaseSection() {
   }, [showAllPrinciples, setHideMobileNav]);
 
   const allPrinciples = useMemo(
-    () => KNOWLEDGE_CATEGORIES.flatMap((c) => c.principles.map((p) => ({ ...p, catEmoji: c.emoji }))),
-    [],
+    () => categories.flatMap((c) => c.principles.map((p) => ({ ...p, catEmoji: c.emoji }))),
+    [categories],
   );
 
   const studyCounts: Record<string, number> = useMemo(() => {
@@ -38,10 +45,13 @@ export function KnowledgeBaseSection() {
   };
 
   const todayPrinciple = useMemo(() => {
+    if (allPrinciples.length === 0) return null;
     const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
     const idx = dayOfYear % allPrinciples.length;
     return allPrinciples[idx];
   }, [allPrinciples]);
+
+  if (!todayPrinciple) return null;
 
   return (
     <>
@@ -54,7 +64,7 @@ export function KnowledgeBaseSection() {
             </span>
             <span className="text-[11px] px-1.5 py-0.5 rounded-[var(--radius-4)]"
               style={{ background: "var(--color-bg-tertiary)", color: "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-              {KNOWLEDGE_CATEGORIES.find((c) => c.principles.some((p) => p.id === todayPrinciple.id))?.name[lang as "zh" | "en"]}
+              {categories.find((c) => c.principles.some((p) => p.id === todayPrinciple.id))?.name[lang as "zh" | "en"]}
             </span>
           </div>
           <button
@@ -218,7 +228,7 @@ export function KnowledgeBaseSection() {
                   </div>
                 ) : (
                   <div className="px-4 py-3" style={{ paddingBottom: "24px" }}>
-                    {KNOWLEDGE_CATEGORIES.map((cat, catIdx) => (
+                    {categories.map((cat, catIdx) => (
                       <div key={cat.id}>
                         {catIdx > 0 && (
                           <div className="my-4" style={{ borderTop: "1px solid var(--color-border-primary)" }} />

@@ -31,6 +31,7 @@ import { Avatar, PageSkeleton, GlobalToast } from "../components/ui";
 import { useUIStore } from "../store/useUIStore";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { todayDateKey, dateToKey } from "../lib/date-utils";
+import { api } from "../lib/api";
 import { CommandPalette } from "./CommandPalette";
 import { QuickCreateMenu } from "./QuickCreateMenu";
 import { UserMenu } from "./UserMenu";
@@ -146,8 +147,7 @@ function App() {
     if (!user) return;
     const fetchBadges = async () => {
       try {
-        const res = await fetch("/api/dashboard");
-        const data = await res.json();
+        const data = await api.get<any>("/api/dashboard");
         setBadges({
           tasks: data.activeTasks || 0,
           todoCount: data.todoCount || 0,
@@ -200,9 +200,8 @@ function App() {
   // Sync operator profile
   useEffect(() => {
     if (!user) return;
-    fetch("/api/settings")
-      .then((r) => r.json())
-      .then((s: Record<string, string>) => {
+    api.get<Record<string, string>>("/api/settings")
+      .then((s) => {
         if (s.OPERATOR_NAME) setOperator(s.OPERATOR_NAME, s.OPERATOR_AVATAR || undefined);
         if (s.CURRENCY) useSettingsStore.getState().setCurrency(s.CURRENCY);
         if (s.TIMEZONE) useSettingsStore.getState().setTimezone(s.TIMEZONE);

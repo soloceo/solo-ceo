@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Plus, Filter, LayoutGrid, AlignJustify, Building2, User as UserIcon, Bot, Send, Loader2, Download } from "lucide-react";
+import { usePullToRefresh } from "../../hooks/usePullToRefresh";
 import { useSwipeTabs } from "../../hooks/useSwipeTabs";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import { exportCSV } from "../../lib/csv-export";
 import { useAppSettings } from "../../hooks/useAppSettings";
 import { parseWorkTask, AI_KEY_MAP, type AIProvider } from "../../lib/ai-client";
+import { api } from "../../lib/api";
 import { Skeleton } from "../../components/ui";
 import { useT } from "../../i18n/context";
 import { useRealtimeRefresh } from "../../hooks/useRealtimeRefresh";
@@ -61,14 +63,13 @@ export default function WorkPage() {
   const [defaultColumn, setDefaultColumn] = useState("todo");
 
   useEffect(() => {
-    fetch("/api/clients").then((r) => r.json()).then((d) => setClientList(Array.isArray(d) ? d.filter((c: ClientItem) => !c.soft_deleted) : [])).catch(() => { /* client list unavailable */ });
+    api.get<ClientItem[]>("/api/clients").then((d) => setClientList(Array.isArray(d) ? d.filter((c: ClientItem) => !c.soft_deleted) : [])).catch(() => { /* client list unavailable */ });
   }, []);
 
   const fetchTasks = useCallback(async () => {
     try {
-      const res = await fetch("/api/tasks");
-      const raw = await res.json();
-      const data = Array.isArray(raw) ? raw : [];
+      const raw = await api.get<Task[]>("/api/tasks");
+      const data = Array.isArray(raw) ? raw as Task[] : [];
       setAllTasks(data);
       // Group work tasks only (exclude personal + work-memo) for kanban
       const workData = data.filter((t: Task) => t.scope !== "personal" && t.scope !== "work-memo");
@@ -97,6 +98,9 @@ export default function WorkPage() {
   useEffect(() => { fetchTasks(); }, [fetchTasks]);
   useRealtimeRefresh(WORK_TABLES, fetchTasks);
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  usePullToRefresh(scrollRef, fetchTasks);
+
   /* ── Quick Create listener ── */
   useEffect(() => {
     const handler = (e: Event) => {
@@ -124,11 +128,7 @@ export default function WorkPage() {
       dst.splice(d.index, 0, moved);
       setTasks({ ...tasks, [s.droppableId]: src, [d.droppableId]: dst });
       try {
-        await fetch(`/api/tasks/${moved.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(moved),
-        });
+        await api.put(`/api/tasks/${moved.id}`, moved);
       } catch (e) {
         console.warn('[WorkPage] onDragEnd', e);
         showToast(t("common.updateFailed"));
@@ -169,11 +169,7 @@ export default function WorkPage() {
       const parsed = await parseWorkTask(text, clientNames, lang, provider, apiKey) as { title: string; client?: string; priority: string; due?: string; column: string; originalRequest: string };
       // Resolve client_id from parsed client name
       const matchedClient = parsed.client ? clientList.find((c: ClientItem) => (c.company_name || c.name) === parsed.client) : null;
-      await fetch("/api/tasks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...parsed, client_id: matchedClient?.id || null, scope: "work" }),
-      });
+      await api.post("/api/tasks", { ...parsed, client_id: matchedClient?.id || null, scope: "work" });
       showToast(`✓ ${t("work.ai.created")}: ${parsed.title}`);
       setAiInput("");
       fetchTasks();
@@ -194,18 +190,10 @@ export default function WorkPage() {
   const handleSave = async (form: TaskForm, editId: number | null) => {
     try {
       if (editId) {
-        await fetch(`/api/tasks/${editId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form),
-        });
+        await api.put(`/api/tasks/${editId}`, form);
         showToast(t("work.taskUpdated"));
       } else {
-        await fetch("/api/tasks", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form),
-        });
+        await api.post("/api/tasks", form);
         showToast(t("work.taskAdded"));
       }
       fetchTasks();
@@ -220,24 +208,20 @@ export default function WorkPage() {
     const allTasks: Task[] = (Object.values(tasks) as Task[][]).flat();
     const cached = allTasks.find(t => t.id === id);
     try {
-      await fetch(`/api/tasks/${id}`, { method: "DELETE" });
+      await api.del(`/api/tasks/${id}`);
       fetchTasks();
       showToast(t("work.taskDeleted"), 5000, cached ? {
         label: t("common.undo"),
         fn: async () => {
           try {
-            await fetch("/api/tasks", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                title: cached.title,
-                client: cached.client || "",
-                client_id: cached.client_id || null,
-                priority: cached.priority,
-                due: cached.due || "",
-                column: cached.column,
-                originalRequest: cached.originalRequest || "",
-              }),
+            await api.post("/api/tasks", {
+              title: cached.title,
+              client: cached.client || "",
+              client_id: cached.client_id || null,
+              priority: cached.priority,
+              due: cached.due || "",
+              column: cached.column,
+              originalRequest: cached.originalRequest || "",
             });
             fetchTasks();
           } catch (e) { console.warn('[WorkPage] undoDelete', e); }
@@ -254,11 +238,7 @@ export default function WorkPage() {
       const allTasks: Task[] = (Object.values(tasks) as Task[][]).flat();
       const task = allTasks.find((t) => t.id === id);
       if (!task) return;
-      await fetch(`/api/tasks/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...task, column: col }),
-      });
+      await api.put(`/api/tasks/${id}`, { ...task, column: col });
       fetchTasks();
     } catch (e) {
       console.warn('[WorkPage] handleMove', e);
@@ -274,7 +254,7 @@ export default function WorkPage() {
     task.priority = priority as Task["priority"];
     setTasks({ ...tasks });
     try {
-      await fetch(`/api/tasks/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...task, priority }) });
+      await api.put(`/api/tasks/${id}`, { ...task, priority });
     } catch (e) { console.warn('[WorkPage] handlePriorityChange', e); showToast(t("common.updateFailed")); fetchTasks(); }
   };
 
@@ -286,7 +266,7 @@ export default function WorkPage() {
     task.due = due || undefined;
     setTasks({ ...tasks });
     try {
-      await fetch(`/api/tasks/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...task, due: due || null }) });
+      await api.put(`/api/tasks/${id}`, { ...task, due: due || null });
     } catch (e) { console.warn('[WorkPage] handleDueChange', e); showToast(t("common.updateFailed")); fetchTasks(); }
   };
 
@@ -401,7 +381,7 @@ export default function WorkPage() {
   );
 
   return (
-    <div className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col p-4 md:p-6 lg:p-8 relative">
+    <div ref={scrollRef} className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col p-4 md:p-6 lg:p-8 relative">
       <h1 className="sr-only">{t("nav.work")}</h1>
 
       {/* ── Segmented Tab Switcher ── */}
