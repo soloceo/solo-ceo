@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Moon, Sun, Monitor, Globe, DollarSign, Clock, RefreshCw, Check, AlertCircle, ChevronDown } from 'lucide-react';
+import { Moon, Sun, Monitor, Globe, DollarSign, Clock, RefreshCw, Check, AlertCircle, ChevronDown, Sparkles } from 'lucide-react';
 import { useT, type Lang } from '../../i18n/context';
+import { useUIStore } from '../../store/useUIStore';
 
 type ThemeMode = 'light' | 'dark' | 'auto';
 type SyncState = 'idle' | 'checking' | 'ok' | 'offset' | 'error';
@@ -25,6 +26,30 @@ const themeModes: { value: ThemeMode; icon: typeof Sun; labelKey: string }[] = [
   { value: 'dark', icon: Moon, labelKey: 'settings.themeDark' },
   { value: 'auto', icon: Monitor, labelKey: 'settings.themeAuto' },
 ];
+
+function ThemeRow() {
+  const { t } = useT();
+  return (
+    <div className="flex items-center justify-between px-4 py-3" style={{ opacity: 0.5 }}>
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-8)]" style={{ background: 'color-mix(in srgb, var(--color-info) 10%, transparent)', color: 'var(--color-info)' }}>
+          <Sparkles size={20} />
+        </div>
+        <div>
+          <div className="text-[15px]" style={{ color: 'var(--color-text-primary)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>
+            {t("settings.themes" as any) || "Themes"}
+          </div>
+          <div className="text-[13px] mt-0.5" style={{ color: 'var(--color-text-tertiary)' }}>
+            Coming Soon
+          </div>
+        </div>
+      </div>
+      <span className="text-[12px] px-2 py-0.5 rounded-full" style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-quaternary)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>
+        Soon
+      </span>
+    </div>
+  );
+}
 
 export default function AppearanceSection({ themeMode, setThemeMode, lang, setLang, currency, setCurrency, timezone, setTimezone }: AppearanceSectionProps) {
   const { t } = useT();
@@ -113,6 +138,9 @@ export default function AppearanceSection({ themeMode, setThemeMode, lang, setLa
             ))}
           </div>
         </div>
+
+        {/* Themes — coming soon */}
+        <ThemeRow />
 
         {/* Language switcher */}
         <div className="flex items-center justify-between px-4 py-3">

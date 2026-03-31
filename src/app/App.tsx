@@ -304,12 +304,12 @@ function App() {
   return (
     <div
       className="flex overflow-hidden"
-      style={{ height: "100dvh", background: "var(--color-bg-panel)", color: "var(--color-text-primary)" }}
+      style={{ height: "100dvh", background: "var(--color-bg-primary)", color: "var(--color-text-primary)" }}
     >
       {/* ═══════════ Desktop Sidebar ═══════════ */}
       <aside
         ref={sidebarRef}
-        className="hidden lg:flex flex-col shrink-0 transition-[width] duration-200"
+        className="hidden lg:flex flex-col shrink-0 transition-[width] duration-200 sidebar-glass"
         style={{
           width: isExpanded ? "var(--sidebar-width)" : 56,
           background: "var(--color-bg-panel)",
@@ -463,7 +463,7 @@ function App() {
       >
         {/* Mobile header */}
         <header
-          className="lg:hidden shrink-0 flex items-center justify-between"
+          className="lg:hidden shrink-0 flex items-center justify-between header-glass"
           style={{
             paddingTop: "calc(var(--mobile-header-pt, env(safe-area-inset-top, 0px)) + 8px)",
             paddingBottom: "8px",
@@ -628,8 +628,8 @@ const SidebarItem = React.memo(function SidebarItem({
         border: active ? "1px solid transparent" : "1px solid transparent",
         transition: "all 80ms var(--ease-out-quad)",
       } as React.CSSProperties}
-      onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "var(--color-bg-translucent)"; }}
-      onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = active ? "var(--color-accent-tint)" : ""; }}
+      onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "rgba(128,128,128,0.1)"; }}
+      onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = ""; }}
     >
       <span className="shrink-0 relative" style={{ color: active ? "var(--color-accent)" : "var(--color-text-quaternary)" }}>
         {icon}

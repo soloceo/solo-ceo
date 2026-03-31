@@ -31,6 +31,9 @@ interface UIState {
   tasksViewMode: ViewMode;
   salesViewMode: ViewMode;
 
+  glassMode: boolean;
+  setGlassMode: (v: boolean) => void;
+
   // Toast (supports stacking — newest toast replaces previous)
   toastMessage: string;
   toastAction: (() => void) | null;
@@ -68,6 +71,7 @@ export const useUIStore = create<UIState>()(
       hideMobileNav: false,
       tasksViewMode: "vertical",
       salesViewMode: "vertical",
+      glassMode: false,
       toastMessage: "",
       toastAction: null,
       toastActionLabel: "",
@@ -89,6 +93,11 @@ export const useUIStore = create<UIState>()(
         set({ themeMode: mode, darkMode: mode === "dark" });
         // Re-register or remove system listener
         setupSystemListener(mode);
+      },
+
+      setGlassMode: (v) => {
+        document.documentElement.dataset.glass = v ? "true" : "false";
+        set({ glassMode: v });
       },
 
       setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
@@ -121,6 +130,7 @@ export const useUIStore = create<UIState>()(
       partialize: (state) => ({
         darkMode: state.darkMode,
         themeMode: state.themeMode,
+        glassMode: state.glassMode,
         sidebarExpanded: state.sidebarExpanded,
         tasksViewMode: state.tasksViewMode,
         salesViewMode: state.salesViewMode,
@@ -138,6 +148,11 @@ export const useUIStore = create<UIState>()(
 
           applyTheme(mode);
           setupSystemListener(mode);
+
+          // Rehydrate glass mode
+          if (rehydratedState.glassMode) {
+            document.documentElement.dataset.glass = "true";
+          }
         };
       },
     },

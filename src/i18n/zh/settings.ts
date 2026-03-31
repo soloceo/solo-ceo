@@ -78,6 +78,7 @@ export const settings = {
   "settings.themeDark": "深色",
   "settings.themeAuto": "自动",
   "settings.themeAutoDesc": "跟随系统",
+  "settings.themes": "主题",
   "settings.language": "语言",
   "settings.langZh": "中文",
   "settings.langEn": "English",

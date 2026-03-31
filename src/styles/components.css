@@ -366,10 +366,13 @@
   /* ── Content panel (floating on desktop) ──────────────────── */
 
   @media (min-width: 1024px) {
-    .content-panel {
-      border-radius: var(--radius-20);
-      box-shadow: var(--shadow-low);
+    .sidebar-glass {
+      margin: 8px;
+      margin-right: 0;
+      border-radius: var(--radius-16);
       border: 1px solid var(--color-border-translucent);
+      height: calc(100% - 16px);
+      z-index: 10;
     }
   }
 
@@ -377,8 +380,8 @@
 
   .glass {
     background: var(--glass-bg);
-    backdrop-filter: blur(2px) saturate(180%);
-    -webkit-backdrop-filter: blur(2px) saturate(180%);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
     border: 1px solid var(--glass-border);
     box-shadow: var(--glass-shadow);
   }
@@ -388,3 +391,9 @@
     aspect-ratio: 1 / 1;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   Theme System — placeholder for future themes
+   Toggle via data-glass="true" (or future data-theme-style)
+   Glass variables defined in tokens.css, ready to use.
+   ══════════════════════════════════════════════════════════════════ */

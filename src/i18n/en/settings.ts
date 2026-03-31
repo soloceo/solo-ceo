@@ -76,6 +76,7 @@ export const settings = {
   "settings.themeDark": "Dark",
   "settings.themeAuto": "Auto",
   "settings.themeAutoDesc": "Follow system",
+  "settings.themes": "Themes",
   "settings.language": "Language",
   "settings.langZh": "中文",
   "settings.langEn": "English",

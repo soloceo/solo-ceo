@@ -3,6 +3,24 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.8.0] - 2026-03-31
+
+### Added
+- Theme system infrastructure (store + settings toggle, ready for future themes)
+- Sidebar framed panel design (rounded corners + border, Apple Notes style)
+
+### Changed
+- Unified page background — sidebar and content share same surface color
+- Removed grid background pattern for cleaner look
+- Root background changed from white to warm cream (#faf9f5)
+- Sidebar hover improved with neutral gray (`rgba(128,128,128,0.1)`)
+- Page padding unified across all 6 pages (`p-4 md:p-6 lg:p-8`)
+- Settings page width matched to other pages (`max-w-[1680px]`)
+
+### Removed
+- Content panel frame (border-radius + shadow) — pages now sit directly on background
+- Grid line background pattern
+
 ## [2.7.0] - 2026-03-31
 
 ### Added
