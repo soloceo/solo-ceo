@@ -303,7 +303,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
       </button>
 
       {/* Content */}
-      <div className="anim-collapse-wrapper" data-open={!collapsed && memoTasks.length > 0 ? "true" : "false"}>
+      <div className="anim-collapse-wrapper" data-open={!collapsed ? "true" : "false"}>
         <div className="anim-collapse-inner">
         <div className="card overflow-hidden">
           {/* Week strip */}
