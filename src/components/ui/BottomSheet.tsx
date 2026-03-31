@@ -90,7 +90,7 @@ export function BottomSheet({ open, onClose, title, children, className }: Botto
             style={{
               background: "var(--color-bg-primary)",
               boxShadow: "var(--shadow-high)",
-              paddingBottom: "16px",
+              paddingBottom: "max(16px, env(safe-area-inset-bottom, 16px))",
             }}
           >
             {/* Drag handle */}

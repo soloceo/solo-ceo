@@ -128,7 +128,7 @@ export default function WorkPage() {
       dst.splice(d.index, 0, moved);
       setTasks({ ...tasks, [s.droppableId]: src, [d.droppableId]: dst });
       try {
-        await api.put(`/api/tasks/${moved.id}`, moved);
+        await api.put(`/api/tasks/${moved.id}`, { column: d.droppableId });
       } catch (e) {
         console.warn('[WorkPage] onDragEnd', e);
         showToast(t("common.updateFailed"));
@@ -235,10 +235,7 @@ export default function WorkPage() {
 
   const handleMove = async (id: number, col: string) => {
     try {
-      const allTasks: Task[] = (Object.values(tasks) as Task[][]).flat();
-      const task = allTasks.find((t) => t.id === id);
-      if (!task) return;
-      await api.put(`/api/tasks/${id}`, { ...task, column: col });
+      await api.put(`/api/tasks/${id}`, { column: col });
       fetchTasks();
     } catch (e) {
       console.warn('[WorkPage] handleMove', e);
@@ -254,7 +251,7 @@ export default function WorkPage() {
     task.priority = priority as Task["priority"];
     setTasks({ ...tasks });
     try {
-      await api.put(`/api/tasks/${id}`, { ...task, priority });
+      await api.put(`/api/tasks/${id}`, { priority });
     } catch (e) { console.warn('[WorkPage] handlePriorityChange', e); showToast(t("common.updateFailed")); fetchTasks(); }
   };
 
@@ -266,7 +263,7 @@ export default function WorkPage() {
     task.due = due || undefined;
     setTasks({ ...tasks });
     try {
-      await api.put(`/api/tasks/${id}`, { ...task, due: due || null });
+      await api.put(`/api/tasks/${id}`, { due: due || null });
     } catch (e) { console.warn('[WorkPage] handleDueChange', e); showToast(t("common.updateFailed")); fetchTasks(); }
   };
 
@@ -285,8 +282,8 @@ export default function WorkPage() {
   const totalTasks = (Object.values(tasks) as Task[][]).flat().length;
   const counts = COLS.map((c) => ({ ...c, count: (tasks[c.id] || []).length }));
 
-  /* ── Shared toolbar + AI + memo + progress (used by both mobile-kanban and swipe branches) ── */
-  const renderWorkHeader = () => (
+  /* ── Task toolbar + AI input + progress (task-related controls, above kanban) ── */
+  const renderTaskControls = () => (
     <>
       {/* Toolbar */}
       <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -349,10 +346,7 @@ export default function WorkPage() {
         </button>
       </div>
 
-      {/* Work Memo */}
-      <WorkMemoList tasks={allTasks} onRefresh={fetchTasks} />
-
-      {/* Progress bar */}
+      {/* Progress bar — directly above kanban, visually grouped */}
       {!isLoading && totalTasks > 0 && (
         <div className="mb-3">
           <div className="flex h-1.5 rounded-full overflow-hidden" style={{ background: "var(--color-bg-quaternary)" }}>
@@ -378,6 +372,13 @@ export default function WorkPage() {
         </div>
       )}
     </>
+  );
+
+  /* ── Work memo section (visually separated above task kanban) ── */
+  const renderWorkMemo = () => (
+    <div className="mb-4 pb-3" style={{ borderBottom: "1px solid var(--color-border-secondary)" }}>
+      <WorkMemoList tasks={allTasks} onRefresh={fetchTasks} />
+    </div>
   );
 
   return (
@@ -408,20 +409,27 @@ export default function WorkPage() {
       {/* Mobile kanban: render outside swipe container to avoid nested horizontal scroll conflict */}
       {isMobile && viewMode === "vertical" ? (
         <div className="flex-1 flex flex-col">
-          {renderWorkHeader()}
-          <KanbanBoard
-            columns={COLS}
-            tasks={filteredTasks}
-            onDragEnd={onDragEnd}
-            onAdd={(col) => openPanel(null, col)}
-            onEdit={(task) => openPanel(task, task.column)}
-            onDelete={handleDelete}
-            onClientClick={() => setActiveTab("clients")}
-            emptyText={t("work.empty")}
-            onPriorityChange={handlePriorityChange}
-            onDueChange={handleDueChange}
-            onColumnChange={handleMove}
-          />
+          {workTab === "work" ? (
+            <>
+              {renderWorkMemo()}
+              {renderTaskControls()}
+              <KanbanBoard
+                columns={COLS}
+                tasks={filteredTasks}
+                onDragEnd={onDragEnd}
+                onAdd={(col) => openPanel(null, col)}
+                onEdit={(task) => openPanel(task, task.column)}
+                onDelete={handleDelete}
+                onClientClick={() => setActiveTab("clients")}
+                emptyText={t("work.empty")}
+                onPriorityChange={handlePriorityChange}
+                onDueChange={handleDueChange}
+                onColumnChange={handleMove}
+              />
+            </>
+          ) : (
+            <WorkMemoList tasks={allTasks} onRefresh={fetchTasks} scope="personal" accentColor="var(--color-info)" />
+          )}
         </div>
       ) : (
       <div
@@ -433,7 +441,11 @@ export default function WorkPage() {
       >
         {/* Panel 1: Work */}
         <div className="home-swipe-panel flex flex-col">
-          {renderWorkHeader()}
+          {/* Memo — self-contained section at top */}
+          {renderWorkMemo()}
+
+          {/* Task controls + board below */}
+          {renderTaskControls()}
 
           {/* Board */}
           {isLoading ? (

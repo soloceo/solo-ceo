@@ -3,6 +3,27 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.13.0] - 2026-03-31
+
+### Fixed
+- **Leads PUT full overwrite** → partial update pattern (prevents wiping aiDraft on edit)
+- **Finance PUT full overwrite** → partial update pattern (prevents wiping fields on partial edit)
+- **Plans PUT full overwrite** → partial update pattern (prevents wiping features)
+- **7 frontend PUT calls sending full objects** → only send changed fields (WorkPage drag/move/priority/due, WorkMemoList toggle/edit, LeadsBoard drag/move)
+- **Mobile kanban personal tab unreachable** → workTab check renders WorkMemoList when "个人" selected
+- **Client PUT log referencing undefined `name`** → use `body.name`
+- **WorkMemoList useMemo missing `scope` dependency** → added to dependency array
+- **Weekly report `tasksCompleted` counting all-time** → filtered by `updated_at` within week range
+- **useAppSettings using raw `fetch()`** → migrated to `api.ts` utility (BUSINESS_RULES Rule 9)
+- **InlinePopover z-index using toasts layer (800)** → corrected to popover layer (600)
+
+### Changed
+- **Task/Memo layout separation**: memo section now renders above kanban with clear divider, task controls grouped below
+- **Memo item interaction (Google Tasks style)**: removed tiny edit/delete icon buttons; tap row → inline edit mode with title/date/time + save/cancel/delete; tap circle → toggle done
+- **Checkbox tap target**: increased from 28px to 44px with negative margins for mobile usability
+- **PopoverOption touch target**: `py-2` → `py-2.5` (~37px → ~41px)
+- **safe-area-inset-bottom**: applied to `.pb-safe`, mobile bottom nav, and BottomSheet for iPhone home indicator
+
 ## [2.12.0] - 2026-03-31
 
 ### Added

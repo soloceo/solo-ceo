@@ -93,7 +93,7 @@ export function InlinePopover({ trigger, children, align = "start", className = 
         <div
           ref={panelRef}
           role="listbox"
-          className={`fixed z-[var(--layer-toasts)] rounded-[var(--radius-8)] shadow-lg overflow-hidden ${className}`}
+          className={`fixed z-[var(--layer-popover)] rounded-[var(--radius-8)] shadow-lg overflow-hidden ${className}`}
           style={{
             top: pos.top,
             left: pos.left,
@@ -131,7 +131,7 @@ export function PopoverOption({
       role="option"
       aria-selected={!!selected}
       onClick={(e) => { e.stopPropagation(); onClick(e); }}
-      className="flex items-center gap-2 w-full px-3 py-2 text-[14px] transition-colors hover:bg-[var(--color-bg-tertiary)] cursor-pointer text-left"
+      className="flex items-center gap-2 w-full px-3 py-2.5 text-[14px] transition-colors hover:bg-[var(--color-bg-tertiary)] cursor-pointer text-left"
       style={{ color: color || "var(--color-text-primary)", fontWeight: selected ? "var(--font-weight-semibold)" : "var(--font-weight-normal)", background: "transparent", border: "none" } as React.CSSProperties}
     >
       <span className="flex-1">{children}</span>

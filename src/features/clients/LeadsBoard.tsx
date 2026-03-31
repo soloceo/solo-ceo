@@ -227,7 +227,7 @@ export function LeadsView() {
       const src = [...leads[s.droppableId as ColId]], dst = [...leads[d.droppableId as ColId]];
       const [moved] = src.splice(s.index, 1); moved.column = d.droppableId as ColId; dst.splice(d.index, 0, moved);
       setLeads({ ...leads, [s.droppableId]: src, [d.droppableId]: dst });
-      try { await api.put(`/api/leads/${moved.id}`, moved); } catch { showToast(t("common.updateFailed")); fetchLeads(); }
+      try { await api.put(`/api/leads/${moved.id}`, { column: d.droppableId }); } catch { showToast(t("common.updateFailed")); fetchLeads(); }
     } else { const col = [...leads[s.droppableId as ColId]]; const [moved] = col.splice(s.index, 1); col.splice(d.index, 0, moved); setLeads({ ...leads, [s.droppableId]: col }); }
   };
 
@@ -325,7 +325,7 @@ export function LeadsView() {
             const allLeads = Object.values(leads).flat();
             const lead = allLeads.find((l: Lead) => l.id === id);
             if (!lead) return;
-            await api.put(`/api/leads/${id}`, Object.assign({}, lead, { column: col })); fetchLeads();
+            await api.put(`/api/leads/${id}`, { column: col }); fetchLeads();
           } catch { showToast(t("pipeline.toast.moveFailed")); }
         }} />
       )}

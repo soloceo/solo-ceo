@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { api } from '../lib/api';
 
 /**
  * Shared cache for /api/settings — avoids duplicate calls
@@ -13,8 +14,7 @@ const CACHE_TTL = 10_000; // 10 seconds
 async function fetchSettings(): Promise<Record<string, string>> {
   if (cache && Date.now() - cacheTime < CACHE_TTL) return cache;
   if (inflight) return inflight;
-  inflight = fetch('/api/settings')
-    .then(r => r.json())
+  inflight = api.get<Record<string, string>>('/api/settings')
     .then(data => {
       cache = data;
       cacheTime = Date.now();
@@ -48,11 +48,12 @@ export function useAppSettings() {
   useEffect(() => { load(); }, [load]);
 
   const save = useCallback(async (key: string, value: string) => {
-    await fetch('/api/settings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ [key]: value }),
-    });
+    try {
+      await api.post('/api/settings', { [key]: value });
+    } catch (e) {
+      console.warn('[useAppSettings] save failed', e);
+      throw e;
+    }
     // Update local cache immediately — create new object to avoid shared mutation
     cache = cache ? { ...cache, [key]: value } : { [key]: value };
     cacheTime = Date.now();

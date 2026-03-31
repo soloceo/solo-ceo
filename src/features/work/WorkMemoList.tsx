@@ -107,7 +107,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
       if (!a.due && b.due) return 1;
       return b.id - a.id;
     }),
-  [tasks]);
+  [tasks, scope]);
 
   // Build date → memo count map for dots
   const dateMemoMap = useMemo(() => {
@@ -132,13 +132,10 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
 
   const toggleTask = (task: Task) => {
     const newColumn = task.column === "done" ? "todo" : "done";
-    // Optimistic: refresh immediately, API in background
-    onRefresh();
-    api.put(`/api/tasks/${task.id}`, { ...task, column: newColumn }).then(() => onRefresh());
+    api.put(`/api/tasks/${task.id}`, { column: newColumn }).then(() => onRefresh());
   };
 
   const deleteTask = (id: number) => {
-    onRefresh();
     api.del(`/api/tasks/${id}`).then(() => onRefresh());
   };
 
@@ -159,7 +156,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
     const task = memoTasks.find(t => t.id === editingId);
     if (!task) return;
     setEditingId(null);
-    api.put(`/api/tasks/${editingId}`, { ...task, title: editTitle.trim(), due: buildDue(editDate, editTime) }).then(() => onRefresh());
+    api.put(`/api/tasks/${editingId}`, { title: editTitle.trim(), due: buildDue(editDate, editTime) }).then(() => onRefresh());
   };
 
   const cancelEdit = () => {
@@ -407,32 +404,25 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
                   })()
                 : null;
 
+              /* ── Google Tasks style: tap row → inline edit, tap circle → toggle done ── */
               if (isEditing) {
                 return (
-                  <div key={task.id} className="px-3 py-2 space-y-2" style={{ background: "var(--color-bg-tertiary)" }}>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={editTitle}
-                        onChange={e => setEditTitle(e.target.value)}
-                        onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) saveEdit(); if (e.key === "Escape") cancelEdit(); }}
-                        className="input-base flex-1 px-2 py-1.5 text-[14px]"
-                        autoFocus
-                      />
-                      <button onClick={saveEdit} disabled={!editTitle.trim()} className="btn-primary compact text-[13px] disabled:opacity-40">
-                        {t("common.save")}
-                      </button>
-                      <button onClick={cancelEdit} className="btn-icon-sm">
-                        <X size={14} />
-                      </button>
-                    </div>
+                  <div key={task.id} className="px-3 py-2.5 space-y-2.5 anim-appear" style={{ background: "var(--color-bg-tertiary)" }}>
+                    <input
+                      type="text"
+                      value={editTitle}
+                      onChange={e => setEditTitle(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) saveEdit(); if (e.key === "Escape") cancelEdit(); }}
+                      className="input-base w-full px-2.5 py-2 text-[14px]"
+                      autoFocus
+                    />
                     <div className="flex items-center gap-2 flex-wrap">
                       <Calendar size={13} className="shrink-0" style={{ color: "var(--color-text-quaternary)" }} />
                       <input
                         type="date"
                         value={editDate}
                         onChange={e => setEditDate(e.target.value)}
-                        className="input-base px-2 py-1 text-[13px]"
+                        className="input-base px-2 py-1.5 text-[13px]"
                         style={{ color: editDate ? "var(--color-text-primary)" : "var(--color-text-quaternary)" }}
                       />
                       <TimePicker24 value={editTime} onChange={setEditTime} />
@@ -442,6 +432,27 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
                         </button>
                       )}
                     </div>
+                    <div className="flex items-center gap-2">
+                      <button onClick={saveEdit} disabled={!editTitle.trim()} className="btn-primary compact text-[13px] disabled:opacity-40">
+                        {t("common.save")}
+                      </button>
+                      <button onClick={cancelEdit} className="btn-ghost compact text-[13px]">
+                        {t("common.cancel")}
+                      </button>
+                      <div className="flex-1" />
+                      <button
+                        onClick={() => { cancelEdit(); deleteTask(task.id); }}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-[var(--radius-6)] text-[13px] transition-colors"
+                        style={{
+                          background: "color-mix(in srgb, var(--color-error) 8%, transparent)",
+                          color: "var(--color-error)",
+                          border: "none",
+                        }}
+                      >
+                        <Trash2 size={12} />
+                        {t("common.delete")}
+                      </button>
+                    </div>
                   </div>
                 );
               }
@@ -449,15 +460,20 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
               return (
                 <div
                   key={task.id}
-                  className="flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback anim-appear"
-                  onClick={() => toggleTask(task)}
+                  className="flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback anim-appear"
+                  onClick={() => startEdit(task)}
                 >
-                  <div className="shrink-0">
+                  {/* Checkbox — separate tap target for toggle done */}
+                  <button
+                    className="shrink-0 flex items-center justify-center"
+                    style={{ width: 44, height: 44, marginLeft: -8, marginRight: -8, borderRadius: "50%", background: "transparent", border: "none" }}
+                    onClick={e => { e.stopPropagation(); toggleTask(task); }}
+                  >
                     {isDone
                       ? <Check size={15} style={{ color: "var(--color-success)" }} />
                       : <Circle size={15} strokeWidth={1.5} style={{ color: "var(--color-border-secondary)" }} />
                     }
-                  </div>
+                  </button>
                   <span className="flex-1 text-[14px] min-w-0 truncate" style={{
                     color: isDone ? "var(--color-text-quaternary)" : "var(--color-text-primary)",
                     textDecoration: isDone ? "line-through" : "none",
@@ -469,26 +485,6 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
                       {dateLabel}
                     </span>
                   )}
-                  <button
-                    onClick={e => { e.stopPropagation(); e.preventDefault(); startEdit(task); }}
-                    onPointerDown={e => e.stopPropagation()}
-                    className="shrink-0 flex items-center justify-center"
-                    style={{ opacity: 0.5, width: 32, height: 32, borderRadius: 8 }}
-                    onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
-                    onMouseLeave={e => (e.currentTarget.style.opacity = "0.5")}
-                  >
-                    <Pencil size={14} />
-                  </button>
-                  <button
-                    onClick={e => { e.stopPropagation(); e.preventDefault(); deleteTask(task.id); }}
-                    onPointerDown={e => e.stopPropagation()}
-                    className="shrink-0 flex items-center justify-center"
-                    style={{ opacity: 0.5, width: 32, height: 32, borderRadius: 8 }}
-                    onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
-                    onMouseLeave={e => (e.currentTarget.style.opacity = "0.5")}
-                  >
-                    <Trash2 size={13} />
-                  </button>
                 </div>
               );
             })}

@@ -357,17 +357,21 @@ export async function handleSupabaseRequest(
   if (leadMatch) {
     const id = Number(leadMatch[1]);
     if (method === 'PUT') {
-      const { name, industry, needs, website, column, aiDraft, source } = body;
+      const patch: Record<string, unknown> = {};
+      if (body.name !== undefined) patch.name = str(body.name, 255);
+      if (body.industry !== undefined) patch.industry = str(body.industry, 100);
+      if (body.needs !== undefined) patch.needs = str(body.needs, 2000);
+      if (body.website !== undefined) patch.website = str(body.website, 2048);
+      if (body.column !== undefined) patch.column = enumVal(body.column, VALID_LEAD_COLUMNS, 'new');
+      if (body.aiDraft !== undefined) patch.aiDraft = str(body.aiDraft, 5000);
+      if (body.source !== undefined) patch.source = str(body.source, 100);
+      if (Object.keys(patch).length === 0) return ok({ success: true });
       const { error: e } = await supabase
         .from('leads')
-        .update({
-          name: str(name, 255), industry: str(industry, 100), needs: str(needs, 2000),
-          website: str(website, 2048), column: enumVal(column, VALID_LEAD_COLUMNS, 'new'),
-          aiDraft: str(aiDraft, 5000), source: str(source, 100),
-        })
+        .update(patch)
         .eq('id', id).eq('user_id', userId);
       if (e) return err(500, e.message);
-      await logActivity(userId, 'lead', 'updated', `更新线索：${str(name, 255) || '未命名线索'}`, '', id);
+      await logActivity(userId, 'lead', 'updated', `更新线索：${body.name || '未命名线索'}`, '', id);
       return ok({ success: true });
     }
     if (method === 'DELETE') {
@@ -516,7 +520,7 @@ export async function handleSupabaseRequest(
         .eq('id', id).eq('user_id', userId);
       if (e) return err(500, e.message);
       syncClientSubscriptionLedger(userId).catch((err) => console.error('[SyncLedger]', err));
-      await logActivity(userId, 'client', 'updated', `更新客户：${name || '未命名客户'}`, '客户信息已更新', id);
+      await logActivity(userId, 'client', 'updated', `更新客户：${body.name || '未命名客户'}`, '客户信息已更新', id);
       return ok({ success: true });
     }
     if (method === 'DELETE') {
@@ -848,16 +852,19 @@ export async function handleSupabaseRequest(
   if (planMatch) {
     const id = Number(planMatch[1]);
     if (method === 'PUT') {
-      const { name, price, deliverySpeed, features, clients } = body;
+      const patch: Record<string, unknown> = {};
+      if (body.name !== undefined) patch.name = body.name || '';
+      if (body.price !== undefined) patch.price = body.price || 0;
+      if (body.deliverySpeed !== undefined) patch.deliverySpeed = body.deliverySpeed || '';
+      if (body.features !== undefined) patch.features = JSON.stringify(body.features || []);
+      if (body.clients !== undefined) patch.clients = body.clients || 0;
+      if (Object.keys(patch).length === 0) return ok({ success: true });
       const { error: e } = await supabase
         .from('plans')
-        .update({
-          name: name || '', price: price || 0, deliverySpeed: deliverySpeed || '',
-          features: JSON.stringify(features || []), clients: clients || 0,
-        })
+        .update(patch)
         .eq('id', id).eq('user_id', userId);
       if (e) return err(500, e.message);
-      await logActivity(userId, 'plan', 'updated', `更新方案：${name || '未命名方案'}`, '', id);
+      await logActivity(userId, 'plan', 'updated', `更新方案：${body.name || '未命名方案'}`, '', id);
       return ok({ success: true });
     }
     if (method === 'DELETE') {
@@ -967,18 +974,25 @@ export async function handleSupabaseRequest(
     if (src === 'project_fee') return err(400, '项目总费待收款，请在客户管理中编辑');
 
     if (method === 'PUT') {
-      const { type, amount, category, description, date, status, tax_mode, tax_rate, tax_amount, client_id, client_name } = body;
+      const patch: Record<string, unknown> = {};
+      if (body.type !== undefined) patch.type = enumVal(body.type, VALID_TX_TYPES, 'income');
+      if (body.amount !== undefined) patch.amount = body.amount || 0;
+      if (body.category !== undefined) patch.category = str(body.category, 100);
+      if (body.description !== undefined) patch.description = str(body.description, 500);
+      if (body.date !== undefined) patch.date = str(body.date, 10);
+      if (body.status !== undefined) patch.status = enumVal(body.status, VALID_TX_STATUSES, '已完成');
+      if (body.tax_mode !== undefined) patch.tax_mode = enumVal(body.tax_mode, VALID_TAX_MODES, 'none');
+      if (body.tax_rate !== undefined) patch.tax_rate = body.tax_rate || 0;
+      if (body.tax_amount !== undefined) patch.tax_amount = body.tax_amount || 0;
+      if (body.client_id !== undefined) patch.client_id = body.client_id || null;
+      if (body.client_name !== undefined) patch.client_name = str(body.client_name, 255);
+      if (Object.keys(patch).length === 0) return ok({ success: true });
       const { error: e } = await supabase
         .from('finance_transactions')
-        .update({
-          type: enumVal(type, VALID_TX_TYPES, 'income'), amount: amount || 0, category: str(category, 100),
-          description: str(description, 500), date: str(date, 10), status: enumVal(status, VALID_TX_STATUSES, '已完成'),
-          tax_mode: enumVal(tax_mode, VALID_TAX_MODES, 'none'), tax_rate: tax_rate || 0, tax_amount: tax_amount || 0,
-          client_id: client_id || null, client_name: str(client_name, 255),
-        })
+        .update(patch)
         .eq('id', id).eq('user_id', userId);
       if (e) return err(500, e.message);
-      await logActivity(userId, 'finance', 'updated', `更新交易：${str(description, 500) || '未命名交易'}`, '', id);
+      await logActivity(userId, 'finance', 'updated', `更新交易：${body.description || txRow.description || '未命名交易'}`, '', id);
       return ok({ success: true });
     }
     if (method === 'DELETE') {
@@ -1258,7 +1272,7 @@ export async function handleSupabaseRequest(
     ] = await Promise.all([
       supabase.from('finance_transactions').select('amount').eq('user_id', userId).eq('type', 'income').eq('status', '已完成').eq('soft_deleted', false).gte('date', weekStart).lte('date', weekEnd),
       supabase.from('finance_transactions').select('amount').eq('user_id', userId).eq('type', 'expense').eq('status', '已完成').eq('soft_deleted', false).gte('date', weekStart).lte('date', weekEnd),
-      supabase.from('tasks').select('id').eq('user_id', userId).eq('column', 'done').eq('soft_deleted', false),
+      supabase.from('tasks').select('id').eq('user_id', userId).eq('column', 'done').eq('soft_deleted', false).gte('updated_at', `${weekStart}T00:00:00`).lte('updated_at', `${weekEnd}T23:59:59`),
       supabase.from('clients').select('id').eq('user_id', userId).eq('soft_deleted', false).gte('created_at', `${weekStart}T00:00:00`).lte('created_at', `${weekEnd}T23:59:59`),
       supabase.from('leads').select('id').eq('user_id', userId).eq('soft_deleted', false).gte('created_at', `${weekStart}T00:00:00`).lte('created_at', `${weekEnd}T23:59:59`),
       supabase.from('activity_log').select('title, detail, created_at, entity_type, action').eq('user_id', userId).gte('created_at', `${weekStart}T00:00:00`).lte('created_at', `${weekEnd}T23:59:59`).order('created_at', { ascending: false }).limit(20),

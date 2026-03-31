@@ -6,7 +6,7 @@
 @layer utilities {
 
   /* ── Safe-area helpers ─────────────────────────────────────── */
-  .pb-safe { padding-bottom: 18px; }
+  .pb-safe { padding-bottom: max(18px, env(safe-area-inset-bottom, 18px)); }
   .ios-scroll {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
