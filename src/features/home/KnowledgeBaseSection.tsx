@@ -168,7 +168,7 @@ export function KnowledgeBaseSection() {
 
               <div className="overflow-y-auto flex-1">
                 {selectedPrinciple ? (
-                  <div className="px-4 py-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)" }}>
+                  <div className="px-4 py-3" style={{ paddingBottom: "24px" }}>
                     <button
                       onClick={() => setSelectedPrinciple(null)}
                       className="flex items-center gap-1 text-[14px] mb-3 press-feedback"
@@ -217,7 +217,7 @@ export function KnowledgeBaseSection() {
                     </button>
                   </div>
                 ) : (
-                  <div className="px-4 py-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)" }}>
+                  <div className="px-4 py-3" style={{ paddingBottom: "24px" }}>
                     {KNOWLEDGE_CATEGORIES.map((cat, catIdx) => (
                       <div key={cat.id}>
                         {catIdx > 0 && (

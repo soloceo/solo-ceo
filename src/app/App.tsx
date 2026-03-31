@@ -517,7 +517,7 @@ function App() {
             style={{
               bottom: 0,
               padding: "0 20px",
-              paddingBottom: "max(env(safe-area-inset-bottom, 0px), 20px)",
+              paddingBottom: "20px",
               pointerEvents: "none",
             }}
           >

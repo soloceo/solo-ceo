@@ -6,7 +6,7 @@
 @layer utilities {
 
   /* ── Safe-area helpers ─────────────────────────────────────── */
-  .pb-safe { padding-bottom: max(18px, env(safe-area-inset-bottom)); }
+  .pb-safe { padding-bottom: 18px; }
   .ios-scroll {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
@@ -142,7 +142,7 @@
   }
   @media (max-width: 1023px) {
     .mobile-page {
-      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 90px);
+      padding-bottom: 90px;
     }
   }
 
@@ -334,7 +334,7 @@
     max-height: 95vh;
     border-radius: var(--radius-28) var(--radius-28) 0 0;
     box-shadow: var(--shadow-high);
-    padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
+    padding-bottom: 8px;
   }
   @media (min-width: 768px) {
     .mobile-sheet-content {

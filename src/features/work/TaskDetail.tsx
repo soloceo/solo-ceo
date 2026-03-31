@@ -320,7 +320,7 @@ export function TaskDetail({ open, onClose, editTask, columns, defaultColumn, cl
     document.body,
   )}
   {showDeleteConfirm && createPortal(
-    <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: "var(--layer-confirm)", background: "var(--color-overlay-primary)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 16px)" }}>
+    <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: "var(--layer-confirm)", background: "var(--color-overlay-primary)", paddingBottom: "16px" }}>
       <div className="card-elevated w-full max-w-sm p-5" role="dialog" aria-modal="true" aria-label="Confirm delete">
         <h3 className="text-[15px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("work.delete.title" as any)}</h3>
         <p className="text-[15px] mb-4" style={{ color: "var(--color-text-secondary)" }}>{t("work.delete.warning" as any)}</p>

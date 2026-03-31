@@ -408,7 +408,7 @@ export function LeadsView() {
 
       {/* Delete confirm */}
       {deleteId && createPortal(
-        <div className="fixed inset-0 flex items-center justify-center p-4 animate-fade-in" style={{ zIndex: "var(--layer-confirm)", background: "var(--color-overlay-primary)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 16px)" }}>
+        <div className="fixed inset-0 flex items-center justify-center p-4 animate-fade-in" style={{ zIndex: "var(--layer-confirm)", background: "var(--color-overlay-primary)", paddingBottom: "16px" }}>
           <div className="card-elevated w-full max-w-sm p-5" role="dialog" aria-modal="true" aria-label="Confirm delete">
             <h3 className="text-[15px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" as any }}>{t("pipeline.delete.title" as any)}</h3>
             <p className="text-[15px] mb-4" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.delete.warning" as any)}</p>
@@ -422,7 +422,7 @@ export function LeadsView() {
 
       {/* Convert modal */}
       {showConvert && createPortal(
-        <div className="fixed inset-0 flex items-center justify-center p-4 animate-fade-in" style={{ zIndex: "var(--layer-confirm)", background: "var(--color-overlay-primary)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 16px)" }}>
+        <div className="fixed inset-0 flex items-center justify-center p-4 animate-fade-in" style={{ zIndex: "var(--layer-confirm)", background: "var(--color-overlay-primary)", paddingBottom: "16px" }}>
           <div className="card-elevated w-full max-w-md p-5 space-y-4" role="dialog" aria-modal="true" aria-label="Convert lead">
             <div className="flex items-center justify-between">
               <h3 className="text-[15px] flex items-center gap-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" as any }}><UserPlus size={16} style={{ color: "var(--color-success)" }} /> {t("pipeline.convert.title" as any)}</h3>

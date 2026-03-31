@@ -32,7 +32,7 @@ export default function WidgetStore({ open, onClose }: Props) {
             initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className="relative w-full md:w-[400px] md:max-h-[80vh] overflow-hidden rounded-t-[var(--radius-28)] md:rounded-[var(--radius-20)]"
-            style={{ background: "var(--color-bg-primary)", boxShadow: "var(--shadow-high)", paddingBottom: "max(env(safe-area-inset-bottom, 0px), 8px)" }}
+            style={{ background: "var(--color-bg-primary)", boxShadow: "var(--shadow-high)", paddingBottom: "8px" }}
           >
             <div className="flex justify-center pt-2 pb-1 shrink-0 md:hidden">
               <div className="w-8 h-1 rounded-full" style={{ background: "var(--color-border-primary)" }} />

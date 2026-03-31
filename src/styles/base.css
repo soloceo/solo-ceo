@@ -31,6 +31,12 @@ html, body, #root {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Bottom safe area handled once at root level.
+   Components should NOT use env(safe-area-inset-bottom). */
+#root {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 /* ── Content background — matches root ───────────────────────── */
 .app-grid-bg {
   background-color: var(--color-bg-primary);
