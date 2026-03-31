@@ -22,8 +22,9 @@ export function useDueReminders(lang: string, t?: (key: string) => string) {
         const today = todayDateKey();
 
         // Find overdue/due-today tasks
+        // Compare only the date portion (first 10 chars) so tasks with time like "2026-03-31T14:00" still match
         const dueTasks = (Array.isArray(tasks) ? tasks : []).filter((t: Record<string, unknown>) =>
-          t.due && (t.due as string) <= today && t.column !== "done" && !t.soft_deleted
+          t.due && (t.due as string).slice(0, 10) <= today && t.column !== "done" && !t.soft_deleted
         );
 
         const total = dueTasks.length;

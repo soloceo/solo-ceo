@@ -483,28 +483,36 @@ export async function handleSupabaseRequest(
   if (clientMatch) {
     const id = Number(clientMatch[1]);
     if (method === 'PUT') {
-      const { name, industry, plan_tier, status, brand_context, mrr,
-              subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from, subscription_timeline,
-              company_name, contact_name, contact_email, contact_phone, billing_type, project_fee, project_end_date, tax_mode, tax_rate, drive_folder_url, payment_method } = body;
-      const np = normalizePlanTier(plan_tier || '');
+      // Build partial update — only include fields explicitly provided to avoid wiping data
+      // (e.g. industry/brand_context are set during lead conversion but not in the edit form)
+      const patch: Record<string, unknown> = {};
+      if (body.name !== undefined) patch.name = str(body.name, 255);
+      if (body.industry !== undefined) patch.industry = str(body.industry, 100);
+      if (body.plan_tier !== undefined) patch.plan_tier = normalizePlanTier(body.plan_tier || '');
+      if (body.status !== undefined) patch.status = enumVal(body.status, VALID_CLIENT_STATUSES, 'Active');
+      if (body.brand_context !== undefined) patch.brand_context = str(body.brand_context, 2000);
+      if (body.mrr !== undefined) patch.mrr = body.mrr || 0;
+      if (body.subscription_start_date !== undefined) patch.subscription_start_date = str(body.subscription_start_date, 10);
+      if (body.paused_at !== undefined) patch.paused_at = str(body.paused_at, 10);
+      if (body.resumed_at !== undefined) patch.resumed_at = str(body.resumed_at, 10);
+      if (body.cancelled_at !== undefined) patch.cancelled_at = str(body.cancelled_at, 10);
+      if (body.mrr_effective_from !== undefined) patch.mrr_effective_from = str(body.mrr_effective_from, 10) || str(body.subscription_start_date, 10);
+      if (body.subscription_timeline !== undefined) patch.subscription_timeline = body.subscription_timeline || '[]';
+      if (body.company_name !== undefined) patch.company_name = str(body.company_name, 255);
+      if (body.contact_name !== undefined) patch.contact_name = str(body.contact_name, 255);
+      if (body.contact_email !== undefined) patch.contact_email = str(body.contact_email, 320);
+      if (body.contact_phone !== undefined) patch.contact_phone = str(body.contact_phone, 30);
+      if (body.billing_type !== undefined) patch.billing_type = enumVal(body.billing_type, VALID_BILLING_TYPES, 'subscription');
+      if (body.project_fee !== undefined) patch.project_fee = body.project_fee || 0;
+      if (body.project_end_date !== undefined) patch.project_end_date = str(body.project_end_date, 10);
+      if (body.tax_mode !== undefined) patch.tax_mode = enumVal(body.tax_mode, VALID_TAX_MODES, 'none');
+      if (body.tax_rate !== undefined) patch.tax_rate = body.tax_rate || 0;
+      if (body.drive_folder_url !== undefined) patch.drive_folder_url = str(body.drive_folder_url, 2048);
+      if (body.payment_method !== undefined) patch.payment_method = enumVal(body.payment_method, VALID_PAYMENT_METHODS, 'auto');
+      if (Object.keys(patch).length === 0) return ok({ success: true });
       const { error: e } = await supabase
         .from('clients')
-        .update({
-          name: str(name, 255), industry: str(industry, 100), plan_tier: np,
-          status: enumVal(status, VALID_CLIENT_STATUSES, 'Active'),
-          brand_context: str(brand_context, 2000), mrr: mrr || 0,
-          subscription_start_date: str(subscription_start_date, 10), paused_at: str(paused_at, 10),
-          resumed_at: str(resumed_at, 10), cancelled_at: str(cancelled_at, 10),
-          mrr_effective_from: str(mrr_effective_from, 10) || str(subscription_start_date, 10),
-          subscription_timeline: subscription_timeline || '[]',
-          company_name: str(company_name, 255), contact_name: str(contact_name, 255),
-          contact_email: str(contact_email, 320), contact_phone: str(contact_phone, 30),
-          billing_type: enumVal(billing_type, VALID_BILLING_TYPES, 'subscription'), project_fee: project_fee || 0,
-          project_end_date: str(project_end_date, 10),
-          tax_mode: enumVal(tax_mode, VALID_TAX_MODES, 'none'), tax_rate: tax_rate || 0,
-          drive_folder_url: str(drive_folder_url, 2048),
-          payment_method: enumVal(payment_method, VALID_PAYMENT_METHODS, 'auto'),
-        })
+        .update(patch)
         .eq('id', id).eq('user_id', userId);
       if (e) return err(500, e.message);
       syncClientSubscriptionLedger(userId).catch((err) => console.error('[SyncLedger]', err));
@@ -609,14 +617,21 @@ export async function handleSupabaseRequest(
     const id = Number(milestoneMatch[1]);
     if (method === 'PUT') {
       const { label, amount, percentage, due_date, payment_method, status, invoice_number, note, sort_order } = body;
+      // Partial update — only include provided fields to avoid wiping invoice_number/payment_method/sort_order
+      const msPatch: Record<string, unknown> = {};
+      if (body.label !== undefined) msPatch.label = str(body.label, 255);
+      if (body.amount !== undefined) msPatch.amount = body.amount || 0;
+      if (body.percentage !== undefined) msPatch.percentage = body.percentage || 0;
+      if (body.due_date !== undefined) msPatch.due_date = str(body.due_date, 10);
+      if (body.payment_method !== undefined) msPatch.payment_method = str(body.payment_method, 50);
+      if (body.status !== undefined) msPatch.status = enumVal(body.status, VALID_MS_STATUSES, 'pending');
+      if (body.invoice_number !== undefined) msPatch.invoice_number = str(body.invoice_number, 100);
+      if (body.note !== undefined) msPatch.note = str(body.note, 1000);
+      if (body.sort_order !== undefined) msPatch.sort_order = body.sort_order ?? 0;
+      if (Object.keys(msPatch).length === 0) return ok({ success: true });
       const { error: e } = await supabase
         .from('payment_milestones')
-        .update({
-          label: str(label, 255), amount: amount || 0, percentage: percentage || 0,
-          due_date: str(due_date, 10), payment_method: str(payment_method, 50),
-          status: enumVal(status, VALID_MS_STATUSES, 'pending'), invoice_number: str(invoice_number, 100),
-          note: str(note, 1000), sort_order: sort_order ?? 0,
-        })
+        .update(msPatch)
         .eq('id', id).eq('user_id', userId);
       if (e) return err(500, e.message);
       return ok({ success: true });
@@ -746,20 +761,27 @@ export async function handleSupabaseRequest(
   if (taskMatch) {
     const id = Number(taskMatch[1]);
     if (method === 'PUT') {
-      const { title, client, client_id, priority, due, column, originalRequest, aiBreakdown, aiMjPrompts, aiStory, scope, parent_id } = body;
+      // Build partial update — only include fields explicitly provided to avoid wiping data
+      const patch: Record<string, unknown> = {};
+      if (body.title !== undefined) patch.title = str(body.title, 500);
+      if (body.client !== undefined) patch.client = str(body.client, 255);
+      if (body.client_id !== undefined) patch.client_id = body.client_id || null;
+      if (body.priority !== undefined) patch.priority = enumVal(body.priority, VALID_TASK_PRIORITIES, 'Medium');
+      if (body.due !== undefined) patch.due = str(body.due, 16);
+      if (body.column !== undefined) patch.column = enumVal(body.column, VALID_TASK_COLUMNS, 'todo');
+      if (body.originalRequest !== undefined) patch.originalRequest = str(body.originalRequest, 5000);
+      if (body.aiBreakdown !== undefined) patch.aiBreakdown = str(body.aiBreakdown, 10000);
+      if (body.aiMjPrompts !== undefined) patch.aiMjPrompts = str(body.aiMjPrompts, 5000);
+      if (body.aiStory !== undefined) patch.aiStory = str(body.aiStory, 5000);
+      if (body.scope !== undefined) patch.scope = enumVal(body.scope, VALID_TASK_SCOPES, 'work');
+      if (body.parent_id !== undefined) patch.parent_id = body.parent_id || null;
+      if (Object.keys(patch).length === 0) return ok({ success: true });
       const { error: e } = await supabase
         .from('tasks')
-        .update({
-          title: str(title, 500), client: str(client, 255), client_id: client_id || null,
-          priority: enumVal(priority, VALID_TASK_PRIORITIES, 'Medium'),
-          due: str(due, 16), column: enumVal(column, VALID_TASK_COLUMNS, 'todo'),
-          originalRequest: str(originalRequest, 5000), aiBreakdown: str(aiBreakdown, 10000),
-          aiMjPrompts: str(aiMjPrompts, 5000), aiStory: str(aiStory, 5000),
-          scope: enumVal(scope, VALID_TASK_SCOPES, 'work'), parent_id: parent_id ?? null,
-        })
+        .update(patch)
         .eq('id', id).eq('user_id', userId);
       if (e) return err(500, e.message);
-      await logActivity(userId, 'task', 'updated', `更新任务：${title || '未命名任务'}`, '', id);
+      await logActivity(userId, 'task', 'updated', `更新任务：${body.title || '未命名任务'}`, '', id);
       return ok({ success: true });
     }
     if (method === 'DELETE') {

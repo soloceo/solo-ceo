@@ -786,8 +786,8 @@ export function ClientsView() {
                                 background: (txItem.status || "已完成") === "已完成" ? "var(--color-success-light)" : (txItem.status || "").includes("应收") ? "var(--color-warning-light)" : "var(--color-danger-light)",
                                 color: (txItem.status || "已完成") === "已完成" ? "var(--color-success)" : (txItem.status || "").includes("应收") ? "var(--color-warning)" : "var(--color-danger)",
                               }}>{stLabel(txItem.status || "已完成", t)}</span>
-                              {txItem.source === "client_subscription" && <span className="badge text-[13px]" style={{ background: "color-mix(in srgb, var(--color-blue) 12%, transparent)", color: "var(--color-blue)" }}>{t("money.badge.subscription")}</span>}
-                              {txItem.source === "client_project" && <span className="badge text-[13px]" style={{ background: "color-mix(in srgb, var(--color-orange) 12%, transparent)", color: "var(--color-orange)" }}>{t("money.badge.project")}</span>}
+                              {txItem.source === "subscription" && <span className="badge text-[13px]" style={{ background: "color-mix(in srgb, var(--color-blue) 12%, transparent)", color: "var(--color-blue)" }}>{t("money.badge.subscription")}</span>}
+                              {txItem.source === "milestone" && <span className="badge text-[13px]" style={{ background: "color-mix(in srgb, var(--color-orange) 12%, transparent)", color: "var(--color-orange)" }}>{t("money.badge.project")}</span>}
                             </div>
                           </div>
                         ))}

@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { api } from "../../lib/api";
 import { useUIStore } from "../../store/useUIStore";
 import { useT } from "../../i18n/context";
 
@@ -46,8 +47,8 @@ export function useMilestones(clientId: number | null, projectFee: number) {
   const fetchMilestones = useCallback(async (cid: number) => {
     setMsLoading(true);
     try {
-      const res = await fetch(`/api/clients/${cid}/milestones`);
-      setMilestones(await res.json());
+      const data = await api.get<MilestoneRow[]>(`/api/clients/${cid}/milestones`);
+      setMilestones(Array.isArray(data) ? data : []);
     } catch (e) {
       console.warn('[useMilestones] fetchMilestones', e);
       setMilestones([]);
@@ -71,14 +72,13 @@ export function useMilestones(clientId: number | null, projectFee: number) {
     try {
       let newMsId = editMsId;
       if (editMsId) {
-        await fetch(`/api/milestones/${editMsId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        await api.put(`/api/milestones/${editMsId}`, body);
       } else {
-        const res = await fetch(`/api/clients/${clientId}/milestones`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-        const data = await res.json();
+        const data = await api.post<{ id: number }>(`/api/clients/${clientId}/milestones`, body);
         newMsId = data?.id || null;
       }
       if (msForm.alreadyPaid && newMsId) {
-        await fetch(`/api/milestones/${newMsId}/mark-paid`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ payment_method: msForm.payMethod }) });
+        await api.post(`/api/milestones/${newMsId}/mark-paid`, { payment_method: msForm.payMethod });
         showToast(t("pipeline.milestones.autoFinance"));
       } else {
         showToast(t("pipeline.milestones.saved"));
@@ -98,7 +98,7 @@ export function useMilestones(clientId: number | null, projectFee: number) {
 
   const deleteMilestone = useCallback(async (msId: number) => {
     try {
-      await fetch(`/api/milestones/${msId}`, { method: "DELETE" });
+      await api.del(`/api/milestones/${msId}`);
       showToast(t("pipeline.milestones.deleted"));
       if (clientId) fetchMilestones(clientId);
     } catch (e) {
@@ -109,7 +109,7 @@ export function useMilestones(clientId: number | null, projectFee: number) {
 
   const undoMarkPaid = useCallback(async (msId: number, onDone?: () => void) => {
     try {
-      await fetch(`/api/milestones/${msId}/undo-paid`, { method: "POST" });
+      await api.post(`/api/milestones/${msId}/undo-paid`);
       showToast(t("pipeline.milestones.undone"));
       if (clientId) {
         fetchMilestones(clientId);
@@ -124,7 +124,7 @@ export function useMilestones(clientId: number | null, projectFee: number) {
   const confirmMarkPaid = useCallback(async () => {
     if (!markPaidId) return;
     try {
-      await fetch(`/api/milestones/${markPaidId}/mark-paid`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ payment_method: markPaidMethod }) });
+      await api.post(`/api/milestones/${markPaidId}/mark-paid`, { payment_method: markPaidMethod });
       showToast(t("pipeline.milestones.autoFinance"));
       setMarkPaidId(null);
       setMarkPaidMethod("bank_transfer");
