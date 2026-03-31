@@ -6,11 +6,10 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus, Settings2, GripVertical } from "lucide-react";
+import { GripVertical } from "lucide-react";
 import { useT } from "../../../i18n/context";
 import { useWidgetStore } from "./useWidgetStore";
 import { WIDGET_REGISTRY, WidgetWrapper, WidgetPreviewProvider } from "./WidgetRegistry";
-import WidgetStore from "./WidgetStore";
 
 function SortableWidget({ widget, editMode }: { widget: typeof WIDGET_REGISTRY[number] & { layoutIndex: number }; editMode: boolean }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: widget.id, disabled: !editMode });
@@ -44,7 +43,6 @@ function SortableWidget({ widget, editMode }: { widget: typeof WIDGET_REGISTRY[n
 export default function WidgetGrid() {
   const { t } = useT();
   const { layout, reorder } = useWidgetStore();
-  const [storeOpen, setStoreOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -80,21 +78,7 @@ export default function WidgetGrid() {
 
   const activeWidget = activeId ? enabledWidgets.find(w => w.id === activeId) : null;
 
-  if (enabledWidgets.length === 0) {
-    return (
-      <section>
-        <button
-          onClick={() => setStoreOpen(true)}
-          className="w-full flex items-center justify-center gap-2 py-5 rounded-[var(--radius-16)] transition-colors hover:bg-[var(--color-bg-tertiary)]"
-          style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)", border: "1.5px dashed var(--color-border-translucent)" } as React.CSSProperties}
-        >
-          <Plus size={14} />
-          <span className="text-[12px]">{t("widgets.addWidget" as any)}</span>
-        </button>
-        <WidgetStore open={storeOpen} onClose={() => setStoreOpen(false)} />
-      </section>
-    );
-  }
+  if (enabledWidgets.length === 0) return null;
 
   return (
     <section>
@@ -102,24 +86,14 @@ export default function WidgetGrid() {
         <h2 className="text-[12px]" style={{ color: "var(--color-text-quaternary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
           {t("widgets.title" as any)}
         </h2>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setEditMode((e) => !e)}
-            className="flex items-center justify-center rounded-full transition-colors"
-            style={{ width: 24, height: 24, color: editMode ? "var(--color-accent)" : "var(--color-text-quaternary)" }}
-            aria-label="Edit layout"
-          >
-            <GripVertical size={12} />
-          </button>
-          <button
-            onClick={() => setStoreOpen(true)}
-            className="flex items-center justify-center rounded-full transition-colors hover:bg-[var(--color-bg-tertiary)]"
-            style={{ width: 24, height: 24, color: "var(--color-text-quaternary)" }}
-            aria-label="Manage widgets"
-          >
-            <Settings2 size={12} />
-          </button>
-        </div>
+        <button
+          onClick={() => setEditMode((e) => !e)}
+          className="flex items-center justify-center rounded-full transition-colors"
+          style={{ width: 24, height: 24, color: editMode ? "var(--color-accent)" : "var(--color-text-quaternary)" }}
+          aria-label="Edit layout"
+        >
+          <GripVertical size={12} />
+        </button>
       </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -144,8 +118,6 @@ export default function WidgetGrid() {
           ) : null}
         </DragOverlay>
       </DndContext>
-
-      <WidgetStore open={storeOpen} onClose={() => setStoreOpen(false)} />
     </section>
   );
 }
