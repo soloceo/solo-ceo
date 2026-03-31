@@ -12,12 +12,12 @@ function applyTheme(mode: ThemeMode) {
     (mode === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   document.documentElement.classList.toggle("dark", isDark);
 
-  // Update meta theme-color so iOS Safari status bar matches the app theme.
-  // Safari only reads this on page load, but keeping it in sync ensures
-  // correctness on next refresh or navigation.
-  const color = isDark ? "#1f1e1d" : "#faf9f5";
-  const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
-  if (meta) meta.content = color;
+  // Update both theme-color meta tags so iOS Safari status bar matches on next load.
+  // Safari reads media-matched <meta> at load time; we keep both in sync for refresh.
+  const metaLight = document.querySelector<HTMLMetaElement>('meta[name="theme-color"][media*="light"]');
+  const metaDark = document.querySelector<HTMLMetaElement>('meta[name="theme-color"][media*="dark"]');
+  if (metaLight) metaLight.content = isDark ? "#1f1e1d" : "#faf9f5";
+  if (metaDark) metaDark.content = isDark ? "#1f1e1d" : "#faf9f5";
 }
 
 interface UIState {
