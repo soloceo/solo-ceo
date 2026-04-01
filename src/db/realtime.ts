@@ -8,8 +8,9 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 
 const REALTIME_TABLES = [
   'leads', 'clients', 'tasks', 'plans',
-  'finance_transactions', 'content_drafts',
+  'finance_transactions', 'payment_milestones',
   'today_focus_state', 'today_focus_manual',
+  'client_projects',
 ] as const;
 
 let channel: RealtimeChannel | null = null;
