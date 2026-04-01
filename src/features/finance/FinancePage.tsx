@@ -811,10 +811,9 @@ export default function FinancePage() {
       {/* ── Add/Edit Panel ── */}
       {createPortal(<AnimatePresence>
         {showPanel && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className={isMobile ? "fixed inset-0" : "fixed inset-0"}
+          <motion.div key="finance-panel" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <div
+              className="fixed inset-0"
               style={{ zIndex: "var(--layer-dialog-overlay)", background: isMobile ? "var(--color-bg-primary)" : "var(--color-overlay-primary)", ...(!isMobile ? { backdropFilter: "blur(2px) saturate(180%)", WebkitBackdropFilter: "blur(2px) saturate(180%)" } : {}) }}
               onClick={() => !isMobile && setShowPanel(false)}
             />
@@ -955,7 +954,7 @@ export default function FinancePage() {
                 <button type="submit" form="finance-form" disabled={savingTx} className="btn-primary text-[15px]">{savingTx ? t("common.loading") : t("money.saveRecord")}</button>
               </div>
             </motion.div>
-          </>
+          </motion.div>
         )}
       </AnimatePresence>, document.body)}
     </div>

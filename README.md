@@ -4,7 +4,7 @@
 
 **The all-in-one workspace for solo entrepreneurs**
 
-[![Version](https://img.shields.io/badge/version-2.13.1-blue?style=flat-square)]()
+[![Version](https://img.shields.io/badge/version-2.14.0-blue?style=flat-square)]()
 [![React](https://img.shields.io/badge/React-19-61dafb?style=flat-square)]()
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?style=flat-square)]()
 [![PWA](https://img.shields.io/badge/PWA-offline%20ready-brightgreen?style=flat-square)]()

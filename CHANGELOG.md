@@ -3,6 +3,33 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.14.0] - 2026-04-01
+
+### Added
+- **Client panel UI overhaul** — master-level redesign with underline tabs, card selectors for billing type / status / payment method, unified `radius-12` design language
+- **Client panel: project tab** — added project name field, balanced 2×2 grid layout (name + fee, start + end dates)
+- **i18n: 4 new keys** — billing type and status hint text (zh + en)
+
+### Fixed
+- **Code audit: 15 issues resolved across Critical → Low severity**
+  - **Offline api.ts validation** — added `str()` / `enumVal()` to all POST/PUT fields, matching supabase-api.ts (prevents data corruption)
+  - **Subscription ledger sync** — preserves `status='已完成'` on existing transactions (prevents confirmed receipt overwrite)
+  - **Milestone mark-paid** — offline path now writes `source: 'milestone'` to finance transaction (prevents source lock bypass)
+  - **Milestone undo-paid** — added complete `/api/milestones/:id/undo-paid` route to offline api.ts
+  - **Frontend diff-only PUT** — TaskDetail + LeadsBoard now compute diff and only send changed fields (prevents stale-data overwrites)
+  - **Project PUT validation** — added `enumVal()` for `status` and `tax_mode` in supabase-api.ts
+  - **Missing offline route** — added `/api/server-info` to api.ts
+- **Type safety fixes**
+  - `supabase-api.ts` — removed unsafe `as unknown as` double assertion for OverdueMilestoneRow
+  - `main.tsx` — replaced `Record<string, any>` with proper Capacitor interface
+  - `i18n/context.tsx` — removed unnecessary `requestIdleCallback` type assertion
+- **AnimatePresence + createPortal** — replaced Fragment `<>` with keyed `motion.div` wrapper (Pattern A) in 5 files, enabling proper exit animations
+- **Safe-area pattern** — wrapped fallback `env(safe-area-inset-top)` with `max()` in ClientList, LeadsBoard, TaskDetail
+- **z-index** — sidebar changed from hardcoded `10` to `var(--layer-nav)`
+
+### Changed
+- **Sync manager** — `existingMap` type upgraded from `Map<string, number>` to `Map<string, { id: number; status: string }>` for status-aware ledger sync
+
 ## [2.13.1] - 2026-03-31
 
 ### Fixed

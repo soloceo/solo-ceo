@@ -49,7 +49,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       // Use requestIdleCallback if available, otherwise setTimeout
       const load = () => loadEn();
       if ('requestIdleCallback' in window) {
-        (window as unknown as { requestIdleCallback: (cb: () => void) => void }).requestIdleCallback(load);
+        window.requestIdleCallback(load);
       } else {
         setTimeout(load, 2000);
       }

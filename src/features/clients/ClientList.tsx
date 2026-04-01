@@ -4,6 +4,7 @@ import {
   PlayCircle, PauseCircle, Layers, PanelRightClose,
   DollarSign, CircleCheck, Clock, AlertCircle, Download,
   FolderOpen, ExternalLink, UserPlus, Undo2,
+  Building2, User, Mail, Phone, Link,
 } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { createPortal } from "react-dom";
@@ -21,6 +22,8 @@ import { useMilestones, PAYMENT_METHODS } from "./useMilestones";
 import type { MilestoneRow } from "./useMilestones";
 import { useClientTransactions, TX_CATEGORIES, TX_STATUSES } from "./useClientTransactions";
 import type { FinanceTransaction } from "./useClientTransactions";
+import { useClientProjects } from "./useClientProjects";
+import type { ProjectRow } from "./useClientProjects";
 
 /* ── Type definitions ── */
 interface ClientRow {
@@ -60,12 +63,12 @@ interface PlanRow {
 /* ── Finance helpers ── */
 const stLabel = (st: string, t: (k: string) => string) => { const key = STATUS_I18N[st]; return key ? t(key) : st; };
 
-const CLIENTS_TABLES = ['clients', 'plans', 'payment_milestones', 'finance_transactions'] as const;
+const CLIENTS_TABLES = ['clients', 'plans', 'payment_milestones', 'finance_transactions', 'client_projects'] as const;
 
 const createEmptyClient = () => ({
   name: "", company_name: "", contact_name: "", contact_email: "", contact_phone: "",
   billing_type: "subscription" as "subscription" | "project", plan: "", status: "Active",
-  mrr: "", project_fee: "",
+  mrr: "", project_fee: "", project_name: "",
   subscription_start_date: todayDateKey(),
   project_end_date: "", paused_at: "", resumed_at: "", cancelled_at: "",
   mrr_effective_from: todayDateKey(),
@@ -97,8 +100,17 @@ export function ClientsView() {
   const parentRef = useRef<HTMLDivElement>(null);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
 
-  /* ── Milestones hook ── */
-  const ms = useMilestones(editId, Number(form.project_fee) || 0);
+  /* ── Projects hook ── */
+  const proj = useClientProjects();
+
+  /* ── Milestones hook — uses active project fee if available ── */
+  const activeProjFee = proj.activeProject?.project_fee || Number(form.project_fee) || 0;
+  const ms = useMilestones(editId, activeProjFee, proj.activeProjectId);
+
+  /* ── Panel tab ── */
+  const [panelTab, setPanelTab] = useState<'info' | 'billing' | 'finance'>('info');
+  const [completedExpanded, setCompletedExpanded] = useState(false);
+  const [deleteProjectId, setDeleteProjectId] = useState<number | null>(null);
 
   /* ── Transactions hook ── */
   const tx = useClientTransactions(editId);
@@ -113,7 +125,7 @@ export function ClientsView() {
   const fetchClients = async () => { try { const data = await api.get<unknown[]>("/api/clients"); setClients(Array.isArray(data) ? data : []); } catch { showToast(t("pipeline.toast.clientLoadFailed")); } finally { setLoading(false); } };
 
   useEffect(() => { fetchClients(); fetchPlans(); tx.fetchFinance(); }, []);
-  useRealtimeRefresh(CLIENTS_TABLES, () => { fetchClients(); tx.fetchFinance(); if (editId && form.billing_type === "project") ms.fetchMilestones(editId); });
+  useRealtimeRefresh(CLIENTS_TABLES, () => { fetchClients(); tx.fetchFinance(); if (editId) { if (form.billing_type === "project") { ms.fetchMilestones(editId); proj.fetchProjects(editId); } } });
 
   /* ── Pull-to-refresh listener ── */
   useEffect(() => {
@@ -143,6 +155,10 @@ export function ClientsView() {
   const openPanel = (c: ClientRow | null = null) => {
     ms.resetState();
     tx.resetState();
+    proj.resetState();
+    setPanelTab('info');
+    setCompletedExpanded(false);
+    setDeleteProjectId(null);
     if (c) {
       setEditId(c.id);
       // Parse timeline — fallback to legacy fields
@@ -156,7 +172,10 @@ export function ClientsView() {
         if (c.cancelled_at) tl.push({ type: "cancel", date: c.cancelled_at });
       }
       setForm({ name: c.name, company_name: c.company_name || "", contact_name: c.contact_name || "", contact_email: c.contact_email || "", contact_phone: c.contact_phone || "", billing_type: c.billing_type || "subscription", plan: c.plan_tier || c.plan, status: c.status, mrr: String(c.mrr).replace(/[^0-9.-]+/g, ""), project_fee: String(c.project_fee || "").replace(/[^0-9.-]+/g, ""), subscription_start_date: tl[0]?.date || "", project_end_date: c.project_end_date || "", paused_at: c.paused_at || "", resumed_at: c.resumed_at || "", cancelled_at: c.cancelled_at || "", mrr_effective_from: tl[0]?.date || c.mrr_effective_from || "", tax_mode: (c.tax_mode || "none") as "none" | "exclusive" | "inclusive", tax_rate: String(c.tax_rate || ""), drive_folder_url: c.drive_folder_url || "", payment_method: (c.payment_method || "auto") as "auto" | "manual", timeline: tl });
-      if ((c.billing_type || "subscription") === "project") ms.fetchMilestones(c.id);
+      if ((c.billing_type || "subscription") === "project") {
+        proj.fetchProjects(c.id);
+        ms.fetchMilestones(c.id);
+      }
     }
     else { setEditId(null); setForm(createEmptyClient()); }
     setShowPanel(true);
@@ -179,10 +198,51 @@ export function ClientsView() {
 
     setSavingClient(true);
     const startEvt = form.timeline.find(e => e.type === "start");
-    const d = { name: form.name, company_name: form.company_name, contact_name: form.contact_name, contact_email: form.contact_email, contact_phone: form.contact_phone, billing_type: form.billing_type, plan_tier: form.billing_type === "subscription" ? form.plan : "", status: form.status, mrr: form.billing_type === "subscription" ? (Number(form.mrr) || 0) : 0, project_fee: form.billing_type === "project" ? (Number(form.project_fee) || 0) : 0, subscription_start_date: startEvt?.date || form.subscription_start_date, project_end_date: form.project_end_date, paused_at: form.timeline.filter(e => e.type === "pause").pop()?.date || "", resumed_at: form.timeline.filter(e => e.type === "resume").pop()?.date || "", cancelled_at: form.timeline.find(e => e.type === "cancel")?.date || "", mrr_effective_from: startEvt?.date || form.subscription_start_date, subscription_timeline: JSON.stringify(form.timeline), tax_mode: form.tax_mode, tax_rate: Number(form.tax_rate) || 0, drive_folder_url: form.drive_folder_url, payment_method: form.payment_method };
+    const isProjectType = form.billing_type === "project";
+    const hasProjects = isProjectType && editId && proj.projects.length > 0;
+    const d: Record<string, unknown> = {
+      name: form.name, company_name: form.company_name, contact_name: form.contact_name,
+      contact_email: form.contact_email, contact_phone: form.contact_phone,
+      billing_type: form.billing_type,
+      plan_tier: !isProjectType ? form.plan : "",
+      status: form.status,
+      mrr: !isProjectType ? (Number(form.mrr) || 0) : 0,
+      // For project clients with projects table, fee = sum of active project fees
+      project_fee: isProjectType && hasProjects
+        ? proj.projects.filter(p => p.status === 'active').reduce((s, p) => s + Number(p.project_fee || 0), 0)
+        : (Number(form.project_fee) || 0),
+      subscription_start_date: startEvt?.date || form.subscription_start_date,
+      project_end_date: form.project_end_date,
+      paused_at: form.timeline.filter(e => e.type === "pause").pop()?.date || "",
+      resumed_at: form.timeline.filter(e => e.type === "resume").pop()?.date || "",
+      cancelled_at: form.timeline.find(e => e.type === "cancel")?.date || "",
+      mrr_effective_from: startEvt?.date || form.subscription_start_date,
+      subscription_timeline: JSON.stringify(form.timeline),
+      tax_mode: hasProjects ? "none" : form.tax_mode,
+      tax_rate: hasProjects ? 0 : (Number(form.tax_rate) || 0),
+      drive_folder_url: form.drive_folder_url,
+      payment_method: form.payment_method,
+    };
     try {
-      if (editId) { await api.put(`/api/clients/${editId}`, d); showToast(t("pipeline.toast.clientUpdated")); }
-      else { await api.post("/api/clients", d); showToast(t("pipeline.toast.clientAdded")); }
+      if (editId) {
+        await api.put(`/api/clients/${editId}`, d);
+        showToast(t("pipeline.toast.clientUpdated"));
+      } else {
+        const newClient = await api.post<{ id: number }>("/api/clients", d);
+        showToast(t("pipeline.toast.clientAdded"));
+        // Auto-create first project for new project-type clients
+        if (isProjectType && newClient?.id && Number(form.project_fee) > 0) {
+          await api.post(`/api/clients/${newClient.id}/projects`, {
+            name: form.project_name || form.company_name || form.name || t("pipeline.projects.defaultName"),
+            project_fee: Number(form.project_fee) || 0,
+            project_start_date: form.subscription_start_date || todayDateKey(),
+            project_end_date: form.project_end_date || "",
+            status: "active",
+            tax_mode: form.tax_mode || "none",
+            tax_rate: Number(form.tax_rate) || 0,
+          });
+        }
+      }
       setShowPanel(false); fetchClients();
     } catch { showToast(t("common.saveFailed")); }
     finally { setSavingClient(false); }
@@ -359,8 +419,8 @@ export function ClientsView() {
       {/* ═══ Client Side Panel ═══ */}
       {createPortal(<AnimatePresence>
         {showPanel && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="fixed inset-0" style={{ zIndex: "var(--layer-dialog-overlay)", background: "var(--color-overlay-primary)" }} onClick={() => setShowPanel(false)} />
+          <motion.div key="client-panel" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+            <div className="fixed inset-0" style={{ zIndex: "var(--layer-dialog-overlay)", background: "var(--color-overlay-primary)" }} onClick={() => setShowPanel(false)} />
             <motion.div
               initial={{ x: isMobile ? 0 : "100%", y: isMobile ? "100%" : 0 }}
               animate={{ x: 0, y: 0 }}
@@ -370,7 +430,7 @@ export function ClientsView() {
               aria-modal="true"
               aria-label="Client detail"
               className={isMobile ? "fixed inset-0 flex flex-col" : "fixed top-0 right-0 h-full w-full max-w-[440px] lg:max-w-[520px] flex flex-col border-l"}
-              style={{ zIndex: "var(--layer-dialog)", background: "var(--color-bg-primary)", borderColor: "var(--color-border-primary)", boxShadow: "var(--shadow-high)", paddingTop: isMobile ? "var(--mobile-header-pt, env(safe-area-inset-top, 0px))" : undefined }}
+              style={{ zIndex: "var(--layer-dialog)", background: "var(--color-bg-primary)", borderColor: "var(--color-border-primary)", boxShadow: "var(--shadow-high)", paddingTop: isMobile ? "var(--mobile-header-pt, max(env(safe-area-inset-top, 0px), 0px))" : undefined }}
             >
               <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: "var(--color-border-primary)" }}>
                 <div className="flex items-center gap-3">
@@ -379,78 +439,187 @@ export function ClientsView() {
                 </div>
                 <button onClick={() => setShowPanel(false)} className="btn-icon" aria-label="Close panel">{isMobile ? <X size={18} /> : <PanelRightClose size={18} />}</button>
               </div>
-              <div className="flex-1 overflow-y-auto overflow-x-hidden ios-scroll p-5 space-y-3">
+              <div className="flex-1 overflow-y-auto overflow-x-hidden ios-scroll">
+                {/* ═══ Tab Bar (underline style — primary navigation) ═══ */}
+                <div className="sticky top-0 z-10 px-5" style={{ background: "var(--color-bg-primary)" }}>
+                  <div className="flex gap-0 relative" style={{ borderBottom: "1px solid var(--color-border-primary)" }}>
+                    {([
+                      { key: 'info' as const, label: t("pipeline.clients.tab.info") },
+                      { key: 'billing' as const, label: form.billing_type === 'subscription' ? t("pipeline.clients.tab.subscription") : t("pipeline.clients.tab.projects") },
+                      ...(editId ? [{ key: 'finance' as const, label: t("pipeline.clients.tab.finance") }] : []),
+                    ] as { key: string; label: string }[]).map(tab => (
+                      <button
+                        key={tab.key}
+                        onClick={() => setPanelTab(tab.key as 'info' | 'billing' | 'finance')}
+                        className="relative px-4 py-3 text-[14px] transition-colors"
+                        style={{
+                          color: panelTab === tab.key ? "var(--color-text-primary)" : "var(--color-text-tertiary)",
+                          fontWeight: panelTab === tab.key ? "var(--font-weight-semibold)" : "var(--font-weight-medium)",
+                        } as React.CSSProperties}
+                      >
+                        {tab.label}
+                        {panelTab === tab.key && (
+                          <motion.div
+                            layoutId="client-panel-tab-indicator"
+                            className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full"
+                            style={{ background: "var(--color-accent)" }}
+                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                          />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="p-5 space-y-4">
+
+                {/* ═══ TAB 1: Overview / Info ═══ */}
+                {panelTab === 'info' && (<>
+                {/* Company & Contact */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <FL label={t("pipeline.clients.companyName")}>
                       <div>
-                        <input required value={form.company_name} onChange={e => { setForm(p => ({ ...p, company_name: e.target.value, name: e.target.value || p.contact_name })); setFormErrors(prev => ({...prev, company_name: false})); }} className="input-base w-full px-3 py-2 text-[15px]" style={{ borderColor: formErrors.company_name ? 'var(--color-danger)' : undefined }} />
-                        {formErrors.company_name && <span style={{ color: 'var(--color-danger)', fontSize: 12 }}>必填项</span>}
+                        <div className="relative">
+                          <Building2 size={16} className="absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" style={{ color: formErrors.company_name ? "var(--color-danger)" : "var(--color-text-tertiary)" }} />
+                          <input required value={form.company_name} onChange={e => { setForm(p => ({ ...p, company_name: e.target.value, name: e.target.value || p.contact_name })); setFormErrors(prev => ({...prev, company_name: false})); }} className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]" style={{ borderColor: formErrors.company_name ? 'var(--color-danger)' : undefined }} />
+                        </div>
+                        {formErrors.company_name && <span className="text-[12px] mt-1 block" style={{ color: 'var(--color-danger)' }}>必填项</span>}
                       </div>
                     </FL>
                   </div>
-                  <FL label={t("pipeline.clients.contactName")}><input value={form.contact_name} onChange={e => setForm(p => ({ ...p, contact_name: e.target.value, name: p.company_name || e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+                  <FL label={t("pipeline.clients.contactName")}>
+                    <div className="relative">
+                      <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" style={{ color: "var(--color-text-tertiary)" }} />
+                      <input value={form.contact_name} onChange={e => setForm(p => ({ ...p, contact_name: e.target.value, name: p.company_name || e.target.value }))} className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]" />
+                    </div>
+                  </FL>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <FL label={t("pipeline.clients.contactEmail")}><input type="email" value={form.contact_email} onChange={e => setForm(p => ({ ...p, contact_email: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
-                  <FL label={t("pipeline.clients.contactPhone")}><input type="tel" value={form.contact_phone} onChange={e => setForm(p => ({ ...p, contact_phone: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+                  <FL label={t("pipeline.clients.contactEmail")}>
+                    <div className="relative">
+                      <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" style={{ color: "var(--color-text-tertiary)" }} />
+                      <input type="email" value={form.contact_email} onChange={e => setForm(p => ({ ...p, contact_email: e.target.value }))} className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]" />
+                    </div>
+                  </FL>
+                  <FL label={t("pipeline.clients.contactPhone")}>
+                    <div className="relative">
+                      <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" style={{ color: "var(--color-text-tertiary)" }} />
+                      <input type="tel" value={form.contact_phone} onChange={e => setForm(p => ({ ...p, contact_phone: e.target.value }))} className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]" />
+                    </div>
+                  </FL>
                 </div>
+
                 {/* Google Drive folder link */}
                 <FL label={t("pipeline.clients.driveFolder")}>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
-                      <FolderOpen size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--color-text-secondary)" }} />
-                      <input value={form.drive_folder_url} onChange={e => setForm(p => ({ ...p, drive_folder_url: e.target.value }))} placeholder={t("pipeline.clients.drivePlaceholder")} className="input-base w-full pl-9 pr-3 py-2 text-[15px]" />
+                      <Link size={16} className="absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" style={{ color: "var(--color-text-tertiary)" }} />
+                      <input value={form.drive_folder_url} onChange={e => setForm(p => ({ ...p, drive_folder_url: e.target.value }))} placeholder={t("pipeline.clients.drivePlaceholder")} className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]" />
                     </div>
                     {form.drive_folder_url && (
                       <button type="button" onClick={() => window.open(form.drive_folder_url, '_blank')} className="btn-ghost flex items-center gap-1 px-3 shrink-0 text-[13px]" style={{ color: "var(--color-accent)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-                        <ExternalLink size={16} /> {t("pipeline.clients.openDrive")}
+                        <ExternalLink size={14} /> {t("pipeline.clients.openDrive")}
                       </button>
                     )}
                   </div>
                 </FL>
+
                 <div className="border-t" style={{ borderColor: "var(--color-border-primary)" }} />
-                {/* Billing type switcher */}
+
+                {/* Billing type — card selector with icons */}
                 <FL label={t("pipeline.clients.billingType")}>
-                  <div className="segment-switcher">
-                    {(["subscription", "project"] as const).map(bt => (
-                      <button key={bt} onClick={() => {
-                        if (editId && bt !== form.billing_type) {
-                          // Switching billing type on existing client — confirm first
-                          const message = bt === "project"
-                            ? t("pipeline.clients.switchToProjectConfirm")
-                            : t("pipeline.clients.switchToSubConfirm");
-                          setBillingConfirm({ type: bt, message });
-                        } else {
-                          setForm(p => ({ ...p, billing_type: bt }));
-                        }
-                      }} data-active={form.billing_type === bt}>
-                        {bt === "subscription" ? t("pipeline.clients.billingSubscription") : t("pipeline.clients.billingProject")}
-                      </button>
-                    ))}
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      { value: "subscription" as const, label: t("pipeline.clients.billingSubscription"), icon: <PlayCircle size={16} />, hint: t("pipeline.clients.billingSubHint") },
+                      { value: "project" as const, label: t("pipeline.clients.billingProject"), icon: <Layers size={16} />, hint: t("pipeline.clients.billingProjHint") },
+                    ]).map(bt => {
+                      const active = form.billing_type === bt.value;
+                      return (
+                        <button key={bt.value} type="button" onClick={() => {
+                          if (editId && bt.value !== form.billing_type) {
+                            const message = bt.value === "project"
+                              ? t("pipeline.clients.switchToProjectConfirm")
+                              : t("pipeline.clients.switchToSubConfirm");
+                            setBillingConfirm({ type: bt.value, message });
+                          } else {
+                            setForm(p => ({ ...p, billing_type: bt.value }));
+                          }
+                        }}
+                          className="flex flex-col items-start gap-1 p-3 rounded-[var(--radius-12)] text-left transition-all"
+                          style={{
+                            background: active ? "var(--color-accent-tint)" : "var(--color-bg-tertiary)",
+                            border: `1px solid ${active ? "var(--color-accent)" : "var(--color-border-primary)"}`,
+                          }}>
+                          <div className="flex items-center gap-2">
+                            <span style={{ color: active ? "var(--color-accent)" : "var(--color-text-tertiary)" }}>{bt.icon}</span>
+                            <span className="text-[14px]" style={{ color: active ? "var(--color-accent)" : "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{bt.label}</span>
+                          </div>
+                          <span className="text-[12px] leading-tight pl-6" style={{ color: "var(--color-text-tertiary)" }}>{bt.hint}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </FL>
+
+                {/* Status — card selector matching billing type style */}
+                <FL label={t("common.status")}>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      { value: "Active", label: t("common.active"), hint: t("pipeline.clients.statusActiveHint"), color: "var(--color-success)" },
+                      { value: "Paused", label: t("common.paused"), hint: t("pipeline.clients.statusPausedHint"), color: "var(--color-warning)" },
+                    ] as const).map(st => {
+                      const active = form.status === st.value;
+                      return (
+                        <button key={st.value} type="button" onClick={() => setForm(p => ({ ...p, status: st.value }))}
+                          className="flex flex-col items-start gap-1 p-3 rounded-[var(--radius-12)] text-left transition-all"
+                          style={{
+                            background: active ? `color-mix(in srgb, ${st.color} 8%, transparent)` : "var(--color-bg-tertiary)",
+                            border: `1px solid ${active ? st.color : "var(--color-border-primary)"}`,
+                          }}>
+                          <div className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full shrink-0" style={{ background: active ? st.color : "var(--color-text-quaternary)" }} />
+                            <span className="text-[14px]" style={{ color: active ? st.color : "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{st.label}</span>
+                          </div>
+                          <span className="text-[12px] leading-tight pl-4" style={{ color: "var(--color-text-tertiary)" }}>{st.hint}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </FL>
+                </>)}
+
+                {/* ═══ TAB 2: Billing Details ═══ */}
+                {panelTab === 'billing' && (<>
                 {form.billing_type === "subscription" ? (
                   <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                       <FL label={t("pipeline.convert.plan")}><select value={form.plan} onChange={e => { const v = e.target.value; const p = plans.find((x: PlanRow) => x.name === v); setForm(prev => ({ ...prev, plan: v, mrr: p ? String(p.price) : prev.mrr })); }} className="input-base w-full px-3 py-2 text-[15px]"><option value="">{t("pipeline.convert.planSelect")}</option>{plans.map((p: PlanRow) => <option key={p.id} value={p.name}>{p.name}</option>)}</select></FL>
-                      <FL label={t("common.status")}><select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]"><option value="Active">{t("common.active")}</option><option value="Paused">{t("common.paused")}</option></select></FL>
                     </div>
                     <FL label={t("pipeline.convert.mrr")}><input type="number" required min="0" value={form.mrr} onChange={e => setForm(p => ({ ...p, mrr: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
-                    {/* Payment method */}
+                    {/* Payment method — unified card selector */}
                     <FL label={t("pipeline.clients.paymentMethod")}>
-                      <div className="flex gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         {([
-                          ["auto", t("pipeline.clients.payAuto"), t("pipeline.clients.payAutoHint")],
-                          ["manual", t("pipeline.clients.payManual"), t("pipeline.clients.payManualHint")],
-                        ] as [string, string, string][]).map(([val, label, hint]) => (
-                          <button key={val} type="button" onClick={() => setForm(p => ({ ...p, payment_method: val }))}
-                            className="flex-1 card p-3 text-left transition-colors"
-                            style={form.payment_method === val ? { borderColor: "var(--color-accent)", background: "var(--color-accent-tint)" } : {}}>
-                            <div className="text-[15px]" style={{ color: form.payment_method === val ? "var(--color-accent)" : "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{label}</div>
-                            <div className="text-[13px] mt-0.5" style={{ color: "var(--color-text-secondary)" }}>{hint}</div>
-                          </button>
-                        ))}
+                          { value: "auto", label: t("pipeline.clients.payAuto"), hint: t("pipeline.clients.payAutoHint"), icon: <PlayCircle size={16} /> },
+                          { value: "manual", label: t("pipeline.clients.payManual"), hint: t("pipeline.clients.payManualHint"), icon: <DollarSign size={16} /> },
+                        ]).map(pm => {
+                          const active = form.payment_method === pm.value;
+                          return (
+                            <button key={pm.value} type="button" onClick={() => setForm(p => ({ ...p, payment_method: pm.value }))}
+                              className="flex flex-col items-start gap-1 p-3 rounded-[var(--radius-12)] text-left transition-all"
+                              style={{
+                                background: active ? "var(--color-accent-tint)" : "var(--color-bg-tertiary)",
+                                border: `1px solid ${active ? "var(--color-accent)" : "var(--color-border-primary)"}`,
+                              }}>
+                              <div className="flex items-center gap-2">
+                                <span style={{ color: active ? "var(--color-accent)" : "var(--color-text-tertiary)" }}>{pm.icon}</span>
+                                <span className="text-[14px]" style={{ color: active ? "var(--color-accent)" : "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{pm.label}</span>
+                              </div>
+                              <span className="text-[12px] leading-tight pl-6" style={{ color: "var(--color-text-tertiary)" }}>{pm.hint}</span>
+                            </button>
+                          );
+                        })}
                       </div>
                     </FL>
                     {/* Tax settings — after amount */}
@@ -516,211 +685,335 @@ export function ClientsView() {
                   </>
                 ) : (
                   <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <FL label={t("pipeline.clients.projectFee")}><input type="number" required min="0" value={form.project_fee} onChange={e => setForm(p => ({ ...p, project_fee: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
-                      <FL label={t("common.status")}><select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]"><option value="Active">{t("common.active")}</option><option value="Paused">{t("common.paused")}</option></select></FL>
-                    </div>
-                    {/* Tax settings — after amount */}
-                    <FL label={t("pipeline.clients.taxSetting")}>
-                      <div className="flex flex-wrap gap-2 mb-2">
-                        {([["none", t("money.form.taxNone")], ["exclusive", t("money.form.taxExclBtn")], ["inclusive", t("money.form.taxIncl")]] as [string, string][]).map(([mode, label]) => (
-                          <button key={mode} type="button" onClick={() => setForm(p => ({ ...p, tax_mode: mode }))}
-                            className="flex-1 py-2 rounded-full text-[15px] transition-all"
-                            style={form.tax_mode === mode ? { background: "var(--color-accent)", color: "var(--color-brand-text)", fontWeight: "var(--font-weight-medium)" } : { background: "var(--color-bg-tertiary)", color: "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-                            {label}
-                          </button>
-                        ))}
-                      </div>
-                      {form.tax_mode !== "none" && (
-                        <div className="flex flex-wrap gap-2">
-                          {[13, 6, 3].map(r => (
-                            <button key={r} type="button" onClick={() => setForm(p => ({ ...p, tax_rate: String(r) }))}
-                              className="px-3 py-2 rounded-[var(--radius-4)] text-[13px] transition-all"
-                              style={Number(form.tax_rate) === r ? { background: "var(--color-accent-tint)", color: "var(--color-accent)", border: "1px solid var(--color-accent)", fontWeight: "var(--font-weight-medium)" } : { background: "var(--color-bg-tertiary)", color: "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-                              {r}%
-                            </button>
-                          ))}
-                          <input type="number" min="0" max="100" step="0.01" value={form.tax_rate} onChange={e => setForm(p => ({ ...p, tax_rate: e.target.value }))} placeholder={t("money.form.customTaxPlaceholder")} className="input-base flex-1 px-3 py-2 text-[15px] min-w-0" />
-                        </div>
-                      )}
-                    </FL>
-                    <div className="border-t" style={{ borderColor: "var(--color-border-primary)" }} />
-                    <span className="section-label">{t("pipeline.clients.projectTimeline")}</span>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <FL label={t("pipeline.clients.projectStart")}><input type="date" value={form.subscription_start_date} onChange={e => setForm(p => ({ ...p, subscription_start_date: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
-                      <FL label={t("pipeline.clients.projectEnd")}><input type="date" value={form.project_end_date} onChange={e => setForm(p => ({ ...p, project_end_date: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
-                    </div>
-
-                    {/* ═══ Payment Milestones ═══ */}
-                    {editId && (
+                    {/* ═══ Projects Section ═══ */}
+                    {editId ? (
                       <>
-                        <div className="border-t" style={{ borderColor: "var(--color-border-primary)" }} />
-                        <div className="flex items-center justify-between">
-                          <span className="section-label flex items-center gap-1.5"><DollarSign size={16} /> {t("pipeline.milestones.title")}</span>
-                          <button onClick={() => ms.openAddForm()} className="btn-ghost text-[13px] flex items-center gap-1" style={{ color: "var(--color-accent)" }}><Plus size={16} /> {t("pipeline.milestones.add")}</button>
+                        <div className="flex items-center justify-between pt-1">
+                          <span className="section-label">{t("pipeline.projects.title")}</span>
+                          <button onClick={() => proj.openAddForm()} className="btn-ghost text-[13px] flex items-center gap-1" style={{ color: "var(--color-accent)" }}><Plus size={16} /> {t("pipeline.projects.add")}</button>
                         </div>
-                        <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.milestones.hint")}</div>
 
-                        {/* Progress bar */}
-                        {ms.milestones.length > 0 && (() => {
-                          const totalAmt = ms.milestones.reduce((s: number, m: MilestoneRow) => s + Number(m.amount || 0), 0);
-                          const paidAmt = ms.milestones.filter((m: MilestoneRow) => m.status === "paid").reduce((s: number, m: MilestoneRow) => s + Number(m.amount || 0), 0);
-                          const pct = totalAmt > 0 ? Math.round(paidAmt / totalAmt * 100) : 0;
-                          return (
-                            <div>
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>
-                                  {ms.milestones.filter((m: MilestoneRow) => m.status === "paid").length}/{ms.milestones.length} {t("pipeline.milestones.status.paid").toLowerCase()} · ${paidAmt.toLocaleString()} / ${totalAmt.toLocaleString()}
-                                </span>
-                                <span className="text-[13px] tabular-nums" style={{ color: pct === 100 ? "var(--color-success)" : "var(--color-accent)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{pct}%</span>
-                              </div>
-                              <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--color-bg-tertiary)" }}>
-                                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: pct === 100 ? "var(--color-success)" : "var(--color-accent)" }} />
-                              </div>
-                            </div>
-                          );
-                        })()}
-
-                        {/* Milestone list */}
-                        {ms.msLoading ? (
-                          <div className="space-y-2">
-                            <Skeleton className="h-16 rounded-[var(--radius-12)]" />
-                            <Skeleton className="h-16 rounded-[var(--radius-12)]" />
-                          </div>
-                        ) : ms.milestones.length === 0 && !ms.showAddMs ? (
-                          <div className="text-center py-4 text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.milestones.noPlan")}</div>
+                        {proj.loading ? (
+                          <div className="space-y-2"><Skeleton className="h-16 rounded-[var(--radius-12)]" /><Skeleton className="h-16 rounded-[var(--radius-12)]" /></div>
+                        ) : proj.projects.length === 0 && !proj.showAddForm ? (
+                          <div className="text-center py-4 text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.projects.empty")}</div>
                         ) : (
                           <div className="space-y-2">
-                            {ms.milestones.map((msItem: MilestoneRow) => (
-                              <div key={msItem.id} className="rounded-[var(--radius-6)] p-3 space-y-2 cursor-pointer transition-colors" style={{ background: "var(--color-bg-tertiary)", border: `1px solid ${msItem.status === "paid" ? "var(--color-success)" : "var(--color-border-primary)"}` }} onClick={() => { if (msItem.status !== "paid") { ms.openEditForm(msItem); } }}>
+                            {/* Active projects */}
+                            {proj.projects.filter(p => p.status === "active").map(p => (
+                              <div key={p.id} role="button" tabIndex={0} onClick={() => proj.setActiveProjectId(p.id)}
+                                className="w-full text-left rounded-[var(--radius-6)] p-3 transition-colors cursor-pointer"
+                                style={{ background: p.id === proj.activeProjectId ? "var(--color-accent-tint)" : "var(--color-bg-tertiary)", border: `1px solid ${p.id === proj.activeProjectId ? "var(--color-accent)" : "var(--color-border-primary)"}` }}>
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-2">
-                                    {msItem.status === "paid" ? <CircleCheck size={16} style={{ color: "var(--color-success)" }} /> : msItem.status === "overdue" ? <AlertCircle size={16} style={{ color: "var(--color-danger)" }} /> : <Clock size={16} style={{ color: "var(--color-text-secondary)" }} />}
-                                    <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{msItem.label}</span>
-                                    <span className="badge text-[13px]" style={
-                                      msItem.status === "paid" ? { background: "var(--color-success-light)", color: "var(--color-success)" }
-                                      : msItem.status === "overdue" ? { background: "color-mix(in srgb, var(--color-danger) 12%, transparent)", color: "var(--color-danger)" }
-                                      : { background: "color-mix(in srgb, var(--color-warning) 12%, transparent)", color: "var(--color-warning)" }
-                                    }>{t(`pipeline.milestones.status.${msItem.status}`)}</span>
+                                    <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{p.name}</span>
+                                    <span className="badge text-[13px]" style={{ background: "var(--color-success-light)", color: "var(--color-success)" }}>{t("pipeline.projects.status.active")}</span>
                                   </div>
-                                  <span className="text-[15px] tabular-nums" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>${Number(msItem.amount || 0).toLocaleString()}</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[15px] tabular-nums" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>${Number(p.project_fee || 0).toLocaleString()}</span>
+                                    <button type="button" onClick={e => { e.stopPropagation(); proj.openEditForm(p); }} className="btn-icon-sm"><Edit2 size={14} /></button>
+                                    <button type="button" onClick={e => { e.stopPropagation(); setDeleteProjectId(p.id); }} className="btn-icon-sm" style={{ color: "var(--color-danger)" }}><Trash2 size={14} /></button>
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-3 text-[13px]" style={{ color: "var(--color-text-secondary)" }}>
-                                  {msItem.percentage > 0 && <span>{msItem.percentage}%</span>}
-                                  {msItem.due_date && <span>{t("pipeline.milestones.dueDate")}: {msItem.due_date}</span>}
-                                  {msItem.paid_date && <span>{t("pipeline.milestones.paidDate")}: {msItem.paid_date}</span>}
-                                  {msItem.payment_method && <span>{t(`pipeline.milestones.method.${msItem.payment_method}`)}</span>}
+                                <div className="flex items-center gap-2 mt-1 text-[13px]" style={{ color: "var(--color-text-secondary)" }}>
+                                  {p.project_start_date && <span>{p.project_start_date}</span>}
+                                  {p.project_end_date && <span>→ {p.project_end_date}</span>}
+                                  {p.tax_mode && p.tax_mode !== "none" && <span style={{ color: "var(--color-accent)" }}>{p.tax_mode === "exclusive" ? t("money.form.taxExclBtn") : t("money.form.taxIncl")} {p.tax_rate}%</span>}
                                 </div>
-                                {msItem.note && <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{msItem.note}</div>}
-                                {msItem.status === "paid" ? (
-                                  <div className="flex items-center justify-between" onClick={e => e.stopPropagation()}>
-                                    <span className="text-[13px]" style={{ color: "var(--color-success)" }}>{t("pipeline.milestones.autoRecorded")}</span>
-                                    <button onClick={() => ms.undoMarkPaid(msItem.id, () => tx.fetchFinance())} className="btn-ghost text-[13px] flex items-center gap-1" style={{ color: "var(--color-warning)" }}>
-                                      <Undo2 size={12} /> {t("pipeline.milestones.undoPaid")}
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center gap-2 pt-1" onClick={e => e.stopPropagation()}>
-                                    <button onClick={() => { ms.setMarkPaidId(msItem.id); ms.setMarkPaidMethod("bank_transfer"); }} className="text-[14px] px-3 py-1.5 rounded-full flex items-center gap-1" style={{ background: "var(--color-success-light)", color: "var(--color-success)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-                                      <CircleCheck size={16} /> {t("pipeline.milestones.markPaid")}
-                                    </button>
-                                    <button onClick={() => ms.openEditForm(msItem)} className="btn-icon-sm"><Edit2 size={16} /></button>
-                                    <button onClick={() => ms.setDeleteMsId(msItem.id)} className="btn-icon-sm" style={{ color: "var(--color-danger)" }}><Trash2 size={16} /></button>
-                                  </div>
-                                )}
                               </div>
                             ))}
+
+                            {/* Completed / cancelled projects (collapsed) */}
+                            {(() => {
+                              const done = proj.projects.filter(p => p.status === "completed" || p.status === "cancelled");
+                              if (!done.length) return null;
+                              return (
+                                <div>
+                                  <button type="button" onClick={() => setCompletedExpanded(v => !v)} className="w-full text-left text-[13px] py-2 flex items-center gap-1" style={{ color: "var(--color-text-tertiary)" }}>
+                                    <span style={{ transform: completedExpanded ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s", display: "inline-block" }}>▸</span>
+                                    {t("pipeline.projects.completedSection")} ({done.length})
+                                  </button>
+                                  {completedExpanded && done.map(p => (
+                                    <div key={p.id} role="button" tabIndex={0} onClick={() => proj.setActiveProjectId(p.id)}
+                                      className="w-full text-left rounded-[var(--radius-6)] p-3 mb-2 transition-colors opacity-70 cursor-pointer"
+                                      style={{ background: p.id === proj.activeProjectId ? "var(--color-accent-tint)" : "var(--color-bg-tertiary)", border: `1px solid ${p.id === proj.activeProjectId ? "var(--color-accent)" : "var(--color-border-primary)"}` }}>
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{p.name}</span>
+                                          <span className="badge text-[13px]" style={p.status === "completed" ? { background: "color-mix(in srgb, var(--color-blue) 12%, transparent)", color: "var(--color-blue)" } : { background: "color-mix(in srgb, var(--color-text-secondary) 12%, transparent)", color: "var(--color-text-secondary)" }}>{t(`pipeline.projects.status.${p.status}`)}</span>
+                                        </div>
+                                        <span className="text-[15px] tabular-nums" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>${Number(p.project_fee || 0).toLocaleString()}</span>
+                                      </div>
+                                      <div className="flex items-center gap-2 mt-1 text-[13px]" style={{ color: "var(--color-text-secondary)" }}>
+                                        {p.project_start_date && <span>{p.project_start_date}</span>}
+                                        {p.project_end_date && <span>→ {p.project_end_date}</span>}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              );
+                            })()}
                           </div>
                         )}
 
-                        {/* Add / Edit milestone form */}
+                        {/* Project add / edit form */}
                         <AnimatePresence>
-                          {ms.showAddMs && (
+                          {proj.showAddForm && (
                             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
                               <div className="rounded-[var(--radius-6)] p-3 space-y-3" style={{ background: "var(--color-bg-tertiary)", border: "1px solid var(--color-accent)", borderStyle: "dashed" }}>
                                 <div className="flex items-center justify-between">
-                                  <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{ms.editMsId ? t("common.edit") : t("pipeline.milestones.add")}</span>
-                                  <button onClick={() => ms.closeForm()} className="btn-icon" aria-label="Close"><X size={18} /></button>
+                                  <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{proj.editProjectId ? t("common.edit") : t("pipeline.projects.add")}</span>
+                                  <button onClick={() => proj.closeForm()} className="btn-icon" aria-label="Close"><X size={18} /></button>
                                 </div>
-                                {/* Preset buttons */}
-                                {!ms.editMsId && (
-                                  <div className="flex flex-wrap gap-1.5">
-                                    {(["deposit", "midway", "final"] as const).map(p => (
-                                      <button key={p} onClick={() => ms.applyPreset(p)} className="text-[14px] px-3 py-1.5 rounded-full transition-colors" style={{ background: "color-mix(in srgb, var(--color-accent) 10%, transparent)", color: "var(--color-accent)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-                                        {t(`pipeline.milestones.presets.${p}`)}
+                                <FL label={t("pipeline.projects.name")}><input value={proj.projectForm.name} onChange={e => proj.setProjectForm(p => ({ ...p, name: e.target.value }))} placeholder={t("pipeline.projects.defaultName")} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                  <FL label={t("pipeline.projects.fee")}><input type="number" min="0" value={proj.projectForm.project_fee} onChange={e => proj.setProjectForm(p => ({ ...p, project_fee: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+                                  <FL label={t("pipeline.projects.status")}>
+                                    <select value={proj.projectForm.status} onChange={e => proj.setProjectForm(p => ({ ...p, status: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]">
+                                      <option value="active">{t("pipeline.projects.status.active")}</option>
+                                      <option value="completed">{t("pipeline.projects.status.completed")}</option>
+                                      <option value="cancelled">{t("pipeline.projects.status.cancelled")}</option>
+                                    </select>
+                                  </FL>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                  <FL label={t("pipeline.clients.projectStart")}><input type="date" value={proj.projectForm.project_start_date} onChange={e => proj.setProjectForm(p => ({ ...p, project_start_date: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+                                  <FL label={t("pipeline.clients.projectEnd")}><input type="date" value={proj.projectForm.project_end_date} onChange={e => proj.setProjectForm(p => ({ ...p, project_end_date: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+                                </div>
+                                {/* Per-project tax settings */}
+                                <FL label={t("pipeline.clients.taxSetting")}>
+                                  <div className="flex flex-wrap gap-2 mb-2">
+                                    {([["none", t("money.form.taxNone")], ["exclusive", t("money.form.taxExclBtn")], ["inclusive", t("money.form.taxIncl")]] as [string, string][]).map(([mode, label]) => (
+                                      <button key={mode} type="button" onClick={() => proj.setProjectForm(p => ({ ...p, tax_mode: mode as "none" | "exclusive" | "inclusive" }))}
+                                        className="flex-1 py-2 rounded-full text-[15px] transition-all"
+                                        style={proj.projectForm.tax_mode === mode ? { background: "var(--color-accent)", color: "var(--color-brand-text)", fontWeight: "var(--font-weight-medium)" } : { background: "var(--color-bg-tertiary)", color: "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
+                                        {label}
                                       </button>
                                     ))}
                                   </div>
-                                )}
-                                <FL label={t("pipeline.milestones.label")}><input value={ms.msForm.label} onChange={e => ms.setMsForm(p => ({ ...p, label: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" placeholder={t("pipeline.milestones.presets.deposit")} /></FL>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                  <FL label={t("pipeline.milestones.amount")}><input type="number" min="0" value={ms.msForm.amount} onChange={e => { const amt = e.target.value; const fee = Number(form.project_fee) || 1; ms.setMsForm(p => ({ ...p, amount: amt, percentage: fee > 0 ? String(Math.round(Number(amt) / fee * 100)) : p.percentage })); }} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
-                                  <FL label={t("pipeline.milestones.percentage")}><input type="number" min="0" max="100" value={ms.msForm.percentage} onChange={e => { const pct = e.target.value; const fee = Number(form.project_fee) || 0; ms.setMsForm(p => ({ ...p, percentage: pct, amount: fee > 0 ? String(Math.round(fee * Number(pct) / 100)) : p.amount })); }} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
-                                </div>
-                                <FL label={t("pipeline.milestones.dueDate")}><input type="date" value={ms.msForm.due_date} onChange={e => ms.setMsForm(p => ({ ...p, due_date: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
-                                <FL label={t("pipeline.milestones.note")}><input value={ms.msForm.note} onChange={e => ms.setMsForm(p => ({ ...p, note: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
-                                {!ms.editMsId && (
-                                  <label className="flex items-center gap-2 cursor-pointer py-1">
-                                    <input type="checkbox" checked={ms.msForm.alreadyPaid} onChange={e => ms.setMsForm(p => ({ ...p, alreadyPaid: e.target.checked }))} className="w-4 h-4 rounded accent-[var(--color-success)]" />
-                                    <span className="text-[15px]" style={{ color: ms.msForm.alreadyPaid ? "var(--color-success)" : "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("pipeline.milestones.alreadyPaid")}</span>
-                                  </label>
-                                )}
-                                {ms.msForm.alreadyPaid && !ms.editMsId && (
-                                  <FL label={t("pipeline.milestones.paymentMethod")}>
-                                    <select value={ms.msForm.payMethod} onChange={e => ms.setMsForm(p => ({ ...p, payMethod: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]">
-                                      {PAYMENT_METHODS.map(m => <option key={m} value={m}>{t(`pipeline.milestones.method.${m}`)}</option>)}
-                                    </select>
-                                  </FL>
-                                )}
+                                  {proj.projectForm.tax_mode !== "none" && (
+                                    <div className="flex flex-wrap gap-2">
+                                      {[13, 6, 3].map(r => (
+                                        <button key={r} type="button" onClick={() => proj.setProjectForm(p => ({ ...p, tax_rate: String(r) }))}
+                                          className="px-3 py-2 rounded-[var(--radius-4)] text-[13px] transition-all"
+                                          style={Number(proj.projectForm.tax_rate) === r ? { background: "var(--color-accent-tint)", color: "var(--color-accent)", border: "1px solid var(--color-accent)", fontWeight: "var(--font-weight-medium)" } : { background: "var(--color-bg-tertiary)", color: "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
+                                          {r}%
+                                        </button>
+                                      ))}
+                                      <input type="number" min="0" max="100" step="0.01" value={proj.projectForm.tax_rate} onChange={e => proj.setProjectForm(p => ({ ...p, tax_rate: e.target.value }))} placeholder={t("money.form.customTaxPlaceholder")} className="input-base flex-1 px-3 py-2 text-[15px] min-w-0" />
+                                    </div>
+                                  )}
+                                </FL>
                                 <div className="flex justify-end gap-2">
-                                  <button onClick={() => ms.closeForm()} className="btn-secondary text-[15px]">{t("common.cancel")}</button>
-                                  <button onClick={() => ms.saveMilestone(() => tx.fetchFinance())} disabled={!ms.msForm.label || !ms.msForm.amount || ms.savingMs} className="btn-primary text-[15px]">{ms.savingMs ? t("common.loading") : ms.msForm.alreadyPaid && !ms.editMsId ? t("pipeline.milestones.saveAndRecord") : t("common.save")}</button>
+                                  <button onClick={() => proj.closeForm()} className="btn-secondary text-[15px]">{t("common.cancel")}</button>
+                                  <button onClick={() => proj.saveProject(editId!)} disabled={proj.saving} className="btn-primary text-[15px]">{proj.saving ? t("common.loading") : t("common.save")}</button>
                                 </div>
                               </div>
                             </motion.div>
                           )}
                         </AnimatePresence>
 
-                        {/* Delete milestone confirmation */}
-                        {ms.deleteMsId !== null && (
+                        {/* Delete project confirmation */}
+                        {deleteProjectId !== null && (
                           <div className="rounded-[var(--radius-6)] p-3 space-y-3" style={{ background: "color-mix(in srgb, var(--color-danger) 6%, var(--color-bg-primary))", border: "1px solid var(--color-danger)" }}>
-                            <div className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("pipeline.milestones.deleteConfirm")}</div>
+                            <div className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("pipeline.projects.deleteConfirm")}</div>
                             <div className="flex justify-end gap-2">
-                              <button onClick={() => ms.setDeleteMsId(null)} className="btn-secondary text-[15px]">{t("common.cancel")}</button>
-                              <button onClick={() => { ms.deleteMilestone(ms.deleteMsId!); ms.setDeleteMsId(null); }} className="text-[15px] px-3 py-2 rounded-[var(--radius-6)]" style={{ background: "var(--color-danger)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("common.confirm")}</button>
+                              <button onClick={() => setDeleteProjectId(null)} className="btn-secondary text-[15px]">{t("common.cancel")}</button>
+                              <button onClick={() => { proj.deleteProject(deleteProjectId, editId!); setDeleteProjectId(null); }} className="text-[15px] px-3 py-2 rounded-[var(--radius-6)]" style={{ background: "var(--color-danger)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("common.confirm")}</button>
                             </div>
                           </div>
                         )}
 
-                        {/* Mark Paid confirmation modal */}
-                        {ms.markPaidId && (
-                          <div className="rounded-[var(--radius-6)] p-3 space-y-3" style={{ background: "color-mix(in srgb, var(--color-success) 6%, var(--color-bg-primary))", border: "1px solid var(--color-success)" }}>
-                            <div className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("pipeline.milestones.markPaidConfirm")}</div>
-                            <FL label={t("pipeline.milestones.paymentMethod")}>
-                              <select value={ms.markPaidMethod} onChange={e => ms.setMarkPaidMethod(e.target.value)} className="input-base w-full px-3 py-2 text-[15px]">
-                                {PAYMENT_METHODS.map(m => <option key={m} value={m}>{t(`pipeline.milestones.method.${m}`)}</option>)}
-                              </select>
-                            </FL>
-                            <div className="flex justify-end gap-2">
-                              <button onClick={() => ms.setMarkPaidId(null)} className="btn-secondary text-[15px]">{t("common.cancel")}</button>
-                              <button onClick={ms.confirmMarkPaid} className="text-[15px] px-3 py-2 rounded-[var(--radius-6)]" style={{ background: "var(--color-success)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
-                                <Check size={16} className="inline mr-1" />{t("pipeline.milestones.markPaid")}
-                              </button>
+                        {/* ═══ Payment Milestones (per active project) ═══ */}
+                        {proj.activeProject && (
+                          <>
+                            <div className="border-t mt-1" style={{ borderColor: "var(--color-border-primary)" }} />
+                            <div className="flex items-center justify-between">
+                              <span className="section-label flex items-center gap-1.5"><DollarSign size={16} /> {t("pipeline.milestones.title")}</span>
+                              <button onClick={() => ms.openAddForm()} className="btn-ghost text-[13px] flex items-center gap-1" style={{ color: "var(--color-accent)" }}><Plus size={16} /> {t("pipeline.milestones.add")}</button>
                             </div>
-                          </div>
+                            <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.milestones.hint")}</div>
+
+                            {/* Progress bar */}
+                            {ms.filteredMilestones.length > 0 && (() => {
+                              const totalAmt = ms.filteredMilestones.reduce((s: number, m: MilestoneRow) => s + Number(m.amount || 0), 0);
+                              const paidAmt = ms.filteredMilestones.filter((m: MilestoneRow) => m.status === "paid").reduce((s: number, m: MilestoneRow) => s + Number(m.amount || 0), 0);
+                              const pct = totalAmt > 0 ? Math.round(paidAmt / totalAmt * 100) : 0;
+                              return (
+                                <div>
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>
+                                      {ms.filteredMilestones.filter((m: MilestoneRow) => m.status === "paid").length}/{ms.filteredMilestones.length} {t("pipeline.milestones.status.paid").toLowerCase()} · ${paidAmt.toLocaleString()} / ${totalAmt.toLocaleString()}
+                                    </span>
+                                    <span className="text-[13px] tabular-nums" style={{ color: pct === 100 ? "var(--color-success)" : "var(--color-accent)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{pct}%</span>
+                                  </div>
+                                  <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--color-bg-tertiary)" }}>
+                                    <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: pct === 100 ? "var(--color-success)" : "var(--color-accent)" }} />
+                                  </div>
+                                </div>
+                              );
+                            })()}
+
+                            {/* Milestone list */}
+                            {ms.msLoading ? (
+                              <div className="space-y-2"><Skeleton className="h-16 rounded-[var(--radius-12)]" /><Skeleton className="h-16 rounded-[var(--radius-12)]" /></div>
+                            ) : ms.filteredMilestones.length === 0 && !ms.showAddMs ? (
+                              <div className="text-center py-4 text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.milestones.noPlan")}</div>
+                            ) : (
+                              <div className="space-y-2">
+                                {ms.filteredMilestones.map((msItem: MilestoneRow) => (
+                                  <div key={msItem.id} className="rounded-[var(--radius-6)] p-3 space-y-2 cursor-pointer transition-colors" style={{ background: "var(--color-bg-tertiary)", border: `1px solid ${msItem.status === "paid" ? "var(--color-success)" : "var(--color-border-primary)"}` }} onClick={() => { if (msItem.status !== "paid") { ms.openEditForm(msItem); } }}>
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                        {msItem.status === "paid" ? <CircleCheck size={16} style={{ color: "var(--color-success)" }} /> : msItem.status === "overdue" ? <AlertCircle size={16} style={{ color: "var(--color-danger)" }} /> : <Clock size={16} style={{ color: "var(--color-text-secondary)" }} />}
+                                        <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{msItem.label}</span>
+                                        <span className="badge text-[13px]" style={
+                                          msItem.status === "paid" ? { background: "var(--color-success-light)", color: "var(--color-success)" }
+                                          : msItem.status === "overdue" ? { background: "color-mix(in srgb, var(--color-danger) 12%, transparent)", color: "var(--color-danger)" }
+                                          : { background: "color-mix(in srgb, var(--color-warning) 12%, transparent)", color: "var(--color-warning)" }
+                                        }>{t(`pipeline.milestones.status.${msItem.status}`)}</span>
+                                      </div>
+                                      <span className="text-[15px] tabular-nums" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>${Number(msItem.amount || 0).toLocaleString()}</span>
+                                    </div>
+                                    <div className="flex items-center gap-3 text-[13px]" style={{ color: "var(--color-text-secondary)" }}>
+                                      {msItem.percentage > 0 && <span>{msItem.percentage}%</span>}
+                                      {msItem.due_date && <span>{t("pipeline.milestones.dueDate")}: {msItem.due_date}</span>}
+                                      {msItem.paid_date && <span>{t("pipeline.milestones.paidDate")}: {msItem.paid_date}</span>}
+                                      {msItem.payment_method && <span>{t(`pipeline.milestones.method.${msItem.payment_method}`)}</span>}
+                                    </div>
+                                    {msItem.note && <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{msItem.note}</div>}
+                                    {msItem.status === "paid" ? (
+                                      <div className="flex items-center justify-between" onClick={e => e.stopPropagation()}>
+                                        <span className="text-[13px]" style={{ color: "var(--color-success)" }}>{t("pipeline.milestones.autoRecorded")}</span>
+                                        <button onClick={() => ms.undoMarkPaid(msItem.id, () => tx.fetchFinance())} className="btn-ghost text-[13px] flex items-center gap-1" style={{ color: "var(--color-warning)" }}>
+                                          <Undo2 size={12} /> {t("pipeline.milestones.undoPaid")}
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-center gap-2 pt-1" onClick={e => e.stopPropagation()}>
+                                        <button onClick={() => { ms.setMarkPaidId(msItem.id); ms.setMarkPaidMethod("bank_transfer"); }} className="text-[14px] px-3 py-1.5 rounded-full flex items-center gap-1" style={{ background: "var(--color-success-light)", color: "var(--color-success)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
+                                          <CircleCheck size={16} /> {t("pipeline.milestones.markPaid")}
+                                        </button>
+                                        <button onClick={() => ms.openEditForm(msItem)} className="btn-icon-sm"><Edit2 size={16} /></button>
+                                        <button onClick={() => ms.setDeleteMsId(msItem.id)} className="btn-icon-sm" style={{ color: "var(--color-danger)" }}><Trash2 size={16} /></button>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Add / Edit milestone form */}
+                            <AnimatePresence>
+                              {ms.showAddMs && (
+                                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                                  <div className="rounded-[var(--radius-6)] p-3 space-y-3" style={{ background: "var(--color-bg-tertiary)", border: "1px solid var(--color-accent)", borderStyle: "dashed" }}>
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{ms.editMsId ? t("common.edit") : t("pipeline.milestones.add")}</span>
+                                      <button onClick={() => ms.closeForm()} className="btn-icon" aria-label="Close"><X size={18} /></button>
+                                    </div>
+                                    {/* Preset buttons */}
+                                    {!ms.editMsId && (
+                                      <div className="flex flex-wrap gap-1.5">
+                                        {(["deposit", "midway", "final"] as const).map(p => (
+                                          <button key={p} onClick={() => ms.applyPreset(p)} className="text-[14px] px-3 py-1.5 rounded-full transition-colors" style={{ background: "color-mix(in srgb, var(--color-accent) 10%, transparent)", color: "var(--color-accent)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
+                                            {t(`pipeline.milestones.presets.${p}`)}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
+                                    <FL label={t("pipeline.milestones.label")}><input value={ms.msForm.label} onChange={e => ms.setMsForm(p => ({ ...p, label: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" placeholder={t("pipeline.milestones.presets.deposit")} /></FL>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                      <FL label={t("pipeline.milestones.amount")}><input type="number" min="0" value={ms.msForm.amount} onChange={e => { const amt = e.target.value; const fee = activeProjFee || 1; ms.setMsForm(p => ({ ...p, amount: amt, percentage: fee > 0 ? String(Math.round(Number(amt) / fee * 100)) : p.percentage })); }} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+                                      <FL label={t("pipeline.milestones.percentage")}><input type="number" min="0" max="100" value={ms.msForm.percentage} onChange={e => { const pct = e.target.value; const fee = activeProjFee || 0; ms.setMsForm(p => ({ ...p, percentage: pct, amount: fee > 0 ? String(Math.round(fee * Number(pct) / 100)) : p.amount })); }} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+                                    </div>
+                                    <FL label={t("pipeline.milestones.dueDate")}><input type="date" value={ms.msForm.due_date} onChange={e => ms.setMsForm(p => ({ ...p, due_date: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+                                    <FL label={t("pipeline.milestones.note")}><input value={ms.msForm.note} onChange={e => ms.setMsForm(p => ({ ...p, note: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+                                    {!ms.editMsId && (
+                                      <label className="flex items-center gap-2 cursor-pointer py-1">
+                                        <input type="checkbox" checked={ms.msForm.alreadyPaid} onChange={e => ms.setMsForm(p => ({ ...p, alreadyPaid: e.target.checked }))} className="w-4 h-4 rounded accent-[var(--color-success)]" />
+                                        <span className="text-[15px]" style={{ color: ms.msForm.alreadyPaid ? "var(--color-success)" : "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("pipeline.milestones.alreadyPaid")}</span>
+                                      </label>
+                                    )}
+                                    {ms.msForm.alreadyPaid && !ms.editMsId && (
+                                      <FL label={t("pipeline.milestones.paymentMethod")}>
+                                        <select value={ms.msForm.payMethod} onChange={e => ms.setMsForm(p => ({ ...p, payMethod: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]">
+                                          {PAYMENT_METHODS.map(m => <option key={m} value={m}>{t(`pipeline.milestones.method.${m}`)}</option>)}
+                                        </select>
+                                      </FL>
+                                    )}
+                                    <div className="flex justify-end gap-2">
+                                      <button onClick={() => ms.closeForm()} className="btn-secondary text-[15px]">{t("common.cancel")}</button>
+                                      <button onClick={() => ms.saveMilestone(() => tx.fetchFinance())} disabled={!ms.msForm.label || !ms.msForm.amount || ms.savingMs} className="btn-primary text-[15px]">{ms.savingMs ? t("common.loading") : ms.msForm.alreadyPaid && !ms.editMsId ? t("pipeline.milestones.saveAndRecord") : t("common.save")}</button>
+                                    </div>
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+
+                            {/* Delete milestone confirmation */}
+                            {ms.deleteMsId !== null && (
+                              <div className="rounded-[var(--radius-6)] p-3 space-y-3" style={{ background: "color-mix(in srgb, var(--color-danger) 6%, var(--color-bg-primary))", border: "1px solid var(--color-danger)" }}>
+                                <div className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("pipeline.milestones.deleteConfirm")}</div>
+                                <div className="flex justify-end gap-2">
+                                  <button onClick={() => ms.setDeleteMsId(null)} className="btn-secondary text-[15px]">{t("common.cancel")}</button>
+                                  <button onClick={() => { ms.deleteMilestone(ms.deleteMsId!); ms.setDeleteMsId(null); }} className="text-[15px] px-3 py-2 rounded-[var(--radius-6)]" style={{ background: "var(--color-danger)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("common.confirm")}</button>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Mark Paid confirmation modal */}
+                            {ms.markPaidId && (
+                              <div className="rounded-[var(--radius-6)] p-3 space-y-3" style={{ background: "color-mix(in srgb, var(--color-success) 6%, var(--color-bg-primary))", border: "1px solid var(--color-success)" }}>
+                                <div className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("pipeline.milestones.markPaidConfirm")}</div>
+                                <FL label={t("pipeline.milestones.paymentMethod")}>
+                                  <select value={ms.markPaidMethod} onChange={e => ms.setMarkPaidMethod(e.target.value)} className="input-base w-full px-3 py-2 text-[15px]">
+                                    {PAYMENT_METHODS.map(m => <option key={m} value={m}>{t(`pipeline.milestones.method.${m}`)}</option>)}
+                                  </select>
+                                </FL>
+                                <div className="flex justify-end gap-2">
+                                  <button onClick={() => ms.setMarkPaidId(null)} className="btn-secondary text-[15px]">{t("common.cancel")}</button>
+                                  <button onClick={ms.confirmMarkPaid} className="text-[15px] px-3 py-2 rounded-[var(--radius-6)]" style={{ background: "var(--color-success)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
+                                    <Check size={16} className="inline mr-1" />{t("pipeline.milestones.markPaid")}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </>
                         )}
+                      </>
+                    ) : (
+                      /* New client — simple project fields (project created after first save) */
+                      <>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <FL label={t("pipeline.projects.name")}>
+                            <div className="relative">
+                              <Layers size={16} className="absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" style={{ color: "var(--color-text-tertiary)" }} />
+                              <input value={form.project_name} onChange={e => setForm(p => ({ ...p, project_name: e.target.value }))} placeholder={t("pipeline.projects.defaultName")} className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]" />
+                            </div>
+                          </FL>
+                          <FL label={t("pipeline.clients.projectFee")}>
+                            <div className="relative">
+                              <DollarSign size={16} className="absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" style={{ color: "var(--color-text-tertiary)" }} />
+                              <input type="number" required min="0" value={form.project_fee} onChange={e => setForm(p => ({ ...p, project_fee: e.target.value }))} className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]" />
+                            </div>
+                          </FL>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <FL label={t("pipeline.clients.projectStart")}><input type="date" value={form.subscription_start_date} onChange={e => { const v = e.target.value; setForm(p => ({ ...p, subscription_start_date: v, timeline: p.timeline.map(ev => ev.type === "start" ? { ...ev, date: v } : ev) })); }} className="input-base w-full px-3 py-2.5 text-[15px]" /></FL>
+                          <FL label={t("pipeline.clients.projectEnd")}><input type="date" value={form.project_end_date} onChange={e => setForm(p => ({ ...p, project_end_date: e.target.value }))} className="input-base w-full px-3 py-2.5 text-[15px]" /></FL>
+                        </div>
                       </>
                     )}
                   </>
                 )}
+                </>)}
 
-                {/* ═══ Financial Transactions ═══ */}
-                {editId && (
-                  <>
-                    <div className="border-t" style={{ borderColor: "var(--color-border-primary)" }} />
-                    <div className="flex items-center justify-between">
+                {/* ═══ TAB 3: Finance ═══ */}
+                {panelTab === 'finance' && editId && (<>
+                    <div className="flex items-center justify-between pt-1">
                       <span className="section-label flex items-center gap-1.5"><DollarSign size={16} /> {t("pipeline.tx.title")}</span>
-                      <button onClick={() => tx.openNewTx({ taxMode: form.tax_mode, taxRate: form.tax_rate })} className="btn-ghost text-[13px] flex items-center gap-1" style={{ color: "var(--color-accent)" }}><Plus size={16} /> {t("pipeline.tx.add")}</button>
+                      <button onClick={() => { const ap = proj.activeProject; tx.openNewTx({ taxMode: ap?.tax_mode || form.tax_mode, taxRate: ap ? String(ap.tax_rate || "") : form.tax_rate }); }} className="btn-ghost text-[13px] flex items-center gap-1" style={{ color: "var(--color-accent)" }}><Plus size={16} /> {t("pipeline.tx.add")}</button>
                     </div>
                     <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.tx.hint")}</div>
 
@@ -865,8 +1158,9 @@ export function ClientsView() {
                         </motion.div>
                       )}
                     </AnimatePresence>
-                  </>
-                )}
+                </>)}
+
+                </div>
               </div>
               <div className="flex items-center justify-between px-5 py-3 border-t pb-safe" style={{ borderColor: "var(--color-border-primary)" }}>
                 {editId ? <button type="button" onClick={() => setDeleteClientId(editId)} className="btn-ghost text-[15px]" style={{ color: "var(--color-danger)" }}><Trash2 size={16} /> {t("common.delete")}</button> : <div />}
@@ -876,7 +1170,7 @@ export function ClientsView() {
                 </div>
               </div>
             </motion.div>
-          </>
+          </motion.div>
         )}
       </AnimatePresence>, document.body)}
 

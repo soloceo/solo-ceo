@@ -147,9 +147,8 @@ export function KnowledgeBaseSection() {
       {/* ── All Principles Sheet ── */}
       {createPortal(<AnimatePresence>
         {showAllPrinciples && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          <motion.div key="kb-panel" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <div
               className="fixed inset-0"
               style={{ zIndex: "var(--layer-dialog-overlay)", background: "var(--color-bg-primary)" }}
             />
@@ -287,7 +286,7 @@ export function KnowledgeBaseSection() {
                 )}
               </div>
             </motion.div>
-          </>
+          </motion.div>
         )}
       </AnimatePresence>, document.body)}
     </>

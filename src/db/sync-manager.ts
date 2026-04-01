@@ -12,7 +12,7 @@ import { replayQueue, getQueueLength } from './offline-queue';
 // ── Sync tables — all mutable tables to pull from cloud ──────────
 const SYNC_TABLES = [
   'leads', 'clients', 'tasks', 'plans',
-  'finance_transactions', 'payment_milestones',
+  'finance_transactions', 'payment_milestones', 'client_projects',
   'content_drafts', 'today_focus_state', 'today_focus_manual',
 ] as const;
 

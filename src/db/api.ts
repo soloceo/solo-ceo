@@ -5,6 +5,21 @@
 import { Database } from 'sql.js';
 import { getDb, saveDb, all, get, run, exec } from './index';
 import { todayDateKey, dateToKey, monthKey, currentMonth } from '../lib/date-utils';
+import { str, enumVal } from '../lib/validate';
+
+// ── Input validation constants (must match supabase-api.ts) ────────────────
+const VALID_LEAD_COLUMNS = ['new', 'contacted', 'proposal', 'won', 'lost'] as const;
+const VALID_CLIENT_STATUSES = ['Active', 'Paused', 'Cancelled', 'Completed'] as const;
+const VALID_BILLING_TYPES = ['subscription', 'project'] as const;
+const VALID_TAX_MODES = ['none', 'exclusive', 'inclusive'] as const;
+const VALID_TASK_PRIORITIES = ['High', 'Medium', 'Low'] as const;
+const VALID_TASK_COLUMNS = ['todo', 'inProgress', 'review', 'done'] as const;
+const VALID_TASK_SCOPES = ['work', 'personal', 'work-memo'] as const;
+const VALID_PAYMENT_METHODS = ['auto', 'manual'] as const;
+const VALID_TX_TYPES = ['income', 'expense'] as const;
+const VALID_TX_STATUSES = ['已完成', '待收款 (应收)', '待支付 (应付)'] as const;
+const VALID_MS_STATUSES = ['pending', 'paid'] as const;
+const VALID_PROJECT_STATUSES = ['active', 'completed', 'cancelled'] as const;
 
 // ── Type definitions ────────────────────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- sql.js rows have dynamic columns
@@ -100,19 +115,21 @@ function syncClientSubscriptionLedger(db: Database) {
   }
 
   // Fetch existing subscription transactions
-  const existing = all(db, `SELECT id, source_id, date FROM finance_transactions WHERE source='subscription'`);
-  const existingMap = new Map<string, number>();
+  const existing = all(db, `SELECT id, source_id, date, status FROM finance_transactions WHERE source='subscription'`);
+  const existingMap = new Map<string, { id: number; status: string }>();
   for (const row of existing) {
     const m = String(row.date || '').substring(0, 7);
-    existingMap.set(`${row.source_id}-${m}`, row.id as number);
+    existingMap.set(`${row.source_id}-${m}`, { id: row.id as number, status: String(row.status || '') });
   }
 
   // Upsert
   for (const [key, row] of shouldExist) {
-    const existId = existingMap.get(key);
-    if (existId) {
+    const exist = existingMap.get(key);
+    if (exist) {
+      // IMPORTANT: preserve status if user already confirmed receipt (已完成)
+      const preservedStatus = exist.status === '已完成' ? '已完成' : row.status;
       run(db, `UPDATE finance_transactions SET amount=?, description=?, date=?, status=?, tax_mode=?, tax_rate=?, tax_amount=?, client_name=? WHERE id=?`,
-        [row.amount, row.description, row.date, row.status, row.tax_mode, row.tax_rate, row.tax_amount, row.client_name, existId]);
+        [row.amount, row.description, row.date, preservedStatus, row.tax_mode, row.tax_rate, row.tax_amount, row.client_name, exist.id]);
       existingMap.delete(key);
     } else {
       run(db, `INSERT INTO finance_transactions (type, source, source_id, amount, category, description, date, status, client_id, client_name, tax_mode, tax_rate, tax_amount) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
@@ -121,8 +138,8 @@ function syncClientSubscriptionLedger(db: Database) {
   }
 
   // Soft-delete removed
-  for (const id of existingMap.values()) {
-    run(db, `UPDATE finance_transactions SET soft_deleted=1 WHERE id=?`, [id]);
+  for (const entry of existingMap.values()) {
+    run(db, `UPDATE finance_transactions SET soft_deleted=1 WHERE id=?`, [entry.id]);
   }
 }
 
@@ -339,10 +356,55 @@ function initSchema(db: Database) {
     `ALTER TABLE content_drafts ADD COLUMN soft_deleted INTEGER DEFAULT 0`,
     `ALTER TABLE today_focus_manual ADD COLUMN soft_deleted INTEGER DEFAULT 0`,
     `ALTER TABLE payment_milestones ADD COLUMN soft_deleted INTEGER DEFAULT 0`,
+    // Migration 003: Multi-project per client
+    `CREATE TABLE IF NOT EXISTS client_projects (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      client_id INTEGER NOT NULL,
+      name TEXT NOT NULL DEFAULT '',
+      project_fee REAL DEFAULT 0,
+      project_start_date TEXT DEFAULT '',
+      project_end_date TEXT DEFAULT '',
+      status TEXT DEFAULT 'active',
+      tax_mode TEXT DEFAULT 'none',
+      tax_rate REAL DEFAULT 0,
+      note TEXT DEFAULT '',
+      sort_order INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      soft_deleted INTEGER DEFAULT 0
+    )`,
+    `ALTER TABLE payment_milestones ADD COLUMN project_id INTEGER`,
+    `ALTER TABLE finance_transactions ADD COLUMN project_id INTEGER`,
   ];
   for (const m of migrations) {
     try { db.run(m); } catch { /* already exists */ }
   }
+
+  // Auto-migrate existing project clients → client_projects
+  try {
+    const projClients = all(db, `SELECT id, name, company_name, project_fee, subscription_start_date, project_end_date, status, tax_mode, tax_rate FROM clients WHERE billing_type='project' AND (soft_deleted IS NULL OR soft_deleted=0)`);
+    for (const c of projClients) {
+      const exists = get(db, `SELECT id FROM client_projects WHERE client_id=?`, [c.id]);
+      if (!exists) {
+        const projName = c.company_name || c.name || 'Project 1';
+        const st = c.status === 'Active' ? 'active' : c.status === 'Completed' ? 'completed' : c.status === 'Cancelled' ? 'cancelled' : 'active';
+        run(db, `INSERT INTO client_projects (client_id, name, project_fee, project_start_date, project_end_date, status, tax_mode, tax_rate) VALUES (?,?,?,?,?,?,?,?)`,
+          [c.id, projName, c.project_fee || 0, c.subscription_start_date || '', c.project_end_date || '', st, c.tax_mode || 'none', c.tax_rate || 0]);
+      }
+    }
+    // Backfill project_id on milestones
+    const orphanMs = all(db, `SELECT pm.id, pm.client_id FROM payment_milestones pm WHERE pm.project_id IS NULL`);
+    for (const m of orphanMs) {
+      const cp = get(db, `SELECT id FROM client_projects WHERE client_id=? AND (soft_deleted IS NULL OR soft_deleted=0) ORDER BY created_at ASC LIMIT 1`, [m.client_id]);
+      if (cp) run(db, `UPDATE payment_milestones SET project_id=? WHERE id=?`, [cp.id, m.id]);
+    }
+    // Backfill project_id on finance transactions
+    const orphanTx = all(db, `SELECT ft.id, ft.client_id FROM finance_transactions ft WHERE ft.project_id IS NULL AND ft.source IN ('milestone','project_fee')`);
+    for (const t of orphanTx) {
+      const cp = get(db, `SELECT id FROM client_projects WHERE client_id=? AND (soft_deleted IS NULL OR soft_deleted=0) ORDER BY created_at ASC LIMIT 1`, [t.client_id]);
+      if (cp) run(db, `UPDATE finance_transactions SET project_id=? WHERE id=?`, [cp.id, t.id]);
+    }
+  } catch (e) { console.warn('[initSchema] project migration', e); }
 }
 
 function seedData(db: Database) {
@@ -575,18 +637,20 @@ export async function handleApiRequest(
 
   if (path === '/api/clients' && method === 'POST') {
     const { name, industry, plan_tier, status, brand_context, mrr,
-            subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from,
-            company_name, contact_name, contact_email, contact_phone, billing_type, project_fee, project_end_date, tax_mode, tax_rate } = body;
+            subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from, subscription_timeline,
+            company_name, contact_name, contact_email, contact_phone, billing_type, project_fee, project_end_date, tax_mode, tax_rate, drive_folder_url, payment_method } = body;
     const np = normalizePlanTier(plan_tier||'');
+    const bt = enumVal(billing_type, VALID_BILLING_TYPES, 'subscription');
     const res = run(db, `INSERT INTO clients (name, industry, plan_tier, status, brand_context, mrr,
-        subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from,
-        company_name, contact_name, contact_email, contact_phone, billing_type, project_fee, project_end_date, tax_mode, tax_rate)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [name||'', industry||'', np, status||'Active', brand_context||'', mrr||0,
-       subscription_start_date||'', paused_at||'', resumed_at||'', cancelled_at||'',
-       mrr_effective_from||subscription_start_date||'',
-       company_name||'', contact_name||'', contact_email||'', contact_phone||'', billing_type||'subscription', project_fee||0, project_end_date||'',
-       tax_mode||'none', tax_rate||0]);
+        subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from, subscription_timeline,
+        company_name, contact_name, contact_email, contact_phone, billing_type, project_fee, project_end_date, tax_mode, tax_rate, drive_folder_url, payment_method)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [str(name, 255), str(industry, 100), np, enumVal(status, VALID_CLIENT_STATUSES, 'Active'), str(brand_context, 2000), mrr||0,
+       str(subscription_start_date, 10), str(paused_at, 10), str(resumed_at, 10), str(cancelled_at, 10),
+       str(mrr_effective_from, 10) || str(subscription_start_date, 10),
+       subscription_timeline || JSON.stringify(subscription_start_date ? [{ type: 'start', date: subscription_start_date }] : []),
+       str(company_name, 255), str(contact_name, 255), str(contact_email, 320), str(contact_phone, 30), bt, project_fee||0, str(project_end_date, 10),
+       enumVal(tax_mode, VALID_TAX_MODES, 'none'), tax_rate||0, str(drive_folder_url, 2048), enumVal(payment_method, VALID_PAYMENT_METHODS, 'auto')]);
     syncClientSubscriptionLedger(db);
     logActivity(db, 'client', 'created', `新增客户：${name||'未命名客户'}`, np ? `方案：${np}` : '', res.lastInsertRowid);
     await saveDb();
@@ -601,15 +665,29 @@ export async function handleApiRequest(
         paused_at, resumed_at, cancelled_at, mrr_effective_from FROM clients WHERE id=?`, [id]) as DbRow;
       const sets: string[] = [];
       const vals: unknown[] = [];
-      const stringFields = ['name','industry','brand_context','subscription_start_date','paused_at','resumed_at','cancelled_at','mrr_effective_from','company_name','contact_name','contact_email','contact_phone','project_end_date'];
-      for (const f of stringFields) { if (body[f] !== undefined) { sets.push(`${f}=?`); vals.push(body[f]); } }
+      if (body.name !== undefined) { sets.push('name=?'); vals.push(str(body.name, 255)); }
+      if (body.industry !== undefined) { sets.push('industry=?'); vals.push(str(body.industry, 100)); }
+      if (body.brand_context !== undefined) { sets.push('brand_context=?'); vals.push(str(body.brand_context, 2000)); }
+      if (body.subscription_start_date !== undefined) { sets.push('subscription_start_date=?'); vals.push(str(body.subscription_start_date, 10)); }
+      if (body.paused_at !== undefined) { sets.push('paused_at=?'); vals.push(str(body.paused_at, 10)); }
+      if (body.resumed_at !== undefined) { sets.push('resumed_at=?'); vals.push(str(body.resumed_at, 10)); }
+      if (body.cancelled_at !== undefined) { sets.push('cancelled_at=?'); vals.push(str(body.cancelled_at, 10)); }
+      if (body.mrr_effective_from !== undefined) { sets.push('mrr_effective_from=?'); vals.push(str(body.mrr_effective_from, 10) || str(body.subscription_start_date, 10)); }
+      if (body.subscription_timeline !== undefined) { sets.push('subscription_timeline=?'); vals.push(body.subscription_timeline || '[]'); }
+      if (body.company_name !== undefined) { sets.push('company_name=?'); vals.push(str(body.company_name, 255)); }
+      if (body.contact_name !== undefined) { sets.push('contact_name=?'); vals.push(str(body.contact_name, 255)); }
+      if (body.contact_email !== undefined) { sets.push('contact_email=?'); vals.push(str(body.contact_email, 320)); }
+      if (body.contact_phone !== undefined) { sets.push('contact_phone=?'); vals.push(str(body.contact_phone, 30)); }
+      if (body.project_end_date !== undefined) { sets.push('project_end_date=?'); vals.push(str(body.project_end_date, 10)); }
       if (body.plan_tier !== undefined) { sets.push('plan_tier=?'); vals.push(normalizePlanTier(body.plan_tier||'')); }
-      if (body.status !== undefined) { sets.push('status=?'); vals.push(body.status); }
+      if (body.status !== undefined) { sets.push('status=?'); vals.push(enumVal(body.status, VALID_CLIENT_STATUSES, 'Active')); }
       if (body.mrr !== undefined) { sets.push('mrr=?'); vals.push(body.mrr); }
-      if (body.billing_type !== undefined) { sets.push('billing_type=?'); vals.push(body.billing_type); }
+      if (body.billing_type !== undefined) { sets.push('billing_type=?'); vals.push(enumVal(body.billing_type, VALID_BILLING_TYPES, 'subscription')); }
       if (body.project_fee !== undefined) { sets.push('project_fee=?'); vals.push(body.project_fee); }
-      if (body.tax_mode !== undefined) { sets.push('tax_mode=?'); vals.push(body.tax_mode); }
+      if (body.tax_mode !== undefined) { sets.push('tax_mode=?'); vals.push(enumVal(body.tax_mode, VALID_TAX_MODES, 'none')); }
       if (body.tax_rate !== undefined) { sets.push('tax_rate=?'); vals.push(body.tax_rate); }
+      if (body.drive_folder_url !== undefined) { sets.push('drive_folder_url=?'); vals.push(str(body.drive_folder_url, 2048)); }
+      if (body.payment_method !== undefined) { sets.push('payment_method=?'); vals.push(enumVal(body.payment_method, VALID_PAYMENT_METHODS, 'auto')); }
       if (sets.length > 0) {
         vals.push(id);
         run(db, `UPDATE clients SET ${sets.join(',')} WHERE id=?`, vals);
@@ -642,13 +720,58 @@ export async function handleApiRequest(
       // Unlink finance transactions - set client_id to null for all matching transactions
       run(db, 'UPDATE finance_transactions SET client_id=NULL WHERE client_id=?', [id]);
 
-      // Delete payment milestones - these are meaningless without the client
+      // Delete payment milestones and projects
       run(db, 'UPDATE payment_milestones SET soft_deleted=1 WHERE client_id=?', [id]);
+      run(db, 'UPDATE client_projects SET soft_deleted=1 WHERE client_id=?', [id]);
 
       // Delete the client
       run(db, 'UPDATE clients SET soft_deleted=1 WHERE id=?', [id]);
       syncClientSubscriptionLedger(db);
       logActivity(db, 'client', 'deleted', `删除客户：${prev?.name||'未命名客户'}`, '', id);
+      await saveDb();
+      return ok({ success: true });
+    }
+  }
+
+  // ── CLIENT PROJECTS ─────────────────────────────────────────────────────
+  const projectListMatch = path.match(/^\/api\/clients\/(\d+)\/projects$/);
+  if (projectListMatch) {
+    const clientId = projectListMatch[1];
+    if (method === 'GET') {
+      const rows = all(db, `SELECT * FROM client_projects WHERE client_id=? AND (soft_deleted IS NULL OR soft_deleted=0) ORDER BY sort_order ASC, created_at DESC`, [clientId]);
+      return ok(rows);
+    }
+    if (method === 'POST') {
+      const res = run(db, `INSERT INTO client_projects (client_id, name, project_fee, project_start_date, project_end_date, status, tax_mode, tax_rate, note) VALUES (?,?,?,?,?,?,?,?,?)`,
+        [clientId, str(body.name, 255) || 'New Project', body.project_fee || 0, str(body.project_start_date, 10), str(body.project_end_date, 10), 'active', enumVal(body.tax_mode, VALID_TAX_MODES, 'none'), body.tax_rate || 0, str(body.note, 2000)]);
+      logActivity(db, 'project', 'created', `New project: ${body.name || 'New Project'}`, '', res.lastInsertRowid);
+      await saveDb();
+      return ok({ id: res.lastInsertRowid });
+    }
+  }
+
+  const projectMatch = path.match(/^\/api\/projects\/(\d+)$/);
+  if (projectMatch) {
+    const id = projectMatch[1];
+    if (method === 'PUT') {
+      const sets: string[] = [];
+      const vals: unknown[] = [];
+      if (body.name !== undefined) { sets.push('name=?'); vals.push(str(body.name, 255)); }
+      if (body.project_fee !== undefined) { sets.push('project_fee=?'); vals.push(body.project_fee || 0); }
+      if (body.project_start_date !== undefined) { sets.push('project_start_date=?'); vals.push(str(body.project_start_date, 10)); }
+      if (body.project_end_date !== undefined) { sets.push('project_end_date=?'); vals.push(str(body.project_end_date, 10)); }
+      if (body.status !== undefined) { sets.push('status=?'); vals.push(enumVal(body.status, VALID_PROJECT_STATUSES, 'active')); }
+      if (body.tax_mode !== undefined) { sets.push('tax_mode=?'); vals.push(enumVal(body.tax_mode, VALID_TAX_MODES, 'none')); }
+      if (body.tax_rate !== undefined) { sets.push('tax_rate=?'); vals.push(body.tax_rate || 0); }
+      if (body.note !== undefined) { sets.push('note=?'); vals.push(str(body.note, 2000)); }
+      if (body.sort_order !== undefined) { sets.push('sort_order=?'); vals.push(body.sort_order); }
+      if (sets.length > 0) { vals.push(id); run(db, `UPDATE client_projects SET ${sets.join(',')} WHERE id=?`, vals); }
+      await saveDb();
+      return ok({ success: true });
+    }
+    if (method === 'DELETE') {
+      run(db, 'UPDATE payment_milestones SET soft_deleted=1 WHERE project_id=?', [id]);
+      run(db, 'UPDATE client_projects SET soft_deleted=1 WHERE id=?', [id]);
       await saveDb();
       return ok({ success: true });
     }
@@ -668,11 +791,11 @@ export async function handleApiRequest(
       return ok(result);
     }
     if (method === 'POST') {
-      const { label, amount, percentage, due_date, payment_method, invoice_number, note, sort_order } = body;
+      const { label, amount, percentage, due_date, payment_method, invoice_number, note, sort_order, project_id } = body;
       const res = run(db,
-        `INSERT INTO payment_milestones (client_id, label, amount, percentage, due_date, payment_method, invoice_number, note, sort_order, status)
-         VALUES (?,?,?,?,?,?,?,?,?,?)`,
-        [clientId, label||'', amount||0, percentage||0, due_date||'', payment_method||'', invoice_number||'', note||'', sort_order??0, 'pending']);
+        `INSERT INTO payment_milestones (client_id, label, amount, percentage, due_date, payment_method, invoice_number, note, sort_order, status, project_id)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+        [clientId, label||'', amount||0, percentage||0, due_date||'', payment_method||'', invoice_number||'', note||'', sort_order??0, 'pending', project_id||null]);
       const client = get(db, 'SELECT name FROM clients WHERE id=?', [clientId]) as DbRow;
       logActivity(db, 'milestone', 'created', `新增付款节点：${client?.name||''} · ${label||''}`,
         amount ? `$${Number(amount).toLocaleString()}` : '', res.lastInsertRowid);
@@ -689,6 +812,7 @@ export async function handleApiRequest(
       const vals: unknown[] = [];
       const strFields = ['label','due_date','payment_method','status','invoice_number','note'];
       for (const f of strFields) { if (body[f] !== undefined) { sets.push(`${f}=?`); vals.push(body[f]); } }
+      if (body.project_id !== undefined) { sets.push('project_id=?'); vals.push(body.project_id); }
       const numFields = ['amount','percentage','sort_order'];
       for (const f of numFields) { if (body[f] !== undefined) { sets.push(`${f}=?`); vals.push(body[f]); } }
       if (sets.length > 0) {
@@ -733,13 +857,13 @@ export async function handleApiRequest(
                       : txTaxMode === 'inclusive' ? Math.round((txAmount * txTaxRate) / (100 + txTaxRate) * 100) / 100
                       : 0;
 
-    // Create finance transaction
+    // Create finance transaction (source='milestone' to prevent manual edit/delete)
     const txRes = run(db,
-      `INSERT INTO finance_transactions (type, amount, category, description, date, status, client_id, client_name, tax_mode, tax_rate, tax_amount)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+      `INSERT INTO finance_transactions (type, amount, category, description, date, status, source, source_id, client_id, client_name, tax_mode, tax_rate, tax_amount)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       ['income', txAmount, '项目收入',
        `${clientName} · ${milestone.label||'项目付款'}`, actualDate, '已完成',
-       milestone.client_id, clientName, txTaxMode, txTaxRate, txTaxAmount]);
+       'milestone', milestone.id, milestone.client_id, clientName, txTaxMode, txTaxRate, txTaxAmount]);
 
     // Update milestone
     run(db,
@@ -751,6 +875,27 @@ export async function handleApiRequest(
       `$${Number(milestone.amount||0).toLocaleString()} · ${payment_method||''}`, id);
     await saveDb();
     return ok({ success: true, financeId: txRes.lastInsertRowid });
+  }
+
+  const undoPaidMatch = path.match(/^\/api\/milestones\/(\d+)\/undo-paid$/);
+  if (undoPaidMatch && method === 'POST') {
+    const id = undoPaidMatch[1];
+    const milestone = get(db, 'SELECT * FROM payment_milestones WHERE id=?', [id]) as DbRow;
+    if (!milestone) return err(404, 'Milestone not found');
+    // Idempotency: already pending, nothing to undo
+    if (milestone.status === 'pending') return ok({ success: true, alreadyPending: true });
+    // Soft-delete linked finance transaction
+    if (milestone.finance_tx_id) {
+      run(db, 'UPDATE finance_transactions SET soft_deleted=1 WHERE id=?', [milestone.finance_tx_id]);
+    }
+    // Reset milestone to pending
+    run(db, `UPDATE payment_milestones SET status='pending', paid_date='', payment_method='', finance_tx_id=NULL, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [id]);
+    const client = get(db, 'SELECT name, company_name FROM clients WHERE id=?', [milestone.client_id]) as DbRow;
+    logActivity(db, 'milestone', 'undo_paid',
+      `撤销收款：${client?.company_name || client?.name || ''} · ${milestone.label || ''}`,
+      `$${Number(milestone.amount || 0).toLocaleString()}`, id);
+    await saveDb();
+    return ok({ success: true });
   }
 
   // ── TASKS ──────────────────────────────────────────────────────────────
@@ -1137,6 +1282,10 @@ export async function handleApiRequest(
   }
 
   // ── SERVER TIME (local clock) ────────────────────────────────────
+  if (path === '/api/server-info' && method === 'GET') {
+    return ok({ name: '一人CEO Local', cloud: false });
+  }
+
   if (path === '/api/server-time' && method === 'GET') {
     return ok({ unixMs: Date.now() });
   }

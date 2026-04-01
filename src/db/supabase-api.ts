@@ -174,6 +174,7 @@ const VALID_PAYMENT_METHODS = ['auto', 'manual'] as const;
 const VALID_TX_TYPES = ['income', 'expense'] as const;
 const VALID_TX_STATUSES = ['已完成', '待收款 (应收)', '待支付 (应付)'] as const;
 const VALID_MS_STATUSES = ['pending', 'paid'] as const;
+const VALID_PROJECT_STATUSES = ['active', 'completed', 'cancelled'] as const;
 
 // ── Tax calc helper ───────────────────────────────────────────────
 function calcTax(amount: number, mode: string, rate: number): number {
@@ -536,13 +537,79 @@ export async function handleSupabaseRequest(
       // Unlink finance transactions - set client_id to null for all matching transactions
       await supabase.from('finance_transactions').update({ client_id: null }).eq('client_id', id).eq('user_id', userId);
 
-      // Soft-delete payment milestones - mark as soft_deleted instead of hard delete
+      // Soft-delete payment milestones and projects
       await supabase.from('payment_milestones').update({ soft_deleted: true }).eq('client_id', id).eq('user_id', userId);
+      await supabase.from('client_projects').update({ soft_deleted: true }).eq('client_id', id).eq('user_id', userId);
 
       // Soft-delete the client
       await supabase.from('clients').update({ soft_deleted: true }).eq('id', id).eq('user_id', userId);
       syncClientSubscriptionLedger(userId).catch((err) => console.error('[SyncLedger]', err));
       await logActivity(userId, 'client', 'deleted', `删除客户：${prev?.name || '未命名客户'}`, '', id);
+      return ok({ success: true });
+    }
+  }
+
+  // ── CLIENT PROJECTS ──────────────────────────────────────────
+  const projectListMatch = path.match(/^\/api\/clients\/(\d+)\/projects$/);
+  if (projectListMatch) {
+    const clientId = Number(projectListMatch[1]);
+    if (method === 'GET') {
+      const { data, error: e } = await supabase
+        .from('client_projects')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('client_id', clientId)
+        .eq('soft_deleted', false)
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: false });
+      if (e) return err(500, e.message);
+      return ok(data || []);
+    }
+    if (method === 'POST') {
+      const { data, error: e } = await supabase
+        .from('client_projects')
+        .insert({
+          user_id: userId,
+          client_id: clientId,
+          name: str(body.name, 255) || 'New Project',
+          project_fee: body.project_fee || 0,
+          project_start_date: str(body.project_start_date, 10),
+          project_end_date: str(body.project_end_date, 10),
+          status: 'active',
+          tax_mode: body.tax_mode || 'none',
+          tax_rate: body.tax_rate || 0,
+          note: str(body.note, 2000),
+        })
+        .select('id')
+        .single();
+      if (e) return err(500, e.message);
+      await logActivity(userId, 'project', 'created', `New project: ${body.name || 'New Project'}`, '', data!.id);
+      return ok({ id: data!.id });
+    }
+  }
+
+  const projectMatch = path.match(/^\/api\/projects\/(\d+)$/);
+  if (projectMatch) {
+    const id = Number(projectMatch[1]);
+    if (method === 'PUT') {
+      const patch: Record<string, unknown> = {};
+      if (body.name !== undefined) patch.name = str(body.name, 255);
+      if (body.project_fee !== undefined) patch.project_fee = body.project_fee || 0;
+      if (body.project_start_date !== undefined) patch.project_start_date = str(body.project_start_date, 10);
+      if (body.project_end_date !== undefined) patch.project_end_date = str(body.project_end_date, 10);
+      if (body.status !== undefined) patch.status = enumVal(body.status, VALID_PROJECT_STATUSES, 'active');
+      if (body.tax_mode !== undefined) patch.tax_mode = enumVal(body.tax_mode, VALID_TAX_MODES, 'none');
+      if (body.tax_rate !== undefined) patch.tax_rate = body.tax_rate || 0;
+      if (body.note !== undefined) patch.note = str(body.note, 2000);
+      if (body.sort_order !== undefined) patch.sort_order = body.sort_order;
+      if (Object.keys(patch).length === 0) return ok({ success: true });
+      await supabase.from('client_projects').update(patch).eq('id', id).eq('user_id', userId);
+      return ok({ success: true });
+    }
+    if (method === 'DELETE') {
+      // Soft-delete project + its milestones + linked finance txs
+      await supabase.from('payment_milestones').update({ soft_deleted: true }).eq('project_id', id).eq('user_id', userId);
+      await supabase.from('client_projects').update({ soft_deleted: true }).eq('id', id).eq('user_id', userId);
       return ok({ success: true });
     }
   }
@@ -570,17 +637,19 @@ export async function handleSupabaseRequest(
       return ok(rows);
     }
     if (method === 'POST') {
-      const { label, amount, percentage, due_date, payment_method, invoice_number, note, sort_order } = body;
-      const { data, error: e } = await supabase
-        .from('payment_milestones')
-        .insert({
+      const { label, amount, percentage, due_date, payment_method, invoice_number, note, sort_order, project_id } = body;
+      const insertData: Record<string, unknown> = {
           user_id: userId,
           client_id: clientId,
           label: str(label, 255), amount: amount || 0, percentage: percentage || 0,
           due_date: str(due_date, 10), payment_method: str(payment_method, 50),
           invoice_number: str(invoice_number, 100), note: str(note, 1000),
           sort_order: sort_order ?? 0, status: 'pending',
-        })
+      };
+      if (project_id) insertData.project_id = project_id;
+      const { data, error: e } = await supabase
+        .from('payment_milestones')
+        .insert(insertData)
         .select('id')
         .single();
       if (e) return err(500, e.message);
@@ -588,8 +657,13 @@ export async function handleSupabaseRequest(
       const { data: client } = await supabase.from('clients').select('name, company_name, tax_mode, tax_rate').eq('id', clientId).single();
       const cName = client?.company_name || client?.name || '';
       const txAmt = Number(amount || 0);
-      const tm = client?.tax_mode || 'none';
-      const tr = Number(client?.tax_rate || 0);
+      // If project_id is provided, get tax from project; else fallback to client
+      let tm = client?.tax_mode || 'none';
+      let tr = Number(client?.tax_rate || 0);
+      if (project_id) {
+        const { data: proj } = await supabase.from('client_projects').select('tax_mode, tax_rate').eq('id', project_id).single();
+        if (proj) { tm = proj.tax_mode || 'none'; tr = Number(proj.tax_rate || 0); }
+      }
       // Auto-create receivable finance transaction (with rollback on failure)
       if (txAmt > 0) {
         const { data: tx, error: txErr } = await supabase.from('finance_transactions').insert({
@@ -599,6 +673,7 @@ export async function handleSupabaseRequest(
           date: due_date || '', status: '待收款 (应收)',
           client_id: clientId, client_name: cName,
           tax_mode: tm, tax_rate: tr, tax_amount: calcTax(txAmt, tm, tr),
+          project_id: project_id || null,
         }).select('id').single();
         if (txErr) {
           // Rollback: delete the milestone we just created
@@ -632,6 +707,7 @@ export async function handleSupabaseRequest(
       if (body.invoice_number !== undefined) msPatch.invoice_number = str(body.invoice_number, 100);
       if (body.note !== undefined) msPatch.note = str(body.note, 1000);
       if (body.sort_order !== undefined) msPatch.sort_order = body.sort_order ?? 0;
+      if (body.project_id !== undefined) msPatch.project_id = body.project_id;
       if (Object.keys(msPatch).length === 0) return ok({ success: true });
       const { error: e } = await supabase
         .from('payment_milestones')
@@ -1203,7 +1279,7 @@ export async function handleSupabaseRequest(
     const receivables = receivablesData || [];
     const leads = bestLeadArr || [];
     const tasks = urgentTaskArr || [];
-    const overdueMs = overdueMsArr?.[0] as unknown as OverdueMilestoneRow | undefined;
+    const overdueMs: OverdueMilestoneRow | undefined = overdueMsArr?.[0] ?? undefined;
 
     // Build multiple candidates per category so "swap" has replacements
     const revenueCandidates: FocusCandidate[] = leads.map((l: LeadRow) => ({

@@ -100,7 +100,21 @@ export function TaskDetail({ open, onClose, editTask, columns, defaultColumn, cl
       return;
     }
     setTitleError(false);
-    await onSave(form, editId);
+    // Rule 13: only send changed fields on edit to avoid stale-data overwrites
+    if (editId && editTask) {
+      const diff: Partial<TaskForm> = {};
+      const orig: TaskForm = {
+        title: editTask.title, client: editTask.client || "", client_id: editTask.client_id ?? null,
+        priority: editTask.priority, due: editTask.due || "", column: editTask.column || defaultColumn,
+        originalRequest: editTask.originalRequest || "",
+      };
+      for (const k of Object.keys(form) as (keyof TaskForm)[]) {
+        if (form[k] !== orig[k]) (diff as Record<string, unknown>)[k] = form[k];
+      }
+      await onSave(Object.keys(diff).length > 0 ? diff as TaskForm : form, editId);
+    } else {
+      await onSave(form, editId);
+    }
     onClose();
   };
 
@@ -134,13 +148,9 @@ export function TaskDetail({ open, onClose, editTask, columns, defaultColumn, cl
   {createPortal(
     <AnimatePresence>
       {open && (
-        <>
+        <motion.div key="task-panel" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}>
           {/* Overlay */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+          <div
             className="fixed inset-0"
             style={{ zIndex: "var(--layer-dialog-overlay)", background: "var(--color-overlay-primary)", backdropFilter: "blur(2px) saturate(180%)", WebkitBackdropFilter: "blur(2px) saturate(180%)" }}
             onClick={onClose}
@@ -163,7 +173,7 @@ export function TaskDetail({ open, onClose, editTask, columns, defaultColumn, cl
               background: "var(--color-bg-primary)",
               borderLeft: isMobile ? undefined : "1px solid var(--color-border-primary)",
               boxShadow: "var(--shadow-high)",
-              paddingTop: isMobile ? "var(--mobile-header-pt, env(safe-area-inset-top, 0px))" : undefined,
+              paddingTop: isMobile ? "var(--mobile-header-pt, max(env(safe-area-inset-top, 0px), 0px))" : undefined,
             }}
           >
             {/* Header */}
@@ -314,7 +324,7 @@ export function TaskDetail({ open, onClose, editTask, columns, defaultColumn, cl
               </div>
             </div>
           </motion.div>
-        </>
+        </motion.div>
       )}
     </AnimatePresence>,
     document.body,

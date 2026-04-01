@@ -6,6 +6,7 @@ import { useT } from "../../i18n/context";
 interface MilestoneRow {
   id: number;
   client_id: number;
+  project_id?: number | null;
   label: string;
   amount: number;
   percentage?: number;
@@ -30,7 +31,7 @@ export { PAYMENT_METHODS };
  * Encapsulates all milestone state + CRUD logic for a client.
  * The component only needs to render — no API logic in JSX.
  */
-export function useMilestones(clientId: number | null, projectFee: number) {
+export function useMilestones(clientId: number | null, projectFee: number, projectId?: number | null) {
   const { t } = useT();
   const showToast = useUIStore((s) => s.showToast);
 
@@ -62,13 +63,14 @@ export function useMilestones(clientId: number | null, projectFee: number) {
     setSavingMs(true);
     const msAmt = parseFloat(msForm.amount);
     const msPct = parseFloat(msForm.percentage);
-    const body = {
+    const body: Record<string, unknown> = {
       label: msForm.label,
       amount: isNaN(msAmt) ? 0 : msAmt,
       percentage: isNaN(msPct) ? 0 : msPct,
       due_date: msForm.due_date || null,
       note: msForm.note,
     };
+    if (projectId) body.project_id = projectId;
     try {
       let newMsId = editMsId;
       if (editMsId) {
@@ -94,7 +96,7 @@ export function useMilestones(clientId: number | null, projectFee: number) {
     } finally {
       setSavingMs(false);
     }
-  }, [clientId, savingMs, msForm, editMsId, fetchMilestones, showToast, t]);
+  }, [clientId, projectId, savingMs, msForm, editMsId, fetchMilestones, showToast, t]);
 
   const deleteMilestone = useCallback(async (msId: number) => {
     try {
@@ -181,9 +183,14 @@ export function useMilestones(clientId: number | null, projectFee: number) {
     setMsForm(EMPTY_MS);
   }, []);
 
+  // When a projectId is specified, only show milestones for that project
+  const filteredMilestones = projectId
+    ? milestones.filter(m => m.project_id === projectId)
+    : milestones;
+
   return {
     // State
-    milestones, msLoading, showAddMs, editMsId, markPaidId, deleteMsId,
+    milestones, filteredMilestones, msLoading, showAddMs, editMsId, markPaidId, deleteMsId,
     markPaidMethod, msForm, savingMs,
     // Setters (for UI binding)
     setMarkPaidId, setDeleteMsId, setMarkPaidMethod, setMsForm,

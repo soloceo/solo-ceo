@@ -191,7 +191,9 @@ export function LeadsView() {
   const openPanel = (lead: Lead | null = null, col: ColId = "new") => {
     if (lead) {
       setEditId(lead.id);
-      setForm({ name: lead.name, industry: lead.industry, needs: lead.needs, website: lead.website || "", column: lead.column || col, source: lead.source || "" });
+      const loaded = { name: lead.name, industry: lead.industry, needs: lead.needs, website: lead.website || "", column: lead.column || col, source: lead.source || "" };
+      setForm(loaded);
+      originalFormRef.current = loaded;
       ai.resetForPanel(lead.aiDraft || "");
     } else {
       setEditId(null);
@@ -204,13 +206,24 @@ export function LeadsView() {
   const [nameError, setNameError] = useState(false);
   const [savingLead, setSavingLead] = useState(false);
 
+  const originalFormRef = React.useRef(EMPTY_LEAD);
   const saveLead = async () => {
     if (!form.name.trim()) { setNameError(true); return; }
     setNameError(false);
     setSavingLead(true);
     try {
-      if (editId) { await api.put(`/api/leads/${editId}`, form); showToast(t("pipeline.toast.leadUpdated")); }
-      else { await api.post("/api/leads", form); showToast(t("pipeline.toast.leadAdded")); }
+      if (editId) {
+        // Rule 13: only send changed fields to avoid stale-data overwrites
+        const diff: Record<string, unknown> = {};
+        for (const k of Object.keys(form) as (keyof typeof form)[]) {
+          if (form[k] !== originalFormRef.current[k]) diff[k] = form[k];
+        }
+        await api.put(`/api/leads/${editId}`, Object.keys(diff).length > 0 ? diff : form);
+        showToast(t("pipeline.toast.leadUpdated"));
+      } else {
+        await api.post("/api/leads", form);
+        showToast(t("pipeline.toast.leadAdded"));
+      }
       setShowPanel(false); fetchLeads();
     } catch { showToast(t("common.saveFailed")); }
     finally { setSavingLead(false); }
@@ -333,8 +346,8 @@ export function LeadsView() {
       {/* ═══ Lead Side Panel ═══ */}
       {createPortal(<AnimatePresence>
         {showPanel && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }} className="fixed inset-0" style={{ zIndex: "var(--layer-dialog-overlay)", background: "var(--color-overlay-primary)", backdropFilter: "blur(2px) saturate(180%)", WebkitBackdropFilter: "blur(2px) saturate(180%)" }} onClick={() => setShowPanel(false)} />
+          <motion.div key="lead-panel" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}>
+            <div className="fixed inset-0" style={{ zIndex: "var(--layer-dialog-overlay)", background: "var(--color-overlay-primary)", backdropFilter: "blur(2px) saturate(180%)", WebkitBackdropFilter: "blur(2px) saturate(180%)" }} onClick={() => setShowPanel(false)} />
             <motion.div
               initial={{ x: isMobile ? 0 : "100%", y: isMobile ? "100%" : 0 }}
               animate={{ x: 0, y: 0 }}
@@ -344,7 +357,7 @@ export function LeadsView() {
               aria-modal="true"
               aria-label="Lead detail"
               className={isMobile ? "fixed inset-0 flex flex-col" : "fixed top-0 right-0 h-full w-full max-w-[440px] lg:max-w-[520px] flex flex-col border-l"}
-              style={{ zIndex: "var(--layer-dialog)", background: "var(--color-bg-primary)", borderColor: "var(--color-border-primary)", boxShadow: "var(--shadow-high)", paddingTop: isMobile ? "var(--mobile-header-pt, env(safe-area-inset-top, 0px))" : undefined }}
+              style={{ zIndex: "var(--layer-dialog)", background: "var(--color-bg-primary)", borderColor: "var(--color-border-primary)", boxShadow: "var(--shadow-high)", paddingTop: isMobile ? "var(--mobile-header-pt, max(env(safe-area-inset-top, 0px), 0px))" : undefined }}
             >
               <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: "var(--color-border-primary)" }}>
                 <div className="flex items-center gap-3">
@@ -464,7 +477,7 @@ export function LeadsView() {
                 </div>
               </div>
             </motion.div>
-          </>
+          </motion.div>
         )}
       </AnimatePresence>, document.body)}
 

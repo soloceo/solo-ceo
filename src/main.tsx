@@ -4,7 +4,7 @@ import App from './App.tsx';
 import './index.css';
 
 async function bootstrap() {
-  const cap = (window as Record<string, any>).Capacitor;
+  const cap = (window as { Capacitor?: { isNativePlatform?: () => boolean; getPlatform?: () => string } }).Capacitor;
   const isNative = typeof cap !== 'undefined' && cap?.isNativePlatform?.();
   const platform: string = cap?.getPlatform?.() ?? 'web'; // 'ios' | 'android' | 'web'
 
