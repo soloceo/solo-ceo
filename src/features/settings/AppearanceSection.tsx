@@ -34,7 +34,7 @@ const themeModes: { value: ThemeMode; icon: typeof Sun; labelKey: string }[] = [
 /** Mini preview swatch per visual theme */
 const THEME_PREVIEWS: Record<VisualTheme, { bg: string; accent: string; border: string; radius: string; shadow: string }> = {
   default:          { bg: '#faf9f5', accent: '#f5c518', border: '#e8e5e1', radius: '12px', shadow: 'none' },
-  "neo-brutalist":  { bg: '#eeeeee', accent: '#c8ff00', border: '#0a0a0a', radius: '0px', shadow: '3px 3px 0px #0a0a0a' },
+  "neo-brutalist":  { bg: '#fafaf7', accent: '#f5c518', border: '#000000', radius: '5px', shadow: '4px 4px 0px #000' },
 };
 
 export default function AppearanceSection({ themeMode, setThemeMode, visualTheme, setVisualTheme, lang, setLang, currency, setCurrency, timezone, setTimezone }: AppearanceSectionProps) {
@@ -172,18 +172,12 @@ export default function AppearanceSection({ themeMode, setThemeMode, visualTheme
               </div>
             </div>
           </div>
-          <div className="flex rounded-[var(--radius-6)] overflow-hidden" style={{ border: '1px solid var(--color-border-primary)' }}>
+          <div className="btn-group-inline">
             {themeModes.map(({ value, icon: Icon }) => (
               <button
                 key={value}
                 onClick={() => setThemeMode(value)}
-                className="px-3 py-2 cursor-pointer transition-colors flex items-center gap-1.5"
-                style={{
-                  background: themeMode === value ? 'var(--color-accent)' : 'transparent',
-                  color: themeMode === value ? 'var(--color-text-on-color)' : 'var(--color-text-tertiary)',
-                  fontWeight: 'var(--font-weight-medium)',
-                  fontSize: '13px',
-                } as React.CSSProperties}
+                data-active={themeMode === value}
                 aria-label={value}
               >
                 <Icon size={15} />
@@ -201,17 +195,12 @@ export default function AppearanceSection({ themeMode, setThemeMode, visualTheme
             </div>
             <div className="text-[15px]" style={{ color: 'var(--color-text-primary)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>{t("settings.language")}</div>
           </div>
-          <div className="flex rounded-[var(--radius-6)] overflow-hidden" style={{ border: '1px solid var(--color-border-primary)' }}>
+          <div className="btn-group-inline">
             {([["zh", "中文"], ["en", "EN"]] as [Lang, string][]).map(([l, label]) => (
               <button
                 key={l}
                 onClick={() => setLang(l)}
-                className="px-3.5 py-2 text-[14px] cursor-pointer transition-colors"
-                style={{
-                  background: lang === l ? 'var(--color-accent)' : 'transparent',
-                  color: lang === l ? 'var(--color-text-on-color)' : 'var(--color-text-tertiary)',
-                  fontWeight: 'var(--font-weight-medium)',
-                } as React.CSSProperties}
+                data-active={lang === l}
               >
                 {label}
               </button>

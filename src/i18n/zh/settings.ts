@@ -82,7 +82,7 @@ export const settings = {
   "settings.themeDefault": "经典",
   "settings.themeDefaultDesc": "温暖、优雅、圆润",
   "settings.themeNeoBrutalist": "新粗野主义",
-  "settings.themeNeoBrutalistDesc": "大胆、棱角、工业",
+  "settings.themeNeoBrutalistDesc": "粗黑边框、硬阴影、黄色强调",
   "settings.visualTheme": "视觉主题",
   "settings.language": "语言",
   "settings.langZh": "中文",

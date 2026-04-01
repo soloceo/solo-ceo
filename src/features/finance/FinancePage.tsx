@@ -511,18 +511,12 @@ export default function FinancePage() {
       <h1 className="sr-only">{t("nav.finance")}</h1>
 
       {/* ── Segmented Tab Switcher ── */}
-      <div className="flex items-center gap-1 p-0.5 rounded-[var(--radius-8)] mb-2" style={{ background: "var(--color-bg-tertiary)" }}>
+      <div className="page-tabs mb-2">
         {(["business", "personal"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => { switchFinanceTab(tab); setFilters({ type: "all", category: "all", status: "all", dateFrom: "", dateTo: "", search: "" }); }}
-            className="flex-1 text-center py-1.5 px-3 rounded-[var(--radius-6)] text-[13px] transition-all flex items-center justify-center gap-1.5"
-            style={{
-              background: financeTab === tab ? "var(--color-bg-primary)" : "transparent",
-              color: financeTab === tab ? "var(--color-text-primary)" : "var(--color-text-tertiary)",
-              fontWeight: financeTab === tab ? "var(--font-weight-semibold)" : "var(--font-weight-medium)",
-              boxShadow: financeTab === tab ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
-            } as React.CSSProperties}
+            data-active={financeTab === tab}
           >
             {tab === "business" ? <Building2 size={13} /> : <UserIcon size={13} />}
             {tab === "business" ? t("money.tab.business") : t("money.tab.personal")}

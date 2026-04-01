@@ -80,7 +80,7 @@ export const settings = {
   "settings.themeDefault": "Classic",
   "settings.themeDefaultDesc": "Warm, elegant, rounded",
   "settings.themeNeoBrutalist": "Neo-Brutalist",
-  "settings.themeNeoBrutalistDesc": "Bold, angular, industrial",
+  "settings.themeNeoBrutalistDesc": "Bold borders, hard shadows, yellow accent",
   "settings.visualTheme": "Visual Theme",
   "settings.language": "Language",
   "settings.langZh": "中文",

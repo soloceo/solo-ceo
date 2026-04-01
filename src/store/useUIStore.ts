@@ -14,7 +14,7 @@ export const VISUAL_THEMES: { id: VisualTheme; labelKey: string }[] = [
 /** Meta theme-color per visual theme (light / dark) */
 const META_THEME_COLORS: Record<VisualTheme, { light: string; dark: string }> = {
   default:          { light: "#faf9f5", dark: "#1f1e1d" },
-  "neo-brutalist":  { light: "#eeeeee", dark: "#0a0a0a" },
+  "neo-brutalist":  { light: "#fafaf7", dark: "#282733" },
 };
 
 /** Apply the .dark class to <html> and update meta theme-color for iOS status bar */

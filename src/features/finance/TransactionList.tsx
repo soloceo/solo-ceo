@@ -41,10 +41,10 @@ export function StatCard({ label, value, sub, icon, color }: {
   return (
     <div className="stat-card anim-appear">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[13px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{label}</span>
+        <span className="kpi-label">{label}</span>
         <span className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-4)]" style={{ background: `color-mix(in srgb, ${color} 10%, transparent)`, color }}>{icon}</span>
       </div>
-      <div className="text-[16px] md:text-[18px] tracking-tight tabular-nums select-all truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{value}</div>
+      <div className="kpi-value text-[16px] md:text-[18px] select-all truncate">{value}</div>
       {sub && <div className="text-[13px] mt-0.5" style={{ color: "var(--color-text-quaternary)" }}>{sub}</div>}
     </div>
   );
@@ -91,7 +91,7 @@ export const TxRow = React.memo(function TxRow({ tx, t, lang, fmtAmt, fmtAmtColo
     return (
       <>
         {/* Desktop */}
-        <div className="hidden md:grid grid-cols-[100px_1fr_120px_120px_120px_80px] gap-2 px-5 py-3 items-center border-b group hover:bg-[var(--color-bg-tertiary)] transition-colors" style={{ borderColor: "var(--color-border-primary)" }}>
+        <div className="hidden md:grid grid-cols-[100px_1fr_120px_120px_120px_80px] gap-2 px-5 py-3 items-center border-b border-[var(--color-line-secondary)] group hover:bg-[var(--color-bg-tertiary)] transition-colors">
           <span className="text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{fmtDate(tx.date || "", lang || "zh")}</span>
           <div className="flex items-center gap-2 min-w-0 overflow-hidden">
             <span className="text-[15px] truncate" style={{ color: isOrphan ? "var(--color-text-tertiary)" : "var(--color-text-primary)", textDecoration: isOrphan ? "line-through" : undefined }}>{tx.description || tx.desc || tx.client_name || "—"}</span>
@@ -106,9 +106,9 @@ export const TxRow = React.memo(function TxRow({ tx, t, lang, fmtAmt, fmtAmtColo
           <div className="flex gap-1">{actionBtns}</div>
         </div>
         {/* Mobile */}
-        <div className="flex md:hidden items-center gap-3 px-4 py-3 border-b" style={{ borderColor: "var(--color-border-primary)" }} onClick={isSystem ? undefined : onEdit}>
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-6)]" style={{ background: isIncome ? "color-mix(in srgb, var(--color-success) 10%, transparent)" : "color-mix(in srgb, var(--color-danger) 10%, transparent)" }}>
-            {isIncome ? <ArrowUpRight size={16} style={{ color: "var(--color-success)" }} /> : <ArrowDownRight size={16} style={{ color: "var(--color-danger)" }} />}
+        <div className="flex md:hidden items-center gap-3 px-4 py-3 border-b border-[var(--color-line-secondary)]" onClick={isSystem ? undefined : onEdit}>
+          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-6)] ${isIncome ? "icon-circle-success" : "icon-circle-danger"}`}>
+            {isIncome ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
@@ -130,8 +130,8 @@ export const TxRow = React.memo(function TxRow({ tx, t, lang, fmtAmt, fmtAmtColo
 
   return (
     <div className="flex items-center gap-3 px-1 py-3 border-b group" style={{ borderColor: "var(--color-border-primary)" }}>
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-6)]" style={{ background: isIncome ? "color-mix(in srgb, var(--color-success) 10%, transparent)" : "color-mix(in srgb, var(--color-danger) 10%, transparent)" }}>
-        {isIncome ? <ArrowUpRight size={16} style={{ color: "var(--color-success)" }} /> : <ArrowDownRight size={16} style={{ color: "var(--color-danger)" }} />}
+      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-6)] ${isIncome ? "icon-circle-success" : "icon-circle-danger"}`}>
+        {isIncome ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">

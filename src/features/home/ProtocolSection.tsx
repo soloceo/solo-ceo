@@ -53,11 +53,7 @@ export function ProtocolSection({ title, steps, state, streak, doneCount, onTogg
             <button
               key={step.id}
               onClick={() => onToggle(step.id)}
-              className="flex items-start gap-3 w-full text-left px-3 py-2.5 press-feedback transition-colors hover:bg-[var(--color-bg-tertiary)]"
-              style={{
-                opacity: done ? 0.6 : 1,
-                borderLeft: isCurrent && !done ? "3px solid var(--color-accent)" : "3px solid transparent",
-              }}
+              className={`flex items-start gap-3 w-full text-left px-3 py-2.5 press-feedback transition-colors hover:bg-[var(--color-bg-tertiary)] protocol-step ${done ? "protocol-done" : ""} ${isCurrent && !done ? "protocol-current" : ""}`}
             >
               <div
                 className="shrink-0 rounded-full flex items-center justify-center mt-0.5"

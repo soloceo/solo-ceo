@@ -157,13 +157,9 @@ export const TaskCard = React.memo(function TaskCard({
                 const today = todayDateKey();
                 const isOverdue = task.due < today;
                 const isToday = task.due === today;
-                const dueSt = isOverdue
-                  ? { background: "var(--color-danger-light)", color: "var(--color-danger)" }
-                  : isToday
-                  ? { background: "var(--color-warning-light)", color: "var(--color-warning)" }
-                  : undefined;
+                const dueCls = isOverdue ? "badge-danger" : isToday ? "badge-warning" : "";
                 return (
-                  <label className="badge text-[13px] cursor-pointer relative" style={dueSt}>
+                  <label className={`badge text-[13px] cursor-pointer relative ${dueCls}`}>
                     <Clock size={12} /> {fmtDate(task.due!, lang)}
                     <input
                       type="date"
@@ -192,13 +188,9 @@ export const TaskCard = React.memo(function TaskCard({
               const today = todayDateKey();
               const isOverdue = task.due < today;
               const isToday = task.due === today;
-              const dueSt = isOverdue
-                ? { background: "var(--color-danger-light)", color: "var(--color-danger)" }
-                : isToday
-                ? { background: "var(--color-warning-light)", color: "var(--color-warning)" }
-                : undefined;
+              const dueCls = isOverdue ? "badge-danger" : isToday ? "badge-warning" : "";
               return (
-                <span className="badge text-[13px]" style={dueSt}>
+                <span className={`badge text-[13px] ${dueCls}`}>
                   <Clock size={12} /> {fmtDate(task.due!, lang)}
                 </span>
               );

@@ -3,6 +3,26 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.17.0] - 2026-04-01
+
+### Changed
+- **Unified design language across both themes** — comprehensive audit ensuring every component follows its respective theme's design language consistently
+- **Visual hierarchy overhaul** — Dashboard now has clear primary (KPIs) → secondary (Today's Focus) → tertiary (Growth System) content zones with section spacing
+- **KPI typography system** — new `.kpi-value` / `.kpi-label` / `.kpi-sub` CSS classes with larger numbers (22→24px desktop), proper tracking, and neo-brutalist uppercase treatment
+- **Sidebar floating layout** — increased margins (12px original, 8px neo-brutalist) for breathing room on all sides
+- **Page tabs & segment switcher redesigned** — removed card-like active state (border+shadow) in original theme; both states now feel cohesive with subtle background indicator
+- **Table styling via CSS** — client table headers, row borders, and hover states moved from inline styles to `.card table` CSS rules; works in both themes automatically
+- **Badge variant system** — 6 semantic CSS classes (`badge-success`, `badge-warning`, `badge-danger`, `badge-accent`, `badge-blue`, `badge-orange`) replacing inline color-mix styles
+- **Progress bar components** — new `.progress-track` / `.progress-fill` classes used in MonthlyGoal and BreakthroughSection; neo-brutalist adds 2px border
+- **Protocol step states** — `.protocol-step`, `.protocol-done`, `.protocol-current` CSS classes replacing inline borderLeft/opacity
+- **Icon circle components** — `.icon-circle-success` / `.icon-circle-danger` for transaction type indicators
+- **Neo-brutalist theme polish** — KPI labels uppercase with letter-spacing, badge variants get border+shadow, tables get strong header separator with soft row dividers, sidebar gets floating margins
+
+### Removed
+- Inline `onMouseEnter`/`onMouseLeave` hover handlers on client table rows (CSS handles it)
+- Inline `style={{ fontWeight }}` on table headers (CSS `.card table th` handles it)
+- Inline badge color-mix styles across ClientList, TaskCard, TransactionList
+
 ## [2.16.0] - 2026-04-01
 
 ### Added

@@ -134,14 +134,10 @@ export function MonthlyGoal({ monthlyIncome, loading }: MonthlyGoalProps) {
       </div>
 
       {/* Progress bar */}
-      <div className="relative h-2 rounded-full overflow-hidden mb-2" style={{ background: "var(--color-bg-quaternary)" }}>
+      <div className="progress-track mb-2">
         <div
-          className="absolute inset-y-0 left-0 rounded-full"
-          style={{
-            width: `${percentage}%`,
-            background: barColor,
-            transition: "width 0.6s ease",
-          }}
+          className="progress-fill"
+          style={{ width: `${percentage}%`, background: barColor }}
         />
       </div>
 

@@ -49,12 +49,12 @@ export function KPIGrid({ mrr, ytdRevenue, todayIncome, clientsCount, leadsCount
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-      {stats.map((s) => (
+      {stats.map((s, idx) => (
         <div
           key={s.label}
-          className="card px-3.5 py-3 min-w-0"
+          className="stat-card px-3.5 py-3 min-w-0"
         >
-          {s.label && <div className="text-[13px] mb-1 truncate" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
+          {s.label && <div className="kpi-label mb-1 truncate">
             {s.label}
           </div>}
           {s.lines ? (
@@ -63,22 +63,19 @@ export function KPIGrid({ mrr, ytdRevenue, todayIncome, clientsCount, leadsCount
                 <React.Fragment key={l.label}>
                   {i > 0 && <div className="mx-2.5 self-stretch" style={{ width: 1, background: "var(--color-border-primary)" }} />}
                   <div className="flex-1 text-center">
-                    <div className="text-[13px] mb-0.5" style={{ color: "var(--color-text-tertiary)" }}>{l.label}</div>
-                    <div className="text-[20px] tabular-nums" style={{ color: l.color, fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>{loading ? "—" : l.count}</div>
+                    <div className="kpi-label mb-0.5">{l.label}</div>
+                    <div className="kpi-value" style={{ color: l.color }}>{loading ? "—" : l.count}</div>
                   </div>
                 </React.Fragment>
               ))}
             </div>
           ) : (
             <div className="flex items-baseline gap-1.5 flex-wrap">
-              <span
-                className="text-[20px] tracking-tight tabular-nums select-all"
-                style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}
-              >
+              <span className="kpi-value">
                 {s.value}
               </span>
               {s.sub && (
-                <span className="text-[12px] truncate" style={{ color: s.color, fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
+                <span className="kpi-sub" style={{ color: s.color }}>
                   {s.sub}
                 </span>
               )}

@@ -386,18 +386,12 @@ export default function WorkPage() {
       <h1 className="sr-only">{t("nav.work")}</h1>
 
       {/* ── Segmented Tab Switcher ── */}
-      <div className="flex items-center gap-1 p-0.5 rounded-[var(--radius-8)] mb-2" style={{ background: "var(--color-bg-tertiary)" }}>
+      <div className="page-tabs mb-2">
         {(["work", "personal"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => switchWorkTab(tab)}
-            className="flex-1 text-center py-1.5 px-3 rounded-[var(--radius-6)] text-[13px] transition-all flex items-center justify-center gap-1.5"
-            style={{
-              background: workTab === tab ? "var(--color-bg-primary)" : "transparent",
-              color: workTab === tab ? "var(--color-text-primary)" : "var(--color-text-tertiary)",
-              fontWeight: workTab === tab ? "var(--font-weight-semibold)" : "var(--font-weight-medium)",
-              boxShadow: workTab === tab ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
-            } as React.CSSProperties}
+            data-active={workTab === tab}
           >
             {tab === "work" ? <Building2 size={13} /> : <UserIcon size={13} />}
             {tab === "work" ? t("work.tab.work") : t("work.tab.personal")}

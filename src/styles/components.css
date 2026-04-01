@@ -67,6 +67,44 @@
     .page-stack { gap: 24px; }
   }
 
+  /* ── KPI typography ─────────────────────────────────────── */
+
+  .kpi-label {
+    font-size: 13px;
+    color: var(--color-text-tertiary);
+    font-weight: var(--font-weight-medium);
+  }
+  .kpi-value {
+    font-size: 22px;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text-primary);
+    font-weight: var(--font-weight-bold);
+  }
+  .kpi-sub {
+    font-size: 12px;
+    font-weight: var(--font-weight-medium);
+  }
+  @media (min-width: 768px) {
+    .kpi-value { font-size: 24px; }
+  }
+
+  /* ── Visual hierarchy spacing ───────────────────────────── */
+  /* Use between major page sections for breathing room */
+  .section-gap {
+    margin-top: 8px;
+  }
+  @media (min-width: 768px) {
+    .section-gap { margin-top: 12px; }
+  }
+
+  /* Section header — for secondary/tertiary content areas */
+  .section-header {
+    @apply flex items-center justify-between;
+    padding-bottom: 4px;
+  }
+
   /* ── Home swipe panels ─────────────────────────────────────── */
   .home-swipe-container {
     display: flex;
@@ -87,14 +125,38 @@
     scroll-snap-align: start;
   }
 
-  /* ── Segment switcher (28px inner → 32px total) ──────────── */
+  /* ── Page tabs (full-width page-level switcher) ──────────── */
+  /* No container background/border — buttons are standalone pills.
+     This avoids the "frame within frame" effect. */
+
+  .page-tabs {
+    @apply flex items-center;
+    gap: 4px;
+  }
+  .page-tabs > button {
+    @apply flex-1 flex items-center justify-center gap-1.5 text-[13px] transition-all;
+    padding: 8px 12px;
+    border-radius: var(--radius-8);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-tertiary);
+  }
+  .page-tabs > button:hover {
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-secondary);
+  }
+  .page-tabs > button[data-active="true"] {
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  /* ── Segment switcher (compact view toggle) ──────────────── */
+  /* No container background/border — buttons are standalone pills.
+     Same design principle as .page-tabs. */
 
   .segment-switcher {
-    @apply inline-flex items-center gap-0.5;
-    background: var(--color-bg-tertiary);
-    border: 1px solid var(--color-border-translucent);
-    border-radius: var(--radius-pill);
-    padding: 2px;
+    @apply inline-flex items-center;
+    gap: 2px;
   }
   .segment-switcher > button {
     @apply text-[13px] transition-all;
@@ -104,11 +166,34 @@
     border-radius: var(--radius-pill);
     color: var(--color-text-tertiary);
   }
+  .segment-switcher > button:hover {
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-secondary);
+  }
   .segment-switcher > button[data-active="true"],
   .segment-switcher > button.active {
-    background: var(--color-bg-primary);
+    background: var(--color-bg-secondary);
     color: var(--color-text-primary);
-    box-shadow: var(--shadow-tiny);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  /* ── Inline button group (settings theme/language) ─────── */
+
+  .btn-group-inline {
+    @apply flex items-center;
+    border: 1px solid var(--color-border-primary);
+    border-radius: var(--radius-6);
+    overflow: hidden;
+  }
+  .btn-group-inline > button {
+    @apply text-[13px] transition-colors cursor-pointer flex items-center gap-1.5;
+    padding: 8px 12px;
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-tertiary);
+  }
+  .btn-group-inline > button[data-active="true"] {
+    background: var(--color-accent);
+    color: var(--color-text-on-color);
   }
 
   /* ── Skeleton loading ──────────────────────────────────────── */
@@ -367,11 +452,11 @@
 
   @media (min-width: 1024px) {
     .sidebar-glass {
-      margin: 8px;
+      margin: 12px;
       margin-right: 0;
       border-radius: var(--radius-16);
       border: 1px solid var(--color-border-translucent);
-      height: calc(100% - 16px);
+      height: calc(100% - 24px);
       z-index: var(--layer-nav);
     }
   }
@@ -389,6 +474,106 @@
   /* ── Widget card ─────────────────────────────────────────── */
   .widget-card {
     aspect-ratio: 1 / 1;
+  }
+
+  /* ── Table (inside .card wrappers) ──────────────────────── */
+
+  .card table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .card table thead {
+    background: var(--color-bg-panel);
+  }
+  .card table th {
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-tertiary);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .card table tbody tr {
+    border-bottom: 1px solid var(--color-line-secondary);
+    transition: background var(--transition-fast);
+  }
+  .card table tbody tr:last-child {
+    border-bottom: none;
+  }
+  @media (hover: hover) {
+    .card table tbody tr:hover {
+      background: var(--color-bg-tertiary);
+    }
+  }
+
+  /* ── Badge variants (semantic colors) ──────────────────── */
+
+  .badge-success {
+    background: var(--color-success-light);
+    color: var(--color-success);
+  }
+  .badge-warning {
+    background: var(--color-warning-light);
+    color: var(--color-warning);
+  }
+  .badge-danger {
+    background: var(--color-danger-light);
+    color: var(--color-danger);
+  }
+  .badge-accent {
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    color: var(--color-accent);
+  }
+  .badge-blue {
+    background: color-mix(in srgb, var(--color-blue) 12%, transparent);
+    color: var(--color-blue);
+  }
+  .badge-orange {
+    background: color-mix(in srgb, var(--color-orange) 12%, transparent);
+    color: var(--color-orange);
+  }
+
+  /* ── Semantic icon circles ───────────────────────────────── */
+
+  .icon-circle-success {
+    background: color-mix(in srgb, var(--color-success) 10%, transparent);
+    color: var(--color-success);
+  }
+  .icon-circle-danger {
+    background: color-mix(in srgb, var(--color-danger) 10%, transparent);
+    color: var(--color-danger);
+  }
+
+  /* ── Protocol step states ────────────────────────────────── */
+
+  .protocol-step {
+    border-left: 3px solid transparent;
+  }
+  .protocol-done {
+    opacity: 0.6;
+  }
+  .protocol-current {
+    border-left-color: var(--color-accent);
+  }
+
+  /* ── Input error state ─────────────────────────────────── */
+
+  .input-base.input-error {
+    border-color: var(--color-danger);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-danger) 15%, transparent);
+  }
+
+  /* ── Progress bar ──────────────────────────────────────── */
+
+  .progress-track {
+    height: 6px;
+    border-radius: var(--radius-pill);
+    background: var(--color-bg-quaternary);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: var(--radius-pill);
+    transition: width 0.6s ease;
   }
 }
 

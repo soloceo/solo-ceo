@@ -65,9 +65,9 @@ export function BreakthroughSection() {
           {breakthroughExpanded ? <ChevronDown size={14} style={{ color: "var(--color-text-quaternary)" }} /> : <ChevronRight size={14} style={{ color: "var(--color-text-quaternary)" }} />}
         </div>
         {/* Progress bar */}
-        <div className="rounded-full overflow-hidden" style={{ height: 6, background: "var(--color-bg-quaternary)" }}>
+        <div className="progress-track">
           <div
-            className="h-full rounded-full transition-all"
+            className="progress-fill"
             style={{
               width: `${Math.max(phasePct, 2)}%`,
               background: phasePct === 100

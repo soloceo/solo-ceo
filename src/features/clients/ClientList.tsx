@@ -381,9 +381,9 @@ export function ClientsView() {
           {/* Desktop table */}
           <div ref={parentRef} className="hidden md:block card flex-1 overflow-auto min-h-[400px]">
             <table className="w-full text-left min-w-[960px]">
-              <thead className="sticky top-0 z-10" style={{ background: "var(--color-bg-primary)", borderBottom: "1px solid var(--color-border-primary)" }}>
-                <tr className="section-label">
-                  <th className="px-4 py-3" style={{ fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.clients.table.name")}</th><th className="px-4 py-3" style={{ fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.clients.table.contact")}</th><th className="px-4 py-3" style={{ fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.clients.table.type")}</th><th className="px-4 py-3" style={{ fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.clients.table.plan")}</th><th className="px-4 py-3" style={{ fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.clients.table.status")}</th><th className="px-4 py-3" style={{ fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.clients.table.expectedActual")}</th><th className="px-4 py-3" style={{ fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.clients.startDate")}</th><th className="px-4 py-3" style={{ fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.clients.taxSetting")}</th><th className="px-4 py-3 text-right" style={{ fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("pipeline.clients.table.actions")}</th>
+              <thead className="sticky top-0 z-10">
+                <tr>
+                  <th className="px-4 py-3">{t("pipeline.clients.table.name")}</th><th className="px-4 py-3">{t("pipeline.clients.table.contact")}</th><th className="px-4 py-3">{t("pipeline.clients.table.type")}</th><th className="px-4 py-3">{t("pipeline.clients.table.plan")}</th><th className="px-4 py-3">{t("pipeline.clients.table.status")}</th><th className="px-4 py-3">{t("pipeline.clients.table.expectedActual")}</th><th className="px-4 py-3">{t("pipeline.clients.startDate")}</th><th className="px-4 py-3">{t("pipeline.clients.taxSetting")}</th><th className="px-4 py-3 text-right">{t("pipeline.clients.table.actions")}</th>
                 </tr>
               </thead>
               <tbody className="text-[15px]">
@@ -394,21 +394,20 @@ export function ClientsView() {
                   const displayName = c.company_name || c.name;
                   const displayInitial = displayName.charAt(0).toUpperCase();
                   return (
-                    <tr key={c.id} data-index={vr.index} ref={rowV.measureElement} className="group border-b transition-colors cursor-pointer" style={{ borderColor: "var(--color-border-primary)" }}
-                      onClick={() => openPanel(c)}
-                      onMouseEnter={e => (e.currentTarget.style.background = "var(--color-bg-tertiary)")} onMouseLeave={e => (e.currentTarget.style.background = "")}>
+                    <tr key={c.id} data-index={vr.index} ref={rowV.measureElement} className="group cursor-pointer"
+                      onClick={() => openPanel(c)}>
                       <td className="px-4 py-3 max-w-[200px]"><div className="flex items-center gap-3 min-w-0"><div className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-4)] text-[13px] shrink-0" style={{ background: "var(--color-accent-tint)", color: "var(--color-accent)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>{displayInitial}</div><span className="truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{displayName}</span></div></td>
                       <td className="px-4 py-3"><div className="min-w-0">{c.contact_name && <span className="text-[15px] block truncate" style={{ color: "var(--color-text-primary)" }}>{c.contact_name}</span>}{c.contact_email && <span className="text-[13px] block truncate" style={{ color: "var(--color-text-secondary)" }}>{c.contact_email}</span>}</div></td>
-                      <td className="px-4 py-3"><span className="badge" style={c.billing_type === "project" ? { background: "color-mix(in srgb, var(--color-orange) 12%, transparent)", color: "var(--color-orange)" } : { background: "color-mix(in srgb, var(--color-blue) 12%, transparent)", color: "var(--color-blue)" }}>{c.billing_type === "project" ? t("pipeline.clients.billingProject") : t("pipeline.clients.billingSubscription")}</span></td>
+                      <td className="px-4 py-3"><span className={`badge ${c.billing_type === "project" ? "badge-orange" : "badge-blue"}`}>{c.billing_type === "project" ? t("pipeline.clients.billingProject") : t("pipeline.clients.billingSubscription")}</span></td>
                       <td className="px-4 py-3"><span className="badge">{c.billing_type === "project" ? "—" : plan}</span></td>
-                      <td className="px-4 py-3"><span className="badge" style={c.status === "Active" ? { background: "var(--color-success-light)", color: "var(--color-success)" } : { background: "var(--color-warning-light)", color: "var(--color-warning)" }}>{c.status === "Active" ? t("common.active") : t("common.paused")}</span></td>
+                      <td className="px-4 py-3"><span className={`badge ${c.status === "Active" ? "badge-success" : "badge-warning"}`}>{c.status === "Active" ? t("common.active") : t("common.paused")}</span></td>
                       <td className="px-4 py-3 tabular-nums" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
                         <div>${c.billing_type === "project" ? Number(c.project_fee || 0).toLocaleString() : Number(c.lifetimeRevenue || 0).toLocaleString()}</div>
                         {(() => { const cReceived = tx.finTxs.filter((r: FinanceTransaction) => r.type === "income" && (r.status || "已完成") === "已完成" && r.client_id === c.id).reduce((s: number, r: FinanceTransaction) => s + Number(r.amount || 0), 0); return cReceived > 0 ? <div className="text-[13px]" style={{ color: "var(--color-success)" }}>{t("pipeline.clients.received")} ${cReceived.toLocaleString()}</div> : null; })()}
                         {c.billing_type === "subscription" && <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>${Number(c.mrr || 0).toLocaleString()}{t("pipeline.clients.perMonth")}</div>}
                       </td>
                       <td className="px-4 py-3 text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{c.subscription_start_date || c.joined_at?.split("T")[0] || "—"}</td>
-                      <td className="px-4 py-3">{c.tax_mode && c.tax_mode !== "none" ? <span className="badge" style={{ background: "color-mix(in srgb, var(--color-accent) 12%, transparent)", color: "var(--color-accent)" }}>{c.tax_mode === "exclusive" ? t("money.form.taxExclBtn") : t("money.form.taxIncl")} {c.tax_rate}%</span> : <span style={{ color: "var(--color-text-secondary)" }}>—</span>}</td>
+                      <td className="px-4 py-3">{c.tax_mode && c.tax_mode !== "none" ? <span className="badge badge-accent">{c.tax_mode === "exclusive" ? t("money.form.taxExclBtn") : t("money.form.taxIncl")} {c.tax_rate}%</span> : <span style={{ color: "var(--color-text-secondary)" }}>—</span>}</td>
                       <td className="px-4 py-3 text-right"><button onClick={e => { e.stopPropagation(); openPanel(c); }} className="btn-ghost text-[13px]"><Edit2 size={16} /> {t("common.edit")}</button></td>
                     </tr>
                   );

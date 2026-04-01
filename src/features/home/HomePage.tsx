@@ -306,18 +306,12 @@ export default function HomePage() {
         </div>
 
         {/* ── Panel Tabs ── */}
-        <div className="flex items-center gap-1 p-0.5 rounded-[var(--radius-8)]" style={{ background: "var(--color-bg-tertiary)" }}>
+        <div className="page-tabs">
           {(["dashboard", "widgets"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => switchPanel(tab)}
-              className="flex-1 text-center py-1.5 px-3 rounded-[var(--radius-6)] text-[13px] transition-all"
-              style={{
-                background: homeView === tab ? "var(--color-bg-primary)" : "transparent",
-                color: homeView === tab ? "var(--color-text-primary)" : "var(--color-text-tertiary)",
-                fontWeight: homeView === tab ? "var(--font-weight-semibold)" : "var(--font-weight-medium)",
-                boxShadow: homeView === tab ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
-              } as React.CSSProperties}
+              data-active={homeView === tab}
             >
               {tab === "dashboard"
                 ? t("home.tab.dashboard")
@@ -337,7 +331,8 @@ export default function HomePage() {
             {/* ── Panel 1: Dashboard ── */}
             <div className="home-swipe-panel">
               <div className="flex flex-col" style={{ gap: 20 }}>
-              {/* ── KPI Stat Bar ── */}
+
+              {/* ═══ PRIMARY: KPIs + Goal — the first thing you see ═══ */}
               <KPIGrid
                 mrr={data.mrr || 0}
                 ytdRevenue={data.ytdRevenue || 0}
@@ -348,42 +343,35 @@ export default function HomePage() {
                 personalTasks={data.personalTasks || 0}
                 loading={loading}
               />
-
-              {/* ── Monthly Revenue Goal ── */}
               <MonthlyGoal monthlyIncome={data.monthlyIncome || 0} loading={loading} />
 
-              {/* ── Today's Focus (list style) ── */}
-              <TodayFocus
-                todayFocus={data.todayFocus}
-                manualEvents={data.manualTodayEvents}
-                loading={loading}
-                onUpdateStatus={handleUpdateStatus}
-                onSaveManual={handleSaveManual}
-                onDeleteManual={handleDeleteManual}
-                openFormTrigger={fabTrigger}
-              />
+              {/* ═══ SECONDARY: Today's action items ═══ */}
+              <div className="section-gap">
+                <TodayFocus
+                  todayFocus={data.todayFocus}
+                  manualEvents={data.manualTodayEvents}
+                  loading={loading}
+                  onUpdateStatus={handleUpdateStatus}
+                  onSaveManual={handleSaveManual}
+                  onDeleteManual={handleDeleteManual}
+                  openFormTrigger={fabTrigger}
+                />
+              </div>
 
-        {/* ═══════════════════════════════════════════════════════════
-            Growth System — 三位一体：原则 → 协议 → 突围
-            叙事逻辑：先武装思想，再执行节奏，最后推进战线
-        ═══════════════════════════════════════════════════════════ */}
-
-        {/* ── 思想武装：今日原则 ── */}
-        <KnowledgeBaseSection />
-
-        {/* ── 每日协议 ── */}
-        <ProtocolSection
-          title={t("home.dailyProtocol")}
-          steps={PROTOCOL_STEPS}
-          state={protocolState}
-          streak={protocolStreak}
-          doneCount={protocolDone}
-          onToggle={toggleProtocolStep}
-          lang={lang}
-        />
-
-        {/* ── 推进战线：突围进度 ── */}
-        <BreakthroughSection />
+              {/* ═══ TERTIARY: Growth System — 原则 → 协议 → 突围 ═══ */}
+              <div className="section-gap flex flex-col" style={{ gap: 16 }}>
+                <KnowledgeBaseSection />
+                <ProtocolSection
+                  title={t("home.dailyProtocol")}
+                  steps={PROTOCOL_STEPS}
+                  state={protocolState}
+                  streak={protocolStreak}
+                  doneCount={protocolDone}
+                  onToggle={toggleProtocolStep}
+                  lang={lang}
+                />
+                <BreakthroughSection />
+              </div>
 
             </div>
           </div>
