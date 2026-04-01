@@ -7,6 +7,7 @@ import { useUIStore } from '../../store/useUIStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
 
 import { useAppSettings } from '../../hooks/useAppSettings';
+import { api } from '../../lib/api';
 import ProfileSection from './ProfileSection';
 import AppearanceSection from './AppearanceSection';
 import PlanSection from './PlanSection';
@@ -68,11 +69,8 @@ export default function SettingsPage() {
     setOperator(cleanedName, operatorAvatar || '');
     window.dispatchEvent(new Event('operator-name-updated'));
     window.dispatchEvent(new Event('operator-avatar-updated'));
-    fetch('/api/settings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ OPERATOR_NAME: cleanedName, OPERATOR_AVATAR: operatorAvatar || '' }),
-    }).catch(() => { /* save failed — toast already shown */ });
+    api.post('/api/settings', { OPERATOR_NAME: cleanedName, OPERATOR_AVATAR: operatorAvatar || '' })
+      .catch(() => { /* save failed — toast already shown */ });
     showToast(t("settings.saved"));
   };
 
@@ -94,11 +92,8 @@ export default function SettingsPage() {
       const compressed = canvas.toDataURL('image/jpeg', 0.8);
       setOperator(operatorName, compressed);
       window.dispatchEvent(new Event('operator-avatar-updated'));
-      fetch('/api/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ OPERATOR_AVATAR: compressed }),
-      }).catch(() => { /* avatar save failed */ });
+      api.post('/api/settings', { OPERATOR_AVATAR: compressed })
+        .catch(() => { /* avatar save failed */ });
       showToast(t("settings.avatarUpdated"));
     };
     img.src = dataUrl;
@@ -121,11 +116,8 @@ export default function SettingsPage() {
   const clearAvatar = () => {
     setOperator(operatorName, '');
     window.dispatchEvent(new Event('operator-avatar-updated'));
-    fetch('/api/settings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ OPERATOR_AVATAR: '' }),
-    }).catch(() => { /* avatar remove failed */ });
+    api.post('/api/settings', { OPERATOR_AVATAR: '' })
+      .catch(() => { /* avatar remove failed */ });
     showToast(t("settings.avatarRemoved"));
   };
 

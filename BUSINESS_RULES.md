@@ -21,22 +21,36 @@ The `due` field supports two formats:
 
 **Rule**: Any `str()` truncation on `due` must allow 16 chars minimum. Any date comparison must use `.slice(0, 10)` to extract only the date portion.
 
-## 3. API PUT Endpoints — Partial Updates
+## 3. API PUT Endpoints — Partial Updates (BOTH online AND offline)
 
 PUT endpoints MUST use partial updates (only write fields present in the request body). Fields not included in the request must NOT be touched.
 
-**Why**: Different UI forms send different subsets of fields. A full overwrite will wipe fields that the form doesn't know about:
+**CRITICAL**: This rule applies to BOTH data paths:
+- **Online**: `src/db/supabase-api.ts` — builds a `patch` object, sends to Supabase
+- **Offline**: `src/db/api.ts` — builds `sets[]`/`vals[]` arrays, constructs dynamic SQL
+
+If you fix one, you MUST fix the other. They handle the same routes.
+
+**Why**: Different UI actions send different subsets of fields. A full overwrite will wipe fields that the action doesn't know about:
+- Kanban drag sends only `{ column: "done" }` — must NOT blank out title/AI/scope
 - Task edit panel sends `title/client/priority/due/column` but NOT `scope/aiBreakdown/parent_id`
 - Client edit form sends billing/contact info but NOT `industry/brand_context` (set during lead conversion)
 - Milestone edit form sends `label/amount/percentage` but NOT `invoice_number/payment_method`
 
-**Pattern**:
+**Online pattern** (supabase-api.ts):
 ```js
 const patch = {};
 if (body.field !== undefined) patch.field = validate(body.field);
-// Only update if there's something to update
 if (Object.keys(patch).length === 0) return ok({ success: true });
 await supabase.from('table').update(patch).eq('id', id);
+```
+
+**Offline pattern** (db/api.ts):
+```js
+const sets: string[] = [];
+const vals: unknown[] = [];
+if (body.field !== undefined) { sets.push('field=?'); vals.push(body.field); }
+if (sets.length > 0) { vals.push(id); run(db, `UPDATE table SET ${sets.join(',')} WHERE id=?`, vals); }
 ```
 
 ## 4. Subscription Ledger Sync
@@ -81,11 +95,13 @@ Valid statuses: `"已完成"`, `"待收款 (应收)"`, `"待支付 (应付)"`
 - For PUT endpoints, prefer partial updates over `enumVal()` with fallback — if a field isn't in the request, don't touch it at all
 - `str(value, maxLen)` truncates silently. Check the actual maximum possible length of the data, including auto-generated content
 
-## 9. API Client (`api.ts` vs raw `fetch`)
+## 9. API Client (`api.ts` vs raw `fetch`) — ENFORCED ✅
 
 All internal API calls (`/api/...`) MUST use the `api.ts` utility (`api.get/post/put/del`). Raw `fetch()` is only acceptable for external APIs (OpenAI, Anthropic, DeepSeek, Gemini).
 
 **Why**: `api.ts` goes through `supabase-interceptor.ts` which handles auth, offline fallback, and error normalization. Raw `fetch('/api/...')` also works (interceptor patches global fetch), but `api.ts` provides type safety and consistent error handling.
+
+**Status**: As of v2.13.0, zero raw `fetch('/api/...')` calls remain in `src/`. All migrated to `api.ts`.
 
 ## 10. Lead Columns
 
@@ -103,3 +119,47 @@ The kanban board has 5 columns: `new`, `contacted`, `proposal`, `won`, `lost`.
 `subscription_timeline` is a JSON array stored as TEXT. Events: `start`, `pause`, `resume`, `cancel`.
 
 **Rule**: Never apply `str()` truncation to this field — it would corrupt the JSON. It can grow unboundedly.
+
+## 13. Frontend PUT Calls — Send Only Changed Fields
+
+Frontend code must NEVER send the full object when calling `api.put()`. Only send the fields that actually changed.
+
+**Examples**:
+- Kanban drag: `api.put(`/api/tasks/${id}`, { column: "done" })` — NOT `api.put(..., task)`
+- Priority change: `api.put(`/api/tasks/${id}`, { priority: "High" })` — NOT `api.put(..., { ...task, priority: "High" })`
+- Lead stage move: `api.put(`/api/leads/${id}`, { column: "won" })` — NOT `api.put(..., lead)`
+
+**Why**: Even though the backend now does partial updates, sending full objects is fragile — stale cached data on the client can silently revert changes made by other devices or tabs.
+
+## 14. Memo Interaction Pattern (Google Tasks Style)
+
+WorkMemoList uses a tap-based interaction:
+- **Tap row** → enters inline edit mode (title + date + time + save/cancel/delete)
+- **Tap circle** → toggles done/undone (no edit mode)
+
+**Rule**: The circle/checkbox tap target must be at least 44x44px for mobile usability. Use negative margins to maintain visual alignment while expanding the touch area.
+
+## 15. Safe Area Insets (iPhone)
+
+Three places must use `env(safe-area-inset-bottom)`:
+- Mobile bottom nav (`src/app/App.tsx`) — `paddingBottom: max(20px, env(safe-area-inset-bottom, 20px))`
+- BottomSheet (`src/components/ui/BottomSheet.tsx`) — `paddingBottom: max(16px, env(safe-area-inset-bottom, 16px))`
+- `.pb-safe` class (`src/styles/components.css`) — `padding-bottom: max(18px, env(safe-area-inset-bottom, 18px))`
+
+**Rule**: Always use `max(fallback, env(...))` pattern — never raw `env()` alone (unsupported browsers get 0px).
+
+## 16. CSS Z-Index Layer System
+
+Z-index uses CSS variables, NOT magic numbers:
+- `--layer-nav` (100) — navigation bars
+- `--layer-popover` (600) — inline popovers, dropdowns
+- `--layer-overlay` (700) — overlays, modals
+- `--layer-toasts` (800) — toast notifications
+
+**Rule**: Never use `z-[800]` or `z-[9999]`. Always use `z-[var(--layer-xxx)]`. InlinePopover uses `--layer-popover`, NOT `--layer-toasts`.
+
+## 17. Weekly Report Time Filtering
+
+The weekly report endpoint (`/api/weekly-report`) counts `tasksCompleted` using `updated_at` within the week range.
+
+**Rule**: Always filter by `updated_at >= weekStart AND updated_at <= weekEnd`. Without this, the count returns ALL completed tasks ever, not just the current week.

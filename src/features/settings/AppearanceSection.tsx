@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Moon, Sun, Monitor, Globe, DollarSign, Clock, RefreshCw, Check, AlertCircle, ChevronDown } from 'lucide-react';
 import { useT, type Lang } from '../../i18n/context';
 import { useUIStore } from '../../store/useUIStore';
+import { api } from '../../lib/api';
 
 type ThemeMode = 'light' | 'dark' | 'auto';
 type SyncState = 'idle' | 'checking' | 'ok' | 'offset' | 'error';
@@ -53,10 +54,9 @@ export default function AppearanceSection({ themeMode, setThemeMode, lang, setLa
     setSyncState('checking');
     try {
       const before = Date.now();
-      const res = await fetch('/api/server-time', { cache: 'no-store' });
+      const json = await api.get<{ unixMs?: number; data?: { unixMs?: number } }>('/api/server-time');
       const after = Date.now();
-      const json = await res.json();
-      const serverUnix = json.unixMs ?? json.data?.unixMs;
+      const serverUnix = json?.unixMs ?? json?.data?.unixMs;
       const roundTrip = after - before;
       const localNow = before + roundTrip / 2;
       const diff = Math.abs(localNow - serverUnix) / 1000;

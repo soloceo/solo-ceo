@@ -506,13 +506,20 @@ export async function handleApiRequest(
   if (leadMatch) {
     const id = leadMatch[1];
     if (method === 'PUT') {
-      const { name, industry, needs, website, column, aiDraft, source } = body;
       const prev = get(db, 'SELECT name, column FROM leads WHERE id=?', [id]) as DbRow;
-      run(db, `UPDATE leads SET name=?,industry=?,needs=?,website=?,column=?,aiDraft=?,source=? WHERE id=?`,
-        [name||'', industry||'', needs||'', website||'', column||'new', aiDraft||'', source||'', id]);
-      const detail = prev?.column && prev.column !== (column||'new')
-        ? `阶段：${prev.column} → ${column||'new'}` : '线索信息已更新';
-      logActivity(db, 'lead', 'updated', `更新线索：${name||prev?.name||'未命名线索'}`, detail, id);
+      const sets: string[] = [];
+      const vals: unknown[] = [];
+      const fieldMap: Record<string, string> = { name: 'name', industry: 'industry', needs: 'needs', website: 'website', column: 'column', aiDraft: 'aiDraft', source: 'source' };
+      for (const [key, col] of Object.entries(fieldMap)) {
+        if (body[key] !== undefined) { sets.push(`${col}=?`); vals.push(body[key]); }
+      }
+      if (sets.length > 0) {
+        vals.push(id);
+        run(db, `UPDATE leads SET ${sets.join(',')} WHERE id=?`, vals);
+      }
+      const detail = prev?.column && body.column !== undefined && prev.column !== body.column
+        ? `阶段：${prev.column} → ${body.column}` : '线索信息已更新';
+      logActivity(db, 'lead', 'updated', `更新线索：${body.name||prev?.name||'未命名线索'}`, detail, id);
       dirty = true;
     } else if (method === 'DELETE') {
       const prev = get(db, 'SELECT name FROM leads WHERE id=?', [id]) as DbRow;
@@ -590,31 +597,35 @@ export async function handleApiRequest(
   if (clientMatch) {
     const id = clientMatch[1];
     if (method === 'PUT') {
-      const { name, industry, plan_tier, status, brand_context, mrr,
-              subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from,
-              company_name, contact_name, contact_email, contact_phone, billing_type, project_fee, project_end_date, tax_mode, tax_rate } = body;
       const prev = get(db, `SELECT name, status, plan_tier, mrr, subscription_start_date,
         paused_at, resumed_at, cancelled_at, mrr_effective_from FROM clients WHERE id=?`, [id]) as DbRow;
-      const np = normalizePlanTier(plan_tier||'');
-      run(db, `UPDATE clients SET name=?,industry=?,plan_tier=?,status=?,brand_context=?,mrr=?,
-        subscription_start_date=?,paused_at=?,resumed_at=?,cancelled_at=?,mrr_effective_from=?,
-        company_name=?,contact_name=?,contact_email=?,contact_phone=?,billing_type=?,project_fee=?,project_end_date=?,tax_mode=?,tax_rate=? WHERE id=?`,
-        [name||'', industry||'', np, status||'Active', brand_context||'', mrr||0,
-         subscription_start_date||'', paused_at||'', resumed_at||'', cancelled_at||'',
-         mrr_effective_from||subscription_start_date||'',
-         company_name||'', contact_name||'', contact_email||'', contact_phone||'', billing_type||'subscription', project_fee||0, project_end_date||'',
-         tax_mode||'none', tax_rate||0, id]);
+      const sets: string[] = [];
+      const vals: unknown[] = [];
+      const stringFields = ['name','industry','brand_context','subscription_start_date','paused_at','resumed_at','cancelled_at','mrr_effective_from','company_name','contact_name','contact_email','contact_phone','project_end_date'];
+      for (const f of stringFields) { if (body[f] !== undefined) { sets.push(`${f}=?`); vals.push(body[f]); } }
+      if (body.plan_tier !== undefined) { sets.push('plan_tier=?'); vals.push(normalizePlanTier(body.plan_tier||'')); }
+      if (body.status !== undefined) { sets.push('status=?'); vals.push(body.status); }
+      if (body.mrr !== undefined) { sets.push('mrr=?'); vals.push(body.mrr); }
+      if (body.billing_type !== undefined) { sets.push('billing_type=?'); vals.push(body.billing_type); }
+      if (body.project_fee !== undefined) { sets.push('project_fee=?'); vals.push(body.project_fee); }
+      if (body.tax_mode !== undefined) { sets.push('tax_mode=?'); vals.push(body.tax_mode); }
+      if (body.tax_rate !== undefined) { sets.push('tax_rate=?'); vals.push(body.tax_rate); }
+      if (sets.length > 0) {
+        vals.push(id);
+        run(db, `UPDATE clients SET ${sets.join(',')} WHERE id=?`, vals);
+      }
       syncClientSubscriptionLedger(db);
-      logActivity(db, 'client', 'updated', `更新客户：${name||prev?.name||'未命名客户'}`, '客户信息已更新', id);
-      if (Number(prev?.mrr||0) !== Number(mrr||0))
-        logActivity(db, 'finance', 'subscription_changed', `订阅金额调整：${name||prev?.name||'未命名客户'}`,
-          `MRR：$${Number(prev?.mrr||0).toLocaleString()} → $${Number(mrr||0).toLocaleString()}`, id);
-      if ((prev?.paused_at||'') !== (paused_at||'') && (paused_at||''))
-        logActivity(db, 'finance', 'subscription_paused', `订阅暂停：${name||prev?.name||'未命名客户'}`, `暂停日期：${paused_at}`, id);
-      if ((prev?.resumed_at||'') !== (resumed_at||'') && (resumed_at||''))
-        logActivity(db, 'finance', 'subscription_resumed', `订阅恢复：${name||prev?.name||'未命名客户'}`, `恢复日期：${resumed_at}`, id);
-      if ((prev?.cancelled_at||'') !== (cancelled_at||'') && (cancelled_at||''))
-        logActivity(db, 'finance', 'subscription_cancelled', `订阅结束：${name||prev?.name||'未命名客户'}`, `结束日期：${cancelled_at}`, id);
+      const displayName = body.name ?? prev?.name ?? '未命名客户';
+      logActivity(db, 'client', 'updated', `更新客户：${displayName}`, '客户信息已更新', id);
+      if (body.mrr !== undefined && Number(prev?.mrr||0) !== Number(body.mrr||0))
+        logActivity(db, 'finance', 'subscription_changed', `订阅金额调整：${displayName}`,
+          `MRR：$${Number(prev?.mrr||0).toLocaleString()} → $${Number(body.mrr||0).toLocaleString()}`, id);
+      if (body.paused_at !== undefined && (prev?.paused_at||'') !== (body.paused_at||'') && (body.paused_at||''))
+        logActivity(db, 'finance', 'subscription_paused', `订阅暂停：${displayName}`, `暂停日期：${body.paused_at}`, id);
+      if (body.resumed_at !== undefined && (prev?.resumed_at||'') !== (body.resumed_at||'') && (body.resumed_at||''))
+        logActivity(db, 'finance', 'subscription_resumed', `订阅恢复：${displayName}`, `恢复日期：${body.resumed_at}`, id);
+      if (body.cancelled_at !== undefined && (prev?.cancelled_at||'') !== (body.cancelled_at||'') && (body.cancelled_at||''))
+        logActivity(db, 'finance', 'subscription_cancelled', `订阅结束：${displayName}`, `结束日期：${body.cancelled_at}`, id);
       await saveDb();
       return ok({ success: true });
     }
@@ -674,10 +685,17 @@ export async function handleApiRequest(
   if (milestoneMatch) {
     const id = milestoneMatch[1];
     if (method === 'PUT') {
-      const { label, amount, percentage, due_date, payment_method, status, invoice_number, note, sort_order } = body;
-      run(db,
-        `UPDATE payment_milestones SET label=?,amount=?,percentage=?,due_date=?,payment_method=?,status=?,invoice_number=?,note=?,sort_order=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`,
-        [label||'', amount||0, percentage||0, due_date||'', payment_method||'', status||'pending', invoice_number||'', note||'', sort_order??0, id]);
+      const sets: string[] = [];
+      const vals: unknown[] = [];
+      const strFields = ['label','due_date','payment_method','status','invoice_number','note'];
+      for (const f of strFields) { if (body[f] !== undefined) { sets.push(`${f}=?`); vals.push(body[f]); } }
+      const numFields = ['amount','percentage','sort_order'];
+      for (const f of numFields) { if (body[f] !== undefined) { sets.push(`${f}=?`); vals.push(body[f]); } }
+      if (sets.length > 0) {
+        sets.push('updated_at=CURRENT_TIMESTAMP');
+        vals.push(id);
+        run(db, `UPDATE payment_milestones SET ${sets.join(',')} WHERE id=?`, vals);
+      }
       await saveDb();
       return ok({ success: true });
     }
@@ -755,15 +773,21 @@ export async function handleApiRequest(
   if (taskMatch) {
     const id = taskMatch[1];
     if (method === 'PUT') {
-      const { title, client, client_id, priority, due, column, originalRequest, aiBreakdown, aiMjPrompts, aiStory, scope, parent_id } = body;
       const prev = get(db, 'SELECT title, "column" FROM tasks WHERE id=?', [id]) as DbRow;
-      run(db, `UPDATE tasks SET title=?,client=?,client_id=?,priority=?,due=?,"column"=?,
-        originalRequest=?,aiBreakdown=?,aiMjPrompts=?,aiStory=?,scope=?,parent_id=? WHERE id=?`,
-        [title||'', client||'', client_id||null, priority||'Medium', due||'', column||'todo',
-         originalRequest||'', aiBreakdown||'', aiMjPrompts||'', aiStory||'', scope||'work', parent_id??null, id]);
-      const detail = prev?.column && prev.column !== (column||'todo')
-        ? `kanban:${prev.column}→${column||'todo'}` : 'content-updated';
-      logActivity(db, 'task', 'updated', `更新任务：${title||prev?.title||'未命名任务'}`, detail, id);
+      const sets: string[] = [];
+      const vals: unknown[] = [];
+      const strFields = ['title','client','priority','due','originalRequest','aiBreakdown','aiMjPrompts','aiStory','scope'];
+      for (const f of strFields) { if (body[f] !== undefined) { sets.push(`${f}=?`); vals.push(body[f]); } }
+      if (body.column !== undefined) { sets.push('"column"=?'); vals.push(body.column); }
+      if (body.client_id !== undefined) { sets.push('client_id=?'); vals.push(body.client_id); }
+      if (body.parent_id !== undefined) { sets.push('parent_id=?'); vals.push(body.parent_id); }
+      if (sets.length > 0) {
+        vals.push(id);
+        run(db, `UPDATE tasks SET ${sets.join(',')} WHERE id=?`, vals);
+      }
+      const detail = body.column !== undefined && prev?.column && prev.column !== body.column
+        ? `kanban:${prev.column}→${body.column}` : 'content-updated';
+      logActivity(db, 'task', 'updated', `更新任务：${body.title||prev?.title||'未命名任务'}`, detail, id);
       await saveDb();
       return ok({ success: true });
     }
@@ -809,10 +833,20 @@ export async function handleApiRequest(
   if (planMatch) {
     const id = planMatch[1];
     if (method === 'PUT') {
-      const { name, price, deliverySpeed, features, clients } = body;
-      run(db, `UPDATE plans SET name=?,price=?,deliverySpeed=?,features=?,clients=? WHERE id=?`,
-        [name||'', price||0, deliverySpeed||'', JSON.stringify(features||[]), clients||0, id]);
-      logActivity(db, 'plan', 'updated', `更新方案：${name||'未命名方案'}`, price ? `价格：$${price}/月` : '方案信息已更新', id);
+      const prev = get(db, 'SELECT name FROM plans WHERE id=?', [id]) as DbRow;
+      const sets: string[] = [];
+      const vals: unknown[] = [];
+      if (body.name !== undefined) { sets.push('name=?'); vals.push(body.name); }
+      if (body.price !== undefined) { sets.push('price=?'); vals.push(body.price); }
+      if (body.deliverySpeed !== undefined) { sets.push('deliverySpeed=?'); vals.push(body.deliverySpeed); }
+      if (body.features !== undefined) { sets.push('features=?'); vals.push(JSON.stringify(body.features)); }
+      if (body.clients !== undefined) { sets.push('clients=?'); vals.push(body.clients); }
+      if (sets.length > 0) {
+        vals.push(id);
+        run(db, `UPDATE plans SET ${sets.join(',')} WHERE id=?`, vals);
+      }
+      const displayName = body.name ?? prev?.name ?? '未命名方案';
+      logActivity(db, 'plan', 'updated', `更新方案：${displayName}`, body.price ? `价格：$${body.price}/月` : '方案信息已更新', id);
       await saveDb();
       return ok({ success: true });
     }
@@ -865,10 +899,18 @@ export async function handleApiRequest(
     if (src === 'project_fee') return err(400, '项目总费待收款，请在客户管理中编辑');
 
     if (method === 'PUT') {
-      const { type, amount, category, description, date, status, tax_mode, tax_rate, tax_amount, client_id, client_name } = body;
-      run(db, `UPDATE finance_transactions SET type=?,amount=?,category=?,description=?,date=?,status=?,tax_mode=?,tax_rate=?,tax_amount=?,client_id=?,client_name=? WHERE id=?`,
-        [type||'income', amount||0, category||'', description||'', date||'', status||'已完成', tax_mode||'none', tax_rate||0, tax_amount||0, client_id||null, client_name||'', id]);
-      logActivity(db, 'finance', 'updated', `更新交易：${description||'未命名交易'}`, '', id);
+      const sets: string[] = [];
+      const vals: unknown[] = [];
+      const strFields = ['type','category','description','date','status','tax_mode','client_name'];
+      for (const f of strFields) { if (body[f] !== undefined) { sets.push(`${f}=?`); vals.push(body[f]); } }
+      const numFields = ['amount','tax_rate','tax_amount'];
+      for (const f of numFields) { if (body[f] !== undefined) { sets.push(`${f}=?`); vals.push(body[f]); } }
+      if (body.client_id !== undefined) { sets.push('client_id=?'); vals.push(body.client_id); }
+      if (sets.length > 0) {
+        vals.push(id);
+        run(db, `UPDATE finance_transactions SET ${sets.join(',')} WHERE id=?`, vals);
+      }
+      logActivity(db, 'finance', 'updated', `更新交易：${body.description||txRow?.description||'未命名交易'}`, '', id);
       await saveDb();
       return ok({ success: true });
     }

@@ -3,6 +3,28 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.13.1] - 2026-03-31
+
+### Fixed
+- **Offline api.ts — 6 PUT endpoints full overwrite → partial update** (CRITICAL data loss prevention)
+  - Tasks PUT: dragging column offline no longer blanks title, AI fields, scope
+  - Leads PUT: moving stage offline no longer blanks aiDraft, needs, website
+  - Clients PUT: editing one field offline no longer resets all 20 fields
+  - Finance PUT: editing amount offline no longer resets category, description, tax
+  - Plans PUT: editing price offline no longer blanks features array
+  - Milestones PUT: editing status offline no longer resets label, amount, dates
+- **4 remaining raw `fetch('/api/...')` calls → `api.ts` utility** (BUSINESS_RULES Rule 9)
+  - SettingsPage: 3 calls (save name, save avatar, clear avatar)
+  - AppearanceSection: 1 call (server time sync check) — also fixed `.json()` on already-parsed response
+
+### Changed
+- **BUSINESS_RULES.md** expanded from 12 → 17 rules (added Rules 13–17: frontend PUT discipline, memo interaction pattern, safe-area insets, z-index layers, weekly report filtering)
+
+### Removed
+- `.claude/COWORK-RULES.md` (unused)
+- `.claude/plans/optimization.md` (outdated — referenced Capacitor, @hello-pangea/dnd, old file paths)
+- `.claude/plans/buzzing-booping-llama-agent-*.md` (outdated animation plan — most items already implemented)
+
 ## [2.13.0] - 2026-03-31
 
 ### Fixed
