@@ -18,7 +18,7 @@ const DEFAULT_LAYOUT: WidgetLayout[] = [
   { id: "energy", enabled: true, order: 0 },
   { id: "mini-calendar", enabled: true, order: 1 },
   { id: "activity", enabled: true, order: 2 },
-  { id: "countdown", enabled: false, order: 3 },
+  { id: "countdown", enabled: true, order: 3 },
 ];
 
 export const useWidgetStore = create<WidgetState>()(
@@ -42,12 +42,18 @@ export const useWidgetStore = create<WidgetState>()(
     }),
     {
       name: "solo-ceo-widgets",
-      version: 8,
+      version: 9,
       migrate: (persisted: Record<string, unknown>, version: number) => {
         if (version < 8) {
           // v8: remove pomodoro + quick-note
           const layout = ((persisted.layout || DEFAULT_LAYOUT) as Array<{ id: string }>)
             .filter((w) => w.id !== "pomodoro" && w.id !== "quick-note" && w.id !== "learning");
+          return { ...persisted, layout };
+        }
+        if (version < 9) {
+          // v9: enable all widgets by default
+          const layout = ((persisted.layout || DEFAULT_LAYOUT) as Array<{ id: string; enabled: boolean }>)
+            .map((w) => ({ ...w, enabled: true }));
           return { ...persisted, layout };
         }
         return persisted;

@@ -3,6 +3,11 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.14.1] - 2026-04-01
+
+### Changed
+- **Widgets: all 4 enabled by default** — countdown widget now enabled on first install (migration v9 forces enable for existing users)
+
 ## [2.14.0] - 2026-04-01
 
 ### Added
