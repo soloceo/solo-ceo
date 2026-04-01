@@ -46,6 +46,12 @@ function isAuthenticated(): boolean {
   return _cachedAuthed;
 }
 
+/** Clear cached auth state on sign-out to prevent stale routing */
+export function resetCachedAuth(): void {
+  _cachedAuthed = false;
+}
+
+
 // ── Parse body from fetch args ────────────────────────────────────
 
 async function parseBody(input: RequestInfo | URL, init?: RequestInit): Promise<any> {

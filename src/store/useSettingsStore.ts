@@ -20,6 +20,7 @@ interface SettingsState {
   setOnline: (online: boolean) => void;
   setSyncStatus: (status: "idle" | "syncing") => void;
   setPendingOps: (count: number) => void;
+  resetForSignOut: () => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -45,6 +46,15 @@ export const useSettingsStore = create<SettingsState>()(
       setOnline: (online) => set({ isOnline: online }),
       setSyncStatus: (status) => set({ syncStatus: status }),
       setPendingOps: (count) => set({ pendingOps: count }),
+      /** Reset all user-specific state on sign-out */
+      resetForSignOut: () => set({
+        operatorName: '',
+        operatorAvatar: '',
+        currency: 'USD',
+        timezone: typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'America/New_York',
+        pendingOps: 0,
+        syncStatus: 'idle',
+      }),
     }),
     {
       name: "solo-ceo-settings",

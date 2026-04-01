@@ -1,0 +1,676 @@
+/* ══════════════════════════════════════════════════════════════════
+   Theme: Neo-Brutalist Lab
+   ──────────────────────────────────────────────────────────────
+   Design philosophy:
+   Every surface is deliberately raw — like a research lab prototype
+   or a hacker's dashboard. Borders are always visible and thick.
+   No blur. No transparency. No glass. Hard geometric shadows that
+   shift on press. Monospace everything. Electric lime on stark
+   black/white. Interactions feel stamped, not smooth.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ─── Scoping shorthand ─────────────────────────────────────────── */
+/* B = [data-theme="neo-brutalist"]                                  */
+/* BD = [data-theme="neo-brutalist"].dark                            */
+
+/* ══════════════════════════════════════════════════════════════════
+   1. DESIGN TOKENS — Light
+   ══════════════════════════════════════════════════════════════════ */
+
+[data-theme="neo-brutalist"] {
+
+  /* ── Backgrounds ─────────────────────────────────────────────── */
+  --color-bg-primary:      #eeeeee;
+  --color-bg-secondary:    #e0e0e0;
+  --color-bg-tertiary:     #d4d4d4;
+  --color-bg-quaternary:   #c4c4c4;
+  --color-bg-panel:        #ffffff;
+  --color-bg-translucent:  rgba(0,0,0,0.05);
+
+  /* ── Neo-Brutalist exclusive tokens ──────────────────────────── */
+  --nb-border-width:       2px;
+  --nb-border-color:       #0a0a0a;
+  --nb-shadow-color:       #0a0a0a;
+  --nb-highlight:          #c8ff00;
+  --nb-highlight-dim:      #a8d600;
+  --nb-secondary-pop:      #ff3cac;      /* hot pink accent */
+  --nb-tertiary-pop:       #00e5ff;      /* cyan accent */
+
+  /* ── Lines / Dividers ────────────────────────────────────────── */
+  --color-line-secondary:  #0a0a0a;
+  --color-line-tertiary:   #c4c4c4;
+
+  /* ── Borders ─────────────────────────────────────────────────── */
+  --color-border-primary:             #0a0a0a;
+  --color-border-secondary:           #0a0a0a;
+  --color-border-translucent:         rgba(0,0,0,0.30);
+
+  /* ── Text ────────────────────────────────────────────────────── */
+  --color-text-primary:    #0a0a0a;
+  --color-text-secondary:  #2a2a2a;
+  --color-text-tertiary:   #555555;
+  --color-text-quaternary: #777777;
+
+  /* ── Accent ──────────────────────────────────────────────────── */
+  --color-accent:          #c8ff00;
+  --color-accent-hover:    #b3e600;
+  --color-accent-tint:     rgba(200,255,0,0.15);
+  --color-brand-text:      #0a0a0a;
+
+  /* ── Semantic ────────────────────────────────────────────────── */
+  --color-blue:            #0055ff;
+  --color-green:           #00cc44;
+  --color-orange:          #ff6600;
+
+  --color-success:         #00cc44;
+  --color-success-light:   #d6ffe6;
+  --color-warning:         #ffcc00;
+  --color-warning-light:   #fff8d6;
+  --color-danger:          #ff0033;
+  --color-danger-light:    #ffd6dd;
+  --color-danger-tint:     #ffd6dd;
+  --color-info:            #0055ff;
+
+  --color-text-on-color:   #0a0a0a;
+
+  /* ── Header ──────────────────────────────────────────────────── */
+  --header-bg:             #eeeeee;
+  --header-border:         #0a0a0a;
+
+  /* ── Overlay ─────────────────────────────────────────────────── */
+  --color-overlay-primary: rgba(238,238,238,0.92);
+
+  /* ── Glass → Solid ───────────────────────────────────────────── */
+  --glass-bg:              #ffffff;
+  --glass-bg-sidebar:      #e8e8e8;
+  --glass-bg-content:      #ffffff;
+  --glass-border:          #0a0a0a;
+  --glass-shadow:          4px 4px 0px var(--nb-shadow-color);
+
+  /* ── Shadows — hard offset ───────────────────────────────────── */
+  --shadow-tiny:           1px 1px 0px var(--nb-shadow-color);
+  --shadow-low:            3px 3px 0px var(--nb-shadow-color);
+  --shadow-medium:         5px 5px 0px var(--nb-shadow-color);
+  --shadow-high:           8px 8px 0px var(--nb-shadow-color);
+
+  /* ── Radius — zero ───────────────────────────────────────────── */
+  --radius-2:  0px;  --radius-4:  0px;  --radius-6:  0px;
+  --radius-8:  0px;  --radius-12: 0px;  --radius-16: 0px;
+  --radius-20: 0px;  --radius-24: 0px;  --radius-28: 0px;
+  --radius-pill: 0px;
+  --radius-rounded: 0px;
+
+  /* ── Typography ──────────────────────────────────────────────── */
+  --font-regular:
+    'SF Mono', 'JetBrains Mono', 'Fira Code',
+    'PingFang SC', 'Microsoft YaHei',
+    ui-monospace, monospace;
+
+  --font-weight-normal:    500;
+  --font-weight-medium:    600;
+  --font-weight-semibold:  700;
+  --font-weight-bold:      800;
+
+  /* ── Transitions — snappy / mechanical ───────────────────────── */
+  --speed-quick:           0.08s;
+  --ease-out-quad:         cubic-bezier(0, 0, 0.2, 1);
+  --transition-fast:       0.08s cubic-bezier(0, 0, 0.2, 1);
+  --ease-ios:              cubic-bezier(0, 0, 0.2, 1);
+  --ease-ios-bounce:       cubic-bezier(0, 0, 0.2, 1);
+
+  /* ── Focus ───────────────────────────────────────────────────── */
+  --focus-ring-width:      3px;
+
+  /* ── Grid ────────────────────────────────────────────────────── */
+  --grid-line-color:       #c4c4c4;
+  --grid-size:             20px;
+
+  color-scheme: light;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   2. DESIGN TOKENS — Dark
+   ══════════════════════════════════════════════════════════════════ */
+
+[data-theme="neo-brutalist"].dark {
+  --color-bg-primary:      #0a0a0a;
+  --color-bg-secondary:    #111111;
+  --color-bg-tertiary:     #1a1a1a;
+  --color-bg-quaternary:   #252525;
+  --color-bg-panel:        #111111;
+  --color-bg-translucent:  rgba(255,255,255,0.06);
+
+  --nb-border-color:       #d0d0d0;
+  --nb-shadow-color:       #c8ff00;        /* lime glow shadows in dark */
+  --nb-highlight:          #c8ff00;
+  --nb-highlight-dim:      #a0cc00;
+  --nb-secondary-pop:      #ff3cac;
+  --nb-tertiary-pop:       #00e5ff;
+
+  --color-line-secondary:  #d0d0d0;
+  --color-line-tertiary:   #2a2a2a;
+
+  --color-border-primary:             #d0d0d0;
+  --color-border-secondary:           #d0d0d0;
+  --color-border-translucent:         rgba(255,255,255,0.20);
+
+  --color-text-primary:    #f0f0f0;
+  --color-text-secondary:  #c8c8c8;
+  --color-text-tertiary:   #808080;
+  --color-text-quaternary: #5a5a5a;
+
+  --color-accent:          #c8ff00;
+  --color-accent-hover:    #d9ff44;
+  --color-accent-tint:     rgba(200,255,0,0.12);
+
+  --color-text-on-color:   #0a0a0a;
+  --color-brand-text:      #0a0a0a;
+
+  --color-success:         #00ff55;
+  --color-success-light:   #001a0b;
+  --color-warning:         #ffdd00;
+  --color-warning-light:   #1a1700;
+  --color-danger:          #ff3344;
+  --color-danger-light:    #1a0508;
+  --color-danger-tint:     #1a0508;
+  --color-info:            #4499ff;
+
+  --header-bg:             #0a0a0a;
+  --header-border:         #d0d0d0;
+
+  --color-overlay-primary: rgba(0,0,0,0.92);
+
+  --glass-bg:              #111111;
+  --glass-bg-sidebar:      #0a0a0a;
+  --glass-bg-content:      #111111;
+  --glass-border:          #d0d0d0;
+  --glass-shadow:          4px 4px 0px var(--nb-shadow-color);
+
+  /* Dark shadows: lime glow for that "lab terminal" feel */
+  --shadow-tiny:           1px 1px 0px rgba(200,255,0,0.20);
+  --shadow-low:            3px 3px 0px rgba(200,255,0,0.15);
+  --shadow-medium:         5px 5px 0px rgba(200,255,0,0.12);
+  --shadow-high:           8px 8px 0px rgba(200,255,0,0.10);
+
+  --grid-line-color:       #1a1a1a;
+  --grid-size:             20px;
+
+  color-scheme: dark;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   3. GLOBAL STRUCTURAL OVERRIDES
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Kill all backdrop-filter (no glass in brutalism) ──────────── */
+[data-theme="neo-brutalist"] .glass {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: var(--glass-bg-sidebar);
+  border: var(--nb-border-width) solid var(--nb-border-color);
+}
+
+/* ── Sidebar: bold right border ────────────────────────────────── */
+[data-theme="neo-brutalist"] .sidebar-glass {
+  border: var(--nb-border-width) solid var(--nb-border-color) !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  height: 100% !important;
+}
+
+/* ── Header: bottom border stamp ───────────────────────────────── */
+[data-theme="neo-brutalist"] header,
+[data-theme="neo-brutalist"] [class*="header"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   4. CARDS — the core brutalist building block
+   ══════════════════════════════════════════════════════════════════ */
+
+[data-theme="neo-brutalist"] .card {
+  border: var(--nb-border-width) solid var(--nb-border-color);
+  box-shadow: var(--shadow-low);
+  background: var(--color-bg-panel);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+[data-theme="neo-brutalist"] .card:hover {
+  box-shadow: var(--shadow-medium);
+  transform: translate(-1px, -1px);
+}
+
+[data-theme="neo-brutalist"] .card-elevated {
+  border: var(--nb-border-width) solid var(--nb-border-color);
+  box-shadow: var(--shadow-medium);
+}
+
+[data-theme="neo-brutalist"] .card-interactive {
+  border: var(--nb-border-width) solid var(--nb-border-color);
+  box-shadow: var(--shadow-low);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+@media (hover: hover) {
+  [data-theme="neo-brutalist"] .card-interactive:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: var(--shadow-high);
+  }
+}
+[data-theme="neo-brutalist"] .card-interactive:active {
+  transform: translate(3px, 3px);
+  box-shadow: none;
+  transition: transform 50ms ease;
+}
+
+/* ── Stat cards ────────────────────────────────────────────────── */
+[data-theme="neo-brutalist"] .stat-card {
+  border: var(--nb-border-width) solid var(--nb-border-color);
+  box-shadow: var(--shadow-low);
+  background: var(--color-bg-panel);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   5. BUTTONS — stamped, mechanical interaction
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Primary: bold shadow, press = stamp down */
+[data-theme="neo-brutalist"] .btn-primary {
+  border: var(--nb-border-width) solid var(--nb-border-color);
+  box-shadow: var(--shadow-low);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  transition: transform 0.06s ease, box-shadow 0.06s ease;
+}
+[data-theme="neo-brutalist"] .btn-primary:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-medium);
+}
+[data-theme="neo-brutalist"] .btn-primary:active {
+  transform: translate(3px, 3px) !important;
+  box-shadow: none !important;
+}
+
+/* Secondary + Ghost: bordered, mechanical */
+[data-theme="neo-brutalist"] .btn-secondary {
+  border: var(--nb-border-width) solid var(--nb-border-color);
+  box-shadow: 2px 2px 0px var(--nb-shadow-color);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  transition: transform 0.06s ease, box-shadow 0.06s ease;
+}
+[data-theme="neo-brutalist"] .btn-secondary:active {
+  transform: translate(2px, 2px) !important;
+  box-shadow: none !important;
+}
+
+[data-theme="neo-brutalist"] .btn-ghost {
+  border: var(--nb-border-width) solid transparent;
+  transition: border-color 0.06s ease, background 0.06s ease;
+}
+[data-theme="neo-brutalist"] .btn-ghost:hover {
+  border-color: var(--nb-border-color);
+  background: var(--color-bg-tertiary);
+}
+[data-theme="neo-brutalist"] .btn-ghost:active {
+  transform: translate(1px, 1px) !important;
+}
+
+/* Icon buttons: squared, border on hover */
+[data-theme="neo-brutalist"] .btn-icon,
+[data-theme="neo-brutalist"] .btn-icon-sm {
+  border: var(--nb-border-width) solid transparent;
+  transition: border-color 0.06s ease, background 0.06s ease;
+}
+[data-theme="neo-brutalist"] .btn-icon:hover,
+[data-theme="neo-brutalist"] .btn-icon-sm:hover {
+  border-color: var(--nb-border-color);
+  background: var(--color-bg-quaternary);
+}
+[data-theme="neo-brutalist"] .btn-icon:active,
+[data-theme="neo-brutalist"] .btn-icon-sm:active {
+  transform: translate(1px, 1px) scale(1) !important;
+}
+
+/* Focus visible: thick offset outline */
+[data-theme="neo-brutalist"] *:focus-visible {
+  outline: 3px solid var(--nb-highlight) !important;
+  outline-offset: 1px !important;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   6. INPUTS — raw, bordered, industrial
+   ══════════════════════════════════════════════════════════════════ */
+
+[data-theme="neo-brutalist"] .input-base,
+[data-theme="neo-brutalist"] select.input-base,
+[data-theme="neo-brutalist"] textarea.input-base {
+  border: var(--nb-border-width) solid var(--nb-border-color);
+  background: var(--color-bg-panel);
+  box-shadow: inset 2px 2px 0px rgba(0,0,0,0.04);
+}
+[data-theme="neo-brutalist"] .input-base:focus {
+  border-color: var(--nb-highlight);
+  box-shadow: 0 0 0 3px var(--color-accent-tint), inset 2px 2px 0px rgba(0,0,0,0.04);
+}
+[data-theme="neo-brutalist"].dark .input-base:focus {
+  box-shadow: 0 0 0 3px var(--color-accent-tint), inset 2px 2px 0px rgba(255,255,255,0.03);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   7. SEGMENT SWITCHER — tabbed, no pills
+   ══════════════════════════════════════════════════════════════════ */
+
+[data-theme="neo-brutalist"] .segment-switcher {
+  border: var(--nb-border-width) solid var(--nb-border-color);
+  background: var(--color-bg-secondary);
+  padding: 0;
+  gap: 0;
+}
+[data-theme="neo-brutalist"] .segment-switcher > button {
+  border-right: var(--nb-border-width) solid var(--nb-border-color);
+  border-radius: 0 !important;
+  padding: 6px 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+[data-theme="neo-brutalist"] .segment-switcher > button:last-child {
+  border-right: none;
+}
+[data-theme="neo-brutalist"] .segment-switcher > button[data-active="true"],
+[data-theme="neo-brutalist"] .segment-switcher > button.active {
+  background: var(--nb-highlight);
+  color: #0a0a0a;
+  box-shadow: none;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   8. BADGES — stamp / label aesthetic
+   ══════════════════════════════════════════════════════════════════ */
+
+[data-theme="neo-brutalist"] .badge {
+  border: var(--nb-border-width) solid var(--nb-border-color);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  box-shadow: 1px 1px 0px var(--nb-shadow-color);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   9. SECTION LABELS — stencil style
+   ══════════════════════════════════════════════════════════════════ */
+
+[data-theme="neo-brutalist"] .section-label {
+  font-weight: 800;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  border-bottom: var(--nb-border-width) solid var(--nb-border-color);
+  padding-bottom: 4px;
+  display: inline-block;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   10. BOTTOM NAVIGATION — solid, no glass
+   ══════════════════════════════════════════════════════════════════ */
+
+[data-theme="neo-brutalist"] nav.glass,
+[data-theme="neo-brutalist"] nav .glass {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: var(--color-bg-primary) !important;
+  border-top: var(--nb-border-width) solid var(--nb-border-color) !important;
+  box-shadow: none !important;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   11. MOBILE SHEET / MODAL — brutalist dialog
+   ══════════════════════════════════════════════════════════════════ */
+
+[data-theme="neo-brutalist"] .mobile-sheet-content {
+  border: var(--nb-border-width) solid var(--nb-border-color);
+  box-shadow: var(--shadow-high);
+  border-radius: 0 !important;
+}
+
+/* Modals rendered via Framer Motion inline styles — override via data-theme */
+[data-theme="neo-brutalist"] [role="dialog"] {
+  border: var(--nb-border-width) solid var(--nb-border-color) !important;
+  box-shadow: var(--shadow-high) !important;
+  border-radius: 0 !important;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   12. SKELETON LOADING — block flicker instead of smooth shimmer
+   ══════════════════════════════════════════════════════════════════ */
+
+[data-theme="neo-brutalist"] .skeleton-bone {
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--nb-border-color);
+  animation: nb-blink 0.8s step-end infinite;
+}
+
+@keyframes nb-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   13. KANBAN — column headers, cards, empty states
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Kanban card inner content — ensure thick border + shadow */
+[data-theme="neo-brutalist"] [draggable="true"] {
+  border: var(--nb-border-width) solid var(--nb-border-color) !important;
+  box-shadow: var(--shadow-low);
+  transition: transform 0.06s ease, box-shadow 0.06s ease;
+}
+[data-theme="neo-brutalist"] [draggable="true"]:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-medium);
+}
+[data-theme="neo-brutalist"] [draggable="true"]:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   14. TABLE ROWS — hard dividers
+   ══════════════════════════════════════════════════════════════════ */
+
+[data-theme="neo-brutalist"] table {
+  border: var(--nb-border-width) solid var(--nb-border-color);
+  border-collapse: collapse;
+}
+[data-theme="neo-brutalist"] th {
+  border-bottom: 3px solid var(--nb-border-color);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+}
+[data-theme="neo-brutalist"] td {
+  border-bottom: 1px solid var(--nb-border-color);
+}
+[data-theme="neo-brutalist"] tr:hover td {
+  background: var(--color-accent-tint);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   15. AVATAR — squared instead of circular
+   ══════════════════════════════════════════════════════════════════ */
+
+[data-theme="neo-brutalist"] [class*="rounded-full"] {
+  border-radius: 0 !important;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   16. SCROLLBAR (for browsers that show them)
+   ══════════════════════════════════════════════════════════════════ */
+
+[data-theme="neo-brutalist"] ::-webkit-scrollbar {
+  display: block;
+  width: 8px;
+  height: 8px;
+}
+[data-theme="neo-brutalist"] ::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+  border-left: var(--nb-border-width) solid var(--nb-border-color);
+}
+[data-theme="neo-brutalist"] ::-webkit-scrollbar-thumb {
+  background: var(--nb-border-color);
+}
+[data-theme="neo-brutalist"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--nb-highlight);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   17. CHARTS — Recharts grid emphasis
+   ══════════════════════════════════════════════════════════════════ */
+
+[data-theme="neo-brutalist"] .recharts-cartesian-grid-horizontal line,
+[data-theme="neo-brutalist"] .recharts-cartesian-grid-vertical line {
+  stroke: var(--nb-border-color);
+  stroke-opacity: 0.3;
+  stroke-dasharray: 4 2;
+}
+[data-theme="neo-brutalist"] .recharts-cartesian-axis-line {
+  stroke: var(--nb-border-color);
+  stroke-width: 2;
+}
+[data-theme="neo-brutalist"] .recharts-cartesian-axis-tick-line {
+  stroke: var(--nb-border-color);
+  stroke-width: 2;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   18. ANIMATIONS — override smooth → mechanical
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Page enter: no scale, just hard appear */
+[data-theme="neo-brutalist"] .page-enter {
+  animation: nb-page-enter 150ms step-end both;
+}
+@keyframes nb-page-enter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Press feedback: translate instead of scale */
+[data-theme="neo-brutalist"] .press-feedback:active {
+  transform: translate(2px, 2px) !important;
+  transition: transform 40ms ease !important;
+}
+
+/* anim-appear: snap in, no slide */
+[data-theme="neo-brutalist"] .anim-appear {
+  transition: opacity 0.1s step-end !important;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   19. WIDGET CARDS — lab instrument panels
+   ══════════════════════════════════════════════════════════════════ */
+
+[data-theme="neo-brutalist"] .widget-card {
+  border: var(--nb-border-width) solid var(--nb-border-color);
+  box-shadow: var(--shadow-low);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   20. POPOVER — brutalist dropdown
+   ══════════════════════════════════════════════════════════════════ */
+
+[data-theme="neo-brutalist"] [role="listbox"],
+[data-theme="neo-brutalist"] [role="menu"] {
+  border: var(--nb-border-width) solid var(--nb-border-color) !important;
+  box-shadow: var(--shadow-medium) !important;
+  border-radius: 0 !important;
+}
+
+[data-theme="neo-brutalist"] [role="option"]:hover,
+[data-theme="neo-brutalist"] [role="menuitem"]:hover {
+  background: var(--color-accent-tint) !important;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   21. TOAST — alert strip
+   ══════════════════════════════════════════════════════════════════ */
+
+[data-theme="neo-brutalist"] [role="status"] {
+  border: var(--nb-border-width) solid var(--nb-border-color) !important;
+  box-shadow: var(--shadow-medium) !important;
+  border-radius: 0 !important;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   22. DIVIDERS — emphasize divide-y patterns
+   ══════════════════════════════════════════════════════════════════ */
+
+[data-theme="neo-brutalist"] .divide-y > * + * {
+  border-top-width: var(--nb-border-width) !important;
+  border-color: var(--nb-border-color) !important;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   23. FAB (Quick Create) — big stamped button
+   ══════════════════════════════════════════════════════════════════ */
+
+/* The FAB is typically a rounded-full button at bottom-right */
+[data-theme="neo-brutalist"] button[class*="rounded-full"][class*="fixed"],
+[data-theme="neo-brutalist"] button[class*="rounded-full"][class*="absolute"] {
+  border-radius: 0 !important;
+  border: var(--nb-border-width) solid var(--nb-border-color);
+  box-shadow: var(--shadow-medium);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   24. PROGRESS BARS — segmented / stepped
+   ══════════════════════════════════════════════════════════════════ */
+
+[data-theme="neo-brutalist"] progress,
+[data-theme="neo-brutalist"] [role="progressbar"] {
+  border: var(--nb-border-width) solid var(--nb-border-color);
+  border-radius: 0 !important;
+  background: var(--color-bg-secondary);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   25. SELECTION — lime highlight
+   ══════════════════════════════════════════════════════════════════ */
+
+[data-theme="neo-brutalist"] ::selection {
+  background: var(--nb-highlight);
+  color: #0a0a0a;
+}
+[data-theme="neo-brutalist"].dark ::selection {
+  background: var(--nb-highlight);
+  color: #0a0a0a;
+}

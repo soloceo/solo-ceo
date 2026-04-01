@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Moon, Sun, Monitor, Globe, DollarSign, Clock, RefreshCw, Check, AlertCircle, ChevronDown } from 'lucide-react';
+import { Moon, Sun, Monitor, Globe, DollarSign, Clock, RefreshCw, Check, AlertCircle, ChevronDown, Palette } from 'lucide-react';
 import { useT, type Lang } from '../../i18n/context';
-import { useUIStore } from '../../store/useUIStore';
+import { useUIStore, VISUAL_THEMES, type VisualTheme } from '../../store/useUIStore';
 import { api } from '../../lib/api';
 
 type ThemeMode = 'light' | 'dark' | 'auto';
@@ -14,6 +14,8 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 interface AppearanceSectionProps {
   themeMode: ThemeMode;
   setThemeMode: (mode: ThemeMode) => void;
+  visualTheme: VisualTheme;
+  setVisualTheme: (theme: VisualTheme) => void;
   lang: Lang;
   setLang: (lang: Lang) => void;
   currency: string;
@@ -29,7 +31,13 @@ const themeModes: { value: ThemeMode; icon: typeof Sun; labelKey: string }[] = [
 ];
 
 
-export default function AppearanceSection({ themeMode, setThemeMode, lang, setLang, currency, setCurrency, timezone, setTimezone }: AppearanceSectionProps) {
+/** Mini preview swatch per visual theme */
+const THEME_PREVIEWS: Record<VisualTheme, { bg: string; accent: string; border: string; radius: string; shadow: string }> = {
+  default:          { bg: '#faf9f5', accent: '#f5c518', border: '#e8e5e1', radius: '12px', shadow: 'none' },
+  "neo-brutalist":  { bg: '#eeeeee', accent: '#c8ff00', border: '#0a0a0a', radius: '0px', shadow: '3px 3px 0px #0a0a0a' },
+};
+
+export default function AppearanceSection({ themeMode, setThemeMode, visualTheme, setVisualTheme, lang, setLang, currency, setCurrency, timezone, setTimezone }: AppearanceSectionProps) {
   const { t } = useT();
 
   // ── Live clock ──
@@ -77,6 +85,74 @@ export default function AppearanceSection({ themeMode, setThemeMode, lang, setLa
   return (
     <section>
       <SectionLabel>{t("settings.appearance")}</SectionLabel>
+      {/* ── Visual Theme Picker ── */}
+      <div className="mb-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Palette size={16} style={{ color: 'var(--color-accent)' }} />
+          <span className="text-[13px]" style={{ color: 'var(--color-text-secondary)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>{t("settings.visualTheme")}</span>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {VISUAL_THEMES.map(({ id }) => {
+            const preview = THEME_PREVIEWS[id];
+            const active = visualTheme === id;
+            const descKey = `settings.theme${id === 'default' ? 'Default' : 'NeoBrutalist'}Desc`;
+            return (
+              <button
+                key={id}
+                onClick={() => setVisualTheme(id)}
+                className="cursor-pointer text-left transition-all"
+                style={{
+                  padding: '12px',
+                  background: 'var(--color-bg-panel)',
+                  border: active ? '2px solid var(--color-accent)' : '1px solid var(--color-border-primary)',
+                  borderRadius: 'var(--radius-12)',
+                  boxShadow: active ? '0 0 0 2px color-mix(in srgb, var(--color-accent) 25%, transparent)' : 'var(--shadow-tiny)',
+                }}
+              >
+                {/* Mini swatch preview */}
+                <div
+                  style={{
+                    width: '100%',
+                    height: '56px',
+                    background: preview.bg,
+                    border: `2px solid ${preview.border}`,
+                    borderRadius: preview.radius,
+                    marginBottom: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    padding: '8px',
+                    boxShadow: preview.shadow,
+                  }}
+                >
+                  {/* Mini card */}
+                  <div style={{ width: '40%', height: '28px', background: '#fff', borderRadius: preview.radius, border: `2px solid ${preview.border}`, boxShadow: preview.shadow !== 'none' ? `2px 2px 0px ${preview.border}` : 'none' }} />
+                  {/* Mini button */}
+                  <div style={{ width: '30%', height: '20px', background: preview.accent, borderRadius: preview.radius, border: `2px solid ${preview.border}`, boxShadow: preview.shadow !== 'none' ? `2px 2px 0px ${preview.border}` : 'none' }} />
+                  {/* Mini line */}
+                  <div style={{ width: '20%', height: '4px', background: preview.border, borderRadius: preview.radius, opacity: 0.3 }} />
+                </div>
+                <div className="text-[14px]" style={{ color: 'var(--color-text-primary)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>
+                  {t(`settings.theme${id === 'default' ? 'Default' : 'NeoBrutalist'}`)}
+                </div>
+                <div className="text-[12px] mt-0.5" style={{ color: 'var(--color-text-tertiary)' }}>
+                  {t(descKey)}
+                </div>
+                {active && (
+                  <div className="flex items-center gap-1 mt-1.5">
+                    <Check size={12} style={{ color: 'var(--color-accent)' }} />
+                    <span className="text-[11px]" style={{ color: 'var(--color-accent)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>
+                      {lang === 'zh' ? '当前' : 'Active'}
+                    </span>
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="card overflow-hidden divide-y divide-[var(--color-line-secondary)]">
 
         {/* Theme mode — 3-way segmented control */}

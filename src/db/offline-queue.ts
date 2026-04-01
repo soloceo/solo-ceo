@@ -96,6 +96,22 @@ async function updateOp(op: QueuedOp): Promise<void> {
   });
 }
 
+// ── Clear queue (used on sign-out to prevent cross-user replay) ──
+
+export async function clearQueue(): Promise<void> {
+  try {
+    const db = await openQueueDb();
+    await new Promise<void>((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).clear();
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    });
+  } catch {
+    // Best-effort: if IndexedDB fails, queue is in-memory only
+  }
+}
+
 // ── Event helpers ────────────────────────────────────────────────
 
 function dispatchQueueWarning(message: string) {

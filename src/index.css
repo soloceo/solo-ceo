@@ -3,3 +3,6 @@
 @import "./styles/base.css";
 @import "./styles/components.css";
 @import "./styles/animations.css";
+
+/* ── Visual Themes ── */
+@import "./styles/themes/neo-brutalist.css";

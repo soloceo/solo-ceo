@@ -135,6 +135,11 @@ function setupAuthListener() {
 
 setupAuthListener();
 
+/** Clear cached userId on sign-out to prevent cross-user contamination */
+export function resetCachedUserId(): void {
+  _cachedUserId = null;
+}
+
 function normalizePlanTier(t: string): string {
   if (!t) return '';
   if (['Basic', 'basic'].includes(t)) return '基础版';

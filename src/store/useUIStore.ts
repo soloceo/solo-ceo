@@ -4,6 +4,18 @@ import { persist } from "zustand/middleware";
 export type TabId = "home" | "work" | "leads" | "clients" | "finance" | "settings";
 type ViewMode = "vertical" | "horizontal";
 type ThemeMode = "light" | "dark" | "auto";
+export type VisualTheme = "default" | "neo-brutalist";
+
+export const VISUAL_THEMES: { id: VisualTheme; labelKey: string }[] = [
+  { id: "default", labelKey: "settings.themeDefault" },
+  { id: "neo-brutalist", labelKey: "settings.themeNeoBrutalist" },
+];
+
+/** Meta theme-color per visual theme (light / dark) */
+const META_THEME_COLORS: Record<VisualTheme, { light: string; dark: string }> = {
+  default:          { light: "#faf9f5", dark: "#1f1e1d" },
+  "neo-brutalist":  { light: "#eeeeee", dark: "#0a0a0a" },
+};
 
 /** Apply the .dark class to <html> and update meta theme-color for iOS status bar */
 function applyTheme(mode: ThemeMode) {
@@ -13,13 +25,23 @@ function applyTheme(mode: ThemeMode) {
   document.documentElement.classList.toggle("dark", isDark);
 
   // Force Safari to re-read theme-color by removing and re-inserting the meta tag.
-  // Simply updating .content is not reliably picked up without a page refresh.
   const old = document.querySelector('meta[name="theme-color"]');
   if (old) old.remove();
   const meta = document.createElement("meta");
   meta.name = "theme-color";
-  meta.content = isDark ? "#1f1e1d" : "#faf9f5";
+  const vt = (document.documentElement.getAttribute("data-theme") as VisualTheme) || "default";
+  const colors = META_THEME_COLORS[vt] || META_THEME_COLORS.default;
+  meta.content = isDark ? colors.dark : colors.light;
   document.head.appendChild(meta);
+}
+
+/** Apply the visual theme via data-theme attribute on <html> */
+function applyVisualTheme(theme: VisualTheme) {
+  if (theme === "default") {
+    document.documentElement.removeAttribute("data-theme");
+  } else {
+    document.documentElement.setAttribute("data-theme", theme);
+  }
 }
 
 interface UIState {
@@ -28,6 +50,7 @@ interface UIState {
   /** @deprecated — use themeMode instead. Kept for migration. */
   darkMode: boolean;
   themeMode: ThemeMode;
+  visualTheme: VisualTheme;
   commandPaletteOpen: boolean;
   hideMobileNav: boolean;
   tasksViewMode: ViewMode;
@@ -44,6 +67,7 @@ interface UIState {
   /** @deprecated — use setThemeMode instead */
   toggleDarkMode: () => void;
   setThemeMode: (mode: ThemeMode) => void;
+  setVisualTheme: (theme: VisualTheme) => void;
   setCommandPaletteOpen: (open: boolean) => void;
   setHideMobileNav: (hidden: boolean) => void;
   setTasksViewMode: (mode: ViewMode) => void;
@@ -66,6 +90,7 @@ export const useUIStore = create<UIState>()(
       sidebarExpanded: false,
       darkMode: false,
       themeMode: "auto" as ThemeMode,
+      visualTheme: "default" as VisualTheme,
       commandPaletteOpen: false,
       hideMobileNav: false,
       tasksViewMode: "vertical",
@@ -91,6 +116,13 @@ export const useUIStore = create<UIState>()(
         set({ themeMode: mode, darkMode: mode === "dark" });
         // Re-register or remove system listener
         setupSystemListener(mode);
+      },
+
+      setVisualTheme: (theme) => {
+        applyVisualTheme(theme);
+        set({ visualTheme: theme });
+        // Re-apply dark/light to update meta theme-color for new visual theme
+        applyTheme(get().themeMode);
       },
 
       setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
@@ -123,6 +155,7 @@ export const useUIStore = create<UIState>()(
       partialize: (state) => ({
         darkMode: state.darkMode,
         themeMode: state.themeMode,
+        visualTheme: state.visualTheme,
         sidebarExpanded: state.sidebarExpanded,
         tasksViewMode: state.tasksViewMode,
         salesViewMode: state.salesViewMode,
@@ -137,6 +170,10 @@ export const useUIStore = create<UIState>()(
             mode = rehydratedState.darkMode ? "dark" : "auto";
             rehydratedState.themeMode = mode;
           }
+
+          // Apply visual theme first (so meta theme-color reads correct data-theme)
+          const vt: VisualTheme = rehydratedState.visualTheme || "default";
+          applyVisualTheme(vt);
 
           applyTheme(mode);
           setupSystemListener(mode);

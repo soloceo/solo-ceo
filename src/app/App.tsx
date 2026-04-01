@@ -202,7 +202,8 @@ function App() {
     if (!user) return;
     api.get<Record<string, string>>("/api/settings")
       .then((s) => {
-        if (s.OPERATOR_NAME) setOperator(s.OPERATOR_NAME, s.OPERATOR_AVATAR || undefined);
+        // Always sync from server — use empty string if not set (prevents stale data from previous user)
+        setOperator(s.OPERATOR_NAME || '', s.OPERATOR_AVATAR || '');
         if (s.CURRENCY) useSettingsStore.getState().setCurrency(s.CURRENCY);
         if (s.TIMEZONE) useSettingsStore.getState().setTimezone(s.TIMEZONE);
         if (s.protocol_streak) setProtocolStreakRaw(s.protocol_streak);

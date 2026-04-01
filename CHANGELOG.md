@@ -3,6 +3,20 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.16.0] - 2026-04-01
+
+### Added
+- **Switchable theme system** — new visual theme architecture via CSS custom properties + `data-theme` attribute, orthogonal to light/dark mode
+- **Neo-Brutalist theme** — complete theme with zero border-radius, 2px hard borders, offset shadows, lime accent (#c8ff00), hot pink/cyan pops, mechanical animations, squared avatars, monospace section labels
+- **Theme picker in Settings** — visual grid with live swatch previews showing bg/accent/border/radius/shadow per theme
+
+### Fixed
+- **Critical: sign-out data isolation** — sign-out now performs full 5-step cleanup: module caches → Supabase session → Zustand stores → offline queue + sql.js database → localStorage widget keys
+- **Cross-user offline queue replay** — offline write queue is now cleared on sign-out, preventing User A's queued operations from replaying under User B's account
+- **Cross-user local database leak** — sql.js in-memory database and IndexedDB persistence are now cleared on sign-out
+- **Module-level cache race conditions** — `_cachedUserId` and `_cachedAuthed` are now explicitly reset before sign-out, eliminating timing windows where stale user IDs could route requests incorrectly
+- **Avatar persisting across accounts** — all user-specific localStorage keys (countdowns, energy, focus-skipped) are now purged on sign-out; settings store fully reset (name, avatar, currency, timezone)
+
 ## [2.15.0] - 2026-04-01
 
 ### Added

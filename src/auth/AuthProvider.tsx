@@ -1,6 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../db/supabase-client';
+import { useSettingsStore } from '../store/useSettingsStore';
+import { invalidateSettingsCache } from '../hooks/useAppSettings';
+import { clearQueue } from '../db/offline-queue';
+import { clearLocalDb } from '../db/index';
+import { resetCachedUserId } from '../db/supabase-api';
+import { resetCachedAuth } from '../db/supabase-interceptor';
 
 interface AuthCtx {
   user: User | null;
@@ -133,7 +139,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    // 1. Immediately clear module-level caches to prevent stale routing
+    resetCachedUserId();
+    resetCachedAuth();
+
+    // 2. Sign out from Supabase (revokes session)
     await supabase.auth.signOut();
+
+    // 3. Clear all user-specific persisted state
+    useSettingsStore.getState().resetForSignOut();
+    invalidateSettingsCache();
+
+    // 4. Clear offline data (prevents cross-user data leaks)
+    clearQueue().catch(() => {});
+    clearLocalDb().catch(() => {});
+
+    // 5. Clear user-specific localStorage keys
+    localStorage.removeItem('solo-ceo-countdowns');
+    localStorage.removeItem('solo-ceo-countdown');
+    localStorage.removeItem('solo-ceo-energy-v3');
+    // Clear today-focus-skipped keys (date-based, clear all matching)
+    try {
+      const keys = Object.keys(localStorage);
+      for (const k of keys) {
+        if (k.startsWith('today-focus-skipped-')) localStorage.removeItem(k);
+      }
+    } catch { /* localStorage access may fail in some contexts */ }
   }, []);
 
   const enterOfflineMode = useCallback(() => {

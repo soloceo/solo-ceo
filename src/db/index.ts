@@ -62,6 +62,29 @@ export async function getDb(): Promise<Database> {
   return _initPromise;
 }
 
+// ── Clear local DB (used on sign-out to prevent cross-user data leaks) ─────
+export async function clearLocalDb(): Promise<void> {
+  // Close in-memory db
+  if (_db) {
+    try { _db.close(); } catch { /* already closed */ }
+    _db = null;
+  }
+  _initPromise = null;
+
+  // Delete IndexedDB store
+  try {
+    const idb = await openIdb();
+    await new Promise<void>((resolve) => {
+      const tx = idb.transaction('data', 'readwrite');
+      tx.objectStore('data').clear();
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    });
+  } catch {
+    // Best-effort
+  }
+}
+
 // ── Query helpers (mirror better-sqlite3 API) ──────────────────────────────
 export function all(
   db: Database,
