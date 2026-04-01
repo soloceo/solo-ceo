@@ -3,6 +3,11 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.17.1] - 2026-04-01
+
+### Fixed
+- **Neo-brutalist input focus border too thick** — replaced heavy black 2px border + 2px ring focus state with golden yellow (#f5c518) border + 1px ring; affects login page and all text inputs
+
 ## [2.17.0] - 2026-04-01
 
 ### Changed

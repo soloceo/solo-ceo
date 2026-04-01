@@ -424,10 +424,12 @@
 }
 [data-theme="neo-brutalist"] .input-base:focus {
   outline: none;
-  box-shadow: 0 0 0 2px var(--nb-border-color), 0 0 0 4px var(--color-bg-primary);
+  border-color: var(--nb-highlight);
+  box-shadow: 0 0 0 1px var(--nb-highlight);
 }
 [data-theme="neo-brutalist"].dark .input-base:focus {
-  box-shadow: 0 0 0 2px var(--nb-border-color), 0 0 0 4px var(--color-bg-primary);
+  border-color: var(--nb-highlight);
+  box-shadow: 0 0 0 1px var(--nb-highlight);
 }
 
 
@@ -867,6 +869,18 @@
 [data-theme="neo-brutalist"] input[type="tel"],
 [data-theme="neo-brutalist"] textarea {
   border: var(--nb-border-width) solid var(--nb-border-color);
+}
+[data-theme="neo-brutalist"] input[type="text"]:focus,
+[data-theme="neo-brutalist"] input[type="search"]:focus,
+[data-theme="neo-brutalist"] input[type="email"]:focus,
+[data-theme="neo-brutalist"] input[type="password"]:focus,
+[data-theme="neo-brutalist"] input[type="number"]:focus,
+[data-theme="neo-brutalist"] input[type="url"]:focus,
+[data-theme="neo-brutalist"] input[type="tel"]:focus,
+[data-theme="neo-brutalist"] textarea:focus {
+  outline: none;
+  border-color: var(--nb-highlight);
+  box-shadow: 0 0 0 1px var(--nb-highlight);
 }
 
 
