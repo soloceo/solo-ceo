@@ -2,6 +2,7 @@ export const finance = {
   "finance.pageTitle": "Finance",
   "finance.addRecord": "New Transaction",
   "finance.thisMonth": "This month",
+  "finance.inclTax": "incl. tax",
   "finance.searchPlaceholder": "Search description, category, client...",
   "finance.locked.hint": "Auto-generated from milestone payment. Edit in client details.",
   "finance.locked.badge": "Milestone linked",

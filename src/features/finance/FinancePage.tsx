@@ -215,11 +215,13 @@ export default function FinancePage() {
       if (tx.status === "待收款 (应收)") { receivable += (txMode === 'exclusive' ? amt + tax : amt); continue; }
       if (tx.status === "待支付 (应付)") { payable += expenseTotal; continue; }
 
-      if (isIncome) { totalIncome += amt; totalTax += tax; }
+      // Income: exclusive tax means client pays base + tax, so total received = amt + tax
+      const incomeTotal = txMode === 'exclusive' ? amt + tax : amt;
+      if (isIncome) { totalIncome += incomeTotal; totalTax += tax; }
       else { totalExpense += expenseTotal; }
 
       if ((tx.date || "").startsWith(thisMonth)) {
-        if (isIncome) monthIncome += amt;
+        if (isIncome) monthIncome += incomeTotal;
         else monthExpense += expenseTotal;
       }
     }
@@ -573,7 +575,7 @@ export default function FinancePage() {
             <StatCard
               label={t("money.stat.completedRevenue")}
               value={`$${stats.totalIncome.toLocaleString()}`}
-              sub={`${t("finance.thisMonth")} $${stats.monthIncome.toLocaleString()}`}
+              sub={`${t("finance.thisMonth")} $${stats.monthIncome.toLocaleString()}${stats.totalTax > 0 ? ` · ${t("finance.inclTax")}` : ""}`}
               icon={<TrendingUp size={16} />}
               color="var(--color-success)"
             />

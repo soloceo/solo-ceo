@@ -15,6 +15,7 @@ interface MilestoneRow {
   status: string;
   payment_method?: string;
   paid_date?: string;
+  finance_tx_id?: number | null;
   [key: string]: unknown;
 }
 
@@ -42,6 +43,13 @@ export function useMilestones(clientId: number | null, projectFee: number, proje
   const [markPaidId, setMarkPaidId] = useState<number | null>(null);
   const [deleteMsId, setDeleteMsId] = useState<number | null>(null);
   const [markPaidMethod, setMarkPaidMethod] = useState("bank_transfer");
+  const [markPaidDate, setMarkPaidDate] = useState(() => {
+    const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  });
+  const [editPaidId, setEditPaidId] = useState<number | null>(null);
+  const [editPaidDate, setEditPaidDate] = useState("");
+  const [editPaidMethod, setEditPaidMethod] = useState("");
+  const [editPaidAmount, setEditPaidAmount] = useState("");
   const [msForm, setMsForm] = useState(EMPTY_MS);
   const [savingMs, setSavingMs] = useState(false);
 
@@ -126,7 +134,7 @@ export function useMilestones(clientId: number | null, projectFee: number, proje
   const confirmMarkPaid = useCallback(async () => {
     if (!markPaidId) return;
     try {
-      await api.post(`/api/milestones/${markPaidId}/mark-paid`, { payment_method: markPaidMethod });
+      await api.post(`/api/milestones/${markPaidId}/mark-paid`, { payment_method: markPaidMethod, paid_date: markPaidDate });
       showToast(t("pipeline.milestones.autoFinance"));
       setMarkPaidId(null);
       setMarkPaidMethod("bank_transfer");
@@ -135,7 +143,34 @@ export function useMilestones(clientId: number | null, projectFee: number, proje
       console.warn('[useMilestones] confirmMarkPaid', e);
       showToast(t("common.saveFailed"));
     }
-  }, [clientId, markPaidId, markPaidMethod, fetchMilestones, showToast, t]);
+  }, [clientId, markPaidId, markPaidMethod, markPaidDate, fetchMilestones, showToast, t]);
+
+  /** Open edit panel for a paid milestone */
+  const openEditPaid = useCallback((ms: MilestoneRow) => {
+    setEditPaidId(ms.id);
+    setEditPaidDate(ms.paid_date || "");
+    setEditPaidMethod(ms.payment_method || "bank_transfer");
+    setEditPaidAmount(String(ms.amount || ""));
+  }, []);
+
+  /** Save paid_date + payment_method + amount changes (cascades to linked finance tx via API) */
+  const saveEditPaid = useCallback(async () => {
+    if (!editPaidId) return;
+    try {
+      const amt = parseFloat(editPaidAmount);
+      await api.put(`/api/milestones/${editPaidId}`, {
+        paid_date: editPaidDate,
+        payment_method: editPaidMethod,
+        amount: isNaN(amt) ? undefined : amt,
+      });
+      showToast(t("pipeline.milestones.saved"));
+      setEditPaidId(null);
+      if (clientId) fetchMilestones(clientId);
+    } catch (e) {
+      console.warn('[useMilestones] saveEditPaid', e);
+      showToast(t("common.saveFailed"));
+    }
+  }, [clientId, editPaidId, editPaidDate, editPaidMethod, editPaidAmount, fetchMilestones, showToast, t]);
 
   const applyPreset = useCallback((preset: "deposit" | "midway" | "final") => {
     const fee = projectFee || 0;
@@ -155,6 +190,8 @@ export function useMilestones(clientId: number | null, projectFee: number, proje
     setEditMsId(null);
     setMarkPaidId(null);
     setMsForm(EMPTY_MS);
+    const d = new Date();
+    setMarkPaidDate(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
   }, []);
 
   const openAddForm = useCallback(() => {
@@ -191,12 +228,14 @@ export function useMilestones(clientId: number | null, projectFee: number, proje
   return {
     // State
     milestones, filteredMilestones, msLoading, showAddMs, editMsId, markPaidId, deleteMsId,
-    markPaidMethod, msForm, savingMs,
+    markPaidMethod, markPaidDate, msForm, savingMs,
+    editPaidId, editPaidDate, editPaidMethod, editPaidAmount,
     // Setters (for UI binding)
-    setMarkPaidId, setDeleteMsId, setMarkPaidMethod, setMsForm,
+    setMarkPaidId, setDeleteMsId, setMarkPaidMethod, setMarkPaidDate, setMsForm,
+    setEditPaidId, setEditPaidDate, setEditPaidMethod, setEditPaidAmount,
     // Actions
     fetchMilestones, saveMilestone, deleteMilestone, undoMarkPaid,
-    confirmMarkPaid, applyPreset, resetState,
+    confirmMarkPaid, openEditPaid, saveEditPaid, applyPreset, resetState,
     openAddForm, openEditForm, closeForm,
   };
 }

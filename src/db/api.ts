@@ -99,12 +99,22 @@ function syncClientSubscriptionLedger(db: Database) {
         const amt = Number(client.mrr || 0);
         const tm = (client.tax_mode as string) || 'none';
         const tr = Number(client.tax_rate || 0);
+        const billingDate = lm === startM ? startDate : (() => {
+          const startDay = parseInt(startDate.split('-')[2] || '1', 10);
+          const [y, m] = lm.split('-').map(Number);
+          const lastDay = new Date(y, m, 0).getDate();
+          const day = Math.min(startDay, lastDay);
+          return `${lm}-${String(day).padStart(2, '0')}`;
+        })();
+        const isFuture = billingDate > todayDateKey();
+        const txStatus = isFuture ? '待收款 (应收)'
+          : client.payment_method === 'manual' ? '待收款 (应收)' : '已完成';
         shouldExist.set(`${client.id}-${lm}`, {
           type: 'income', source: 'subscription', source_id: client.id,
           amount: amt, category: '订阅收入',
           description: `${client.name || '未命名客户'} · ${client.plan_tier || '订阅'} · ${lm}`,
-          date: lm === startM ? startDate : `${lm}-${startDate.split('-')[2] || '01'}`,
-          status: client.payment_method === 'manual' ? '待收款 (应收)' : '已完成',
+          date: billingDate,
+          status: txStatus,
           client_id: client.id, client_name: client.name || '未命名客户',
           tax_mode: tm, tax_rate: tr, tax_amount: calcTaxOffline(amt, tm, tr),
         });
@@ -717,8 +727,9 @@ export async function handleApiRequest(
       run(db, "UPDATE tasks SET client='', client_id=NULL WHERE client_id=?", [id]);
       run(db, "UPDATE tasks SET client='' WHERE client=? AND client_id IS NULL", [clientCompanyName]);
 
-      // Unlink finance transactions - set client_id to null for all matching transactions
-      run(db, 'UPDATE finance_transactions SET client_id=NULL WHERE client_id=?', [id]);
+      // Unlink finance transactions - set client_id to null but preserve client_name for display
+      const clientName = prev?.company_name || prev?.name || '';
+      run(db, "UPDATE finance_transactions SET client_id=NULL, client_name=? WHERE client_id=?", [clientName, id]);
 
       // Delete payment milestones and projects
       run(db, 'UPDATE payment_milestones SET soft_deleted=1 WHERE client_id=?', [id]);
@@ -810,7 +821,7 @@ export async function handleApiRequest(
     if (method === 'PUT') {
       const sets: string[] = [];
       const vals: unknown[] = [];
-      const strFields = ['label','due_date','payment_method','status','invoice_number','note'];
+      const strFields = ['label','due_date','paid_date','payment_method','status','invoice_number','note'];
       for (const f of strFields) { if (body[f] !== undefined) { sets.push(`${f}=?`); vals.push(body[f]); } }
       if (body.project_id !== undefined) { sets.push('project_id=?'); vals.push(body.project_id); }
       const numFields = ['amount','percentage','sort_order'];
@@ -819,6 +830,30 @@ export async function handleApiRequest(
         sets.push('updated_at=CURRENT_TIMESTAMP');
         vals.push(id);
         run(db, `UPDATE payment_milestones SET ${sets.join(',')} WHERE id=?`, vals);
+      }
+      // Cascade paid_date / amount changes to linked finance transaction
+      if (body.paid_date !== undefined || body.amount !== undefined) {
+        const msRow = get(db, 'SELECT finance_tx_id FROM payment_milestones WHERE id=?', [id]) as DbRow;
+        if (msRow?.finance_tx_id) {
+          const updates: string[] = [];
+          const uVals: unknown[] = [];
+          if (body.paid_date !== undefined) { updates.push('date=?'); uVals.push(body.paid_date); }
+          if (body.amount !== undefined) {
+            const newAmt = Number(body.amount) || 0;
+            updates.push('amount=?'); uVals.push(newAmt);
+            const ftx = get(db, 'SELECT tax_mode, tax_rate FROM finance_transactions WHERE id=?', [msRow.finance_tx_id]) as DbRow;
+            if (ftx) {
+              const tm = String(ftx.tax_mode || 'none');
+              const tr = Number(ftx.tax_rate || 0);
+              const taxAmt = tm === 'exclusive' ? newAmt * tr / 100 : tm === 'inclusive' ? newAmt - newAmt / (1 + tr / 100) : 0;
+              updates.push('tax_amount=?'); uVals.push(Math.round(taxAmt * 100) / 100);
+            }
+          }
+          if (updates.length > 0) {
+            uVals.push(msRow.finance_tx_id);
+            run(db, `UPDATE finance_transactions SET ${updates.join(',')} WHERE id=?`, uVals);
+          }
+        }
       }
       await saveDb();
       return ok({ success: true });
@@ -850,8 +885,13 @@ export async function handleApiRequest(
 
     const client = get(db, 'SELECT name, tax_mode, tax_rate FROM clients WHERE id=?', [milestone.client_id]) as DbRow;
     const clientName = client?.name || '';
-    const txTaxMode = client?.tax_mode || 'none';
-    const txTaxRate = Number(client?.tax_rate || 0);
+    let txTaxMode = client?.tax_mode || 'none';
+    let txTaxRate = Number(client?.tax_rate || 0);
+    // Prefer project-level tax settings if milestone belongs to a project
+    if (milestone.project_id) {
+      const proj = get(db, 'SELECT tax_mode, tax_rate FROM client_projects WHERE id=?', [milestone.project_id]) as DbRow;
+      if (proj) { txTaxMode = proj.tax_mode || txTaxMode; txTaxRate = Number(proj.tax_rate || 0) || txTaxRate; }
+    }
     const txAmount = Number(milestone.amount||0);
     const txTaxAmount = txTaxMode === 'exclusive' ? Math.round((txAmount * txTaxRate) / 100 * 100) / 100
                       : txTaxMode === 'inclusive' ? Math.round((txAmount * txTaxRate) / (100 + txTaxRate) * 100) / 100

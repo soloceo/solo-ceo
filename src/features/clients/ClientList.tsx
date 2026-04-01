@@ -270,7 +270,12 @@ export function ClientsView() {
   const filteredIds = new Set(filtered.map(c => c.id));
   const totalReceived = tx.finTxs
     .filter((r: FinanceTransaction) => r.type === "income" && (r.status || "已完成") === "已完成" && filteredIds.has(r.client_id))
-    .reduce((s: number, r: FinanceTransaction) => s + Number(r.amount || 0), 0);
+    .reduce((s: number, r: FinanceTransaction) => {
+      const base = Number(r.amount || 0);
+      const tax = Number(r.tax_amount || 0);
+      // Exclusive tax: client pays base + tax; inclusive/none: amount is the total
+      return s + (r.tax_mode === "exclusive" ? base + tax : base);
+    }, 0);
 
   const exportClientsCSV = () => {
     const headers = ["Name", "Contact", "Email", "Phone", "Billing", "Plan", "MRR", "Project Fee", "Status", "Start Date"];
@@ -825,8 +830,10 @@ export function ClientsView() {
                         )}
 
                         {/* ═══ Payment Milestones (per active project) ═══ */}
-                        {proj.activeProject && (
-                          <>
+                        {proj.activeProject && (() => {
+                          const pTaxMode = proj.activeProject?.tax_mode || form.tax_mode || "none";
+                          const pTaxRate = Number(proj.activeProject?.tax_rate || form.tax_rate || 0);
+                          return <>
                             <div className="border-t mt-1" style={{ borderColor: "var(--color-border-primary)" }} />
                             <div className="flex items-center justify-between">
                               <span className="section-label flex items-center gap-1.5"><DollarSign size={16} /> {t("pipeline.milestones.title")}</span>
@@ -862,7 +869,7 @@ export function ClientsView() {
                             ) : (
                               <div className="space-y-2">
                                 {ms.filteredMilestones.map((msItem: MilestoneRow) => (
-                                  <div key={msItem.id} className="rounded-[var(--radius-6)] p-3 space-y-2 cursor-pointer transition-colors" style={{ background: "var(--color-bg-tertiary)", border: `1px solid ${msItem.status === "paid" ? "var(--color-success)" : "var(--color-border-primary)"}` }} onClick={() => { if (msItem.status !== "paid") { ms.openEditForm(msItem); } }}>
+                                  <div key={msItem.id} className="rounded-[var(--radius-6)] p-3 space-y-2 cursor-pointer transition-colors" style={{ background: "var(--color-bg-tertiary)", border: `1px solid ${msItem.status === "paid" ? "var(--color-success)" : "var(--color-border-primary)"}` }} onClick={() => { msItem.status === "paid" ? ms.openEditPaid(msItem) : ms.openEditForm(msItem); }}>
                                     <div className="flex items-center justify-between">
                                       <div className="flex items-center gap-2">
                                         {msItem.status === "paid" ? <CircleCheck size={16} style={{ color: "var(--color-success)" }} /> : msItem.status === "overdue" ? <AlertCircle size={16} style={{ color: "var(--color-danger)" }} /> : <Clock size={16} style={{ color: "var(--color-text-secondary)" }} />}
@@ -873,7 +880,19 @@ export function ClientsView() {
                                           : { background: "color-mix(in srgb, var(--color-warning) 12%, transparent)", color: "var(--color-warning)" }
                                         }>{t(`pipeline.milestones.status.${msItem.status}`)}</span>
                                       </div>
-                                      <span className="text-[15px] tabular-nums" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>${Number(msItem.amount || 0).toLocaleString()}</span>
+                                      <div className="text-right">
+                                        {(() => {
+                                          const mAmt = Number(msItem.amount || 0);
+                                          if (pTaxMode === "none" || !pTaxRate) return <span className="text-[15px] tabular-nums" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>${mAmt.toLocaleString()}</span>;
+                                          const mTax = pTaxMode === "exclusive" ? Math.round(mAmt * pTaxRate / 100 * 100) / 100 : Math.round(mAmt * pTaxRate / (100 + pTaxRate) * 100) / 100;
+                                          const total = pTaxMode === "exclusive" ? mAmt + mTax : mAmt;
+                                          const base = pTaxMode === "inclusive" ? mAmt - mTax : mAmt;
+                                          return <>
+                                            <span className="text-[15px] tabular-nums" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>${total.toLocaleString()}</span>
+                                            <div className="text-[12px] tabular-nums" style={{ color: "var(--color-text-tertiary)" }}>{pTaxMode === "exclusive" ? `${t("pipeline.milestones.amountPreTax")} $${base.toLocaleString()} + ${t("finance.tax")} $${mTax.toLocaleString()}` : `${t("pipeline.milestones.amountPreTax")} $${base.toLocaleString()} · ${t("finance.tax")} $${mTax.toLocaleString()}`}</div>
+                                          </>;
+                                        })()}
+                                      </div>
                                     </div>
                                     <div className="flex items-center gap-3 text-[13px]" style={{ color: "var(--color-text-secondary)" }}>
                                       {msItem.percentage > 0 && <span>{msItem.percentage}%</span>}
@@ -883,12 +902,7 @@ export function ClientsView() {
                                     </div>
                                     {msItem.note && <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{msItem.note}</div>}
                                     {msItem.status === "paid" ? (
-                                      <div className="flex items-center justify-between" onClick={e => e.stopPropagation()}>
-                                        <span className="text-[13px]" style={{ color: "var(--color-success)" }}>{t("pipeline.milestones.autoRecorded")}</span>
-                                        <button onClick={() => ms.undoMarkPaid(msItem.id, () => tx.fetchFinance())} className="btn-ghost text-[13px] flex items-center gap-1" style={{ color: "var(--color-warning)" }}>
-                                          <Undo2 size={12} /> {t("pipeline.milestones.undoPaid")}
-                                        </button>
-                                      </div>
+                                      <div className="text-[13px]" style={{ color: "var(--color-success)" }}>{t("pipeline.milestones.autoRecorded")}</div>
                                     ) : (
                                       <div className="flex items-center gap-2 pt-1" onClick={e => e.stopPropagation()}>
                                         <button onClick={() => { ms.setMarkPaidId(msItem.id); ms.setMarkPaidMethod("bank_transfer"); }} className="text-[14px] px-3 py-1.5 rounded-full flex items-center gap-1" style={{ background: "var(--color-success-light)", color: "var(--color-success)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
@@ -924,9 +938,23 @@ export function ClientsView() {
                                     )}
                                     <FL label={t("pipeline.milestones.label")}><input value={ms.msForm.label} onChange={e => ms.setMsForm(p => ({ ...p, label: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" placeholder={t("pipeline.milestones.presets.deposit")} /></FL>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                      <FL label={t("pipeline.milestones.amount")}><input type="number" min="0" value={ms.msForm.amount} onChange={e => { const amt = e.target.value; const fee = activeProjFee || 1; ms.setMsForm(p => ({ ...p, amount: amt, percentage: fee > 0 ? String(Math.round(Number(amt) / fee * 100)) : p.percentage })); }} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
+                                      <FL label={`${t("pipeline.milestones.amount")}${pTaxMode === "exclusive" ? ` · ${t("pipeline.milestones.amountPreTax")}` : pTaxMode === "inclusive" ? ` · ${t("pipeline.milestones.amountInclTax")}` : ""}`}><input type="number" min="0" value={ms.msForm.amount} onChange={e => { const amt = e.target.value; const fee = activeProjFee || 1; ms.setMsForm(p => ({ ...p, amount: amt, percentage: fee > 0 ? String(Math.round(Number(amt) / fee * 100)) : p.percentage })); }} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
                                       <FL label={t("pipeline.milestones.percentage")}><input type="number" min="0" max="100" value={ms.msForm.percentage} onChange={e => { const pct = e.target.value; const fee = activeProjFee || 0; ms.setMsForm(p => ({ ...p, percentage: pct, amount: fee > 0 ? String(Math.round(fee * Number(pct) / 100)) : p.amount })); }} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
                                     </div>
+                                    {/* Tax preview (read-only, inherits from project) */}
+                                    {(() => {
+                                      const msAmt = parseFloat(ms.msForm.amount);
+                                      if (pTaxMode === "none" || !pTaxRate || isNaN(msAmt) || msAmt <= 0) return null;
+                                      const msTax = pTaxMode === "exclusive" ? Math.round(msAmt * pTaxRate / 100 * 100) / 100 : Math.round(msAmt * pTaxRate / (100 + pTaxRate) * 100) / 100;
+                                      const total = pTaxMode === "exclusive" ? msAmt + msTax : msAmt;
+                                      const base = pTaxMode === "inclusive" ? msAmt - msTax : msAmt;
+                                      return (
+                                        <div className="rounded-[var(--radius-4)] px-3 py-2 flex items-center justify-between text-[13px]" style={{ background: "var(--color-bg-tertiary)", color: "var(--color-text-secondary)" }}>
+                                          <span>{t("finance.tax")} ({pTaxRate}% {pTaxMode === "exclusive" ? t("pipeline.milestones.taxExclusive") : t("pipeline.milestones.taxInclusive")})</span>
+                                          <span className="tabular-nums">{t("pipeline.milestones.amountPreTax")} ${base.toLocaleString()} + ${t("finance.tax")} ${msTax.toLocaleString()} = ${total.toLocaleString()}</span>
+                                        </div>
+                                      );
+                                    })()}
                                     <FL label={t("pipeline.milestones.dueDate")}><input type="date" value={ms.msForm.due_date} onChange={e => ms.setMsForm(p => ({ ...p, due_date: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
                                     <FL label={t("pipeline.milestones.note")}><input value={ms.msForm.note} onChange={e => ms.setMsForm(p => ({ ...p, note: e.target.value }))} className="input-base w-full px-3 py-2 text-[15px]" /></FL>
                                     {!ms.editMsId && (
@@ -963,24 +991,94 @@ export function ClientsView() {
                             )}
 
                             {/* Mark Paid confirmation modal */}
-                            {ms.markPaidId && (
+                            {ms.markPaidId && (() => {
+                              const markMs = ms.milestones.find((m: MilestoneRow) => m.id === ms.markPaidId);
+                              const markAmt = Number(markMs?.amount || 0);
+                              const taxAmt = pTaxMode === "exclusive" ? Math.round(markAmt * pTaxRate / 100 * 100) / 100
+                                : pTaxMode === "inclusive" ? Math.round(markAmt * pTaxRate / (100 + pTaxRate) * 100) / 100 : 0;
+                              const markTotal = pTaxMode === "exclusive" ? markAmt + taxAmt : markAmt;
+                              const markBase = pTaxMode === "inclusive" ? markAmt - taxAmt : markAmt;
+                              return (
+                                <div className="rounded-[var(--radius-6)] p-3 space-y-3" style={{ background: "color-mix(in srgb, var(--color-success) 6%, var(--color-bg-primary))", border: "1px solid var(--color-success)" }}>
+                                  <div className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("pipeline.milestones.markPaidConfirm")}</div>
+                                  {/* Finance record preview */}
+                                  <div className="rounded-[var(--radius-4)] p-2.5 space-y-1" style={{ background: "var(--color-bg-tertiary)" }}>
+                                    <div className="flex items-center justify-between text-[13px]" style={{ color: "var(--color-text-secondary)" }}>
+                                      <span>{t("pipeline.milestones.amountPreTax")}</span>
+                                      <span className="tabular-nums" style={{ color: "var(--color-text-primary)" } as React.CSSProperties}>${markBase.toLocaleString()}</span>
+                                    </div>
+                                    {taxAmt > 0 && (
+                                      <>
+                                        <div className="flex items-center justify-between text-[13px]" style={{ color: "var(--color-text-secondary)" }}>
+                                          <span>{t("finance.tax")} ({pTaxRate}% {pTaxMode === "exclusive" ? t("pipeline.milestones.taxExclusive") : t("pipeline.milestones.taxInclusive")})</span>
+                                          <span className="tabular-nums">${taxAmt.toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-[13px] pt-1 border-t" style={{ color: "var(--color-text-primary)", borderColor: "var(--color-border-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
+                                          <span>{t("pipeline.tx.total")}</span>
+                                          <span className="tabular-nums">${markTotal.toLocaleString()}</span>
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                  <FL label={t("pipeline.milestones.paidDate")}>
+                                    <input type="date" value={ms.markPaidDate} onChange={e => ms.setMarkPaidDate(e.target.value)} className="input-base w-full px-3 py-2 text-[15px]" />
+                                  </FL>
+                                  <FL label={t("pipeline.milestones.paymentMethod")}>
+                                    <select value={ms.markPaidMethod} onChange={e => ms.setMarkPaidMethod(e.target.value)} className="input-base w-full px-3 py-2 text-[15px]">
+                                      {PAYMENT_METHODS.map(m => <option key={m} value={m}>{t(`pipeline.milestones.method.${m}`)}</option>)}
+                                    </select>
+                                  </FL>
+                                  <div className="flex justify-end gap-2">
+                                    <button onClick={() => ms.setMarkPaidId(null)} className="btn-secondary text-[15px]">{t("common.cancel")}</button>
+                                    <button onClick={ms.confirmMarkPaid} className="text-[15px] px-3 py-2 rounded-[var(--radius-6)]" style={{ background: "var(--color-success)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
+                                      <Check size={16} className="inline mr-1" />{t("pipeline.milestones.markPaid")}
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+
+                            {/* Edit paid milestone panel */}
+                            {ms.editPaidId && (
                               <div className="rounded-[var(--radius-6)] p-3 space-y-3" style={{ background: "color-mix(in srgb, var(--color-success) 6%, var(--color-bg-primary))", border: "1px solid var(--color-success)" }}>
-                                <div className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("pipeline.milestones.markPaidConfirm")}</div>
+                                <div className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("pipeline.milestones.editPaid")}</div>
+                                <FL label={t("pipeline.milestones.paidDate")}>
+                                  <input type="date" value={ms.editPaidDate} onChange={e => ms.setEditPaidDate(e.target.value)} className="input-base w-full px-3 py-2 text-[15px]" />
+                                </FL>
+                                <FL label={`${t("pipeline.milestones.amount")}${pTaxMode === "exclusive" ? ` · ${t("pipeline.milestones.amountPreTax")}` : pTaxMode === "inclusive" ? ` · ${t("pipeline.milestones.amountInclTax")}` : ""}`}>
+                                  <input type="number" inputMode="decimal" step="0.01" value={ms.editPaidAmount} onChange={e => ms.setEditPaidAmount(e.target.value)} className="input-base w-full px-3 py-2 text-[15px]" />
+                                </FL>
+                                {(() => {
+                                  const epAmt = parseFloat(ms.editPaidAmount);
+                                  if (pTaxMode === "none" || !pTaxRate || isNaN(epAmt) || epAmt <= 0) return null;
+                                  const epTax = pTaxMode === "exclusive" ? Math.round(epAmt * pTaxRate / 100 * 100) / 100 : Math.round(epAmt * pTaxRate / (100 + pTaxRate) * 100) / 100;
+                                  const total = pTaxMode === "exclusive" ? epAmt + epTax : epAmt;
+                                  const base = pTaxMode === "inclusive" ? epAmt - epTax : epAmt;
+                                  return (
+                                    <div className="rounded-[var(--radius-4)] px-3 py-2 flex items-center justify-between text-[13px]" style={{ background: "var(--color-bg-tertiary)", color: "var(--color-text-secondary)" }}>
+                                      <span>{t("finance.tax")} ({pTaxRate}% {pTaxMode === "exclusive" ? t("pipeline.milestones.taxExclusive") : t("pipeline.milestones.taxInclusive")})</span>
+                                      <span className="tabular-nums">{t("pipeline.milestones.amountPreTax")} ${base.toLocaleString()} + ${t("finance.tax")} ${epTax.toLocaleString()} = ${total.toLocaleString()}</span>
+                                    </div>
+                                  );
+                                })()}
                                 <FL label={t("pipeline.milestones.paymentMethod")}>
-                                  <select value={ms.markPaidMethod} onChange={e => ms.setMarkPaidMethod(e.target.value)} className="input-base w-full px-3 py-2 text-[15px]">
+                                  <select value={ms.editPaidMethod} onChange={e => ms.setEditPaidMethod(e.target.value)} className="input-base w-full px-3 py-2 text-[15px]">
                                     {PAYMENT_METHODS.map(m => <option key={m} value={m}>{t(`pipeline.milestones.method.${m}`)}</option>)}
                                   </select>
                                 </FL>
-                                <div className="flex justify-end gap-2">
-                                  <button onClick={() => ms.setMarkPaidId(null)} className="btn-secondary text-[15px]">{t("common.cancel")}</button>
-                                  <button onClick={ms.confirmMarkPaid} className="text-[15px] px-3 py-2 rounded-[var(--radius-6)]" style={{ background: "var(--color-success)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
-                                    <Check size={16} className="inline mr-1" />{t("pipeline.milestones.markPaid")}
+                                <div className="flex items-center justify-between">
+                                  <button onClick={() => { ms.setEditPaidId(null); ms.undoMarkPaid(ms.editPaidId!, () => tx.fetchFinance()); }} className="btn-ghost text-[13px] flex items-center gap-1" style={{ color: "var(--color-warning)" }}>
+                                    <Undo2 size={12} /> {t("pipeline.milestones.undoPaid")}
                                   </button>
+                                  <div className="flex gap-2">
+                                    <button onClick={() => ms.setEditPaidId(null)} className="btn-secondary text-[15px]">{t("common.cancel")}</button>
+                                    <button onClick={() => ms.saveEditPaid().then(() => tx.fetchFinance())} className="btn-primary text-[15px]">{t("common.save")}</button>
+                                  </div>
                                 </div>
                               </div>
                             )}
-                          </>
-                        )}
+                          </>;
+                        })()}
                       </>
                     ) : (
                       /* New client — simple project fields (project created after first save) */

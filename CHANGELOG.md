@@ -3,6 +3,21 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.15.0] - 2026-04-01
+
+### Added
+- **Tax breakdown display everywhere** — all milestone amounts, transaction rows, mark-paid confirmation, and edit-paid panel now show pre-tax + tax + total when tax is configured
+- **Paid milestone amount editing** — click a paid milestone to edit amount, date, and payment method without undo/redo; amount changes cascade to linked finance transaction with automatic tax recalculation
+- **Edit-paid panel** — replaces inline editing with a dedicated popup panel (date, amount, payment method, undo)
+
+### Fixed
+- **12 finance calculation issues** (P0/P1/P2) — full audit of all money calculations across all pages
+- **Subscription billing timing bug** — future-dated subscriptions no longer marked as "已完成" before billing date arrives
+- **Project-level tax inheritance** — milestones and mark-paid now read tax settings from the project (not client), fixing cases where project has tax but client doesn't
+- **Source-lock bypass** — milestone paid_date/amount edits cascade directly to linked finance_transaction without hitting the source-lock guard
+- **Mark-paid API** — both online and offline handlers now check project-level tax_mode/tax_rate before falling back to client-level
+- **i18n** — added 6 new keys for tax labels (taxExclusive, taxInclusive, editPaid, amountPreTax, amountInclTax, inclTax) in zh + en
+
 ## [2.14.1] - 2026-04-01
 
 ### Changed

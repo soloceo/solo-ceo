@@ -2,6 +2,7 @@ export const finance = {
   "finance.pageTitle": "收支统计",
   "finance.addRecord": "记录收支",
   "finance.thisMonth": "本月",
+  "finance.inclTax": "含税",
   "finance.searchPlaceholder": "搜索描述、分类、客户...",
   "finance.locked.hint": "此交易由阶段款收款自动生成，如需修改请前往签约客户详情",
   "finance.locked.badge": "阶段款关联",

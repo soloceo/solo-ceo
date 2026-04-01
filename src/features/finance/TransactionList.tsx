@@ -68,10 +68,12 @@ export const TxRow = React.memo(function TxRow({ tx, t, lang, fmtAmt, fmtAmtColo
     : taxMode === 'exclusive' ? (rawAmt < 0 ? rawAmt - tax : rawAmt + tax)
     : rawAmt;
   const src = tx.source || 'manual';
+  // Orphan: system tx whose client was deleted (client_id null but client_name present)
+  const isOrphan = src !== 'manual' && !tx.client_id && !!tx.client_name;
   const sourceBadge = src === "subscription"
     ? t("finance.source.subscription")
     : src === "milestone"
-    ? t("finance.source.milestone")
+    ? (tx.description?.match(/·\s*(.+?)$/)?.[1] || t("finance.source.milestone"))
     : src === "project_fee"
     ? t("finance.source.project")
     : null;
@@ -92,13 +94,13 @@ export const TxRow = React.memo(function TxRow({ tx, t, lang, fmtAmt, fmtAmtColo
         <div className="hidden md:grid grid-cols-[100px_1fr_120px_120px_120px_80px] gap-2 px-5 py-3 items-center border-b group hover:bg-[var(--color-bg-tertiary)] transition-colors" style={{ borderColor: "var(--color-border-primary)" }}>
           <span className="text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{fmtDate(tx.date || "", lang || "zh")}</span>
           <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-            <span className="text-[15px] truncate" style={{ color: "var(--color-text-primary)" }}>{tx.description || tx.desc || tx.client_name || "—"}</span>
+            <span className="text-[15px] truncate" style={{ color: isOrphan ? "var(--color-text-tertiary)" : "var(--color-text-primary)", textDecoration: isOrphan ? "line-through" : undefined }}>{tx.description || tx.desc || tx.client_name || "—"}</span>
             {sourceBadge && <span className="badge text-[13px] shrink-0">{sourceBadge}</span>}
           </div>
           <span className="text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{catLabel(tx.category || "", t)}</span>
           <div className="text-right">
             <span className="text-[15px] tabular-nums" style={{ color: fmtAmtColor(amt), fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{fmtAmt(amt)}</span>
-            {tax > 0 && <div className="text-[13px] tabular-nums" style={{ color: "var(--color-text-secondary)" }}>{taxMode === "exclusive" ? `+${t("finance.tax")} $${tax.toLocaleString()}` : taxMode === "inclusive" ? `${t("finance.taxIncluded")} $${tax.toLocaleString()}` : ""}</div>}
+            {tax > 0 && <div className="text-[12px] tabular-nums" style={{ color: "var(--color-text-tertiary)" }}>{taxMode === "exclusive" ? `${t("finance.tax")} $${tax.toLocaleString()} · ${t("pipeline.tx.total")} $${(rawAmt + tax).toLocaleString()}` : `${t("pipeline.milestones.amountPreTax")} $${(rawAmt - tax).toLocaleString()} · ${t("finance.tax")} $${tax.toLocaleString()}`}</div>}
           </div>
           <span className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{stLabel(tx.status || "", t)}</span>
           <div className="flex gap-1">{actionBtns}</div>
@@ -110,14 +112,14 @@ export const TxRow = React.memo(function TxRow({ tx, t, lang, fmtAmt, fmtAmtColo
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-[15px] truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{tx.description || tx.desc || tx.client_name || catLabel(tx.category || "", t)}</span>
+              <span className="text-[15px] truncate" style={{ color: isOrphan ? "var(--color-text-tertiary)" : "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)", textDecoration: isOrphan ? "line-through" : undefined } as React.CSSProperties}>{tx.description || tx.desc || tx.client_name || catLabel(tx.category || "", t)}</span>
               {sourceBadge && <span className="badge text-[13px] shrink-0">{sourceBadge}</span>}
             </div>
             <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{fmtDate(tx.date || "", lang || "zh")} · {catLabel(tx.category || "", t)}</div>
           </div>
           <div className="text-right shrink-0">
             <div className="text-[15px] tabular-nums" style={{ color: fmtAmtColor(amt), fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{fmtAmt(amt)}</div>
-            {tax > 0 && <div className="text-[13px] tabular-nums" style={{ color: "var(--color-text-secondary)" }}>{taxMode === "exclusive" ? `+${t("finance.tax")} $${tax.toLocaleString()}` : taxMode === "inclusive" ? `${t("finance.taxIncluded")} $${tax.toLocaleString()}` : ""}</div>}
+            {tax > 0 && <div className="text-[12px] tabular-nums" style={{ color: "var(--color-text-tertiary)" }}>{taxMode === "exclusive" ? `${t("finance.tax")} $${tax.toLocaleString()} · ${t("pipeline.tx.total")} $${(rawAmt + tax).toLocaleString()}` : `${t("pipeline.milestones.amountPreTax")} $${(rawAmt - tax).toLocaleString()} · ${t("finance.tax")} $${tax.toLocaleString()}`}</div>}
             <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{stLabel(tx.status || "", t)}</div>
           </div>
           {isSystem ? <span className="p-1" style={{ color: "var(--color-text-secondary)" }}><Lock size={16} /></span> : <span className="p-1" style={{ color: "var(--color-text-secondary)", opacity: 0.4 }}><ChevronRight size={16} /></span>}
@@ -143,6 +145,7 @@ export const TxRow = React.memo(function TxRow({ tx, t, lang, fmtAmt, fmtAmtColo
       </div>
       <div className="text-right shrink-0">
         <div className="text-[15px] tabular-nums" style={{ color: fmtAmtColor(amt), fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{fmtAmt(amt)}</div>
+        {tax > 0 && <div className="text-[12px] tabular-nums" style={{ color: "var(--color-text-tertiary)" }}>{taxMode === "exclusive" ? `${t("finance.tax")} $${tax.toLocaleString()} · ${t("pipeline.tx.total")} $${(rawAmt + tax).toLocaleString()}` : `${t("pipeline.milestones.amountPreTax")} $${(rawAmt - tax).toLocaleString()} · ${t("finance.tax")} $${tax.toLocaleString()}`}</div>}
         <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{stLabel(tx.status || "", t)}</div>
       </div>
       <div className="flex gap-1 shrink-0">{actionBtns}</div>

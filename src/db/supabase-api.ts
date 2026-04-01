@@ -238,6 +238,17 @@ async function syncClientSubscriptionLedger(userId: string) {
         const amt = Number(client.mrr || 0);
         const tm = client.tax_mode || 'none';
         const tr = Number(client.tax_rate || 0);
+        const billingDate = lm === startM ? startDate : (() => {
+          const startDay = parseInt(startDate.split('-')[2] || '1', 10);
+          const [y, m] = lm.split('-').map(Number);
+          const lastDay = new Date(y, m, 0).getDate(); // last day of month
+          const day = Math.min(startDay, lastDay);
+          return `${lm}-${String(day).padStart(2, '0')}`;
+        })();
+        // Future billing dates are always pending, regardless of payment method
+        const isFuture = billingDate > todayDateKey();
+        const txStatus = isFuture ? '待收款 (应收)'
+          : client.payment_method === 'manual' ? '待收款 (应收)' : '已完成';
         shouldExist.set(`${client.id}-${lm}`, {
           user_id: userId,
           type: 'income',
@@ -246,8 +257,8 @@ async function syncClientSubscriptionLedger(userId: string) {
           amount: amt,
           category: '订阅收入',
           description: `${client.name || '未命名客户'} · ${client.plan_tier || '订阅'} · ${lm}`,
-          date: lm === startM ? startDate : `${lm}-${startDate.split('-')[2] || '01'}`,
-          status: client.payment_method === 'manual' ? '待收款 (应收)' : '已完成',
+          date: billingDate,
+          status: txStatus,
           client_id: client.id,
           client_name: client.name || '未命名客户',
           tax_mode: tm,
@@ -282,8 +293,10 @@ async function syncClientSubscriptionLedger(userId: string) {
     const exist = existingMap.get(key);
     if (exist) {
       // Already exists — update amount/description/tax in case client changed
-      // IMPORTANT: preserve status if user already confirmed receipt (已完成)
-      const preservedStatus = exist.status === '已完成' ? '已完成' : row.status;
+      // IMPORTANT: preserve user-confirmed receipt (已完成) for PAST dates only.
+      // Future-dated transactions must revert to pending — billing hasn't happened yet.
+      const isFutureTx = row.date > todayDateKey();
+      const preservedStatus = (!isFutureTx && exist.status === '已完成') ? '已完成' : row.status;
       toUpdate.push({ id: exist.id, data: { amount: row.amount, description: row.description, date: row.date, status: preservedStatus, tax_mode: row.tax_mode, tax_rate: row.tax_rate, tax_amount: row.tax_amount, client_name: row.client_name } });
       existingMap.delete(key);
     } else {
@@ -534,8 +547,8 @@ export async function handleSupabaseRequest(
       await supabase.from('tasks').update({ client: '', client_id: null }).eq('client_id', id).eq('user_id', userId);
       await supabase.from('tasks').update({ client: '' }).eq('client', clientCompanyName).is('client_id', null).eq('user_id', userId);
 
-      // Unlink finance transactions - set client_id to null for all matching transactions
-      await supabase.from('finance_transactions').update({ client_id: null }).eq('client_id', id).eq('user_id', userId);
+      // Unlink finance transactions - set client_id to null but preserve client_name for display
+      await supabase.from('finance_transactions').update({ client_id: null, client_name: clientCompanyName || prev?.name || '' }).eq('client_id', id).eq('user_id', userId);
 
       // Soft-delete payment milestones and projects
       await supabase.from('payment_milestones').update({ soft_deleted: true }).eq('client_id', id).eq('user_id', userId);
@@ -706,6 +719,7 @@ export async function handleSupabaseRequest(
       if (body.status !== undefined) msPatch.status = enumVal(body.status, VALID_MS_STATUSES, 'pending');
       if (body.invoice_number !== undefined) msPatch.invoice_number = str(body.invoice_number, 100);
       if (body.note !== undefined) msPatch.note = str(body.note, 1000);
+      if (body.paid_date !== undefined) msPatch.paid_date = str(body.paid_date, 16);
       if (body.sort_order !== undefined) msPatch.sort_order = body.sort_order ?? 0;
       if (body.project_id !== undefined) msPatch.project_id = body.project_id;
       if (Object.keys(msPatch).length === 0) return ok({ success: true });
@@ -714,6 +728,24 @@ export async function handleSupabaseRequest(
         .update(msPatch)
         .eq('id', id).eq('user_id', userId);
       if (e) return err(500, e.message);
+      // Cascade paid_date / amount changes to linked finance transaction
+      if (body.paid_date !== undefined || body.amount !== undefined) {
+        const { data: msRow } = await supabase.from('payment_milestones').select('finance_tx_id').eq('id', id).eq('user_id', userId).single();
+        if (msRow?.finance_tx_id) {
+          const txPatch: Record<string, unknown> = {};
+          if (body.paid_date !== undefined) txPatch.date = str(body.paid_date, 16);
+          if (body.amount !== undefined) {
+            const newAmt = Number(body.amount) || 0;
+            txPatch.amount = newAmt;
+            // Recalculate tax from the linked finance_transaction's own tax_mode/tax_rate
+            const { data: ftx } = await supabase.from('finance_transactions').select('tax_mode, tax_rate').eq('id', Number(msRow.finance_tx_id)).eq('user_id', userId).single();
+            if (ftx) {
+              txPatch.tax_amount = calcTax(newAmt, ftx.tax_mode || 'none', Number(ftx.tax_rate || 0));
+            }
+          }
+          await supabase.from('finance_transactions').update(txPatch).eq('id', Number(msRow.finance_tx_id)).eq('user_id', userId);
+        }
+      }
       return ok({ success: true });
     }
     if (method === 'DELETE') {
@@ -753,8 +785,13 @@ export async function handleSupabaseRequest(
     } else {
       // Create new transaction (for milestones created before the refactor)
       const txAmount = Number(milestone.amount || 0);
-      const tm = client?.tax_mode || 'none';
-      const tr = Number(client?.tax_rate || 0);
+      let tm = client?.tax_mode || 'none';
+      let tr = Number(client?.tax_rate || 0);
+      // Prefer project-level tax settings if milestone belongs to a project
+      if (milestone.project_id) {
+        const { data: proj } = await supabase.from('client_projects').select('tax_mode, tax_rate').eq('id', milestone.project_id).single();
+        if (proj) { tm = proj.tax_mode || tm; tr = Number(proj.tax_rate || 0) || tr; }
+      }
       const { data: tx, error: txErr } = await supabase.from('finance_transactions').insert({
         user_id: userId, type: 'income', source: 'milestone', source_id: id,
         amount: txAmount, category: '项目收入',
