@@ -3,6 +3,17 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.19.1] - 2026-04-02
+
+### Changed
+- **Today Focus Notion-style redesign** — left accent bars, compact type/urgency badges, row-click navigation, dual-line text (standard category hint + dynamic context reason)
+- **Removed focus checkboxes** — items link to real entities; completion tracking removed as redundant
+- **Removed progress ring** — no longer needed without checkbox state
+- **Receivables logic fix** — subscription auto-billing items with future dates no longer appear in system recommendations
+- **Rewrote demo seed data** — comprehensive fictional examples covering all entity types, pipeline stages, and edge cases for first-time users
+
+---
+
 ## [2.19.0] - 2026-04-02
 
 ### Added

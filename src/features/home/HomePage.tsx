@@ -56,44 +56,6 @@ function todayStr(lang: string) {
 
 const DASHBOARD_TABLES = ["leads", "clients", "tasks", "finance_transactions", "today_focus_state", "today_focus_manual", "payment_milestones"] as const;
 
-/* ── Progress Ring ─────────────────────────────────────────────── */
-function ProgressRing({ completed, total }: { completed: number; total: number }) {
-  const size = 40;
-  const stroke = 3;
-  const radius = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const progress = total > 0 ? completed / total : 0;
-  const offset = circumference * (1 - progress);
-  const allDone = total > 0 && completed === total;
-
-  return (
-    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="rotate-[-90deg]">
-        <circle
-          cx={size / 2} cy={size / 2} r={radius}
-          fill="none" strokeWidth={stroke}
-          stroke="var(--color-bg-quaternary)"
-        />
-        <circle
-          cx={size / 2} cy={size / 2} r={radius}
-          fill="none" strokeWidth={stroke}
-          stroke={allDone ? "var(--color-success)" : "var(--color-accent)"}
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          style={{ transition: "stroke-dashoffset 0.5s ease" }}
-        />
-      </svg>
-      <span
-        className="absolute text-[12px] tabular-nums"
-        style={{ color: allDone ? "var(--color-success)" : "var(--color-text-secondary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}
-      >
-        {completed}/{total}
-      </span>
-    </div>
-  );
-}
-
 /* ── Component ──────────────────────────────────────────────────── */
 export default function HomePage() {
   const { t, lang } = useT();
@@ -132,23 +94,6 @@ export default function HomePage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   usePullToRefresh(scrollRef, fetchData);
 
-  /* ── Focus status handler ── */
-  const handleUpdateStatus = async (key: string, status: "pending" | "completed") => {
-    try {
-      await api.post("/api/today-focus/state", { focusKey: key, status });
-    } catch {
-      showToast(t("common.updateFailed") || "Update failed");
-      return;
-    }
-    setData((prev) => ({
-      ...prev,
-      todayFocus: prev.todayFocus.map((i) => (i.key === key ? { ...i, status } : i)),
-    }));
-  };
-
-  /* ── Progress calculation ── */
-  const totalFocus = data.todayFocus.length + data.dueTodayItems.length;
-  const completedFocus = data.todayFocus.filter((i) => i.status === "completed").length + data.dueTodayItems.filter((i) => i.status === "completed").length;
 
   /* ── Inline insight sections state ── */
   const { settings } = useAppSettings();
@@ -213,7 +158,6 @@ export default function HomePage() {
             </h1>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {totalFocus > 0 && <ProgressRing completed={completedFocus} total={totalFocus} />}
             <button
               onClick={() => setReportOpen(true)}
               className="flex items-center justify-center rounded-[var(--radius-8)] transition-colors hover:bg-[var(--color-bg-quaternary)]"
@@ -268,7 +212,6 @@ export default function HomePage() {
                 todayFocus={data.todayFocus}
                 dueTodayItems={data.dueTodayItems}
                 loading={loading}
-                onUpdateStatus={handleUpdateStatus}
               />
 
               {/* ═══ SECONDARY: Unified Memo ═══ */}

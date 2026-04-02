@@ -47,7 +47,7 @@ export function BreakthroughSection() {
         onClick={() => setBreakthroughExpanded((v) => !v)}
         className="w-full text-left press-feedback mb-3"
       >
-        <div className="flex items-center gap-2.5 mb-2.5">
+        <div className="flex items-center gap-2.5">
           <span className="text-[16px]">{activePhase.strategy.emoji}</span>
           <div className="flex-1 min-w-0">
             <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
@@ -66,6 +66,7 @@ export function BreakthroughSection() {
           </span>
           {breakthroughExpanded ? <ChevronDown size={14} style={{ color: "var(--color-text-quaternary)" }} /> : <ChevronRight size={14} style={{ color: "var(--color-text-quaternary)" }} />}
         </div>
+        <p className="text-[12px] mt-1 mb-2.5" style={{ color: "var(--color-text-quaternary)" }}>{t("home.breakthrough.desc")}</p>
         {/* Progress bar — thicker */}
         <div className="progress-track" style={{ height: 6 }}>
           <div

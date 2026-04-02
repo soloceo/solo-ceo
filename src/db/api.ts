@@ -419,50 +419,136 @@ function initSchema(db: Database) {
 
 function seedData(db: Database) {
   const countLeads = get(db, 'SELECT COUNT(*) as c FROM leads')?.c ?? 0;
-  if (Number(countLeads) === 0) {
-    db.run(`INSERT INTO leads (name, industry, needs, website, column, aiDraft) VALUES (?,?,?,?,?,?)`,
-      ['EcoLife 环保家居', '家居生活', '品牌重塑, 包装设计', 'ecolife.example.com', 'new', '']);
-    db.run(`INSERT INTO leads (name, industry, needs, website, column, aiDraft) VALUES (?,?,?,?,?,?)`,
-      ['FinTech 创新', '金融科技', '官网设计, UI/UX', '', 'contacted', '']);
-  }
+  if (Number(countLeads) > 0) return; // Only seed once — if any data exists, skip all
 
-  const countClients = get(db, 'SELECT COUNT(*) as c FROM clients')?.c ?? 0;
-  if (Number(countClients) === 0) {
-    db.run(`INSERT INTO clients (name, industry, plan_tier, status, brand_context, mrr) VALUES (?,?,?,?,?,?)`,
-      ['GlobalNet', '科技', '企业版', 'Active', '科技感、全球化、蓝色调', 4500]);
-    db.run(`INSERT INTO clients (name, industry, plan_tier, status, brand_context, mrr) VALUES (?,?,?,?,?,?)`,
-      ['Acme Corp', '制造', '专业版', 'Active', '稳重、可靠、工业风', 2500]);
-  }
+  // ── Date helpers ──
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const addDays = (d: Date, n: number) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
+  const today = fmt(now);
+  const yesterday = fmt(addDays(now, -1));
+  const twoDaysAgo = fmt(addDays(now, -2));
+  const threeDaysAgo = fmt(addDays(now, -3));
+  const tomorrow = fmt(addDays(now, 1));
+  const nextWeek = fmt(addDays(now, 7));
+  const m = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
+  const lastMonth = now.getMonth() === 0
+    ? `${now.getFullYear() - 1}-12`
+    : `${now.getFullYear()}-${pad(now.getMonth())}`;
 
-  const countTasks = get(db, 'SELECT COUNT(*) as c FROM tasks')?.c ?? 0;
-  if (Number(countTasks) === 0) {
-    db.run(`INSERT INTO tasks (title, client, priority, due, column, originalRequest, aiBreakdown, aiMjPrompts, aiStory) VALUES (?,?,?,?,?,?,?,?,?)`,
-      ['GlobalNet 品牌指南', 'GlobalNet', 'High', 'Tomorrow', 'todo', '需要一套完整的品牌指南', '', '', '']);
-    db.run(`INSERT INTO tasks (title, client, priority, due, column, originalRequest, aiBreakdown, aiMjPrompts, aiStory) VALUES (?,?,?,?,?,?,?,?,?)`,
-      ['TechFlow 网站设计', 'TechFlow', 'High', 'Today', 'inProgress', '重构官网首页', '', '', '']);
-  }
+  // ── Leads (5 — cover all pipeline stages) ──
+  db.run(`INSERT INTO leads (name, industry, needs, website, column, aiDraft, source) VALUES (?,?,?,?,?,?,?)`,
+    ['绿野咖啡', '餐饮连锁', '品牌升级, VI 设计, 门店空间视觉', 'greenfield.coffee', 'new', '', '小红书私信']);
+  db.run(`INSERT INTO leads (name, industry, needs, website, column, aiDraft, source) VALUES (?,?,?,?,?,?,?)`,
+    ['星途教育', '在线教育', '官网改版, 课程详情页', 'starpath.edu', 'contacted', '', '朋友介绍']);
+  db.run(`INSERT INTO leads (name, industry, needs, website, column, aiDraft, source) VALUES (?,?,?,?,?,?,?)`,
+    ['海蓝科技', 'SaaS', 'Logo 设计, 品牌手册, 官网', 'oceanblu.io', 'proposal', '', '展会认识']);
+  db.run(`INSERT INTO leads (name, industry, needs, website, column, aiDraft, source) VALUES (?,?,?,?,?,?,?)`,
+    ['原木工坊', '家居家具', '产品画册, 电商详情页', '', 'won', '', '客户转介绍']);
+  db.run(`INSERT INTO leads (name, industry, needs, website, column, aiDraft, source) VALUES (?,?,?,?,?,?,?)`,
+    ['鼎盛地产', '房地产', '楼盘宣传单页', '', 'lost', '', '陌生拜访']);
 
-  const countPlans = get(db, 'SELECT COUNT(*) as c FROM plans')?.c ?? 0;
-  if (Number(countPlans) === 0) {
-    db.run(`INSERT INTO plans (name, price, deliverySpeed, features, clients) VALUES (?,?,?,?,?)`,
-      ['基础版', 1000, '平均 48 小时', JSON.stringify(['每月 1 个活跃设计请求', '无限次修改', '基础品牌资产设计']), 5]);
-    db.run(`INSERT INTO plans (name, price, deliverySpeed, features, clients) VALUES (?,?,?,?,?)`,
-      ['专业版', 2500, '平均 24-48 小时', JSON.stringify(['每月 2 个活跃设计请求', '无限次修改', '全套品牌视觉系统']), 8]);
-    db.run(`INSERT INTO plans (name, price, deliverySpeed, features, clients) VALUES (?,?,?,?,?)`,
-      ['企业版', 4500, '优先 24 小时', JSON.stringify(['每月 3 个活跃设计请求', '无限次修改', '定制插画与动效']), 2]);
-  }
+  // ── Clients (3 — subscription auto + subscription manual + project) ──
+  db.run(`INSERT INTO clients (name, industry, plan_tier, status, brand_context, mrr, payment_method, billing_type) VALUES (?,?,?,?,?,?,?,?)`,
+    ['锐视传媒', '数字媒体', '企业版', 'Active', '潮流、年轻、视觉冲击力', 4500, 'auto', 'subscription']);
+  db.run(`INSERT INTO clients (name, industry, plan_tier, status, brand_context, mrr, payment_method, billing_type) VALUES (?,?,?,?,?,?,?,?)`,
+    ['万象设计', '建筑设计', '专业版', 'Active', '极简、高端、黑白灰', 2500, 'manual', 'subscription']);
+  db.run(`INSERT INTO clients (name, industry, plan_tier, status, brand_context, mrr, payment_method, billing_type, project_fee) VALUES (?,?,?,?,?,?,?,?,?)`,
+    ['青柠工作室', '摄影工作室', '基础版', 'Active', '清新、自然、文艺', 0, 'manual', 'project', 9600]);
 
-  const countFinance = get(db, 'SELECT COUNT(*) as c FROM finance_transactions')?.c ?? 0;
-  if (Number(countFinance) === 0) {
-    const today = new Date();
-    const m = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
-    db.run(`INSERT INTO finance_transactions (type, amount, category, description, date) VALUES (?,?,?,?,?)`,
-      ['income', 2500, '订阅收入', 'Acme Corp 专业版订阅', `${m}-01`]);
-    db.run(`INSERT INTO finance_transactions (type, amount, category, description, date) VALUES (?,?,?,?,?)`,
-      ['income', 4500, '订阅收入', 'GlobalNet 企业版订阅', `${m}-05`]);
-    db.run(`INSERT INTO finance_transactions (type, amount, category, description, date) VALUES (?,?,?,?,?)`,
-      ['expense', 120, '软件订阅', 'Figma & Adobe CC', `${m}-02`]);
-  }
+  // ── Tasks — work scope (7 — cover all columns + overdue/today/future) ──
+  db.run(`INSERT INTO tasks (title, client, priority, due, column, scope) VALUES (?,?,?,?,?,?)`,
+    ['锐视传媒 4月社交媒体套图', '锐视传媒', 'High', today, 'inProgress', 'work']);
+  db.run(`INSERT INTO tasks (title, client, priority, due, column, scope) VALUES (?,?,?,?,?,?)`,
+    ['万象设计 品牌指南更新', '万象设计', 'High', yesterday, 'inProgress', 'work']);
+  db.run(`INSERT INTO tasks (title, client, priority, due, column, scope) VALUES (?,?,?,?,?,?)`,
+    ['青柠工作室 官网设计', '青柠工作室', 'High', today, 'review', 'work']);
+  db.run(`INSERT INTO tasks (title, client, priority, due, column, scope) VALUES (?,?,?,?,?,?)`,
+    ['海蓝科技 Logo 提案', '海蓝科技', 'Medium', tomorrow, 'todo', 'work']);
+  db.run(`INSERT INTO tasks (title, client, priority, due, column, scope) VALUES (?,?,?,?,?,?)`,
+    ['锐视传媒 短视频封面模板', '锐视传媒', 'Medium', nextWeek, 'todo', 'work']);
+  db.run(`INSERT INTO tasks (title, client, priority, due, column, scope) VALUES (?,?,?,?,?,?)`,
+    ['万象设计 季度汇报 PPT', '万象设计', 'Low', nextWeek, 'todo', 'work']);
+  db.run(`INSERT INTO tasks (title, client, priority, due, column, scope) VALUES (?,?,?,?,?,?)`,
+    ['锐视传媒 3月交付物归档', '锐视传媒', 'Low', '', 'done', 'work']);
+
+  // ── Tasks — personal scope (4) ──
+  db.run(`INSERT INTO tasks (title, priority, due, column, scope) VALUES (?,?,?,?,?)`,
+    ['预约牙医复查', 'High', twoDaysAgo, 'todo', 'personal']);
+  db.run(`INSERT INTO tasks (title, priority, due, column, scope) VALUES (?,?,?,?,?)`,
+    ['整理本季度发票给会计', 'Medium', today, 'todo', 'personal']);
+  db.run(`INSERT INTO tasks (title, priority, due, column, scope) VALUES (?,?,?,?,?)`,
+    ['续费域名和服务器', 'Medium', nextWeek, 'todo', 'personal']);
+  db.run(`INSERT INTO tasks (title, priority, due, column, scope) VALUES (?,?,?,?,?)`,
+    ['读完《定位》这本书', 'Low', '', 'inProgress', 'personal']);
+
+  // ── Tasks — work-memo scope (5 — show due today, overdue, future, no date) ──
+  db.run(`INSERT INTO tasks (title, due, column, scope) VALUES (?,?,?,?)`,
+    ['给海蓝科技发报价单，下午前发出', today, 'todo', 'work-memo']);
+  db.run(`INSERT INTO tasks (title, due, column, scope) VALUES (?,?,?,?)`,
+    ['和青柠工作室确认首页定稿', yesterday, 'todo', 'work-memo']);
+  db.run(`INSERT INTO tasks (title, due, column, scope) VALUES (?,?,?,?)`,
+    ['联系原木工坊签正式合同', tomorrow, 'todo', 'work-memo']);
+  db.run(`INSERT INTO tasks (title, due, column, scope) VALUES (?,?,?,?)`,
+    ['研究 Framer 做作品集的可行性', '', 'todo', 'work-memo']);
+  db.run(`INSERT INTO tasks (title, due, column, scope) VALUES (?,?,?,?)`,
+    ['整理近半年的作品集案例', '', 'todo', 'work-memo']);
+
+  // ── Plans (3 tiers) ──
+  db.run(`INSERT INTO plans (name, price, deliverySpeed, features, clients) VALUES (?,?,?,?,?)`,
+    ['基础版', 1200, '平均 48 小时', JSON.stringify(['每月 1 个活跃设计请求', '无限次修改', '基础品牌资产']), 6]);
+  db.run(`INSERT INTO plans (name, price, deliverySpeed, features, clients) VALUES (?,?,?,?,?)`,
+    ['专业版', 2500, '平均 24-48 小时', JSON.stringify(['每月 2 个活跃设计请求', '无限次修改', '全套品牌视觉系统']), 4]);
+  db.run(`INSERT INTO plans (name, price, deliverySpeed, features, clients) VALUES (?,?,?,?,?)`,
+    ['企业版', 4500, '优先 24 小时内', JSON.stringify(['每月 3 个活跃设计请求', '无限次修改', '定制插画与动效', '专属设计经理']), 2]);
+
+  // ── Finance Transactions (8 — income/expense/receivable, various sources) ──
+  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date, status, source, source_id) VALUES (?,?,?,?,?,?,?,?)`,
+    ['income', 4500, '订阅收入', '锐视传媒 企业版订阅', `${m}-01`, '已完成', 'subscription', 1]);
+  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date, status, source, source_id) VALUES (?,?,?,?,?,?,?,?)`,
+    ['income', 2500, '订阅收入', '万象设计 专业版订阅', `${m}-05`, '已完成', 'subscription', 2]);
+  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date, status, source) VALUES (?,?,?,?,?,?,?)`,
+    ['income', 3840, '项目收入', '青柠工作室 官网设计 · 首付款 40%', `${lastMonth}-18`, '已完成', 'milestone']);
+  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date, status, source) VALUES (?,?,?,?,?,?,?)`,
+    ['income', 1500, '咨询收入', '原木工坊 品牌诊断咨询', threeDaysAgo, '已完成', 'manual']);
+  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date, status, source) VALUES (?,?,?,?,?,?,?)`,
+    ['income', 5760, '项目收入', '青柠工作室 官网设计 · 尾款 60%', nextWeek, '待收款 (应收)', 'milestone']);
+  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date) VALUES (?,?,?,?,?)`,
+    ['expense', 156, '软件订阅', 'Figma Professional', `${m}-02`]);
+  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date) VALUES (?,?,?,?,?)`,
+    ['expense', 388, '软件订阅', 'Adobe CC 全家桶', `${m}-03`]);
+  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date) VALUES (?,?,?,?,?)`,
+    ['expense', 85, '办公支出', '快递 + 打样费', yesterday]);
+
+  // ── Payment Milestones (青柠工作室 project — 1 paid + 1 pending) ──
+  db.run(`INSERT INTO payment_milestones (client_id, label, amount, percentage, due_date, status, sort_order) VALUES (?,?,?,?,?,?,?)`,
+    [3, '首付款 40%', 3840, 40, `${lastMonth}-18`, 'paid', 1]);
+  db.run(`INSERT INTO payment_milestones (client_id, label, amount, percentage, due_date, status, sort_order) VALUES (?,?,?,?,?,?,?)`,
+    [3, '尾款 60%', 5760, 60, nextWeek, 'pending', 2]);
+
+  // ── Client Subscription Ledger (MRR history) ──
+  db.run(`INSERT OR IGNORE INTO client_subscription_ledger (client_id, client_name, plan_tier, amount, ledger_month) VALUES (?,?,?,?,?)`,
+    [1, '锐视传媒', '企业版', 4500, lastMonth]);
+  db.run(`INSERT OR IGNORE INTO client_subscription_ledger (client_id, client_name, plan_tier, amount, ledger_month) VALUES (?,?,?,?,?)`,
+    [2, '万象设计', '专业版', 2500, lastMonth]);
+  db.run(`INSERT OR IGNORE INTO client_subscription_ledger (client_id, client_name, plan_tier, amount, ledger_month) VALUES (?,?,?,?,?)`,
+    [1, '锐视传媒', '企业版', 4500, m]);
+  db.run(`INSERT OR IGNORE INTO client_subscription_ledger (client_id, client_name, plan_tier, amount, ledger_month) VALUES (?,?,?,?,?)`,
+    [2, '万象设计', '专业版', 2500, m]);
+
+  // ── Activity Log (recent actions — show timeline) ──
+  const mins = (n: number) => new Date(now.getTime() - n * 60000).toISOString();
+  db.run(`INSERT INTO activity_log (entity_type, action, title, detail, created_at) VALUES (?,?,?,?,?)`,
+    ['task', 'completed', '完成任务：锐视传媒 3月交付物归档', '', mins(30)]);
+  db.run(`INSERT INTO activity_log (entity_type, action, title, detail, created_at) VALUES (?,?,?,?,?)`,
+    ['lead', 'updated', '更新线索：海蓝科技', '阶段变更：contacted → proposal', mins(120)]);
+  db.run(`INSERT INTO activity_log (entity_type, action, title, detail, created_at) VALUES (?,?,?,?,?)`,
+    ['finance', 'created', '记录收入：原木工坊品牌诊断 ¥1,500', '', mins(240)]);
+  db.run(`INSERT INTO activity_log (entity_type, action, title, detail, created_at) VALUES (?,?,?,?,?)`,
+    ['client', 'created', '新增客户：青柠工作室', '项目制客户 · 官网设计', mins(1440)]);
+  db.run(`INSERT INTO activity_log (entity_type, action, title, detail, created_at) VALUES (?,?,?,?,?)`,
+    ['lead', 'created', '新增线索：绿野咖啡', '来源：小红书私信', mins(2880)]);
 }
 
 // ── Bulk sync helpers ──────────────────────────────────────────────────────
@@ -1226,7 +1312,7 @@ export async function handleApiRequest(
       .sort((a: DbRow, b: DbRow) => String(b.time||b.sortKey||'').localeCompare(String(a.time||a.sortKey||'')))
       .slice(0, 8);
 
-    const receivables = getFinanceRows(db).filter((t: DbRow) => String(t.status||'').includes('应收'));
+    const allReceivables = getFinanceRows(db).filter((t: DbRow) => String(t.status||'').includes('应收'));
     const bestLead = get(db,
       `SELECT id, name, industry, needs, column FROM leads WHERE column IN ('proposal','contacted','new')
        ORDER BY CASE column WHEN 'proposal' THEN 1 WHEN 'contacted' THEN 2 ELSE 3 END, id DESC LIMIT 1`) as DbRow;
@@ -1238,6 +1324,9 @@ export async function handleApiRequest(
 
     // Overdue milestones detection
     const todayKey = todayDateKey();
+    const receivables = allReceivables.filter((t: DbRow) =>
+      String(t.date||'') <= todayKey && t.source !== 'subscription'
+    );
     const overdueMs = get(db,
       `SELECT pm.id, pm.label, pm.amount, pm.due_date, c.name as client_name
        FROM payment_milestones pm
@@ -1246,12 +1335,12 @@ export async function handleApiRequest(
        ORDER BY pm.due_date ASC LIMIT 1`, [todayKey]) as DbRow;
 
     const systemTask = overdueMs
-      ? { key: `system-overdue-ms-${overdueMs.id}`, type: '系统', title: `催收逾期款：${overdueMs.client_name} — ${overdueMs.label} $${Number(overdueMs.amount||0).toLocaleString()}`, reason: `该笔款项已于 ${overdueMs.due_date} 到期，需要尽快催收。`, actionHint: '去客户面板确认收款并标记已付', entityType: 'milestone', entityId: Number(overdueMs.id) }
+      ? { key: `system-overdue-ms-${overdueMs.id}`, type: '系统', title: `催收逾期款：${overdueMs.client_name} — ${overdueMs.label} $${Number(overdueMs.amount||0).toLocaleString()}`, reason: `已于 ${overdueMs.due_date} 到期，尽快催收避免坏账。`, actionHint: '去客户面板确认收款并标记已付', entityType: 'milestone', entityId: Number(overdueMs.id) }
       : receivables[0]
       ? { key: `system-receivable-${receivables[0].id||'r'}`, type: '系统', title: `处理应收：${receivables[0].description||'未命名账款'}`, reason: '有待收款项时，先收钱比继续堆工作更重要。', actionHint: '去财务管理跟进回款' }
       : bestLead
-        ? { key: `system-lead-${bestLead.id||'fallback'}`, type: '系统', title: `补齐线索信息：${bestLead.name||'未命名线索'}`, reason: '把高潜在线索信息补完整，后续跟进效率更高。', actionHint: '完善需求、来源和下一步动作', entityType: 'lead', entityId: Number(bestLead.id) }
-        : { key: 'system-content-asset', type: '系统', title: '整理一条内容资产', reason: '没有财务阻塞时，优先沉淀长期可复用资产。', actionHint: '去内容工坊保存一条可复用内容' };
+        ? { key: `system-lead-${bestLead.id||'fallback'}`, type: '系统', title: `补齐线索信息：${bestLead.name||'未命名线索'}`, reason: '线索信息越完整，后续跟进转化率越高。', actionHint: '完善需求、来源和下一步动作', entityType: 'lead', entityId: Number(bestLead.id) }
+        : { key: 'system-content-asset', type: '系统', title: '整理一条内容资产', reason: '系统 = 维护运转：催收款、对账、整理数据、优化流程。', actionHint: '去内容工坊保存一条可复用内容' };
 
     // ── Due Today Items — tasks + memos due today or overdue ──
     function daysBetweenLocal(dateStr: string, todayStr: string): number {
@@ -1300,11 +1389,11 @@ export async function handleApiRequest(
     const urgentIsDt = urgentDueDay === todayKey;
     const autoFocus = [
       bestLead
-        ? { key: `revenue-lead-${bestLead.id||'fallback'}`, type: '收入', title: `推进线索：${bestLead.name||'未命名线索'}`, reason: bestLead.column==='proposal' ? '它已经接近成交，今天推进最有机会带来收入。' : '这是当前最值得跟进的销售机会。', actionHint: bestLead.column==='proposal' ? '发提案跟进 / 促成确认' : '发送开发信或安排跟进', entityType: 'lead', entityId: Number(bestLead.id) }
-        : { key: 'revenue-fallback', type: '收入', title: '跟进一位潜在客户', reason: '今天至少推进一件直接指向收入的动作。', actionHint: 'home.focus.hint.leads' },
+        ? { key: `revenue-lead-${bestLead.id||'fallback'}`, type: '收入', title: `推进线索：${bestLead.name||'未命名线索'}`, reason: bestLead.column==='proposal' ? '已进入报价阶段，推一把就能成交。' : '当前最值得跟进的销售机会。', actionHint: bestLead.column==='proposal' ? '发提案跟进 / 促成确认' : '发送开发信或安排跟进', entityType: 'lead', entityId: Number(bestLead.id) }
+        : { key: 'revenue-fallback', type: '收入', title: '跟进一位潜在客户', reason: '收入 = 开拓新生意：找客户、谈合作、发报价、签单。', actionHint: 'home.focus.hint.leads' },
       urgentTask
         ? { key: `delivery-task-${urgentTask.id||'fallback'}`, type: '交付', title: `推进任务：${urgentTask.title||'未命名任务'}`, reason: urgentIsOd ? `此任务已逾期（截止 ${urgentDueDay}），需优先处理。` : urgentIsDt ? '此任务今日截止，需尽快完成。' : urgentTask.priority==='High' ? '高优先级任务最容易影响客户满意度和交付节奏。' : '先推进当前最接近交付的任务。', actionHint: urgentTask.client ? `关联客户：${urgentTask.client}` : '打开任务卡继续执行', entityType: 'task', entityId: Number(urgentTask.id), dueDate: urgentTask.due ? String(urgentTask.due) : null, isOverdue: !!urgentIsOd, daysOverdue: urgentIsOd ? daysBetweenLocal(urgentDueDay, todayKey) : 0 }
-        : { key: 'delivery-fallback', type: '交付', title: '完成一个关键交付', reason: '每天至少推进一件真实交付，避免系统只转不产出。', actionHint: 'home.focus.hint.tasks' },
+        : { key: 'delivery-fallback', type: '交付', title: '完成一个关键交付', reason: '交付 = 产出成果：写代码、做设计、完成客户项目。', actionHint: 'home.focus.hint.tasks' },
       systemTask,
     ];
 

@@ -9,6 +9,12 @@ interface ProtocolSectionProps {
   lang: string;
 }
 
+function formatTimeRange(r?: [number, number]): string {
+  if (!r) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(r[0])}:00-${pad(r[1] === 24 ? 0 : r[1])}:00`;
+}
+
 function getCurrentStepIndex(steps: ProtocolStep[]): number {
   const h = new Date().getHours();
   for (let i = steps.length - 1; i >= 0; i--) {
@@ -31,14 +37,15 @@ export function ProtocolSection({ title, steps, lang }: ProtocolSectionProps) {
   return (
     <section>
       {/* Header + Timeline dots */}
-      <div className="flex items-center justify-between mb-3">
-        <span
-          className="text-[15px]"
-          style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}
-        >
-          {title}
-        </span>
-        <div className="flex items-center gap-1.5">
+      <div className="mb-3">
+        <div className="flex items-center justify-between">
+          <span
+            className="text-[15px]"
+            style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}
+          >
+            {title}
+          </span>
+          <div className="flex items-center gap-1.5">
           {steps.map((_, i) => (
             <div
               key={i}
@@ -55,7 +62,9 @@ export function ProtocolSection({ title, steps, lang }: ProtocolSectionProps) {
               }}
             />
           ))}
+          </div>
         </div>
+        <p className="text-[12px] mt-0.5" style={{ color: "var(--color-text-quaternary)" }}>{t("home.protocol.desc")}</p>
       </div>
 
       {/* Main card — current period */}
@@ -71,6 +80,9 @@ export function ProtocolSection({ title, steps, lang }: ProtocolSectionProps) {
               } as React.CSSProperties}
             >
               {currentStep.time[l]}
+            </span>
+            <span className="text-[11px] tabular-nums" style={{ color: "var(--color-text-quaternary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
+              {formatTimeRange(currentStep.timeRange)}
             </span>
           </div>
           <div
@@ -98,6 +110,9 @@ export function ProtocolSection({ title, steps, lang }: ProtocolSectionProps) {
                 } as React.CSSProperties}
               >
                 {nextStep.time[l]}
+              </span>
+              <span className="text-[11px] tabular-nums" style={{ color: "var(--color-text-quaternary)" }}>
+                {formatTimeRange(nextStep.timeRange)}
               </span>
               <span className="text-[12px] truncate" style={{ color: "var(--color-text-tertiary)" }}>
                 {nextStep.title[l]}
@@ -181,6 +196,9 @@ export function ProtocolSection({ title, steps, lang }: ProtocolSectionProps) {
                       } as React.CSSProperties}
                     >
                       {step.time[l]}
+                    </span>
+                    <span className="text-[11px] tabular-nums shrink-0" style={{ color: "var(--color-text-quaternary)" }}>
+                      {formatTimeRange(step.timeRange)}
                     </span>
                     <span
                       className="text-[13px] truncate"

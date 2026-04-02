@@ -280,7 +280,8 @@ export function HomeMemoSection() {
   return (
     <section>
       {/* ── Section header ── */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="mb-3">
+        <div className="flex items-center justify-between">
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="flex items-center gap-2 transition-colors hover:opacity-80"
@@ -305,6 +306,8 @@ export function HomeMemoSection() {
         >
           <Plus size={14} /> {t("home.memo.add")}
         </button>
+        </div>
+        <p className="text-[12px] mt-0.5" style={{ color: "var(--color-text-quaternary)" }}>{t("home.memo.desc")}</p>
       </div>
 
       {/* ── Collapsible body ── */}
@@ -443,12 +446,12 @@ export function HomeMemoSection() {
                     <div
                       key={task.id}
                       data-memo-id={task.id}
-                      className="flex items-center gap-2.5 px-1 py-2 rounded-[var(--radius-8)] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback anim-appear"
+                      className="flex items-start gap-2.5 px-1 py-2 rounded-[var(--radius-8)] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback anim-appear"
                       onClick={() => startEdit(task)}
                     >
                       {/* Toggle circle — 44px touch target */}
                       <button className="shrink-0 flex items-center justify-center"
-                        style={{ width: 44, height: 44, marginLeft: -8, marginTop: -8, marginBottom: -8, borderRadius: "50%", background: "transparent", border: "none" }}
+                        style={{ width: 44, height: 44, marginLeft: -8, marginTop: -12, marginBottom: -8, borderRadius: "50%", background: "transparent", border: "none" }}
                         onClick={e => { e.stopPropagation(); toggleTask(task); }}>
                         {isDone
                           ? <div className="flex items-center justify-center rounded-full" style={{ width: 20, height: 20, background: "var(--color-success)" }}>

@@ -57,7 +57,8 @@ export function KnowledgeBaseSection() {
     <>
       <section>
         {/* Header */}
-        <div className="flex items-center justify-between mb-3">
+        <div className="mb-3">
+          <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
               {t("home.dailyLesson")}
@@ -75,6 +76,8 @@ export function KnowledgeBaseSection() {
             <BookOpen size={12} />
             {t("home.browseAllPrinciples").replace("{count}", String(allPrinciples.length))}
           </button>
+          </div>
+          <p className="text-[12px] mt-0.5" style={{ color: "var(--color-text-quaternary)" }}>{t("home.principle.desc")}</p>
         </div>
 
         {/* Card */}
