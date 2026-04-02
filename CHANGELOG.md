@@ -3,6 +3,17 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.19.0] - 2026-04-02
+
+### Added
+- **Today Focus two-tier design** — split into "截止事项" (due/overdue items driven by real due dates) and "AI 推荐" (strategy-based revenue/delivery/system recommendations)
+- **Entity linking** — focus items now link to their source: click a task → opens Work page task panel, click a lead → opens Leads page lead panel, click a memo → scrolls to and highlights the memo on the dashboard
+- **Due/overdue enrichment** — tasks and memos with `due <= today` automatically surface in the top tier with urgency badges (red for overdue, amber for due today)
+- **Navigate-to-entity event system** — WorkPage and LeadsBoard listen for `navigate-to-entity` CustomEvents to open entity panels from anywhere in the app
+- **Memo highlight animation** — `highlight-pulse` CSS animation for scroll-to-memo navigation
+
+---
+
 ## [2.18.1] - 2026-04-02
 
 ### Added

@@ -96,6 +96,11 @@ interface FocusCandidate {
   actionHint: string;
   isManual?: boolean;
   status?: string;
+  entityType?: 'task' | 'memo' | 'lead' | 'milestone' | null;
+  entityId?: number | null;
+  dueDate?: string | null;
+  isOverdue?: boolean;
+  daysOverdue?: number;
 }
 
 interface OverdueMilestoneRow {
@@ -1268,7 +1273,57 @@ export async function handleSupabaseRequest(
     const ledgerSeries = (allFinance || []).filter((t: FinanceTransactionRow) => t.type === 'income' && t.status === '已完成');
     const receivablesData = (allFinance || []).filter((t: FinanceTransactionRow) => (t.status || '').includes('应收'));
     const bestLeadArr = leadData.filter((l: LeadRow) => ['proposal', 'contacted', 'new'].includes(l.column)).slice(0, 4);
-    const urgentTaskArr = taskData.sort((a: TaskRow, b: TaskRow) => { const p: Record<string, number> = { High: 0, Medium: 1, Low: 2 }; return (p[a.priority] ?? 1) - (p[b.priority] ?? 1); }).slice(0, 4);
+    const todayKey = todayDateKey();
+    const urgentTaskArr = taskData
+      .filter((t: TaskRow) => t.scope !== 'personal' && t.scope !== 'work-memo')
+      .sort((a: TaskRow, b: TaskRow) => {
+        const aOverdue = a.due && a.due.slice(0, 10) <= todayKey ? 0 : 1;
+        const bOverdue = b.due && b.due.slice(0, 10) <= todayKey ? 0 : 1;
+        if (aOverdue !== bOverdue) return aOverdue - bOverdue;
+        const p: Record<string, number> = { High: 0, Medium: 1, Low: 2 };
+        return (p[a.priority] ?? 1) - (p[b.priority] ?? 1);
+      }).slice(0, 4);
+
+    // ── Due Today Items — tasks + memos with due <= today ──
+    function daysBetween(dateStr: string, todayStr: string): number {
+      const d1 = new Date(dateStr + 'T00:00:00');
+      const d2 = new Date(todayStr + 'T00:00:00');
+      return Math.floor((d2.getTime() - d1.getTime()) / 86400000);
+    }
+    const dueWorkTasks = taskData
+      .filter((t: TaskRow) => t.scope !== 'personal' && t.scope !== 'work-memo' && t.due && t.due.slice(0, 10) <= todayKey)
+      .sort((a: TaskRow, b: TaskRow) => {
+        const ad = a.due!.slice(0, 10), bd = b.due!.slice(0, 10);
+        if (ad !== bd) return ad.localeCompare(bd);
+        const p: Record<string, number> = { High: 0, Medium: 1, Low: 2 };
+        return (p[a.priority] ?? 1) - (p[b.priority] ?? 1);
+      }).slice(0, 5);
+    const dueMemos = taskData
+      .filter((t: TaskRow) => (t.scope === 'work-memo' || t.scope === 'personal') && t.due && t.due.slice(0, 10) <= todayKey)
+      .sort((a: TaskRow, b: TaskRow) => (a.due!.slice(0, 10)).localeCompare(b.due!.slice(0, 10)))
+      .slice(0, 3);
+    const dueTodayItems: FocusCandidate[] = [
+      ...dueWorkTasks.map((t: TaskRow) => {
+        const days = daysBetween(t.due!.slice(0, 10), todayKey);
+        return {
+          key: `due-task-${t.id}`, type: '交付',
+          title: t.title || '未命名任务',
+          reason: days > 0 ? `已逾期 ${days} 天` : (t.due!.length > 10 ? `今日 ${t.due!.slice(11, 16)} 截止` : '今日截止'),
+          actionHint: t.client ? `客户：${t.client}` : '点击查看任务详情',
+          entityType: 'task' as const, entityId: t.id, dueDate: t.due, isOverdue: days > 0, daysOverdue: days,
+        };
+      }),
+      ...dueMemos.map((t: TaskRow) => {
+        const days = daysBetween(t.due!.slice(0, 10), todayKey);
+        return {
+          key: `due-memo-${t.id}`, type: t.scope === 'personal' ? '个人' : '备忘',
+          title: t.title || '未命名备忘',
+          reason: days > 0 ? `已逾期 ${days} 天` : (t.due!.length > 10 ? `今日 ${t.due!.slice(11, 16)}` : '今日截止'),
+          actionHint: '点击查看备忘详情',
+          entityType: 'memo' as const, entityId: t.id, dueDate: t.due, isOverdue: days > 0, daysOverdue: days,
+        };
+      }),
+    ];
 
     const clientsCount = activeClients?.length || 0;
     // Derive MRR from current month's income transactions (more accurate than static client.mrr)
@@ -1331,21 +1386,29 @@ export async function handleSupabaseRequest(
       title: `推进线索：${l.name || '未命名线索'}`,
       reason: l.column === 'proposal' ? '它已经接近成交，今天推进最有机会带来收入。' : '这是当前最值得跟进的销售机会。',
       actionHint: l.column === 'proposal' ? '发提案跟进 / 促成确认' : '发送开发信或安排跟进',
+      entityType: 'lead', entityId: l.id,
     }));
     if (!revenueCandidates.length) revenueCandidates.push({ key: 'revenue-fallback', type: '收入', title: '跟进一位潜在客户', reason: '今天至少推进一件直接指向收入的动作。', actionHint: 'home.focus.hint.leads' });
 
-    const deliveryCandidates: FocusCandidate[] = tasks.map((t: TaskRow) => ({
-      key: `delivery-task-${t.id}`, type: '交付',
-      title: `推进任务：${t.title || '未命名任务'}`,
-      reason: t.priority === 'High' ? '高优先级任务最容易影响客户满意度和交付节奏。' : '先推进当前最接近交付的任务。',
-      actionHint: t.client ? `关联客户：${t.client}` : '打开任务卡继续执行',
-    }));
+    const deliveryCandidates: FocusCandidate[] = tasks.map((t: TaskRow) => {
+      const dueDay = t.due ? t.due.slice(0, 10) : '';
+      const isOd = dueDay && dueDay < todayKey;
+      const isDt = dueDay === todayKey;
+      return {
+        key: `delivery-task-${t.id}`, type: '交付',
+        title: `推进任务：${t.title || '未命名任务'}`,
+        reason: isOd ? `此任务已逾期（截止 ${dueDay}），需优先处理。` : isDt ? '此任务今日截止，需尽快完成。' : t.priority === 'High' ? '高优先级任务最容易影响客户满意度和交付节奏。' : '先推进当前最接近交付的任务。',
+        actionHint: t.client ? `关联客户：${t.client}` : '打开任务卡继续执行',
+        entityType: 'task' as const, entityId: t.id, dueDate: t.due || null,
+        isOverdue: !!isOd, daysOverdue: isOd ? daysBetween(dueDay, todayKey) : 0,
+      };
+    });
     if (!deliveryCandidates.length) deliveryCandidates.push({ key: 'delivery-fallback', type: '交付', title: '完成一个关键交付', reason: '每天至少推进一件真实交付，避免系统只转不产出。', actionHint: 'home.focus.hint.tasks' });
 
     const systemCandidates: FocusCandidate[] = [];
-    if (overdueMs) systemCandidates.push({ key: `system-overdue-ms-${overdueMs.id}`, type: '系统', title: `催收逾期款：${overdueMs.clients?.name || '客户'} — ${overdueMs.label} $${Number(overdueMs.amount||0).toLocaleString()}`, reason: `该笔款项已于 ${overdueMs.due_date} 到期，需要尽快催收。`, actionHint: '去客户面板确认收款并标记已付' });
+    if (overdueMs) systemCandidates.push({ key: `system-overdue-ms-${overdueMs.id}`, type: '系统', title: `催收逾期款：${overdueMs.clients?.name || '客户'} — ${overdueMs.label} $${Number(overdueMs.amount||0).toLocaleString()}`, reason: `该笔款项已于 ${overdueMs.due_date} 到期，需要尽快催收。`, actionHint: '去客户面板确认收款并标记已付', entityType: 'milestone', entityId: overdueMs.id });
     for (const r of receivables.slice(0, 2)) systemCandidates.push({ key: `system-receivable-${r.id}`, type: '系统', title: `处理应收：${r.description || '未命名账款'}`, reason: '有待收款项时，先收钱比继续堆工作更重要。', actionHint: '去财务管理跟进回款' });
-    for (const l of leads.slice(0, 2)) systemCandidates.push({ key: `system-lead-${l.id}`, type: '系统', title: `补齐线索信息：${l.name || '未命名线索'}`, reason: '把高潜在线索信息补完整，后续跟进效率更高。', actionHint: '完善需求、来源和下一步动作' });
+    for (const l of leads.slice(0, 2)) systemCandidates.push({ key: `system-lead-${l.id}`, type: '系统', title: `补齐线索信息：${l.name || '未命名线索'}`, reason: '把高潜在线索信息补完整，后续跟进效率更高。', actionHint: '完善需求、来源和下一步动作', entityType: 'lead', entityId: l.id });
     if (!systemCandidates.length) systemCandidates.push({ key: 'system-content-asset', type: '系统', title: '整理一条内容资产', reason: '没有财务阻塞时，优先沉淀长期可复用资产。', actionHint: '去内容工坊保存一条可复用内容' });
 
     const autoFocus = [
@@ -1365,8 +1428,9 @@ export async function handleSupabaseRequest(
     }));
 
     const todayFocus = autoFocus.map((item: FocusCandidate) => ({ ...item, status: focusStateMap[item.key] || 'pending' }));
+    const dueTodayWithStatus = dueTodayItems.map((item: FocusCandidate) => ({ ...item, status: focusStateMap[item.key] || 'pending' }));
 
-    return ok({ clientsCount, mrr, activeTasks, todoCount, inProgressCount, leadsCount, leadsNew, leadsContacted, leadsProposal, mrrSeries, recentActivity, ytdRevenue, todayIncome, monthlyIncome, todayFocus, manualTodayEvents, workTasks, personalTasks });
+    return ok({ clientsCount, mrr, activeTasks, todoCount, inProgressCount, leadsCount, leadsNew, leadsContacted, leadsProposal, mrrSeries, recentActivity, ytdRevenue, todayIncome, monthlyIncome, todayFocus, dueTodayItems: dueTodayWithStatus, manualTodayEvents, workTasks, personalTasks });
   }
 
   // ── WEEKLY REPORT ──────────────────────────────────────────────

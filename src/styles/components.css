@@ -560,3 +560,12 @@
     transition: width 0.6s ease;
   }
 }
+
+/* ── Highlight pulse (used by TodayFocus → memo navigation) ────── */
+@keyframes highlight-pulse {
+  0%, 100% { background: transparent; }
+  50% { background: color-mix(in srgb, var(--color-accent) 12%, transparent); }
+}
+.highlight-pulse {
+  animation: highlight-pulse 0.6s ease-in-out 2;
+}

@@ -1231,9 +1231,10 @@ export async function handleApiRequest(
       `SELECT id, name, industry, needs, column FROM leads WHERE column IN ('proposal','contacted','new')
        ORDER BY CASE column WHEN 'proposal' THEN 1 WHEN 'contacted' THEN 2 ELSE 3 END, id DESC LIMIT 1`) as DbRow;
     const urgentTask = get(db,
-      `SELECT id, title, client, priority, due, column FROM tasks WHERE column != 'done'
-       ORDER BY CASE priority WHEN 'High' THEN 1 WHEN 'Medium' THEN 2 ELSE 3 END,
-       COALESCE(NULLIF(due,''),'9999-12-31') ASC, id DESC LIMIT 1`) as DbRow;
+      `SELECT id, title, client, priority, due, column, scope FROM tasks WHERE column != 'done' AND (scope IS NULL OR (scope != 'personal' AND scope != 'work-memo'))
+       ORDER BY CASE WHEN due != '' AND due <= ? THEN 0 ELSE 1 END,
+       CASE priority WHEN 'High' THEN 1 WHEN 'Medium' THEN 2 ELSE 3 END,
+       COALESCE(NULLIF(due,''),'9999-12-31') ASC, id DESC LIMIT 1`, [todayDateKey()]) as DbRow;
 
     // Overdue milestones detection
     const todayKey = todayDateKey();
@@ -1245,20 +1246,64 @@ export async function handleApiRequest(
        ORDER BY pm.due_date ASC LIMIT 1`, [todayKey]) as DbRow;
 
     const systemTask = overdueMs
-      ? { key: `system-overdue-ms-${overdueMs.id}`, type: '系统', title: `催收逾期款：${overdueMs.client_name} — ${overdueMs.label} $${Number(overdueMs.amount||0).toLocaleString()}`, reason: `该笔款项已于 ${overdueMs.due_date} 到期，需要尽快催收。`, actionHint: '去客户面板确认收款并标记已付' }
+      ? { key: `system-overdue-ms-${overdueMs.id}`, type: '系统', title: `催收逾期款：${overdueMs.client_name} — ${overdueMs.label} $${Number(overdueMs.amount||0).toLocaleString()}`, reason: `该笔款项已于 ${overdueMs.due_date} 到期，需要尽快催收。`, actionHint: '去客户面板确认收款并标记已付', entityType: 'milestone', entityId: Number(overdueMs.id) }
       : receivables[0]
       ? { key: `system-receivable-${receivables[0].id||'r'}`, type: '系统', title: `处理应收：${receivables[0].description||'未命名账款'}`, reason: '有待收款项时，先收钱比继续堆工作更重要。', actionHint: '去财务管理跟进回款' }
       : bestLead
-        ? { key: `system-lead-${bestLead.id||'fallback'}`, type: '系统', title: `补齐线索信息：${bestLead.name||'未命名线索'}`, reason: '把高潜在线索信息补完整，后续跟进效率更高。', actionHint: '完善需求、来源和下一步动作' }
+        ? { key: `system-lead-${bestLead.id||'fallback'}`, type: '系统', title: `补齐线索信息：${bestLead.name||'未命名线索'}`, reason: '把高潜在线索信息补完整，后续跟进效率更高。', actionHint: '完善需求、来源和下一步动作', entityType: 'lead', entityId: Number(bestLead.id) }
         : { key: 'system-content-asset', type: '系统', title: '整理一条内容资产', reason: '没有财务阻塞时，优先沉淀长期可复用资产。', actionHint: '去内容工坊保存一条可复用内容' };
 
+    // ── Due Today Items — tasks + memos due today or overdue ──
+    function daysBetweenLocal(dateStr: string, todayStr: string): number {
+      const d1 = new Date(dateStr + 'T00:00:00');
+      const d2 = new Date(todayStr + 'T00:00:00');
+      return Math.floor((d2.getTime() - d1.getTime()) / 86400000);
+    }
+    const dueWorkTaskRows = all(db,
+      `SELECT id, title, client, priority, due, scope FROM tasks
+       WHERE column != 'done' AND (scope IS NULL OR (scope != 'personal' AND scope != 'work-memo'))
+       AND due != '' AND SUBSTR(due, 1, 10) <= ?
+       ORDER BY SUBSTR(due, 1, 10) ASC,
+       CASE priority WHEN 'High' THEN 1 WHEN 'Medium' THEN 2 ELSE 3 END
+       LIMIT 5`, [todayKey]);
+    const dueMemoRows = all(db,
+      `SELECT id, title, due, scope FROM tasks
+       WHERE column != 'done' AND scope IN ('work-memo', 'personal')
+       AND due != '' AND SUBSTR(due, 1, 10) <= ?
+       ORDER BY SUBSTR(due, 1, 10) ASC LIMIT 3`, [todayKey]);
+    const dueTodayItems = [
+      ...dueWorkTaskRows.map((t: DbRow) => {
+        const days = daysBetweenLocal(String(t.due).slice(0, 10), todayKey);
+        return {
+          key: `due-task-${t.id}`, type: '交付',
+          title: String(t.title || '未命名任务'),
+          reason: days > 0 ? `已逾期 ${days} 天` : (String(t.due).length > 10 ? `今日 ${String(t.due).slice(11, 16)} 截止` : '今日截止'),
+          actionHint: t.client ? `客户：${t.client}` : '点击查看任务详情',
+          entityType: 'task', entityId: Number(t.id), dueDate: String(t.due), isOverdue: days > 0, daysOverdue: days,
+        };
+      }),
+      ...dueMemoRows.map((t: DbRow) => {
+        const days = daysBetweenLocal(String(t.due).slice(0, 10), todayKey);
+        return {
+          key: `due-memo-${t.id}`, type: t.scope === 'personal' ? '个人' : '备忘',
+          title: String(t.title || '未命名备忘'),
+          reason: days > 0 ? `已逾期 ${days} 天` : (String(t.due).length > 10 ? `今日 ${String(t.due).slice(11, 16)}` : '今日截止'),
+          actionHint: '点击查看备忘详情',
+          entityType: 'memo', entityId: Number(t.id), dueDate: String(t.due), isOverdue: days > 0, daysOverdue: days,
+        };
+      }),
+    ];
+
     const focusStateMap = getTodayFocusStateMap(db);
+    const urgentDueDay = urgentTask?.due ? String(urgentTask.due).slice(0, 10) : '';
+    const urgentIsOd = urgentDueDay && urgentDueDay < todayKey;
+    const urgentIsDt = urgentDueDay === todayKey;
     const autoFocus = [
       bestLead
-        ? { key: `revenue-lead-${bestLead.id||'fallback'}`, type: '收入', title: `推进线索：${bestLead.name||'未命名线索'}`, reason: bestLead.column==='proposal' ? '它已经接近成交，今天推进最有机会带来收入。' : '这是当前最值得跟进的销售机会。', actionHint: bestLead.column==='proposal' ? '发提案跟进 / 促成确认' : '发送开发信或安排跟进' }
+        ? { key: `revenue-lead-${bestLead.id||'fallback'}`, type: '收入', title: `推进线索：${bestLead.name||'未命名线索'}`, reason: bestLead.column==='proposal' ? '它已经接近成交，今天推进最有机会带来收入。' : '这是当前最值得跟进的销售机会。', actionHint: bestLead.column==='proposal' ? '发提案跟进 / 促成确认' : '发送开发信或安排跟进', entityType: 'lead', entityId: Number(bestLead.id) }
         : { key: 'revenue-fallback', type: '收入', title: '跟进一位潜在客户', reason: '今天至少推进一件直接指向收入的动作。', actionHint: 'home.focus.hint.leads' },
       urgentTask
-        ? { key: `delivery-task-${urgentTask.id||'fallback'}`, type: '交付', title: `推进任务：${urgentTask.title||'未命名任务'}`, reason: urgentTask.priority==='High' ? '高优先级任务最容易影响客户满意度和交付节奏。' : '先推进当前最接近交付的任务。', actionHint: urgentTask.client ? `关联客户：${urgentTask.client}` : '打开任务卡继续执行' }
+        ? { key: `delivery-task-${urgentTask.id||'fallback'}`, type: '交付', title: `推进任务：${urgentTask.title||'未命名任务'}`, reason: urgentIsOd ? `此任务已逾期（截止 ${urgentDueDay}），需优先处理。` : urgentIsDt ? '此任务今日截止，需尽快完成。' : urgentTask.priority==='High' ? '高优先级任务最容易影响客户满意度和交付节奏。' : '先推进当前最接近交付的任务。', actionHint: urgentTask.client ? `关联客户：${urgentTask.client}` : '打开任务卡继续执行', entityType: 'task', entityId: Number(urgentTask.id), dueDate: urgentTask.due ? String(urgentTask.due) : null, isOverdue: !!urgentIsOd, daysOverdue: urgentIsOd ? daysBetweenLocal(urgentDueDay, todayKey) : 0 }
         : { key: 'delivery-fallback', type: '交付', title: '完成一个关键交付', reason: '每天至少推进一件真实交付，避免系统只转不产出。', actionHint: 'home.focus.hint.tasks' },
       systemTask,
     ];
@@ -1277,8 +1322,9 @@ export async function handleApiRequest(
     }));
 
     const todayFocus = autoFocus.map((item) => ({ ...item, status: focusStateMap[item.key] || 'pending' }));
+    const dueTodayWithStatus = dueTodayItems.map((item) => ({ ...item, status: focusStateMap[item.key] || 'pending' }));
 
-    return ok({ clientsCount, mrr, activeTasks, workTasks, personalTasks, leadsCount, mrrSeries, recentActivity, ytdRevenue, monthlyIncome, todayFocus, manualTodayEvents });
+    return ok({ clientsCount, mrr, activeTasks, workTasks, personalTasks, leadsCount, mrrSeries, recentActivity, ytdRevenue, monthlyIncome, todayFocus, dueTodayItems: dueTodayWithStatus, manualTodayEvents });
   }
 
   // ── WEEKLY REPORT ──────────────────────────────────────────────

@@ -178,6 +178,20 @@ export default function WorkPage() {
     setShowPanel(true);
   }, []);
 
+  /* ── Navigate-to-entity listener (from TodayFocus) ── */
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { type, id } = (e as CustomEvent).detail || {};
+      if (type === "task" && id) {
+        const all = (Object.values(tasks) as Task[][]).flat();
+        const target = all.find((t) => t.id === id);
+        if (target) openPanel(target, target.column);
+      }
+    };
+    window.addEventListener("navigate-to-entity", handler);
+    return () => window.removeEventListener("navigate-to-entity", handler);
+  }, [tasks, openPanel]);
+
   const handleSave = async (form: TaskForm, editId: number | null) => {
     try {
       if (editId) {

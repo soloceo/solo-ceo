@@ -188,6 +188,20 @@ export function LeadsView() {
     return () => window.removeEventListener("quick-create", handler);
   }, []);
 
+  /* ── Navigate-to-entity listener (from TodayFocus) ── */
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { type, id } = (e as CustomEvent).detail || {};
+      if (type === "lead" && id) {
+        const all = (Object.values(leads) as Lead[][]).flat();
+        const target = all.find((l) => l.id === id);
+        if (target) openPanel(target, target.column as ColId);
+      }
+    };
+    window.addEventListener("navigate-to-entity", handler);
+    return () => window.removeEventListener("navigate-to-entity", handler);
+  }, [leads]);
+
   const openPanel = (lead: Lead | null = null, col: ColId = "new") => {
     if (lead) {
       setEditId(lead.id);

@@ -23,6 +23,7 @@ const WidgetGrid = lazy(() => import("./widgets/WidgetGrid"));
 /* ── Types ──────────────────────────────────────────────────────── */
 type DashboardData = {
   todayFocus: FocusItem[];
+  dueTodayItems: FocusItem[];
   manualTodayEvents: FocusItem[];
   clientsCount: number;
   mrr: number;
@@ -101,7 +102,7 @@ export default function HomePage() {
   const showToast = useUIStore((s) => s.showToast);
 
   const [data, setData] = useState<DashboardData>({
-    todayFocus: [], manualTodayEvents: [],
+    todayFocus: [], dueTodayItems: [], manualTodayEvents: [],
     clientsCount: 0, mrr: 0, activeTasks: 0, workTasks: 0, personalTasks: 0, leadsCount: 0,
   });
   const [loading, setLoading] = useState(true);
@@ -112,6 +113,7 @@ export default function HomePage() {
       setData({
         ...raw,
         todayFocus: Array.isArray(raw.todayFocus) ? raw.todayFocus : [],
+        dueTodayItems: Array.isArray(raw.dueTodayItems) ? raw.dueTodayItems : [],
         manualTodayEvents: Array.isArray(raw.manualTodayEvents) ? raw.manualTodayEvents : [],
         recentActivity: Array.isArray(raw.recentActivity) ? raw.recentActivity : [],
         mrrSeries: Array.isArray(raw.mrrSeries) ? raw.mrrSeries : [],
@@ -145,8 +147,8 @@ export default function HomePage() {
   };
 
   /* ── Progress calculation ── */
-  const totalFocus = data.todayFocus.length;
-  const completedFocus = data.todayFocus.filter((i) => i.status === "completed").length;
+  const totalFocus = data.todayFocus.length + data.dueTodayItems.length;
+  const completedFocus = data.todayFocus.filter((i) => i.status === "completed").length + data.dueTodayItems.filter((i) => i.status === "completed").length;
 
   /* ── Inline insight sections state ── */
   const { settings } = useAppSettings();
@@ -264,6 +266,7 @@ export default function HomePage() {
               {/* ═══ SECONDARY: Today's action items ═══ */}
               <TodayFocus
                 todayFocus={data.todayFocus}
+                dueTodayItems={data.dueTodayItems}
                 loading={loading}
                 onUpdateStatus={handleUpdateStatus}
               />

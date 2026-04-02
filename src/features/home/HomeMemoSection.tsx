@@ -442,6 +442,7 @@ export function HomeMemoSection() {
                   return (
                     <div
                       key={task.id}
+                      data-memo-id={task.id}
                       className="flex items-center gap-2.5 px-1 py-2 rounded-[var(--radius-8)] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback anim-appear"
                       onClick={() => startEdit(task)}
                     >
