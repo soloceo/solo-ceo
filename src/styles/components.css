@@ -1,6 +1,6 @@
 /* ══════════════════════════════════════════════════════════════════
-   Component Classes — Solo CEO V2
-   Linear-identical patterns
+   Component Classes — Solo CEO V2 · Notion-inspired
+   Flat surfaces · Subtle borders · Clean interactions
    ══════════════════════════════════════════════════════════════════ */
 
 @layer utilities {
@@ -16,45 +16,34 @@
     display: none;
   }
 
-  /* ── Cards ─────────────────────────────────────────────────── */
+  /* ── Cards — Notion-flat ──────────────────────────────────── */
 
   .card {
     background: var(--color-bg-primary);
     border: 1px solid var(--color-border-translucent);
-    border-radius: var(--radius-16);
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
-  }
-  .card:hover {
-    box-shadow: var(--shadow-low);
+    border-radius: var(--radius-6);
   }
 
   .card-elevated {
     background: var(--color-bg-primary);
-    border: 1px solid var(--color-border-translucent);
-    border-radius: var(--radius-16);
-    box-shadow: var(--shadow-medium);
+    border: 1px solid var(--color-border-primary);
+    border-radius: var(--radius-6);
+    box-shadow: var(--shadow-low);
   }
 
   .card-interactive {
     background: var(--color-bg-primary);
     border: 1px solid var(--color-border-translucent);
-    border-radius: var(--radius-16);
-    transition: border-color var(--transition-fast),
-                background var(--transition-fast),
-                box-shadow 0.2s ease,
-                transform 0.2s ease;
+    border-radius: var(--radius-6);
+    transition: background var(--transition-fast);
   }
   @media (hover: hover) {
     .card-interactive:hover {
       background: var(--color-bg-secondary);
-      border-color: var(--color-border-primary);
-      box-shadow: var(--shadow-low);
-      transform: translateY(-1px);
     }
   }
   .card-interactive:active {
-    transform: scale(0.98);
-    transition: transform 60ms ease-out;
+    background: var(--color-bg-tertiary);
   }
 
   /* ── Page layouts ──────────────────────────────────────────── */
@@ -91,7 +80,6 @@
   }
 
   /* ── Visual hierarchy spacing ───────────────────────────── */
-  /* Use between major page sections for breathing room */
   .section-gap {
     margin-top: 8px;
   }
@@ -99,7 +87,6 @@
     .section-gap { margin-top: 12px; }
   }
 
-  /* Section header — for secondary/tertiary content areas */
   .section-header {
     @apply flex items-center justify-between;
     padding-bottom: 4px;
@@ -125,59 +112,57 @@
     scroll-snap-align: start;
   }
 
-  /* ── Page tabs (full-width page-level switcher) ──────────── */
-  /* No container background/border — buttons are standalone pills.
-     This avoids the "frame within frame" effect. */
+  /* ── Page tabs ──────────────────────────────────────────────── */
 
   .page-tabs {
     @apply flex items-center;
-    gap: 4px;
+    gap: 0;
+    border-bottom: 1px solid var(--color-line-secondary);
   }
   .page-tabs > button {
     @apply flex-1 flex items-center justify-center gap-1.5 text-[13px] transition-all;
     padding: 8px 12px;
-    border-radius: var(--radius-8);
     font-weight: var(--font-weight-medium);
     color: var(--color-text-tertiary);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
   }
   .page-tabs > button:hover {
-    background: var(--color-bg-tertiary);
     color: var(--color-text-secondary);
   }
   .page-tabs > button[data-active="true"] {
-    background: var(--color-bg-secondary);
     color: var(--color-text-primary);
     font-weight: var(--font-weight-semibold);
+    border-bottom-color: var(--color-text-primary);
   }
 
-  /* ── Segment switcher (compact view toggle) ──────────────── */
-  /* No container background/border — buttons are standalone pills.
-     Same design principle as .page-tabs. */
+  /* ── Segment switcher ───────────────────────────────────────── */
 
   .segment-switcher {
     @apply inline-flex items-center;
-    gap: 2px;
+    gap: 0;
+    border-bottom: 1px solid var(--color-line-secondary);
   }
   .segment-switcher > button {
     @apply text-[13px] transition-all;
     font-weight: var(--font-weight-medium);
     padding: 4px 12px;
     height: 28px;
-    border-radius: var(--radius-pill);
     color: var(--color-text-tertiary);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
   }
   .segment-switcher > button:hover {
-    background: var(--color-bg-tertiary);
     color: var(--color-text-secondary);
   }
   .segment-switcher > button[data-active="true"],
   .segment-switcher > button.active {
-    background: var(--color-bg-secondary);
     color: var(--color-text-primary);
-    font-weight: var(--font-weight-semibold);
+    font-weight: var(--font-weight-medium);
+    border-bottom-color: var(--color-text-primary);
   }
 
-  /* ── Inline button group (settings theme/language) ─────── */
+  /* ── Inline button group ──────────────────────────────────── */
 
   .btn-group-inline {
     @apply flex items-center;
@@ -220,7 +205,7 @@
     color: var(--color-text-tertiary);
   }
 
-  /* ── Mobile page (no overflow) ─────────────────────────────── */
+  /* ── Mobile page ───────────────────────────────────────────── */
 
   .mobile-page {
     /* No overflow properties — parent motion.div handles scrolling */
@@ -231,7 +216,7 @@
     }
   }
 
-  /* ── Buttons (40px default, 36px compact; mobile 48px/40px) ── */
+  /* ── Buttons — Notion-style (small radius, no scale hover) ── */
 
   .btn-primary {
     @apply inline-flex items-center justify-center gap-1.5;
@@ -239,14 +224,13 @@
     font-weight: var(--font-weight-medium);
     background: var(--color-accent);
     color: var(--color-brand-text);
-    border-radius: var(--radius-pill);
+    border-radius: var(--radius-6);
     padding: 8px 16px;
     height: 40px;
     cursor: pointer;
     transition: background var(--transition-fast);
   }
   .btn-primary:hover { background: var(--color-accent-hover); }
-  @media (hover: hover) { .btn-primary:hover { transform: scale(1.02); } }
   .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
 
   .btn-secondary {
@@ -255,8 +239,8 @@
     font-weight: var(--font-weight-medium);
     background: transparent;
     color: var(--color-text-primary);
-    border: 1px solid var(--color-border-secondary);
-    border-radius: var(--radius-pill);
+    border: 1px solid var(--color-border-primary);
+    border-radius: var(--radius-6);
     padding: 8px 16px;
     height: 40px;
     cursor: pointer;
@@ -270,7 +254,7 @@
     font-weight: var(--font-weight-medium);
     background: transparent;
     color: var(--color-text-tertiary);
-    border-radius: var(--radius-pill);
+    border-radius: var(--radius-6);
     padding: 8px 12px;
     height: 40px;
     cursor: pointer;
@@ -281,12 +265,11 @@
     color: var(--color-text-primary);
   }
 
-  @media (hover: hover) { .btn-secondary:hover { transform: scale(1.02); } }
   .btn-primary:active,
   .btn-secondary:active,
-  .btn-ghost:active { transform: scale(0.97); transition: transform 60ms ease-out; }
+  .btn-ghost:active { opacity: 0.7; }
 
-  /* ── Compact size (36px — toolbar / filter bar) ──────────── */
+  /* ── Compact size (36px) ───────────────────────────────────── */
 
   .btn-primary.compact,
   .btn-secondary.compact,
@@ -300,19 +283,19 @@
     font-size: 0.875rem;
   }
 
-  /* ── Input (40px desktop, 48px mobile) ── */
+  /* ── Input — Notion-style (small radius) ──────────────────── */
 
   .input-base {
     background: var(--color-bg-primary);
     border: 1px solid var(--color-border-primary);
-    border-radius: var(--radius-12);
+    border-radius: var(--radius-6);
     color: var(--color-text-primary);
     height: 40px;
     outline: none;
     transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
   }
   textarea.input-base {
-    height: auto; /* textareas should grow naturally */
+    height: auto;
   }
   .input-base::placeholder {
     color: var(--color-text-quaternary);
@@ -322,7 +305,7 @@
   }
   .input-base:focus {
     border-color: var(--color-accent);
-    box-shadow: 0 0 0 var(--focus-ring-width) var(--color-accent-tint);
+    box-shadow: 0 0 0 var(--focus-ring-width) rgba(245,197,24,0.15);
   }
   select.input-base {
     appearance: none;
@@ -334,7 +317,6 @@
   }
   input[type="date"].input-base { min-width: 0; }
 
-  /* ── Prevent iOS Safari zoom on focus (requires >= 16px) ── */
   @media (max-width: 1023px) {
     select.input-base,
     input.input-base,
@@ -343,7 +325,7 @@
     }
   }
 
-  /* ── Icon-only buttons (44px mobile touch target) ──────── */
+  /* ── Icon-only buttons ─────────────────────────────────────── */
 
   .btn-icon {
     @apply flex items-center justify-center shrink-0;
@@ -355,7 +337,7 @@
     transition: background var(--transition-fast), color var(--transition-fast);
   }
   .btn-icon:hover {
-    background: var(--color-bg-quaternary);
+    background: var(--color-bg-tertiary);
     color: var(--color-text-secondary);
   }
   .btn-icon-sm {
@@ -368,13 +350,12 @@
     transition: background var(--transition-fast), color var(--transition-fast);
   }
   .btn-icon-sm:hover {
-    background: var(--color-bg-quaternary);
+    background: var(--color-bg-tertiary);
     color: var(--color-text-secondary);
   }
   .btn-icon:active,
   .btn-icon-sm:active {
-    transform: scale(0.92);
-    transition: transform 60ms ease-out;
+    opacity: 0.7;
   }
 
   /* ── Focus visible (keyboard accessibility) ──────────────── */
@@ -390,7 +371,7 @@
     outline-offset: 2px;
   }
 
-  /* ── Mobile: enlarge inputs & buttons to 48px (Material Design 3) ── */
+  /* ── Mobile: enlarge inputs & buttons to 48px ──────────────── */
   @media (max-width: 1023px) {
     .input-base { height: 48px; }
     .input-base.compact { height: 40px; }
@@ -417,13 +398,13 @@
     @apply w-full overflow-hidden;
     background: var(--color-bg-primary);
     max-height: 95vh;
-    border-radius: var(--radius-28) var(--radius-28) 0 0;
+    border-radius: var(--radius-12) var(--radius-12) 0 0;
     box-shadow: var(--shadow-high);
     padding-bottom: 8px;
   }
   @media (min-width: 768px) {
     .mobile-sheet-content {
-      border-radius: var(--radius-20);
+      border-radius: var(--radius-12);
       max-width: 36rem;
       width: 100%;
       padding-bottom: 0;
@@ -435,8 +416,8 @@
   .stat-card {
     @apply flex flex-col gap-0.5;
     background: var(--color-bg-primary);
-    border: 1px solid var(--color-border-translucent);
-    border-radius: var(--radius-16);
+    border: 1px solid var(--color-border-primary);
+    border-radius: var(--radius-6);
     padding: 12px;
   }
   @media (min-width: 768px) {
@@ -454,10 +435,10 @@
     .sidebar-glass {
       margin: 12px;
       margin-right: 0;
-      border-radius: var(--radius-16);
+      border-radius: var(--radius-8);
       border: 1px solid var(--color-border-translucent);
       height: calc(100% - 24px);
-      z-index: var(--layer-nav);
+      z-index: var(--layer-header);
     }
   }
 
@@ -486,11 +467,10 @@
     background: var(--color-bg-panel);
   }
   .card table th {
-    font-weight: var(--font-weight-semibold);
+    font-weight: var(--font-weight-medium);
     color: var(--color-text-tertiary);
-    font-size: 0.6875rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    font-size: var(--font-size-xs);
+    letter-spacing: 0;
   }
   .card table tbody tr {
     border-bottom: 1px solid var(--color-line-secondary);
@@ -501,7 +481,7 @@
   }
   @media (hover: hover) {
     .card table tbody tr:hover {
-      background: var(--color-bg-tertiary);
+      background: var(--color-bg-secondary);
     }
   }
 
@@ -530,6 +510,10 @@
   .badge-orange {
     background: color-mix(in srgb, var(--color-orange) 12%, transparent);
     color: var(--color-orange);
+  }
+  .badge-purple {
+    background: color-mix(in srgb, var(--color-purple) 12%, transparent);
+    color: var(--color-purple);
   }
 
   /* ── Semantic icon circles ───────────────────────────────── */
@@ -565,20 +549,14 @@
   /* ── Progress bar ──────────────────────────────────────── */
 
   .progress-track {
-    height: 6px;
-    border-radius: var(--radius-pill);
+    height: 4px;
+    border-radius: var(--radius-2);
     background: var(--color-bg-quaternary);
     overflow: hidden;
   }
   .progress-fill {
     height: 100%;
-    border-radius: var(--radius-pill);
+    border-radius: var(--radius-2);
     transition: width 0.6s ease;
   }
 }
-
-/* ══════════════════════════════════════════════════════════════════
-   Theme System — placeholder for future themes
-   Toggle via data-glass="true" (or future data-theme-style)
-   Glass variables defined in tokens.css, ready to use.
-   ══════════════════════════════════════════════════════════════════ */

@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useT } from "../../i18n/context";
 import { useAppSettings, invalidateSettingsCache } from "../../hooks/useAppSettings";
 import { useUIStore } from "../../store/useUIStore";
-import { BookOpen, ChevronDown, ChevronRight, X } from "lucide-react";
+import { BookOpen, ChevronDown, ChevronRight, X, CheckCircle2 } from "lucide-react";
 import type { Principle, KnowledgeCategory } from "../../data/evolution-knowledge";
 
 /* Lazy-load the 53KB knowledge data — only fetched when this component mounts */
@@ -57,12 +57,12 @@ export function KnowledgeBaseSection() {
     <>
       <section>
         {/* Header */}
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
               {t("home.dailyLesson")}
             </span>
-            <span className="text-[11px] px-1.5 py-0.5 rounded-[var(--radius-4)]"
+            <span className="text-[11px] px-1.5 py-0.5 rounded-full"
               style={{ background: "var(--color-bg-tertiary)", color: "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
               {categories.find((c) => c.principles.some((p) => p.id === todayPrinciple.id))?.name[lang as "zh" | "en"]}
             </span>
@@ -78,40 +78,44 @@ export function KnowledgeBaseSection() {
         </div>
 
         {/* Card */}
-        <div className="card overflow-hidden">
-          <button
-            onClick={() => setPrincipleExpanded((v) => !v)}
-            className="w-full text-left press-feedback px-3 py-2.5 transition-colors hover:bg-[var(--color-bg-tertiary)]"
-          >
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setPrincipleExpanded((v) => !v)}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setPrincipleExpanded((v) => !v); } }}
+          className="card overflow-hidden cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback"
+        >
+          <div className="px-4 pt-4 pb-3">
             <div className="flex items-start gap-3">
               <div className="flex-1 min-w-0">
-                <h3 className="text-[15px] mb-1" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
+                <h3 className="text-[16px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)", lineHeight: 1.3 } as React.CSSProperties}>
                   {todayPrinciple.name[lang as "zh" | "en"]}
                 </h3>
-                <p className="text-[14px] leading-relaxed line-clamp-2" style={{ color: "var(--color-text-secondary)" }}>
+                <p className="text-[13px] leading-relaxed line-clamp-2" style={{ color: "var(--color-text-tertiary)" }}>
                   {todayPrinciple.core[lang as "zh" | "en"]}
                 </p>
               </div>
-              <div className="shrink-0 mt-0.5">
+              <div className="shrink-0 mt-1">
                 {principleExpanded ? <ChevronDown size={14} style={{ color: "var(--color-text-quaternary)" }} /> : <ChevronRight size={14} style={{ color: "var(--color-text-quaternary)" }} />}
               </div>
             </div>
-          </button>
-          {/* Study button */}
-          <div className="flex items-center justify-end px-3 pb-2 -mt-1" style={{ borderTop: "none" }}>
+          </div>
+
+          {/* Study CTA */}
+          <div className="flex items-center justify-between px-4 pb-3.5">
             <button
               onClick={(e) => { e.stopPropagation(); recordStudy(todayPrinciple.id); }}
-              className="flex items-center gap-1 text-[13px] px-2 py-1 rounded-[var(--radius-4)] transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback"
-              style={{ color: "var(--color-accent)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
+              className="flex items-center gap-1.5 text-[13px] px-3 py-1.5 rounded-full transition-colors press-feedback"
+              style={{ background: "var(--color-bg-tertiary)", color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}
             >
-              <BookOpen size={12} />
-              {t("home.studied")}
-              {(studyCounts[todayPrinciple.id] || 0) > 0 && (
-                <span className="text-[12px] tabular-nums" style={{ color: "var(--color-text-quaternary)" }}>
-                  ×{studyCounts[todayPrinciple.id]}
-                </span>
-              )}
+              <CheckCircle2 size={13} />
+              {t("home.markStudied")}
             </button>
+            {(studyCounts[todayPrinciple.id] || 0) > 0 && (
+              <span className="text-[12px] tabular-nums" style={{ color: "var(--color-text-quaternary)" }}>
+                {t("home.studied")} ×{studyCounts[todayPrinciple.id]}
+              </span>
+            )}
           </div>
 
           {/* Expanded detail */}
@@ -124,8 +128,10 @@ export function KnowledgeBaseSection() {
                 transition={{ duration: 0.3, ease: [0.25, 1, 0.5, 1] }}
                 className="overflow-hidden"
               >
-                <div className="divide-y divide-[var(--color-line-secondary)]">
-                  <p className="text-[14px] leading-relaxed px-3 py-3" style={{ color: "var(--color-text-secondary)" }}>
+                {/* Whitespace separator instead of divider */}
+                <div style={{ height: 1, margin: "0 16px", background: "var(--color-line-secondary)" }} />
+                <div className="flex flex-col">
+                  <p className="text-[14px] leading-relaxed px-4 py-3.5" style={{ color: "var(--color-text-secondary)" }}>
                     {todayPrinciple.explanation[lang as "zh" | "en"]}
                   </p>
                   {todayPrinciple.actionSteps && todayPrinciple.actionSteps.length > 0 && (
@@ -195,21 +201,23 @@ export function KnowledgeBaseSection() {
                     <p className="text-[14px] mb-3" style={{ color: "var(--color-text-tertiary)", lineHeight: 1.5 }}>
                       {selectedPrinciple.core[lang as "zh" | "en"]}
                     </p>
-                    <div className="card overflow-hidden divide-y divide-[var(--color-line-secondary)]">
-                      {selectedPrinciple.explanation && (
-                        <div className="px-3 py-3 text-[14px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
-                          {selectedPrinciple.explanation[lang as "zh" | "en"]}
-                        </div>
-                      )}
-                      {selectedPrinciple.actionSteps && selectedPrinciple.actionSteps.length > 0 && (
-                        <PrincipleList icon="→" color="var(--color-accent)" label={t("home.actionSteps")} items={selectedPrinciple.actionSteps} lang={lang} />
-                      )}
-                      {selectedPrinciple.checks && selectedPrinciple.checks.length > 0 && (
-                        <PrincipleList icon="✓" color="var(--color-success)" label={t("home.selfCheck")} items={selectedPrinciple.checks} lang={lang} bullet="☐" />
-                      )}
-                      {selectedPrinciple.antiPatterns && selectedPrinciple.antiPatterns.length > 0 && (
-                        <PrincipleList icon="✗" color="var(--color-danger)" label={t("home.antiPatterns")} items={selectedPrinciple.antiPatterns} lang={lang} bullet="✗" />
-                      )}
+                    <div className="card overflow-hidden">
+                      <div className="flex flex-col">
+                        {selectedPrinciple.explanation && (
+                          <div className="px-4 py-3.5 text-[14px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+                            {selectedPrinciple.explanation[lang as "zh" | "en"]}
+                          </div>
+                        )}
+                        {selectedPrinciple.actionSteps && selectedPrinciple.actionSteps.length > 0 && (
+                          <PrincipleList icon="→" color="var(--color-accent)" label={t("home.actionSteps")} items={selectedPrinciple.actionSteps} lang={lang} />
+                        )}
+                        {selectedPrinciple.checks && selectedPrinciple.checks.length > 0 && (
+                          <PrincipleList icon="✓" color="var(--color-success)" label={t("home.selfCheck")} items={selectedPrinciple.checks} lang={lang} bullet="☐" />
+                        )}
+                        {selectedPrinciple.antiPatterns && selectedPrinciple.antiPatterns.length > 0 && (
+                          <PrincipleList icon="✗" color="var(--color-danger)" label={t("home.antiPatterns")} items={selectedPrinciple.antiPatterns} lang={lang} bullet="✗" />
+                        )}
+                      </div>
                     </div>
                     <button
                       onClick={() => recordStudy(selectedPrinciple.id)}
@@ -229,56 +237,56 @@ export function KnowledgeBaseSection() {
                   <div className="px-4 py-3" style={{ paddingBottom: "24px" }}>
                     {categories.map((cat, catIdx) => (
                       <div key={cat.id}>
-                        {catIdx > 0 && (
-                          <div className="my-4" style={{ borderTop: "1px solid var(--color-border-primary)" }} />
-                        )}
-                        <div className="flex items-center gap-2 mb-3 px-1">
+                        {catIdx > 0 && <div style={{ height: 20 }} />}
+                        <div className="flex items-center gap-2 mb-2.5 px-1">
                           <span className="text-[17px]">{cat.emoji}</span>
                           <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
                             {cat.name[lang as "zh" | "en"]}
                           </span>
-                          <span className="text-[13px] tabular-nums px-1.5 py-0.5 rounded-[var(--radius-4)]" style={{ color: "var(--color-text-tertiary)", background: "var(--color-bg-tertiary)" }}>
+                          <span className="text-[12px] tabular-nums px-1.5 py-0.5 rounded-full" style={{ color: "var(--color-text-tertiary)", background: "var(--color-bg-tertiary)" }}>
                             {cat.principles.length}
                           </span>
                         </div>
-                        <div className="card overflow-hidden divide-y divide-[var(--color-line-secondary)]">
-                          {cat.principles.map((p) => {
-                            const isToday = p.id === todayPrinciple.id;
-                            const coreText = p.core[lang as "zh" | "en"];
-                            const truncated = coreText.length > 50 ? coreText.slice(0, 50) + "…" : coreText;
-                            return (
-                              <button
-                                key={p.id}
-                                onClick={() => setSelectedPrinciple({ ...p, catEmoji: cat.emoji })}
-                                className="w-full text-left px-3 py-2.5 press-feedback transition-colors hover:bg-[var(--color-bg-tertiary)]"
-                                style={isToday ? { background: "color-mix(in srgb, var(--color-accent) 6%, transparent)" } : undefined}
-                              >
-                                <div className="flex items-center gap-2 mb-0.5">
-                                  <span className="text-[14px] flex-1 min-w-0 truncate" style={{
-                                    color: "var(--color-text-primary)",
-                                    fontWeight: "var(--font-weight-semibold)",
-                                  } as React.CSSProperties}>
-                                    {p.name[lang as "zh" | "en"]}
-                                  </span>
-                                  {isToday && (
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded-[var(--radius-4)] shrink-0"
-                                      style={{ background: "var(--color-accent)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-                                      {t("home.today")}
+                        <div className="card overflow-hidden">
+                          <div className="flex flex-col">
+                            {cat.principles.map((p) => {
+                              const isToday = p.id === todayPrinciple.id;
+                              const coreText = p.core[lang as "zh" | "en"];
+                              const truncated = coreText.length > 50 ? coreText.slice(0, 50) + "…" : coreText;
+                              return (
+                                <button
+                                  key={p.id}
+                                  onClick={() => setSelectedPrinciple({ ...p, catEmoji: cat.emoji })}
+                                  className="w-full text-left px-4 py-3 press-feedback transition-colors hover:bg-[var(--color-bg-tertiary)]"
+                                  style={isToday ? { background: "color-mix(in srgb, var(--color-accent) 6%, transparent)" } : undefined}
+                                >
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                    <span className="text-[14px] flex-1 min-w-0 truncate" style={{
+                                      color: "var(--color-text-primary)",
+                                      fontWeight: "var(--font-weight-semibold)",
+                                    } as React.CSSProperties}>
+                                      {p.name[lang as "zh" | "en"]}
                                     </span>
-                                  )}
-                                  {(studyCounts[p.id] || 0) > 0 && (
-                                    <span className="text-[11px] tabular-nums shrink-0" style={{ color: "var(--color-text-quaternary)" }}>
-                                      ×{studyCounts[p.id]}
-                                    </span>
-                                  )}
-                                  <ChevronRight size={12} style={{ color: "var(--color-text-quaternary)" }} className="shrink-0" />
-                                </div>
-                                <p className="text-[13px] leading-relaxed" style={{ color: "var(--color-text-tertiary)" }}>
-                                  {truncated}
-                                </p>
-                              </button>
-                            );
-                          })}
+                                    {isToday && (
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded-full shrink-0"
+                                        style={{ background: "var(--color-accent)", color: "var(--color-text-on-color)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
+                                        {t("home.today")}
+                                      </span>
+                                    )}
+                                    {(studyCounts[p.id] || 0) > 0 && (
+                                      <span className="text-[11px] tabular-nums shrink-0" style={{ color: "var(--color-text-quaternary)" }}>
+                                        ×{studyCounts[p.id]}
+                                      </span>
+                                    )}
+                                    <ChevronRight size={12} style={{ color: "var(--color-text-quaternary)" }} className="shrink-0" />
+                                  </div>
+                                  <p className="text-[13px] leading-relaxed" style={{ color: "var(--color-text-tertiary)" }}>
+                                    {truncated}
+                                  </p>
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -303,11 +311,11 @@ function PrincipleList({ icon, color, label, items, lang, bullet }: {
   bullet?: string;
 }) {
   return (
-    <div className="px-3 py-3">
-      <h4 className="text-[12px] mb-2 flex items-center gap-1" style={{ color, fontWeight: "var(--font-weight-semibold)", textTransform: "uppercase", letterSpacing: "0.05em" } as React.CSSProperties}>
+    <div className="px-4 py-3.5">
+      <h4 className="text-[11px] mb-2.5 flex items-center gap-1.5" style={{ color, fontWeight: "var(--font-weight-semibold)", textTransform: "uppercase", letterSpacing: "0.05em" } as React.CSSProperties}>
         <span>{icon}</span> {label}
       </h4>
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-2">
         {items.map((s, i) => (
           <div key={i} className="flex items-start gap-2 text-[13px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
             <span className="shrink-0 text-[11px] mt-0.5 tabular-nums" style={{ color }}>

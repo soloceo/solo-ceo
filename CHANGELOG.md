@@ -3,6 +3,31 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.18.0] - 2026-04-02
+
+### Changed
+- **Notion-style design system** — migrated from warm cream palette to Notion's clean white/gray design language (#ffffff bg, #37352f text, rgba borders, flat shadows)
+- **Page tabs & segment switcher** — replaced background-fill active state with underline indicator (border-bottom: 2px solid)
+- **Button active state** — replaced scale(0.97) transform with opacity: 0.7 for flatter feel
+- **Card radius** — reduced from 16px to 6px across all card variants
+- **Modal/BottomSheet radius** — reduced from 20/28px to 12px
+- **Progress bars** — slimmed from 6px to 4px height
+- **Sidebar** — neutral gray background, active item uses bg-tertiary instead of accent tint
+- **Section labels** — removed uppercase and letter-spacing for quieter hierarchy
+- **Mobile nav** — removed glass/blur effect, solid opaque background with border
+- **All stat card icons** — replaced accent-tinted circles with neutral gray backgrounds
+- **All AI input bars** — removed yellow tint, Bot icons use text-quaternary
+
+### Fixed
+- **Kanban drag-and-drop** — cards couldn't be dragged between columns in Tasks and Leads; added `useDroppable` to column containers (SortableContext alone doesn't create droppable zones)
+- **Login after logout** — user menu now shows "登录/注册" button when logged out instead of requiring navigation to Settings
+- **Undefined CSS variable** — `--layer-nav` referenced but never defined; replaced with `--layer-header`
+
+### Removed
+- **Neo-brutalist theme** — deleted `neo-brutalist.css` (914 lines) and theme switcher; unified on single Notion-style design
+- Unused imports: `useCallback` (App.tsx), `useEffect`/`useUIStore` (QuickCreateMenu.tsx), `TouchSensor` (KanbanBoard/LeadsBoard), `Circle`/`Pencil` (HomeMemoSection)
+- Dead `handleDragOver` callback in KanbanBoard
+
 ## [2.17.1] - 2026-04-01
 
 ### Fixed

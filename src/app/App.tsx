@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect, useRef, useState, useCallback, useMemo } from "react";
+import React, { Suspense, lazy, useEffect, useRef, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Home as HomeIcon,
@@ -101,8 +101,8 @@ const Content = React.memo(({ activeTab }: { activeTab: string }) => {
    App — Linear-identical layout
    ══════════════════════════════════════════════════════════════════ */
 function App() {
-  const { user, loading: authLoading, offlineMode, signOut } = useAuth();
-  const { t, lang } = useT();
+  const { user, loading: authLoading, offlineMode, signOut, exitOfflineMode } = useAuth();
+  const { t } = useT();
 
   const {
     activeTab, setActiveTab,
@@ -312,7 +312,7 @@ function App() {
         className="hidden lg:flex flex-col shrink-0 transition-[width] duration-200 sidebar-glass"
         style={{
           width: isExpanded ? "var(--sidebar-width)" : 56,
-          background: "var(--color-bg-panel)",
+          background: "var(--color-bg-secondary)",
           transitionTimingFunction: "var(--ease-out-quad)",
         } as React.CSSProperties}
       >
@@ -450,6 +450,7 @@ function App() {
             setThemeMode={setThemeMode}
             setActiveTab={setActiveTab}
             onSignOut={signOut}
+            onSignIn={exitOfflineMode}
           />
         </div>
       </aside>
@@ -523,9 +524,11 @@ function App() {
           >
             {/* Tab bar */}
             <nav
-              className="flex-1 flex items-center glass rounded-full"
+              className="flex-1 flex items-center rounded-full"
               style={{
                 padding: "6px",
+                background: "var(--color-bg-primary)",
+                border: "1px solid var(--color-border-primary)",
                 boxShadow: "var(--shadow-medium)",
                 pointerEvents: "auto",
               }}
@@ -558,7 +561,7 @@ function App() {
                       {quickCreateGroups.map((group, gi) => (
                         <div key={gi}>
                           {gi > 0 && <div className="my-1" style={{ borderTop: "1px solid var(--color-line-secondary)" }} />}
-                          <div className="px-4 pt-1.5 pb-0.5 text-[11px] uppercase tracking-wider" style={{ color: "var(--color-text-quaternary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{group.label}</div>
+                          <div className="px-4 pt-1.5 pb-0.5 text-[11px]" style={{ color: "var(--color-text-quaternary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{group.label}</div>
                           {group.items.map((item, i) => (
                             <button
                               key={i}
@@ -620,18 +623,18 @@ const SidebarItem = React.memo(function SidebarItem({
     <button
       onClick={() => onClick(id)}
       aria-current={active ? "page" : undefined}
-      className={`group relative flex items-center select-none cursor-pointer rounded-[var(--radius-12)] text-[15px] ${expanded ? "gap-2 px-2 py-1.5" : "justify-center w-9 h-9 mx-auto"}`}
+      className={`group relative flex items-center select-none cursor-pointer rounded-[var(--radius-6)] text-[15px] ${expanded ? "gap-2 px-2 py-1.5" : "justify-center w-9 h-9 mx-auto"}`}
       style={{
         color: active ? "var(--color-text-primary)" : "var(--color-text-tertiary)",
-        fontWeight: active ? "var(--font-weight-medium)" : "var(--font-weight-normal)",
-        background: active ? "var(--color-accent-tint)" : undefined,
-        border: active ? "1px solid transparent" : "1px solid transparent",
+        fontWeight: active ? "var(--font-weight-semibold)" : "var(--font-weight-normal)",
+        background: active ? "var(--color-bg-tertiary)" : undefined,
+        border: "1px solid transparent",
         transition: "all 80ms var(--ease-out-quad)",
       } as React.CSSProperties}
-      onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "rgba(128,128,128,0.1)"; }}
+      onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "var(--color-bg-tertiary)"; }}
       onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = ""; }}
     >
-      <span className="shrink-0 relative" style={{ color: active ? "var(--color-accent)" : "var(--color-text-quaternary)" }}>
+      <span className="shrink-0 relative" style={{ color: active ? "var(--color-text-primary)" : "var(--color-text-quaternary)" }}>
         {icon}
         {/* Collapsed badge dot */}
         {!expanded && (hasSegments || (badge !== undefined && badge > 0)) && (

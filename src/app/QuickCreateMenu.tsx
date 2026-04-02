@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -9,7 +9,6 @@ import {
   FileText,
 } from "lucide-react";
 import { useT } from "../i18n/context";
-import { useUIStore } from "../store/useUIStore";
 import { useClickOutside } from "./useClickOutside";
 
 export interface QuickCreateMenuProps {
@@ -186,7 +185,7 @@ export function QuickCreateMenu({ setActiveTab }: QuickCreateMenuProps) {
                   />
                 )}
                 <div
-                  className="px-3 pt-1.5 pb-0.5 text-[11px] uppercase tracking-wider"
+                  className="px-3 pt-1.5 pb-0.5 text-[11px]"
                   style={{
                     color: "var(--color-text-quaternary)",
                     fontWeight: "var(--font-weight-semibold)",

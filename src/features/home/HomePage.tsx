@@ -1,22 +1,21 @@
-import React, { useEffect, useState, useCallback, useRef, lazy, Suspense, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useRef, lazy, Suspense } from "react";
 import { useT } from "../../i18n/context";
 import { useRealtimeRefresh } from "../../hooks/useRealtimeRefresh";
 import { usePullToRefresh } from "../../hooks/usePullToRefresh";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { useUIStore } from "../../store/useUIStore";
-import { useAppSettings, invalidateSettingsCache } from "../../hooks/useAppSettings";
+import { useAppSettings } from "../../hooks/useAppSettings";
 import { useDueReminders } from "../../hooks/useDueReminders";
 import { KPIGrid } from "./KPIGrid";
-import { MonthlyGoal } from "./MonthlyGoal";
 import type { ActivityItem } from "./ActivityTimeline";
 import { WeeklyReport } from "./WeeklyReport";
 import { TodayFocus, type FocusItem } from "./TodayFocus";
 import { KnowledgeBaseSection } from "./KnowledgeBaseSection";
 import { ProtocolSection } from "./ProtocolSection";
 import { BreakthroughSection } from "./BreakthroughSection";
+import { HomeMemoSection } from "./HomeMemoSection";
 import { BarChart3 } from "lucide-react";
 import { PROTOCOL_STEPS } from "../../data/evolution-protocol";
-import { todayDateKey, dateToKey } from "../../lib/date-utils";
 import { api } from "../../lib/api";
 
 const WidgetGrid = lazy(() => import("./widgets/WidgetGrid"));
@@ -54,14 +53,12 @@ function todayStr(lang: string) {
   });
 }
 
-const manualIdFromKey = (k: string) => k.replace("manual-", "");
-
 const DASHBOARD_TABLES = ["leads", "clients", "tasks", "finance_transactions", "today_focus_state", "today_focus_manual", "payment_milestones"] as const;
 
 /* ── Progress Ring ─────────────────────────────────────────────── */
 function ProgressRing({ completed, total }: { completed: number; total: number }) {
-  const size = 44;
-  const stroke = 3.5;
+  const size = 40;
+  const stroke = 3;
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const progress = total > 0 ? completed / total : 0;
@@ -87,8 +84,8 @@ function ProgressRing({ completed, total }: { completed: number; total: number }
         />
       </svg>
       <span
-        className="absolute text-[13px] tabular-nums"
-        style={{ color: allDone ? "var(--color-success)" : "var(--color-text-secondary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}
+        className="absolute text-[12px] tabular-nums"
+        style={{ color: allDone ? "var(--color-success)" : "var(--color-text-secondary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}
       >
         {completed}/{total}
       </span>
@@ -133,18 +130,7 @@ export default function HomePage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   usePullToRefresh(scrollRef, fetchData);
 
-  /* ── FAB quick-create handler → opens TodayFocus form ── */
-  const [fabTrigger, setFabTrigger] = useState(0);
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const type = (e as CustomEvent).detail?.type;
-      if (type === "task") setFabTrigger((n) => n + 1);
-    };
-    window.addEventListener("quick-create", handler);
-    return () => window.removeEventListener("quick-create", handler);
-  }, []);
-
-  /* ── Focus handlers ── */
+  /* ── Focus status handler ── */
   const handleUpdateStatus = async (key: string, status: "pending" | "completed") => {
     try {
       await api.post("/api/today-focus/state", { focusKey: key, status });
@@ -155,81 +141,16 @@ export default function HomePage() {
     setData((prev) => ({
       ...prev,
       todayFocus: prev.todayFocus.map((i) => (i.key === key ? { ...i, status } : i)),
-      manualTodayEvents: prev.manualTodayEvents.map((i) => (i.key === key ? { ...i, status } : i)),
     }));
   };
 
-  const handleSaveManual = async (form: { type: string; title: string; note: string }, editKey?: string) => {
-    const isEdit = Boolean(editKey);
-    const payload = { type: form.type, title: form.title.trim(), note: form.note.trim() };
-    try {
-      if (isEdit) {
-        await api.put(`/api/today-focus/manual/${manualIdFromKey(editKey!)}`, payload);
-      } else {
-        await api.post("/api/today-focus/manual", payload);
-      }
-    } catch {
-      showToast(t("common.saveFailed") || "Save failed");
-      throw new Error("Save failed");
-    }
-    await fetchData();
-  };
-
-  const handleDeleteManual = async (item: FocusItem) => {
-    try {
-      await api.del(`/api/today-focus/manual/${manualIdFromKey(item.key)}`);
-    } catch {
-      showToast(t("common.deleteFailed") || "Delete failed");
-      throw new Error("Delete failed");
-    }
-    await fetchData();
-  };
-
   /* ── Progress calculation ── */
-  const allFocusItems = [...data.todayFocus, ...data.manualTodayEvents];
-  const totalFocus = allFocusItems.length;
-  const completedFocus = allFocusItems.filter((i) => i.status === "completed").length;
+  const totalFocus = data.todayFocus.length;
+  const completedFocus = data.todayFocus.filter((i) => i.status === "completed").length;
 
   /* ── Inline insight sections state ── */
-  const { settings, save } = useAppSettings();
+  const { settings } = useAppSettings();
 
-  // Protocol state
-  const protocolState: { date: string; checks: Record<string, boolean> } = useMemo(() => {
-    try {
-      const raw = settings?.evolution_protocol ? JSON.parse(settings.evolution_protocol) : null;
-      const today = todayDateKey();
-      if (raw && raw.date === today) return raw;
-      return { date: today, checks: {} };
-    } catch { return { date: todayDateKey(), checks: {} }; }
-  }, [settings?.evolution_protocol]);
-
-  const protocolStreak: { count: number; lastDate: string } = useMemo(() => {
-    try { return settings?.protocol_streak ? JSON.parse(settings.protocol_streak) : { count: 0, lastDate: "" }; } catch { return { count: 0, lastDate: "" }; }
-  }, [settings?.protocol_streak]);
-
-  const protocolDone = PROTOCOL_STEPS.filter((s) => protocolState.checks[s.id]).length;
-
-  const toggleProtocolStep = async (stepId: string) => {
-    const today = todayDateKey();
-    const newChecks = { ...protocolState.checks, [stepId]: !protocolState.checks[stepId] };
-    const newState = { date: today, checks: newChecks };
-    await save("evolution_protocol", JSON.stringify(newState));
-
-    // Update streak
-    const allDone = PROTOCOL_STEPS.every((s) => newChecks[s.id]);
-    let newStreak = { ...protocolStreak };
-    if (allDone) {
-      const yesterday = dateToKey(new Date(Date.now() - 86400000));
-      newStreak = {
-        count: protocolStreak.lastDate === yesterday ? protocolStreak.count + 1 : 1,
-        lastDate: today,
-      };
-    } else if (protocolStreak.lastDate === today) {
-      newStreak = { count: Math.max(0, protocolStreak.count - 1), lastDate: "" };
-    }
-    await save("protocol_streak", JSON.stringify(newStreak));
-    invalidateSettingsCache();
-  };
 
   const [reportOpen, setReportOpen] = useState(false);
   const displayName = operatorName.trim() || "Solo CEO";
@@ -264,44 +185,41 @@ export default function HomePage() {
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     const ref = touchStartRef.current;
     if (ref.decided) {
-      // If we decided this is a horizontal swipe, prevent vertical scroll
       if (ref.isHorizontal) e.preventDefault();
       return;
     }
     const t = e.touches[0];
     const dx = Math.abs(t.clientX - ref.x);
     const dy = Math.abs(t.clientY - ref.y);
-    // Need at least 8px of movement to decide direction
     if (dx + dy < 8) return;
     ref.decided = true;
-    ref.isHorizontal = dx > dy * 1.2; // bias slightly toward vertical (natural scroll)
+    ref.isHorizontal = dx > dy * 1.2;
   }, []);
 
   return (
     <div ref={scrollRef} className="mobile-page max-w-[1680px] mx-auto min-h-full p-4 md:p-6 lg:p-8 relative">
       <div className="page-stack">
-        {/* ── Header: Greeting + Progress Ring + Date ── */}
-        <div className="flex items-center gap-3">
-          <ProgressRing completed={completedFocus} total={totalFocus} />
+        {/* ── Header: Greeting + Name + Date ── */}
+        <div className="flex items-center justify-between">
           <div className="flex-1 min-w-0">
-            <p className="text-[13px]" style={{ color: "var(--color-text-quaternary)" }}>{greeting(t)}</p>
-            <h1 className="text-[17px] tracking-tight truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
+            <div className="flex items-center gap-2">
+              <p className="text-[13px]" style={{ color: "var(--color-text-tertiary)" }}>{greeting(t)}</p>
+              <span className="text-[12px]" style={{ color: "var(--color-text-quaternary)" }}>{todayStr(lang)}</span>
+            </div>
+            <h1 className="text-[22px] tracking-tight truncate mt-0.5" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
               {displayName}
             </h1>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            {totalFocus > 0 && <ProgressRing completed={completedFocus} total={totalFocus} />}
             <button
               onClick={() => setReportOpen(true)}
-              className="flex items-center gap-1 px-2 py-1 rounded-[var(--radius-4)] transition-colors hover:bg-[var(--color-bg-quaternary)]"
-              style={{ color: "var(--color-text-quaternary)" }}
+              className="flex items-center justify-center rounded-[var(--radius-8)] transition-colors hover:bg-[var(--color-bg-quaternary)]"
+              style={{ width: 36, height: 36, color: "var(--color-text-tertiary)" }}
               title={t("home.report.generate")}
             >
-              <BarChart3 size={14} />
-              <span className="text-[13px] hidden sm:inline" style={{ fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-                {t("home.report.generate")}
-              </span>
+              <BarChart3 size={16} />
             </button>
-            <span className="text-[13px]" style={{ color: "var(--color-text-quaternary)" }}>{todayStr(lang)}</span>
           </div>
         </div>
 
@@ -330,12 +248,11 @@ export default function HomePage() {
         >
             {/* ── Panel 1: Dashboard ── */}
             <div className="home-swipe-panel">
-              <div className="flex flex-col" style={{ gap: 20 }}>
+              <div className="flex flex-col" style={{ gap: 28 }}>
 
-              {/* ═══ PRIMARY: KPIs + Goal — the first thing you see ═══ */}
+              {/* ═══ PRIMARY: Monthly Income + Goal + Stats ═══ */}
               <KPIGrid
-                mrr={data.mrr || 0}
-                ytdRevenue={data.ytdRevenue || 0}
+                monthlyIncome={data.monthlyIncome || 0}
                 todayIncome={data.todayIncome || 0}
                 clientsCount={data.clientsCount || 0}
                 leadsCount={data.leadsCount || 0}
@@ -343,31 +260,23 @@ export default function HomePage() {
                 personalTasks={data.personalTasks || 0}
                 loading={loading}
               />
-              <MonthlyGoal monthlyIncome={data.monthlyIncome || 0} loading={loading} />
 
               {/* ═══ SECONDARY: Today's action items ═══ */}
-              <div className="section-gap">
-                <TodayFocus
-                  todayFocus={data.todayFocus}
-                  manualEvents={data.manualTodayEvents}
-                  loading={loading}
-                  onUpdateStatus={handleUpdateStatus}
-                  onSaveManual={handleSaveManual}
-                  onDeleteManual={handleDeleteManual}
-                  openFormTrigger={fabTrigger}
-                />
-              </div>
+              <TodayFocus
+                todayFocus={data.todayFocus}
+                loading={loading}
+                onUpdateStatus={handleUpdateStatus}
+              />
 
-              {/* ═══ TERTIARY: Growth System — 原则 → 协议 → 突围 ═══ */}
-              <div className="section-gap flex flex-col" style={{ gap: 16 }}>
+              {/* ═══ SECONDARY: Unified Memo ═══ */}
+              <HomeMemoSection />
+
+              {/* ═══ TERTIARY: Growth System ═══ */}
+              <div className="flex flex-col" style={{ gap: 24 }}>
                 <KnowledgeBaseSection />
                 <ProtocolSection
                   title={t("home.dailyProtocol")}
                   steps={PROTOCOL_STEPS}
-                  state={protocolState}
-                  streak={protocolStreak}
-                  doneCount={protocolDone}
-                  onToggle={toggleProtocolStep}
                   lang={lang}
                 />
                 <BreakthroughSection />
@@ -407,4 +316,3 @@ export default function HomePage() {
     </div>
   );
 }
-

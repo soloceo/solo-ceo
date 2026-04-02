@@ -84,7 +84,7 @@ export function BottomSheet({ open, onClose, title, children, className }: Botto
             transition={{ type: "spring", stiffness: 320, damping: 30 }}
             className={cn(
               "relative w-full max-h-[90vh] flex flex-col overflow-hidden",
-              "rounded-t-[var(--radius-16)]",
+              "rounded-t-[var(--radius-12)]",
               className,
             )}
             style={{

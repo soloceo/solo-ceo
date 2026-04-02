@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useT } from "../../i18n/context";
 import { useAppSettings, invalidateSettingsCache } from "../../hooks/useAppSettings";
-import { ChevronDown, ChevronRight, Circle, CheckCircle2 } from "lucide-react";
+import { ChevronDown, ChevronRight, CheckCircle2 } from "lucide-react";
 import { PHASES } from "../../data/breakthrough-tasks";
 
 export function BreakthroughSection() {
@@ -45,34 +45,37 @@ export function BreakthroughSection() {
       {/* Header */}
       <button
         onClick={() => setBreakthroughExpanded((v) => !v)}
-        className="w-full text-left press-feedback mb-2"
+        className="w-full text-left press-feedback mb-3"
       >
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2.5 mb-2.5">
           <span className="text-[16px]">{activePhase.strategy.emoji}</span>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
-                {t("home.breakthroughPhase")} · {activePhase.label[lang as "zh" | "en"]}
-              </span>
-              <span className="text-[13px] tabular-nums" style={{ color: "var(--color-text-quaternary)" }}>
-                {phaseDone}/{phaseTotal}
-              </span>
-            </div>
+            <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
+              {t("home.breakthroughPhase")} · {activePhase.label[lang as "zh" | "en"]}
+            </span>
           </div>
-          <span className="text-[15px] tabular-nums shrink-0" style={{ color: phasePct === 100 ? "var(--color-success)" : "var(--color-accent)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
-            {phasePct}%
+          <span
+            className="text-[12px] tabular-nums px-2 py-0.5 rounded-[var(--radius-4)]"
+            style={{
+              background: "var(--color-bg-tertiary)",
+              color: phasePct === 100 ? "var(--color-success)" : "var(--color-text-secondary)",
+              fontWeight: "var(--font-weight-bold)",
+            } as React.CSSProperties}
+          >
+            {phaseDone}/{phaseTotal}
           </span>
           {breakthroughExpanded ? <ChevronDown size={14} style={{ color: "var(--color-text-quaternary)" }} /> : <ChevronRight size={14} style={{ color: "var(--color-text-quaternary)" }} />}
         </div>
-        {/* Progress bar */}
-        <div className="progress-track">
+        {/* Progress bar — thicker */}
+        <div className="progress-track" style={{ height: 6 }}>
           <div
             className="progress-fill"
             style={{
               width: `${Math.max(phasePct, 2)}%`,
+              borderRadius: 3,
               background: phasePct === 100
                 ? "var(--color-success)"
-                : "linear-gradient(90deg, var(--color-accent), color-mix(in srgb, var(--color-accent) 70%, var(--color-warning)))",
+                : "var(--color-accent)",
             }}
           />
         </div>
@@ -117,29 +120,33 @@ export function BreakthroughSection() {
                 );
               })}
             </div>
-            {/* Task checklist */}
-            <div className="card overflow-hidden divide-y divide-[var(--color-line-secondary)]">
-              {activePhase.tasks.map((task) => {
-                const checked = !!breakthroughTasks[activePhase.id]?.[task.id];
-                return (
-                  <button
-                    key={task.id}
-                    onClick={(e) => { e.stopPropagation(); toggleBreakthroughTask(activePhase.id, task.id); }}
-                    className="flex items-start gap-3 text-left text-[14px] w-full px-3 py-2.5 press-feedback transition-colors hover:bg-[var(--color-bg-tertiary)]"
-                    style={{
-                      color: checked ? "var(--color-text-quaternary)" : "var(--color-text-primary)",
-                    }}
-                  >
-                    {checked
-                      ? <CheckCircle2 size={18} className="shrink-0 mt-0.5" style={{ color: "var(--color-accent)" }} />
-                      : <Circle size={18} className="shrink-0 mt-0.5" style={{ color: "var(--color-border-secondary)" }} />
-                    }
-                    <span className="leading-relaxed" style={{ textDecoration: checked ? "line-through" : "none", opacity: checked ? 0.5 : 1 }}>
-                      {task.title[lang as "zh" | "en"]}
-                    </span>
-                  </button>
-                );
-              })}
+            {/* Task checklist — whitespace separated, no dividers */}
+            <div className="card overflow-hidden">
+              <div className="flex flex-col py-1">
+                {activePhase.tasks.map((task) => {
+                  const checked = !!breakthroughTasks[activePhase.id]?.[task.id];
+                  return (
+                    <button
+                      key={task.id}
+                      onClick={(e) => { e.stopPropagation(); toggleBreakthroughTask(activePhase.id, task.id); }}
+                      className="flex items-start gap-3 text-left text-[14px] w-full px-4 py-2.5 press-feedback transition-colors hover:bg-[var(--color-bg-tertiary)]"
+                      style={{
+                        color: checked ? "var(--color-text-quaternary)" : "var(--color-text-primary)",
+                      }}
+                    >
+                      {checked
+                        ? <div className="shrink-0 mt-0.5 flex items-center justify-center rounded-full" style={{ width: 20, height: 20, background: "var(--color-accent)" }}>
+                            <CheckCircle2 size={12} style={{ color: "var(--color-text-on-color)" }} />
+                          </div>
+                        : <div className="shrink-0 mt-0.5 rounded-full" style={{ width: 20, height: 20, border: "2px solid var(--color-border-secondary)" }} />
+                      }
+                      <span className="leading-relaxed" style={{ textDecoration: checked ? "line-through" : "none", opacity: checked ? 0.5 : 1 }}>
+                        {task.title[lang as "zh" | "en"]}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </motion.div>
         )}

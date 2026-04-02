@@ -9,7 +9,7 @@ import type { Task } from "./TaskCard";
 interface WorkMemoListProps {
   tasks: Task[];
   onRefresh: () => void;
-  scope?: "work-memo" | "personal";
+  scope?: "work-memo" | "personal" | "all";
   accentColor?: string;
 }
 
@@ -74,7 +74,8 @@ function TimePicker24({ value, onChange }: { value: string; onChange: (v: string
 
 export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", accentColor }: WorkMemoListProps) {
   const { t, lang } = useT();
-  const prefix = scope === "personal" ? "personal.memo" : "work.memo";
+  const prefix = scope === "all" ? "home.memo" : scope === "personal" ? "personal.memo" : "work.memo";
+  const createScope = scope === "all" ? "work-memo" : scope;
   const accent = accentColor || "var(--color-accent)";
   const [collapsed, setCollapsed] = useState(false);
   const [addingSimple, setAddingSimple] = useState(false);
@@ -97,7 +98,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
   const dayLabels = lang === "zh" ? SHORT_DAY_ZH : SHORT_DAY_EN;
 
   const memoTasks = useMemo(() =>
-    tasks.filter(t => t.scope === scope).sort((a, b) => {
+    tasks.filter(t => scope === "all" ? (t.scope === "work-memo" || t.scope === "personal") : t.scope === scope).sort((a, b) => {
       // undone first
       if (a.column === "done" && b.column !== "done") return 1;
       if (a.column !== "done" && b.column === "done") return -1;
@@ -176,7 +177,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
     setAddingSimple(false);
     api.post("/api/tasks", {
       title,
-      scope,
+      scope: createScope,
       column: "todo",
       priority: "Medium",
       ...(due ? { due } : {}),
@@ -193,7 +194,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
 
     if (!provider || !apiKey) {
       // No AI key — just create directly with text as title
-      await api.post("/api/tasks", { title: text, scope, column: "todo", priority: "Medium" });
+      await api.post("/api/tasks", { title: text, scope: createScope, column: "todo", priority: "Medium" });
       showToast(`✓ ${text}`);
       setAiInput("");
       onRefresh();
@@ -242,7 +243,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
       if (result) {
         await api.post("/api/tasks", {
           title: result.title || text,
-          scope,
+          scope: createScope,
           column: "todo",
           priority: "Medium",
           ...(result.due ? { due: result.due } : {}),
@@ -254,7 +255,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
     } catch (e) {
       console.warn('[WorkMemoList] AI parse failed, using fallback', e);
       // Fallback: create directly
-      await api.post("/api/tasks", { title: text, scope, column: "todo", priority: "Medium" });
+      await api.post("/api/tasks", { title: text, scope: createScope, column: "todo", priority: "Medium" });
       showToast(`✓ ${text}`);
       setAiInput("");
       onRefresh();
@@ -289,7 +290,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
           {t(`${prefix}.title`)}
         </span>
         {undoneCount > 0 && (
-          <span className="text-[12px] tabular-nums px-1.5 py-0.5 rounded-full" style={{ background: `color-mix(in srgb, ${accent} 12%, transparent)`, color: accent }}>
+          <span className="text-[12px] tabular-nums px-1.5 py-0.5 rounded-[var(--radius-4)]" style={{ background: "var(--color-bg-tertiary)", color: "var(--color-text-secondary)" }}>
             {undoneCount}
           </span>
         )}
@@ -317,7 +318,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
                   onClick={() => setSelectedDay(isSelected ? null : ds)}
                   className="flex-1 flex flex-col items-center py-1.5 transition-colors"
                   style={{
-                    background: isSelected ? `color-mix(in srgb, ${accent} 12%, transparent)` : "transparent",
+                    background: isSelected ? "var(--color-bg-tertiary)" : "transparent",
                   }}
                 >
                   <span className="text-[10px]" style={{
@@ -350,10 +351,10 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
             <div className="flex items-center justify-between px-3 py-1.5" style={{ background: "var(--color-bg-tertiary)" }}>
               <span className="text-[12px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
                 {selectedDay === todayStr
-                  ? t("work.memo.today")
+                  ? t(`${prefix}.today`)
                   : new Date(selectedDay + "T00:00:00").toLocaleDateString(lang === "zh" ? "zh-CN" : "en-US", { month: "short", day: "numeric", weekday: "short" })
                 }
-                {displayedMemos.length === 0 && ` — ${t("work.memo.noItems")}`}
+                {displayedMemos.length === 0 && ` — ${t(`${prefix}.noItems`)}`}
               </span>
               <button onClick={() => setSelectedDay(null)} className="btn-icon-sm">
                 <X size={12} />
@@ -363,15 +364,15 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
 
           {/* AI quick input */}
           <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "var(--color-line-secondary)" }}>
-            <Bot size={14} className="shrink-0" style={{ color: accent, opacity: 0.6 }} />
+            <Bot size={14} className="shrink-0" style={{ color: "var(--color-text-quaternary)" }} />
             <input
               type="text"
               value={aiInput}
               onChange={e => setAiInput(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) addMemoByAi(); }}
-              placeholder={scope === "personal"
-                ? (lang === "zh" ? "AI 快捷添加：周六 10am 看牙医..." : "AI: dentist Sat 10am...")
-                : (lang === "zh" ? "AI 快捷添加：下周三 2 点见客户..." : "AI: meet client Wed 2pm...")}
+              placeholder={lang === "zh"
+                ? "AI 快捷添加：下周三 2 点见客户..."
+                : "AI: meet client Wed 2pm..."}
               disabled={aiLoading}
               className="input-base flex-1 px-2 py-1.5 text-[13px]"
               style={{ background: "transparent", border: "none", boxShadow: "none" }}
@@ -395,7 +396,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
                     const datePart = selectedDay
                       ? null
                       : ds === todayStr
-                        ? t("work.memo.today")
+                        ? t(`${prefix}.today`)
                         : new Date(ds + "T00:00:00").toLocaleDateString(lang === "zh" ? "zh-CN" : "en-US", { month: "numeric", day: "numeric" });
                     if (datePart && timeStr) return `${datePart} ${timeStr}`;
                     if (datePart) return datePart;

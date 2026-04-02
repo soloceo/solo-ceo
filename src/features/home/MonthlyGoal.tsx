@@ -40,41 +40,48 @@ export function MonthlyGoal({ monthlyIncome, loading }: MonthlyGoalProps) {
 
   if (!loaded || loading) return null;
 
-  // No goal set — show set-goal prompt
+  // No goal set — clear CTA with description
   if (!goal) {
     return (
-      <button
-        onClick={() => { setDraft(""); setEditing(true); }}
-        className="card w-full flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[var(--color-bg-secondary)]"
-        style={{ textAlign: "left" }}
-      >
-        <div
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-6)]"
-          style={{ background: "color-mix(in srgb, var(--color-accent) 10%, transparent)", color: "var(--color-accent)" }}
-        >
-          <Target size={16} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <span className="text-[15px]" style={{ color: "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-            {t("home.goal.setGoal")}
-          </span>
-        </div>
-        {editing && (
-          <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-            <span className="text-[15px]" style={{ color: "var(--color-text-quaternary)" }}>$</span>
-            <input
-              ref={inputRef}
-              type="number"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={handleKeyDown}
-              onBlur={handleSave}
-              placeholder={t("home.goal.placeholder")}
-              className="input-base compact px-2 text-[15px] w-28"
-            />
+      <div className="card px-4 py-4">
+        <div className="flex items-center gap-3">
+          <div
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-8)]"
+            style={{ background: "var(--color-bg-tertiary)", color: "var(--color-text-tertiary)" }}
+          >
+            <Target size={20} />
           </div>
-        )}
-      </button>
+          <div className="flex-1 min-w-0">
+            {editing ? (
+              <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                <span className="text-[15px]" style={{ color: "var(--color-text-quaternary)" }}>$</span>
+                <input
+                  ref={inputRef}
+                  type="number"
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  onBlur={handleSave}
+                  placeholder={t("home.goal.placeholder")}
+                  className="input-base compact px-2 text-[15px] w-32"
+                />
+              </div>
+            ) : (
+              <button
+                onClick={() => { setDraft(""); setEditing(true); }}
+                className="text-left w-full"
+              >
+                <div className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
+                  {t("home.goal.setGoal")}
+                </div>
+                <div className="text-[12px] mt-0.5" style={{ color: "var(--color-text-tertiary)" }}>
+                  {t("home.goal.setGoalHint")}
+                </div>
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
     );
   }
 
@@ -93,9 +100,9 @@ export function MonthlyGoal({ monthlyIncome, loading }: MonthlyGoalProps) {
   const barColor = achieved ? "var(--color-success)" : "var(--color-accent)";
 
   return (
-    <div className="card px-4 py-3">
+    <div className="card px-4 py-3.5">
       {/* Header row */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-2.5">
         <div className="flex items-center gap-2">
           <div
             className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[var(--radius-4)]"
@@ -103,38 +110,50 @@ export function MonthlyGoal({ monthlyIncome, loading }: MonthlyGoalProps) {
           >
             {achieved ? <Check size={14} /> : <Target size={14} />}
           </div>
-          <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
+          <span className="text-[14px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
             {t("home.goal.title")}
           </span>
         </div>
-
-        {editing ? (
-          <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-            <span className="text-[15px]" style={{ color: "var(--color-text-quaternary)" }}>$</span>
-            <input
-              ref={inputRef}
-              type="number"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={handleKeyDown}
-              onBlur={handleSave}
-              className="input-base compact px-2 text-[15px] w-24"
-            />
-          </div>
-        ) : (
-          <button
-            onClick={() => { setDraft(String(goal)); setEditing(true); }}
-            className="btn-icon-sm"
-            aria-label="Edit goal"
-            title={t("home.goal.editGoal")}
+        <div className="flex items-center gap-2">
+          {/* Percentage badge */}
+          <span
+            className="text-[12px] tabular-nums px-1.5 py-0.5 rounded-[var(--radius-4)]"
+            style={{
+              background: "var(--color-bg-tertiary)",
+              color: achieved ? "var(--color-success)" : "var(--color-text-secondary)",
+              fontWeight: "var(--font-weight-bold)",
+            } as React.CSSProperties}
           >
-            <Edit2 size={12} />
-          </button>
-        )}
+            {percentage}%
+          </span>
+          {editing ? (
+            <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+              <span className="text-[15px]" style={{ color: "var(--color-text-quaternary)" }}>$</span>
+              <input
+                ref={inputRef}
+                type="number"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onBlur={handleSave}
+                className="input-base compact px-2 text-[15px] w-24"
+              />
+            </div>
+          ) : (
+            <button
+              onClick={() => { setDraft(String(goal)); setEditing(true); }}
+              className="btn-icon-sm"
+              aria-label="Edit goal"
+              title={t("home.goal.editGoal")}
+            >
+              <Edit2 size={12} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Progress bar */}
-      <div className="progress-track mb-2">
+      <div className="progress-track mb-2.5">
         <div
           className="progress-fill"
           style={{ width: `${percentage}%`, background: barColor }}
@@ -154,7 +173,7 @@ export function MonthlyGoal({ monthlyIncome, loading }: MonthlyGoalProps) {
         <div className="flex items-center gap-1">
           {achieved && <TrendingUp size={12} style={{ color: "var(--color-success)" }} />}
           <span
-            className="text-[13px]"
+            className="text-[12px]"
             style={{ color: achieved ? "var(--color-success)" : "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
           >
             {statusText}

@@ -3,15 +3,15 @@ import { cn } from "../../lib/cn";
 
 const variants = {
   primary: "bg-[var(--color-accent)] text-[var(--color-brand-text)] hover:bg-[var(--color-accent-hover)]",
-  secondary: "bg-transparent text-[var(--color-text-primary)] border border-[var(--color-border-secondary)] hover:bg-[var(--color-bg-tertiary)]",
+  secondary: "bg-transparent text-[var(--color-text-primary)] border border-[var(--color-border-primary)] hover:bg-[var(--color-bg-tertiary)]",
   ghost: "bg-transparent text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text-primary)]",
   danger: "bg-[var(--color-danger)] text-[var(--color-text-on-color)] hover:opacity-90",
 };
 
 const sizes = {
-  sm: "h-11 lg:h-8 px-4 lg:px-3 text-[15px] lg:text-[14px] gap-1.5 rounded-full",
-  md: "h-11 lg:h-9 px-4 lg:px-3.5 text-[15px] gap-1.5 rounded-full",
-  lg: "h-12 lg:h-10 px-5 text-[15px] gap-2 rounded-full",
+  sm: "h-11 lg:h-8 px-4 lg:px-3 text-[15px] lg:text-[14px] gap-1.5 rounded-md",
+  md: "h-11 lg:h-9 px-4 lg:px-3.5 text-[15px] gap-1.5 rounded-md",
+  lg: "h-12 lg:h-10 px-5 text-[15px] gap-2 rounded-md",
 };
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {

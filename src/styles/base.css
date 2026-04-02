@@ -61,9 +61,9 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-family: var(--font-regular);
-  font-size: 1rem;
-  line-height: 1.5;
-  letter-spacing: -0.013em;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-body);
+  letter-spacing: -0.005em;
   font-variant-numeric: tabular-nums;
   font-optical-sizing: auto;
   text-rendering: optimizeLegibility;
@@ -94,11 +94,45 @@ button:disabled {
 
 /* ── Section label ─────────────────────────────────────────────── */
 .section-label {
-  font-size: 0.6875rem;
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
-  color: var(--color-text-quaternary);
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+/* ── Heading scale (guide 1.2 — 1.25x ratio) ─────────────────── */
+.text-title-3xl {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-title);
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+}
+.text-title-2xl {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-title);
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+}
+.text-title-xl {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-heading);
+  letter-spacing: -0.015em;
+  color: var(--color-text-primary);
+}
+.text-title-lg {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-heading);
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
+}
+
+/* ── Paragraph constraint (guide 4.1) ─────────────────────────── */
+.text-prose {
+  max-width: var(--content-max-width);
+  line-height: var(--line-height-body);
 }
 
 /* ── Hide scrollbars globally ─────────────────────────────────── */

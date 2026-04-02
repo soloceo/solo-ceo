@@ -124,7 +124,7 @@ function BatteryShape({ level, color, s }: { level: number; color: string; s: (p
         )}
         <div className="absolute inset-0 flex items-center justify-center tabular-nums" style={{
           fontSize, fontWeight: 700, color: "var(--color-text-primary)",
-          textShadow: "0 1px 2px rgba(0,0,0,0.08)",
+          textShadow: "var(--shadow-low)",
         }}>
           {level}
         </div>

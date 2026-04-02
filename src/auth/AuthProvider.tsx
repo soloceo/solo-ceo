@@ -17,6 +17,7 @@ interface AuthCtx {
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
   enterOfflineMode: () => void;
+  exitOfflineMode: () => void;
 }
 
 const AuthContext = createContext<AuthCtx>({
@@ -28,6 +29,7 @@ const AuthContext = createContext<AuthCtx>({
   signIn: async () => ({}),
   signOut: async () => {},
   enterOfflineMode: () => {},
+  exitOfflineMode: () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -172,8 +174,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   }, []);
 
+  const exitOfflineMode = useCallback(() => {
+    setOfflineMode(false);
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, session, loading, offlineMode, signUp, signIn, signOut, enterOfflineMode }}>
+    <AuthContext.Provider value={{ user, session, loading, offlineMode, signUp, signIn, signOut, enterOfflineMode, exitOfflineMode }}>
       {children}
     </AuthContext.Provider>
   );

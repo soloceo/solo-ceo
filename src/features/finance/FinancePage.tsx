@@ -548,7 +548,7 @@ export default function FinancePage() {
           {/* AI Chat Input */}
           <div className="flex items-center gap-2 mb-3">
             <div className="relative flex-1">
-              <Bot size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--color-accent)" }} />
+              <Bot size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--color-text-quaternary)" }} />
               <input
                 type="text"
                 value={financeTab === "business" ? aiInput : ""}

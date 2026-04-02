@@ -102,7 +102,7 @@ export function Modal({ open, onClose, onSubmit, title, children, className, siz
             style={{
               background: "var(--color-bg-primary)",
               border: "1px solid var(--color-border-translucent)",
-              borderRadius: "var(--radius-20)",
+              borderRadius: "var(--radius-12)",
               boxShadow: "var(--shadow-high)",
             }}
           >

@@ -8,6 +8,7 @@ const variants = {
   danger: "bg-[var(--color-danger-light)] text-[var(--color-danger)]",
   accent: "bg-[var(--color-accent-tint)] text-[var(--color-accent)]",
   blue: "text-[var(--color-blue)]",
+  purple: "text-[var(--color-purple)]",
 };
 
 export interface BadgeProps {
@@ -21,6 +22,9 @@ export function Badge({ variant = "default", className, children, style }: Badge
   const baseStyle: React.CSSProperties = { fontWeight: "var(--font-weight-medium)" } as React.CSSProperties;
   if (variant === "blue") {
     baseStyle.background = "color-mix(in srgb, var(--color-blue) 10%, transparent)";
+  }
+  if (variant === "purple") {
+    baseStyle.background = "color-mix(in srgb, var(--color-purple) 10%, transparent)";
   }
   return (
     <span

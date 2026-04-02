@@ -10,7 +10,7 @@ import { exportCSV } from "../../lib/csv-export";
 import { todayDateKey } from "../../lib/date-utils";
 import {
   DndContext, DragOverlay, closestCorners,
-  PointerSensor, TouchSensor, useSensor, useSensors,
+  PointerSensor, useSensor, useSensors, useDroppable,
   type DragStartEvent, type DragEndEvent,
 } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
@@ -602,6 +602,20 @@ function useLeadDnd(leads: Record<string, Lead[]>, columns: LeadColumn[], onDrag
   return { sensors, activeId, activeLead, handleDragStart, handleDragEnd };
 }
 
+/** Wrapper that registers a droppable zone for a lead column */
+function LeadDroppableColumn({ colId, color, children }: { colId: string; color: string; children: React.ReactNode }) {
+  const { setNodeRef } = useDroppable({ id: colId });
+  return (
+    <div
+      ref={setNodeRef}
+      className="flex flex-col flex-1 min-h-0 rounded-[var(--radius-8)] overflow-hidden"
+      style={{ background: "var(--color-bg-tertiary)", borderTop: `2px solid ${color}` }}
+    >
+      {children}
+    </div>
+  );
+}
+
 /* ── Lead Kanban ──────────────────────────────────────────────── */
 function LeadKanban({ leads, columns, onDragEnd, onAdd, onEdit, onDelete, emptyText, leadScores }: LeadKanbanProps) {
   const { sensors, activeLead, handleDragStart, handleDragEnd } = useLeadDnd(leads, columns, onDragEnd);
@@ -623,8 +637,7 @@ function LeadKanban({ leads, columns, onDragEnd, onAdd, onEdit, onDelete, emptyT
                   <button onClick={() => onAdd(null, col.id)} className="btn-icon-sm" aria-label="Add lead"><Plus size={14} /></button>
                 </div>
                 <SortableContext id={col.id} items={itemIds} strategy={verticalListSortingStrategy}>
-                  <div className="flex flex-col flex-1 min-h-0 rounded-[var(--radius-8)] overflow-hidden"
-                    style={{ background: "var(--color-bg-tertiary)", borderTop: `2px solid ${col.color}` }}>
+                  <LeadDroppableColumn colId={col.id} color={col.color}>
                     <div className="flex-1 overflow-y-auto p-1.5 space-y-1 ios-scroll">
                       {!items.length && (
                         <div className="py-8 flex flex-col items-center gap-1.5">
@@ -636,7 +649,7 @@ function LeadKanban({ leads, columns, onDragEnd, onAdd, onEdit, onDelete, emptyT
                         <SortableLeadCard key={lead.id} lead={lead} onEdit={(l: Lead) => onEdit(l, col.id)} onDelete={onDelete} score={leadScores?.[lead.id]} />
                       ))}
                     </div>
-                  </div>
+                  </LeadDroppableColumn>
                 </SortableContext>
               </div>
             );
@@ -670,8 +683,7 @@ function LeadSwimlane({ leads, columns, onDragEnd, onAdd, onEdit, onDelete, onMo
                 <button onClick={() => onAdd(null, col.id)} className="btn-icon-sm" aria-label="Add lead"><Plus size={14} /></button>
               </div>
               <SortableContext id={col.id} items={itemIds} strategy={verticalListSortingStrategy}>
-                <div className="rounded-[var(--radius-8)] overflow-hidden"
-                  style={{ background: "var(--color-bg-tertiary)", borderTop: `2px solid ${col.color}` }}>
+                <LeadDroppableColumn colId={col.id} color={col.color}>
                   {!items.length ? (
                     <button onClick={() => onAdd(null, col.id)}
                       className="py-6 w-full text-center text-[13px] transition-colors hover:bg-[var(--color-bg-quaternary)] rounded-[var(--radius-6)] mx-auto my-1.5"
@@ -710,7 +722,7 @@ function LeadSwimlane({ leads, columns, onDragEnd, onAdd, onEdit, onDelete, onMo
                       })}
                     </div>
                   )}
-                </div>
+                </LeadDroppableColumn>
               </SortableContext>
             </section>
           );

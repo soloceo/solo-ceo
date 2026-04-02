@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { Plus, Filter, LayoutGrid, AlignJustify, Building2, User as UserIcon, Bot, Send, Loader2, Download } from "lucide-react";
+import { Plus, Filter, LayoutGrid, AlignJustify, Bot, Send, Loader2, Download } from "lucide-react";
 import { usePullToRefresh } from "../../hooks/usePullToRefresh";
-import { useSwipeTabs } from "../../hooks/useSwipeTabs";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import { exportCSV } from "../../lib/csv-export";
 import { useAppSettings } from "../../hooks/useAppSettings";
@@ -13,7 +12,6 @@ import { useRealtimeRefresh } from "../../hooks/useRealtimeRefresh";
 import { useUIStore } from "../../store/useUIStore";
 import { KanbanBoard, SwimlaneView, type ColDef } from "./KanbanBoard";
 import { TaskDetail, type TaskForm } from "./TaskDetail";
-import WorkMemoList from "./WorkMemoList";
 import type { Task } from "./TaskCard";
 
 type TaskMap = Record<string, Task[]>;
@@ -38,9 +36,6 @@ export default function WorkPage() {
   ], [t]);
 
   const { settings: appSettings } = useAppSettings();
-  const TABS = ["work", "personal"] as const;
-  const { activeTab: workTab, setActiveTab: setWorkTab, switchTo: switchWorkTab, swipeRef: workSwipeRef, handleScroll: handleWorkScroll, onTouchStart: handleWorkTouchStart, onTouchMove: handleWorkTouchMove } = useSwipeTabs(TABS, "work");
-  const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [aiInput, setAiInput] = useState("");
   const [aiParsing, setAiParsing] = useState(false);
   const [tasks, setTasks] = useState<TaskMap>({ todo: [], inProgress: [], review: [], done: [] });
@@ -70,7 +65,6 @@ export default function WorkPage() {
     try {
       const raw = await api.get<Task[]>("/api/tasks");
       const data = Array.isArray(raw) ? raw as Task[] : [];
-      setAllTasks(data);
       // Group work tasks only (exclude personal + work-memo) for kanban
       const workData = data.filter((t: Task) => t.scope !== "personal" && t.scope !== "work-memo");
       const grouped = workData.reduce((acc: TaskMap, t: Task) => {
@@ -106,10 +100,7 @@ export default function WorkPage() {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       if (detail?.type === "task") {
-        switchWorkTab("work");
         openPanel(null, "todo");
-      } else if (detail?.type === "personal-task") {
-        switchWorkTab("personal");
       }
     };
     window.addEventListener("quick-create", handler);
@@ -330,7 +321,7 @@ export default function WorkPage() {
       {/* AI task input */}
       <div className="flex items-center gap-2 mb-3">
         <div className="relative flex-1">
-          <Bot size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--color-accent)" }} />
+          <Bot size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--color-text-quaternary)" }} />
           <input
             type="text"
             value={aiInput}
@@ -374,123 +365,55 @@ export default function WorkPage() {
     </>
   );
 
-  /* ── Work memo section (visually separated above task kanban) ── */
-  const renderWorkMemo = () => (
-    <div className="mb-4 pb-3" style={{ borderBottom: "1px solid var(--color-border-secondary)" }}>
-      <WorkMemoList tasks={allTasks} onRefresh={fetchTasks} />
-    </div>
-  );
-
   return (
     <div ref={scrollRef} className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col p-4 md:p-6 lg:p-8 relative">
       <h1 className="sr-only">{t("nav.work")}</h1>
 
-      {/* ── Segmented Tab Switcher ── */}
-      <div className="page-tabs mb-2">
-        {(["work", "personal"] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => switchWorkTab(tab)}
-            data-active={workTab === tab}
-          >
-            {tab === "work" ? <Building2 size={13} /> : <UserIcon size={13} />}
-            {tab === "work" ? t("work.tab.work") : t("work.tab.personal")}
-          </button>
-        ))}
-      </div>
+      <div className="flex-1 flex flex-col">
+        {renderTaskControls()}
 
-      {/* ── Swipeable Panel Container ── */}
-      {/* Mobile kanban: render outside swipe container to avoid nested horizontal scroll conflict */}
-      {isMobile && viewMode === "vertical" ? (
-        <div className="flex-1 flex flex-col">
-          {workTab === "work" ? (
-            <>
-              {renderWorkMemo()}
-              {renderTaskControls()}
-              <KanbanBoard
-                columns={COLS}
-                tasks={filteredTasks}
-                onDragEnd={onDragEnd}
-                onAdd={(col) => openPanel(null, col)}
-                onEdit={(task) => openPanel(task, task.column)}
-                onDelete={handleDelete}
-                onClientClick={() => setActiveTab("clients")}
-                emptyText={t("work.empty")}
-                onPriorityChange={handlePriorityChange}
-                onDueChange={handleDueChange}
-                onColumnChange={handleMove}
-              />
-            </>
-          ) : (
-            <WorkMemoList tasks={allTasks} onRefresh={fetchTasks} scope="personal" accentColor="var(--color-info)" />
-          )}
-        </div>
-      ) : (
-      <div
-        ref={workSwipeRef}
-        onScroll={handleWorkScroll}
-        onTouchStart={handleWorkTouchStart}
-        onTouchMove={handleWorkTouchMove}
-        className="home-swipe-container flex-1"
-      >
-        {/* Panel 1: Work */}
-        <div className="home-swipe-panel flex flex-col">
-          {/* Memo — self-contained section at top */}
-          {renderWorkMemo()}
-
-          {/* Task controls + board below */}
-          {renderTaskControls()}
-
-          {/* Board */}
-          {isLoading ? (
-            <div className="flex-1 flex gap-3 animate-skeleton-in">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex-1 min-w-[220px] max-w-[360px] space-y-2">
-                  <Skeleton className="h-4 w-20" />
-                  <div className="space-y-1.5 p-1.5 rounded-[var(--radius-12)]" style={{ background: "var(--color-bg-tertiary)" }}>
-                    <Skeleton className="h-[72px] rounded-[var(--radius-12)]" />
-                    <Skeleton className="h-[72px] rounded-[var(--radius-12)]" />
-                  </div>
+        {isLoading ? (
+          <div className="flex-1 flex gap-3 animate-skeleton-in">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex-1 min-w-[220px] max-w-[360px] space-y-2">
+                <Skeleton className="h-4 w-20" />
+                <div className="space-y-1.5 p-1.5 rounded-[var(--radius-12)]" style={{ background: "var(--color-bg-tertiary)" }}>
+                  <Skeleton className="h-[72px] rounded-[var(--radius-12)]" />
+                  <Skeleton className="h-[72px] rounded-[var(--radius-12)]" />
                 </div>
-              ))}
-            </div>
-          ) : viewMode === "vertical" ? (
-            <div key="kanban" className="anim-fade flex-1 flex flex-col"><KanbanBoard
-              columns={COLS}
-              tasks={filteredTasks}
-              onDragEnd={onDragEnd}
-              onAdd={(col) => openPanel(null, col)}
-              onEdit={(task) => openPanel(task, task.column)}
-              onDelete={handleDelete}
-              onClientClick={() => setActiveTab("clients")}
-              emptyText={t("work.empty")}
-              onPriorityChange={handlePriorityChange}
-              onDueChange={handleDueChange}
-              onColumnChange={handleMove}
-            /></div>
-          ) : (
-            <div key="swimlane" className="anim-fade flex-1 flex flex-col"><SwimlaneView
-              columns={COLS}
-              tasks={filteredTasks}
-              onDragEnd={onDragEnd}
-              onAdd={(col) => openPanel(null, col)}
-              onEdit={(task) => openPanel(task, task.column)}
-              onDelete={handleDelete}
-              onMove={handleMove}
-              emptyText={t("work.empty")}
-              onPriorityChange={handlePriorityChange}
-              onDueChange={handleDueChange}
-              onColumnChange={handleMove}
-            /></div>
-          )}
-        </div>
-
-        {/* Panel 2: Personal */}
-        <div className="home-swipe-panel">
-          <WorkMemoList tasks={allTasks} onRefresh={fetchTasks} scope="personal" accentColor="var(--color-info)" />
-        </div>
+              </div>
+            ))}
+          </div>
+        ) : viewMode === "vertical" ? (
+          <div key="kanban" className="anim-fade flex-1 flex flex-col"><KanbanBoard
+            columns={COLS}
+            tasks={filteredTasks}
+            onDragEnd={onDragEnd}
+            onAdd={(col) => openPanel(null, col)}
+            onEdit={(task) => openPanel(task, task.column)}
+            onDelete={handleDelete}
+            onClientClick={() => setActiveTab("clients")}
+            emptyText={t("work.empty")}
+            onPriorityChange={handlePriorityChange}
+            onDueChange={handleDueChange}
+            onColumnChange={handleMove}
+          /></div>
+        ) : (
+          <div key="swimlane" className="anim-fade flex-1 flex flex-col"><SwimlaneView
+            columns={COLS}
+            tasks={filteredTasks}
+            onDragEnd={onDragEnd}
+            onAdd={(col) => openPanel(null, col)}
+            onEdit={(task) => openPanel(task, task.column)}
+            onDelete={handleDelete}
+            onMove={handleMove}
+            emptyText={t("work.empty")}
+            onPriorityChange={handlePriorityChange}
+            onDueChange={handleDueChange}
+            onColumnChange={handleMove}
+          /></div>
+        )}
       </div>
-      )}
 
       {/* Task Detail Panel */}
       <TaskDetail

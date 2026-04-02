@@ -4,11 +4,10 @@ import {
   DragOverlay,
   closestCorners,
   PointerSensor,
-  TouchSensor,
   useSensor,
   useSensors,
+  useDroppable,
   type DragStartEvent,
-  type DragOverEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -59,10 +58,6 @@ export function KanbanBoard({ columns, tasks, onDragEnd, onAdd, onEdit, onDelete
     setActiveId(event.active.id as string);
   }, []);
 
-  const handleDragOver = useCallback((_event: DragOverEvent) => {
-    // Visual feedback handled by CSS (isDraggingOver state not needed with DragOverlay)
-  }, []);
-
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     setActiveId(null);
     const { active, over } = event;
@@ -106,7 +101,6 @@ export function KanbanBoard({ columns, tasks, onDragEnd, onAdd, onEdit, onDelete
           sensors={sensors}
           collisionDetection={closestCorners}
           onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
         >
           {columns.map((col) => (
@@ -155,6 +149,7 @@ function KanbanColumn({ col, items, onAdd, onEdit, onDelete, onClientClick, empt
   onColumnChange?: (id: number, col: string) => void;
 }) {
   const itemIds = useMemo(() => items.map(t => t.id.toString()), [items]);
+  const { setNodeRef: setDropRef } = useDroppable({ id: col.id });
 
   return (
     <div className="flex flex-col flex-1 min-w-[240px] lg:min-w-0 h-full snap-start lg:snap-align-none" role="region" aria-label={col.title}>
@@ -176,6 +171,7 @@ function KanbanColumn({ col, items, onAdd, onEdit, onDelete, onClientClick, empt
 
       <SortableContext id={col.id} items={itemIds} strategy={verticalListSortingStrategy}>
         <div
+          ref={setDropRef}
           className="flex flex-col flex-1 min-h-0 rounded-[var(--radius-8)] overflow-hidden"
           role="list"
           style={{
@@ -303,13 +299,7 @@ export function SwimlaneView({ columns, tasks, onDragEnd, onAdd, onEdit, onDelet
               </div>
 
               <SortableContext id={col.id} items={itemIds} strategy={verticalListSortingStrategy}>
-                <div
-                  className="rounded-[var(--radius-8)] overflow-hidden"
-                  style={{
-                    background: "var(--color-bg-tertiary)",
-                    borderTop: `2px solid ${col.color}`,
-                  }}
-                >
+                <DroppableColumn colId={col.id} color={col.color}>
                   {!items.length ? (
                     <button
                       onClick={() => onAdd(col.id)}
@@ -335,7 +325,7 @@ export function SwimlaneView({ columns, tasks, onDragEnd, onAdd, onEdit, onDelet
                       ))}
                     </div>
                   )}
-                </div>
+                </DroppableColumn>
               </SortableContext>
             </section>
           );
@@ -352,5 +342,22 @@ export function SwimlaneView({ columns, tasks, onDragEnd, onAdd, onEdit, onDelet
         ) : null}
       </DragOverlay>
     </DndContext>
+  );
+}
+
+/** Wrapper that registers a droppable zone for a column */
+function DroppableColumn({ colId, color, children }: { colId: string; color: string; children: React.ReactNode }) {
+  const { setNodeRef } = useDroppable({ id: colId });
+  return (
+    <div
+      ref={setNodeRef}
+      className="rounded-[var(--radius-8)] overflow-hidden"
+      style={{
+        background: "var(--color-bg-tertiary)",
+        borderTop: `2px solid ${color}`,
+      }}
+    >
+      {children}
+    </div>
   );
 }

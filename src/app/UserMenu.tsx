@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Moon, Sun, Monitor, SettingsIcon, LogOut } from "lucide-react";
+import { Moon, Sun, Monitor, SettingsIcon, LogOut, LogIn } from "lucide-react";
 import { useT } from "../i18n/context";
 import { Avatar } from "../components/ui";
 import { SyncIndicator } from "./SyncIndicator";
@@ -21,6 +21,7 @@ export interface UserMenuProps {
   setThemeMode: (mode: ThemeMode) => void;
   setActiveTab: (tab: string) => void;
   onSignOut: () => void;
+  onSignIn?: () => void;
 }
 
 const themeModes: { value: ThemeMode; icon: typeof Sun; labelKey: string }[] = [
@@ -42,6 +43,7 @@ export function UserMenu({
   setThemeMode,
   setActiveTab,
   onSignOut,
+  onSignIn,
 }: UserMenuProps) {
   const { t } = useT();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -229,16 +231,28 @@ export function UserMenu({
                 margin: "2px 0",
               }}
             />
-            {/* Sign out */}
-            <button
-              onClick={handleSignOut}
-              role="menuitem"
-              className="flex items-center gap-3 w-full px-3 py-2 text-[15px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
-              style={{ color: "var(--color-danger)" }}
-            >
-              <LogOut size={14} aria-hidden="true" />
-              {t("common.signOut") || "Sign out"}
-            </button>
+            {/* Sign out / Sign in */}
+            {user ? (
+              <button
+                onClick={handleSignOut}
+                role="menuitem"
+                className="flex items-center gap-3 w-full px-3 py-2 text-[15px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
+                style={{ color: "var(--color-danger)" }}
+              >
+                <LogOut size={14} aria-hidden="true" />
+                {t("common.signOut") || "Sign out"}
+              </button>
+            ) : (
+              <button
+                onClick={() => { setUserMenuOpen(false); onSignIn?.(); }}
+                role="menuitem"
+                className="flex items-center gap-3 w-full px-3 py-2 text-[15px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
+                style={{ color: "var(--color-accent)" }}
+              >
+                <LogIn size={14} aria-hidden="true" />
+                {t("auth.loginOrRegister") || "Sign in"}
+              </button>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
