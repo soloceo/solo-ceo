@@ -101,6 +101,8 @@ export async function triggerFullSync(): Promise<void> {
 
 let initialized = false;
 let authSubscription: { unsubscribe: () => void } | null = null;
+let onlineHandler: (() => void) | null = null;
+let visibilityHandler: (() => void) | null = null;
 
 export function initSyncManager(): void {
   if (initialized) return;
@@ -116,16 +118,16 @@ export function initSyncManager(): void {
   authSubscription = data.subscription;
 
   // 2. Sync when coming back online
-  window.addEventListener('online', () => {
-    triggerFullSync();
-  });
+  onlineHandler = () => { triggerFullSync(); };
+  window.addEventListener('online', onlineHandler);
 
   // 3. Sync when app returns from background (tab/app switch)
-  document.addEventListener('visibilitychange', () => {
+  visibilityHandler = () => {
     if (!document.hidden && navigator.onLine) {
       triggerFullSync();
     }
-  });
+  };
+  document.addEventListener('visibilitychange', visibilityHandler);
 
   // 4. Try immediate sync on init
   triggerFullSync();
@@ -136,6 +138,14 @@ export function destroySyncManager(): void {
   if (authSubscription) {
     authSubscription.unsubscribe();
     authSubscription = null;
+  }
+  if (onlineHandler) {
+    window.removeEventListener('online', onlineHandler);
+    onlineHandler = null;
+  }
+  if (visibilityHandler) {
+    document.removeEventListener('visibilitychange', visibilityHandler);
+    visibilityHandler = null;
   }
   initialized = false;
   syncing = false;

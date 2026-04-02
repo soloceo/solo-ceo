@@ -78,21 +78,27 @@ async function getAllOps(): Promise<QueuedOp[]> {
 
 async function removeOp(id: number): Promise<void> {
   const db = await openQueueDb();
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
     tx.objectStore(STORE_NAME).delete(id);
     tx.oncomplete = () => resolve();
-    tx.onerror = () => resolve();
+    tx.onerror = () => {
+      console.warn('[offline-queue] removeOp failed for id:', id, tx.error);
+      reject(tx.error);
+    };
   });
 }
 
 async function updateOp(op: QueuedOp): Promise<void> {
   const db = await openQueueDb();
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
     tx.objectStore(STORE_NAME).put(op);
     tx.oncomplete = () => resolve();
-    tx.onerror = () => resolve();
+    tx.onerror = () => {
+      console.warn('[offline-queue] updateOp failed for id:', op.id, tx.error);
+      reject(tx.error);
+    };
   });
 }
 

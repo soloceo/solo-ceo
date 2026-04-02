@@ -1170,12 +1170,13 @@ export async function handleSupabaseRequest(
     if (!focusKey) return err(400, 'focusKey is required');
     const norm = status === 'completed' ? 'completed' : 'pending';
     const focusDate = todayDateKey();
-    await supabase
+    const { error: ue } = await supabase
       .from('today_focus_state')
       .upsert(
         { user_id: userId, focus_date: focusDate, focus_key: String(focusKey), status: norm },
         { onConflict: 'user_id,focus_date,focus_key' },
       );
+    if (ue) return err(500, ue.message);
     return ok({ success: true, focusKey: String(focusKey), status: norm });
   }
 
@@ -1194,12 +1195,13 @@ export async function handleSupabaseRequest(
       .single();
     if (e) return err(500, e.message);
     const focusKey = `manual-${data!.id}`;
-    await supabase
+    const { error: ue2 } = await supabase
       .from('today_focus_state')
       .upsert(
         { user_id: userId, focus_date: focusDate, focus_key: focusKey, status: 'pending' },
         { onConflict: 'user_id,focus_date,focus_key' },
       );
+    if (ue2) return err(500, ue2.message);
     await logActivity(userId, 'today_focus', 'manual_created', `记录今日事件：${String(title).trim()}`, type ? `类型：${type}` : '', data!.id);
     return ok({ success: true, id: data!.id, focusKey });
   }
@@ -1426,12 +1428,13 @@ export async function handleSupabaseRequest(
   if (path === '/api/settings' && method === 'POST') {
     const entries = Object.entries(body || {});
     for (const [key, value] of entries) {
-      await supabase
+      const { error: ue } = await supabase
         .from('app_settings')
         .upsert(
           { user_id: userId, key, value: String(value ?? '') },
           { onConflict: 'user_id,key' },
         );
+      if (ue) return err(500, ue.message);
     }
     return ok({ success: true });
   }
