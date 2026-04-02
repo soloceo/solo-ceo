@@ -3,6 +3,13 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.18.1] - 2026-04-02
+
+### Added
+- **Memo scope toggle** — segmented control (工作/个人) in HomeMemoSection AI input and manual add form, allowing users to choose work or personal scope when creating memos from the dashboard
+
+---
+
 ## [2.18.0] - 2026-04-02
 
 ### Changed

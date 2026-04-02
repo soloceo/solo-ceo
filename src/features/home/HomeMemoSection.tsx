@@ -49,6 +49,49 @@ function TimePicker24({ value, onChange }: { value: string; onChange: (v: string
   );
 }
 
+/* ── Scope toggle (segmented control) ── */
+function ScopeToggle({ value, onChange, lang, size = "sm" }: {
+  value: "work-memo" | "personal";
+  onChange: (v: "work-memo" | "personal") => void;
+  lang: string;
+  size?: "sm" | "md";
+}) {
+  const py = size === "sm" ? "py-0.5" : "py-1";
+  const text = size === "sm" ? "text-[11px]" : "text-[12px]";
+  const iconSize = size === "sm" ? 10 : 12;
+  return (
+    <div
+      className="inline-flex items-center rounded-[var(--radius-6)] shrink-0"
+      style={{ background: "var(--color-bg-secondary)", padding: 2 }}
+    >
+      <button
+        onClick={() => onChange("work-memo")}
+        className={`inline-flex items-center gap-1 px-2 ${py} ${text} rounded-[var(--radius-4)] transition-all`}
+        style={{
+          fontWeight: 600,
+          background: value === "work-memo" ? "var(--color-bg-primary)" : "transparent",
+          color: value === "work-memo" ? "var(--color-accent)" : "var(--color-text-quaternary)",
+          boxShadow: value === "work-memo" ? "var(--shadow-low)" : "none",
+        }}
+      >
+        <Briefcase size={iconSize} /> {lang === "zh" ? "工作" : "Work"}
+      </button>
+      <button
+        onClick={() => onChange("personal")}
+        className={`inline-flex items-center gap-1 px-2 ${py} ${text} rounded-[var(--radius-4)] transition-all`}
+        style={{
+          fontWeight: 600,
+          background: value === "personal" ? "var(--color-bg-primary)" : "transparent",
+          color: value === "personal" ? "var(--color-info)" : "var(--color-text-quaternary)",
+          boxShadow: value === "personal" ? "var(--shadow-low)" : "none",
+        }}
+      >
+        <User size={iconSize} /> {lang === "zh" ? "个人" : "Me"}
+      </button>
+    </div>
+  );
+}
+
 /* ── Scope badge ── */
 function ScopeBadge({ scope, lang }: { scope: string; lang: string }) {
   const isPersonal = scope === "personal";
@@ -89,6 +132,7 @@ export function HomeMemoSection() {
   const [editTime, setEditTime] = useState("");
   const [aiInput, setAiInput] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
+  const [memoScope, setMemoScope] = useState<"work-memo" | "personal">("work-memo");
 
   const fetchTasks = useCallback(async () => {
     try {
@@ -168,7 +212,7 @@ export function HomeMemoSection() {
     if (!title) return;
     const due = buildDue(simpleDate, simpleTime);
     setSimpleTitle(""); setSimpleDate(""); setSimpleTime(""); setAddingSimple(false);
-    api.post("/api/tasks", { title, scope: "work-memo", column: "todo", priority: "Medium", ...(due ? { due } : {}) }).then(() => fetchTasks());
+    api.post("/api/tasks", { title, scope: memoScope, column: "todo", priority: "Medium", ...(due ? { due } : {}) }).then(() => fetchTasks());
   };
 
   const addMemoByAi = async () => {
@@ -180,7 +224,7 @@ export function HomeMemoSection() {
     const apiKey = provider ? appSettings?.[keyMap[provider]] : undefined;
 
     if (!provider || !apiKey) {
-      await api.post("/api/tasks", { title: text, scope: "work-memo", column: "todo", priority: "Medium" });
+      await api.post("/api/tasks", { title: text, scope: memoScope, column: "todo", priority: "Medium" });
       showToast(`✓ ${text}`);
       setAiInput(""); fetchTasks(); return;
     }
@@ -220,12 +264,12 @@ export function HomeMemoSection() {
       }
 
       if (result) {
-        await api.post("/api/tasks", { title: result.title || text, scope: "work-memo", column: "todo", priority: "Medium", ...(result.due ? { due: result.due } : {}) });
+        await api.post("/api/tasks", { title: result.title || text, scope: memoScope, column: "todo", priority: "Medium", ...(result.due ? { due: result.due } : {}) });
         showToast(`✓ ${result.title || text}`);
       }
       setAiInput(""); fetchTasks();
     } catch {
-      await api.post("/api/tasks", { title: text, scope: "work-memo", column: "todo", priority: "Medium" });
+      await api.post("/api/tasks", { title: text, scope: memoScope, column: "todo", priority: "Medium" });
       showToast(`✓ ${text}`);
       setAiInput(""); fetchTasks();
     } finally {
@@ -332,7 +376,7 @@ export function HomeMemoSection() {
             className="flex items-center gap-2.5 mx-3 my-2 px-3 py-2 rounded-[var(--radius-8)]"
             style={{ background: "var(--color-bg-tertiary)" }}
           >
-            <Bot size={15} className="shrink-0" style={{ color: "var(--color-text-quaternary)" }} />
+            <ScopeToggle value={memoScope} onChange={setMemoScope} lang={lang} />
             <input
               type="text" value={aiInput}
               onChange={e => setAiInput(e.target.value)}
@@ -470,6 +514,7 @@ export function HomeMemoSection() {
             {addingSimple && (
               <div className="p-2 mt-1 space-y-2 rounded-[var(--radius-8)]" style={{ background: "var(--color-bg-tertiary)" }}>
                 <div className="flex items-center gap-2">
+                  <ScopeToggle value={memoScope} onChange={setMemoScope} lang={lang} size="md" />
                   <input type="text" value={simpleTitle} onChange={e => setSimpleTitle(e.target.value)}
                     onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) addMemo(); if (e.key === "Escape") { setAddingSimple(false); setSimpleTitle(""); setSimpleDate(""); setSimpleTime(""); } }}
                     placeholder={t("home.memo.placeholder")} className="input-base flex-1 px-2.5 py-2 text-[14px]" autoFocus />
