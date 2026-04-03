@@ -118,7 +118,6 @@ export const home = {
   "evolution.resetProtocol": "重置",
   "evolution.allDone": "今日协议已全部完成！",
   "home.loadFailed": "加载仪表盘失败",
-  "widgets.title": "小工具",
   "widgets.store": "小工具",
   "widgets.addWidget": "添加小工具",
   "widgets.pomodoro": "番茄计时",

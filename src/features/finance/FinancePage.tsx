@@ -30,7 +30,6 @@ import { calcTaxAmount, catLabel, STATUS_I18N } from "../../lib/tax";
 import { todayDateKey } from "../../lib/date-utils";
 import { parseExpense, AI_KEY_MAP, type AIProvider } from "../../lib/ai-client";
 import { useAppSettings } from "../../hooks/useAppSettings";
-import { useSwipeTabs } from "../../hooks/useSwipeTabs";
 const FinanceChart = React.lazy(() => import("./FinanceChart"));
 import { StatCard, TxRow, VirtualTxList } from "./TransactionList";
 
@@ -111,8 +110,7 @@ export default function FinancePage() {
   const [savingTx, setSavingTx] = useState(false);
 
   /* ── UI state ── */
-  const FIN_TABS = ["business", "personal"] as const;
-  const { activeTab: financeTab, switchTo: switchFinanceTab, swipeRef: finSwipeRef, handleScroll: handleFinScroll, onTouchStart: handleFinTouchStart, onTouchMove: handleFinTouchMove } = useSwipeTabs(FIN_TABS, "business");
+  const [financeTab, setFinanceTab] = useState<"business" | "personal">("business");
   const [showPanel, setShowPanel] = useState(false);
   const [editingTx, setEditingTx] = useState<FinanceTransaction | null>(null);
   const [showAll, setShowAll] = useState(false);
@@ -181,8 +179,7 @@ export default function FinancePage() {
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      if (detail?.type === "transaction" || detail?.type === "biz-transaction") { switchFinanceTab("business"); openPanel(); }
-      else if (detail?.type === "personal-transaction") { switchFinanceTab("personal"); openPanel(); }
+      if (detail?.type === "transaction" || detail?.type === "biz-transaction") { openPanel(); }
     };
     window.addEventListener("quick-create", handler);
     return () => window.removeEventListener("quick-create", handler);
@@ -516,7 +513,7 @@ export default function FinancePage() {
           {(["business", "personal"] as const).map((tab) => (
             <button
               key={tab}
-              onClick={() => { switchFinanceTab(tab); setFilters({ type: "all", category: "all", status: "all", dateFrom: "", dateTo: "", search: "" }); }}
+              onClick={() => { setFinanceTab(tab); setFilters({ type: "all", category: "all", status: "all", dateFrom: "", dateTo: "", search: "" }); }}
               data-active={financeTab === tab}
             >
               {tab === "business" ? <Building2 size={13} /> : <UserIcon size={13} />}
@@ -533,16 +530,9 @@ export default function FinancePage() {
         </button>
       </div>
 
-      {/* ── Swipeable Panel Container ── */}
-      <div
-        ref={finSwipeRef}
-        onScroll={handleFinScroll}
-        onTouchStart={handleFinTouchStart}
-        onTouchMove={handleFinTouchMove}
-        className="home-swipe-container"
-      >
-        {/* Panel 1: Business */}
-        <div className="home-swipe-panel flex flex-col">
+      {/* ── Tab Content ── */}
+      {financeTab === "business" && (
+        <div className="flex flex-col">
           {/* AI Chat Input */}
           <div className="flex items-center gap-2 mb-3">
             <div className="relative flex-1">
@@ -634,9 +624,10 @@ export default function FinancePage() {
             </div>
           </div>
         </div>
+      )}
 
-        {/* Panel 2: Personal */}
-        <div className="home-swipe-panel flex flex-col">
+      {financeTab === "personal" && (
+        <div className="flex flex-col">
           {/* AI Chat Input */}
           <div className="flex items-center gap-2 mb-3">
             <div className="relative flex-1">
@@ -705,7 +696,7 @@ export default function FinancePage() {
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* ── Delete Confirmation ── */}
       {deleteId !== null && createPortal(
@@ -847,6 +838,33 @@ export default function FinancePage() {
 
               {/* Form */}
               <form id="finance-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto overflow-x-hidden p-5 space-y-3 ios-scroll">
+                {/* Scope toggle — only for new records */}
+                {!editingTx && (
+                  <div className="page-tabs" style={{ marginBottom: 4 }}>
+                    {(["business", "personal"] as const).map((tab) => (
+                      <button
+                        key={tab}
+                        type="button"
+                        onClick={() => {
+                          setFinanceTab(tab);
+                          setFormData(prev => ({
+                            ...prev,
+                            category: tab === "personal" ? PERSONAL_CATEGORIES_LIST[0] : BIZ_CATEGORIES[0],
+                            taxMode: tab === "personal" ? "none" : prev.taxMode,
+                            taxRate: tab === "personal" ? "" : prev.taxRate,
+                            client_id: tab === "personal" ? "" : prev.client_id,
+                            client_name: tab === "personal" ? "" : prev.client_name,
+                          }));
+                        }}
+                        data-active={financeTab === tab}
+                      >
+                        {tab === "business" ? <Building2 size={13} /> : <UserIcon size={13} />}
+                        {tab === "business" ? t("money.tab.business") : t("money.tab.personal")}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <FL>{t("money.form.date")}</FL>

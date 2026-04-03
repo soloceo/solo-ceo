@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef, lazy, Suspense } from "react";
+import React, { useEffect, useState, useRef, lazy, Suspense } from "react";
 import { useT } from "../../i18n/context";
 import { useRealtimeRefresh } from "../../hooks/useRealtimeRefresh";
 import { usePullToRefresh } from "../../hooks/usePullToRefresh";
@@ -102,46 +102,7 @@ export default function HomePage() {
   const [reportOpen, setReportOpen] = useState(false);
   const displayName = operatorName.trim() || "Solo CEO";
 
-  /* ── Dual-panel swipe state ── */
   const [homeView, setHomeView] = useState<"dashboard" | "widgets">("dashboard");
-  const swipeRef = useRef<HTMLDivElement>(null);
-  const touchStartRef = useRef<{ x: number; y: number; decided: boolean; isHorizontal: boolean }>({ x: 0, y: 0, decided: false, isHorizontal: false });
-
-  // Sync tab indicator when user swipes on mobile
-  const handleSwipeScroll = useCallback(() => {
-    const el = swipeRef.current;
-    if (!el) return;
-    const ratio = el.scrollLeft / el.clientWidth;
-    setHomeView(ratio > 0.5 ? "widgets" : "dashboard");
-  }, []);
-
-  // Tab button click → scroll to panel
-  const switchPanel = useCallback((panel: "dashboard" | "widgets") => {
-    setHomeView(panel);
-    const el = swipeRef.current;
-    if (!el) return;
-    el.scrollTo({ left: panel === "widgets" ? el.clientWidth : 0, behavior: "smooth" });
-  }, []);
-
-  // Touch gesture handlers — decide horizontal vs vertical intent
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    const t = e.touches[0];
-    touchStartRef.current = { x: t.clientX, y: t.clientY, decided: false, isHorizontal: false };
-  }, []);
-
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    const ref = touchStartRef.current;
-    if (ref.decided) {
-      if (ref.isHorizontal) e.preventDefault();
-      return;
-    }
-    const t = e.touches[0];
-    const dx = Math.abs(t.clientX - ref.x);
-    const dy = Math.abs(t.clientY - ref.y);
-    if (dx + dy < 8) return;
-    ref.decided = true;
-    ref.isHorizontal = dx > dy * 1.2;
-  }, []);
 
   return (
     <div ref={scrollRef} className="mobile-page max-w-[1680px] mx-auto min-h-full p-4 md:p-6 lg:p-8 relative">
@@ -174,7 +135,7 @@ export default function HomePage() {
           {(["dashboard", "widgets"] as const).map((tab) => (
             <button
               key={tab}
-              onClick={() => switchPanel(tab)}
+              onClick={() => setHomeView(tab)}
               data-active={homeView === tab}
             >
               {tab === "dashboard"
@@ -184,19 +145,8 @@ export default function HomePage() {
           ))}
         </div>
 
-        {/* ── Swipeable Panel Container ── */}
-        <div
-          ref={swipeRef}
-          onScroll={handleSwipeScroll}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          className="home-swipe-container"
-        >
-            {/* ── Panel 1: Dashboard ── */}
-            <div className="home-swipe-panel">
-              <div className="flex flex-col" style={{ gap: 28 }}>
-
-              {/* ═══ PRIMARY: Monthly Income + Goal + Stats ═══ */}
+        {homeView === "dashboard" && (
+          <div className="flex flex-col" style={{ gap: 28 }}>
               <KPIGrid
                 monthlyIncome={data.monthlyIncome || 0}
                 todayIncome={data.todayIncome || 0}
@@ -206,18 +156,12 @@ export default function HomePage() {
                 personalTasks={data.personalTasks || 0}
                 loading={loading}
               />
-
-              {/* ═══ SECONDARY: Today's action items ═══ */}
               <TodayFocus
                 todayFocus={data.todayFocus}
                 dueTodayItems={data.dueTodayItems}
                 loading={loading}
               />
-
-              {/* ═══ SECONDARY: Unified Memo ═══ */}
               <HomeMemoSection />
-
-              {/* ═══ TERTIARY: Growth System ═══ */}
               <div className="flex flex-col" style={{ gap: 24 }}>
                 <KnowledgeBaseSection />
                 <ProtocolSection
@@ -227,34 +171,16 @@ export default function HomePage() {
                 />
                 <BreakthroughSection />
               </div>
-
-            </div>
           </div>
+        )}
 
-          {/* ── Panel 2: Widgets ── */}
-          <div className="home-swipe-panel">
-            <div style={{ minHeight: 200 }}>
-              <Suspense fallback={null}>
-                <WidgetGrid />
-              </Suspense>
-            </div>
+        {homeView === "widgets" && (
+          <div style={{ minHeight: 200 }}>
+            <Suspense fallback={null}>
+              <WidgetGrid />
+            </Suspense>
           </div>
-        </div>
-
-        {/* Swipe dots indicator (mobile only) */}
-        <div className="flex items-center justify-center gap-1.5 md:hidden" style={{ marginTop: -8 }}>
-          {(["dashboard", "widgets"] as const).map((p) => (
-            <div
-              key={p}
-              className="rounded-full transition-all"
-              style={{
-                width: homeView === p ? 16 : 6,
-                height: 6,
-                background: homeView === p ? "var(--color-accent)" : "var(--color-bg-quaternary)",
-              }}
-            />
-          ))}
-        </div>
+        )}
       </div>
 
       {/* ── Weekly Report Modal ── */}

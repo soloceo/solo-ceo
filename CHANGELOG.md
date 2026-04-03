@@ -3,6 +3,24 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.22.1] - 2026-04-03
+
+### Changed
+- **Remove swipe navigation** — deleted `useSwipeTabs` hook; Finance and Home pages now use `useState` + conditional rendering (simpler, no iOS scroll-snap bugs)
+- **Widget grid always draggable** — removed edit-mode gate; widgets are directly draggable via 200ms TouchSensor (no extra tap needed)
+- **Finance quick-create** — added business/personal scope toggle inside the form panel so users can switch scope without closing
+
+### Fixed
+- **Chart animations restored** — re-enabled `isAnimationActive` and tooltip on mobile (disabled during swipe debugging)
+- **8 orphaned CSS classes removed** — `protocol-step/done/current`, `section-header`, `kpi-sub`, `input-error`, `avatar-ring`, `divider`
+- **Dead code cleaned** — removed `personal-transaction` unreachable branch, orphaned `widgets.title` i18n key, deprecated `-webkit-overflow-scrolling: touch`
+
+### Removed
+- `src/hooks/useSwipeTabs.ts` — no longer used anywhere
+- `.home-swipe-container` / `.home-swipe-panel` CSS classes
+
+---
+
 ## [2.22.0] - 2026-04-03
 
 ### Added

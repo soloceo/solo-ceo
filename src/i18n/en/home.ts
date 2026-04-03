@@ -118,7 +118,6 @@ export const home = {
   "evolution.resetProtocol": "Reset",
   "evolution.allDone": "All daily protocols completed!",
   "home.loadFailed": "Failed to load dashboard",
-  "widgets.title": "Widgets",
   "widgets.store": "Widgets",
   "widgets.addWidget": "Add Widget",
   "widgets.pomodoro": "Pomodoro",

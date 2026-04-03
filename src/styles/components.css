@@ -8,7 +8,6 @@
   /* ── Safe-area helpers ─────────────────────────────────────── */
   .pb-safe { padding-bottom: max(18px, env(safe-area-inset-bottom, 18px)); }
   .ios-scroll {
-    -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
     scrollbar-width: none;
   }
@@ -74,10 +73,6 @@
     color: var(--color-text-primary);
     font-weight: var(--font-weight-bold);
   }
-  .kpi-sub {
-    font-size: 12px;
-    font-weight: var(--font-weight-medium);
-  }
   @media (min-width: 768px) {
     .kpi-value { font-size: 24px; }
   }
@@ -88,44 +83,6 @@
   }
   @media (min-width: 768px) {
     .section-gap { margin-top: 12px; }
-  }
-
-  .section-header {
-    @apply flex items-center justify-between;
-    padding-bottom: 4px;
-  }
-
-  /* ── Home swipe panels ─────────────────────────────────────── */
-  .home-swipe-container {
-    display: flex;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-    overscroll-behavior-x: contain;
-  }
-  .home-swipe-container::-webkit-scrollbar { display: none; }
-
-  .home-swipe-panel {
-    flex: 0 0 100%;
-    min-width: 0;
-    max-width: 100%;
-    overflow: hidden;
-    scroll-snap-align: start;
-  }
-  /* Recharts registers onTouchStart/Move/End on .recharts-wrapper that do
-     synchronous Redux dispatches + elementFromPoint() on every touchmove.
-     This confuses the browser's scroll-vs-interaction heuristic and blocks
-     the parent scroll-snap from receiving horizontal gestures.
-     Fix: touch-action (compositor level) + pointer-events (JS level). */
-  @media (max-width: 1023px) {
-    .home-swipe-panel .recharts-responsive-container,
-    .home-swipe-panel .recharts-wrapper,
-    .home-swipe-panel .recharts-surface {
-      touch-action: none;
-      pointer-events: none;
-    }
   }
 
   /* ── Page tabs ──────────────────────────────────────────────── */
@@ -577,25 +534,6 @@
     color: var(--color-danger);
   }
 
-  /* ── Protocol step states ────────────────────────────────── */
-
-  .protocol-step {
-    border-left: 3px solid transparent;
-  }
-  .protocol-done {
-    opacity: 0.6;
-  }
-  .protocol-current {
-    border-left-color: var(--color-accent);
-  }
-
-  /* ── Input error state ─────────────────────────────────── */
-
-  .input-base.input-error {
-    border-color: var(--color-danger);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-danger) 15%, transparent);
-  }
-
   /* ── Progress bar ──────────────────────────────────────── */
 
   .progress-track {
@@ -758,12 +696,6 @@
   }
 }
 
-/* ── Protocol steps — thicker accent border ─────────────────── */
-[data-theme="neobrutalism"] .protocol-current {
-  border-left-width: 4px;
-  border-left-color: var(--color-accent);
-}
-
 /* ── KPI values — extra bold ─────────────────────────────────── */
 [data-theme="neobrutalism"] .kpi-value {
   font-weight: 900;
@@ -900,12 +832,6 @@
     box-shadow: var(--shadow-tiny);
     transform: translate(2px, 2px);
   }
-}
-
-/* ── Avatar — thick border ring ────────────────────────────── */
-[data-theme="neobrutalism"] .avatar-ring {
-  border: 3px solid var(--color-border-primary) !important;
-  box-shadow: var(--shadow-interactive);
 }
 
 /* ── Select dropdown — hard shadow on focus ────────────────── */
@@ -1320,14 +1246,6 @@
 /* ── Table header — translucent ───────────────────────────────── */
 [data-theme="glassmorphism"] .card table thead {
   background: var(--glass-bg);
-}
-
-/* ── Tectonic dividers — gradient line ───────────────────────── */
-[data-theme="glassmorphism"] hr,
-[data-theme="glassmorphism"] .divider {
-  border: none;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--glass-border), transparent);
 }
 
 /* ── Focus visible — soft glow ring ───────────────────────────── */

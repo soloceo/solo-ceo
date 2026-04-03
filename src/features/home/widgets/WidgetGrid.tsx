@@ -6,13 +6,11 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical } from "lucide-react";
-import { useT } from "../../../i18n/context";
 import { useWidgetStore } from "./useWidgetStore";
 import { WIDGET_REGISTRY, WidgetWrapper, WidgetPreviewProvider } from "./WidgetRegistry";
 
-function SortableWidget({ widget, editMode }: { widget: typeof WIDGET_REGISTRY[number] & { layoutIndex: number }; editMode: boolean }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: widget.id, disabled: !editMode });
+function SortableWidget({ widget }: { widget: typeof WIDGET_REGISTRY[number] & { layoutIndex: number } }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: widget.id });
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -21,14 +19,7 @@ function SortableWidget({ widget, editMode }: { widget: typeof WIDGET_REGISTRY[n
   };
 
   return (
-    <div ref={setNodeRef} {...attributes} className="relative group card overflow-hidden widget-card" style={style}>
-      {editMode && (
-        <div {...listeners} className="flex items-center justify-center mb-[-6px] relative cursor-grab" style={{ zIndex: 1, height: 14 }}>
-          <div className="flex items-center justify-center rounded-full" style={{ width: 32, height: 14, background: "var(--color-bg-tertiary)", color: "var(--color-text-quaternary)" }}>
-            <GripVertical size={10} />
-          </div>
-        </div>
-      )}
+    <div ref={setNodeRef} {...attributes} {...listeners} className="relative group card overflow-hidden widget-card touch-manipulation" style={style}>
       <div className="h-full">
         <WidgetPreviewProvider value={false}>
           <WidgetWrapper>
@@ -41,9 +32,7 @@ function SortableWidget({ widget, editMode }: { widget: typeof WIDGET_REGISTRY[n
 }
 
 export default function WidgetGrid() {
-  const { t } = useT();
   const { layout, reorder } = useWidgetStore();
-  const [editMode, setEditMode] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const sensors = useSensors(
@@ -81,28 +70,13 @@ export default function WidgetGrid() {
   if (enabledWidgets.length === 0) return null;
 
   return (
-    <section>
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-[12px]" style={{ color: "var(--color-text-quaternary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-          {t("widgets.title")}
-        </h2>
-        <button
-          onClick={() => setEditMode((e) => !e)}
-          className="flex items-center justify-center rounded-full transition-colors"
-          style={{ width: 24, height: 24, color: editMode ? "var(--color-accent)" : "var(--color-text-quaternary)" }}
-          aria-label="Edit layout"
-        >
-          <GripVertical size={12} />
-        </button>
-      </div>
-
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <SortableContext items={widgetIds} strategy={rectSortingStrategy}>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4" style={{ gap: 8 }}>
-            {enabledWidgets.map((widget) => (
-              <SortableWidget key={widget.id} widget={widget} editMode={editMode} />
-            ))}
-          </div>
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <SortableContext items={widgetIds} strategy={rectSortingStrategy}>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4" style={{ gap: 8 }}>
+          {enabledWidgets.map((widget) => (
+            <SortableWidget key={widget.id} widget={widget} />
+          ))}
+        </div>
         </SortableContext>
         <DragOverlay dropAnimation={{ duration: 200, easing: "cubic-bezier(0.25, 1, 0.5, 1)" }}>
           {activeWidget ? (
@@ -118,6 +92,5 @@ export default function WidgetGrid() {
           ) : null}
         </DragOverlay>
       </DndContext>
-    </section>
   );
 }
