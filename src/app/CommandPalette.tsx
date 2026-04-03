@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Command } from "cmdk";
 import { createPortal } from "react-dom";
-import { motion, AnimatePresence } from "motion/react";
 import {
   Home,
   ClipboardList,
@@ -35,7 +34,11 @@ const NAV_ITEMS = [
 type SearchResult = { type: "task" | "client" | "lead" | "finance"; id: number; title: string; sub?: string };
 
 export function CommandPalette() {
-  const { commandPaletteOpen, setCommandPaletteOpen, setActiveTab, themeMode, setThemeMode } = useUIStore();
+  const commandPaletteOpen = useUIStore((s) => s.commandPaletteOpen);
+  const setCommandPaletteOpen = useUIStore((s) => s.setCommandPaletteOpen);
+  const setActiveTab = useUIStore((s) => s.setActiveTab);
+  const themeMode = useUIStore((s) => s.themeMode);
+  const setThemeMode = useUIStore((s) => s.setThemeMode);
   const { t } = useT();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -111,34 +114,30 @@ export function CommandPalette() {
   const itemClass = "flex items-center gap-3 px-3 py-2 rounded-[var(--radius-6)] text-[15px] cursor-pointer transition-colors data-[selected=true]:bg-[var(--color-bg-tertiary)]";
 
   return createPortal(
-    <AnimatePresence>
-      {commandPaletteOpen && (
-        <motion.div
-          className="fixed inset-0 flex items-start justify-center pt-[20vh]"
-          style={{ zIndex: "var(--layer-command-menu)" } as React.CSSProperties}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.12 }}
-        >
-          <div
-            className="absolute inset-0 modal-overlay"
-            onClick={() => setCommandPaletteOpen(false)}
-          />
+    <div
+      className="fixed inset-0 flex items-start justify-center pt-[20vh] transition-opacity duration-150"
+      style={{
+        zIndex: "var(--layer-command-menu)",
+        opacity: commandPaletteOpen ? 1 : 0,
+        pointerEvents: commandPaletteOpen ? "auto" : "none",
+      } as React.CSSProperties}
+    >
+      <div
+        className="absolute inset-0 modal-overlay"
+        onClick={() => setCommandPaletteOpen(false)}
+      />
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96, y: -8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: -4 }}
-            transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Command palette"
-            className="relative w-full max-w-[520px] mx-4 overflow-hidden modal-content"
-            style={{
-              border: "1px solid var(--color-border-primary)",
-            }}
-          >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Command palette"
+        className="relative w-full max-w-[520px] mx-4 overflow-hidden modal-content transition-all duration-200"
+        style={{
+          border: "1px solid var(--color-border-primary)",
+          opacity: commandPaletteOpen ? 1 : 0,
+          transform: commandPaletteOpen ? "scale(1) translateY(0)" : "scale(0.96) translateY(-8px)",
+        }}
+      >
             <Command
               loop
               onKeyDown={(e) => { if (e.key === "Escape") setCommandPaletteOpen(false); }}
@@ -268,10 +267,8 @@ export function CommandPalette() {
                 <span className="flex items-center gap-1"><kbd className="inline-flex items-center px-1.5 py-0.5 text-[11px] rounded-[var(--radius-4)]" style={{ fontWeight: "var(--font-weight-medium)", background: "var(--color-bg-tertiary)", border: "1px solid var(--color-border-secondary)" } as React.CSSProperties}>esc</kbd> {t("app.cmdFooter.close") || "close"}</span>
               </div>
             </Command>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>,
+      </div>
+    </div>,
     document.body,
   );
 }

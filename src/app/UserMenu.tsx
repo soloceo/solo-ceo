@@ -1,5 +1,4 @@
 import React, { useState, useRef } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import { Moon, Sun, Monitor, SettingsIcon, LogOut, LogIn } from "lucide-react";
 import { useT } from "../i18n/context";
 import { Avatar } from "../components/ui";
@@ -112,150 +111,145 @@ export function UserMenu({
           </>
         )}
       </button>
-      <AnimatePresence>
-        {userMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 4 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 4 }}
-            transition={{ duration: 0.12, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="absolute bottom-[calc(100%+6px)] left-0 w-48 py-1 overflow-hidden"
-            role="menu"
+      <div
+        className="absolute bottom-[calc(100%+6px)] left-0 w-48 py-1 overflow-hidden transition-all duration-150 origin-bottom-left"
+        role="menu"
+        style={{
+          background: "var(--color-bg-primary)",
+          border: "1px solid var(--color-border-primary)",
+          borderRadius: "var(--radius-8)",
+          boxShadow: "var(--shadow-medium)",
+          zIndex: 10,
+          opacity: userMenuOpen ? 1 : 0,
+          transform: userMenuOpen ? "scale(1) translateY(0)" : "scale(0.95) translateY(4px)",
+          pointerEvents: userMenuOpen ? "auto" : "none",
+        }}
+      >
+        {/* User info header */}
+        <div
+          className="px-3 py-2"
+          style={{ borderBottom: "1px solid var(--color-line-tertiary)" }}
+        >
+          <div
+            className="text-[14px] truncate"
             style={{
-              background: "var(--color-bg-primary)",
-              border: "1px solid var(--color-border-primary)",
-              borderRadius: "var(--radius-8)",
-              boxShadow: "var(--shadow-medium)",
-              zIndex: 10,
-            }}
+              fontWeight: "var(--font-weight-medium)",
+              color: "var(--color-text-primary)",
+            } as React.CSSProperties}
           >
-            {/* User info header */}
+            {operatorDisplayName}
+          </div>
+          {user?.email && (
             <div
-              className="px-3 py-2"
-              style={{ borderBottom: "1px solid var(--color-line-tertiary)" }}
+              className="text-[13px] truncate mt-0.5"
+              style={{ color: "var(--color-text-quaternary)" }}
             >
-              <div
-                className="text-[14px] truncate"
+              {user.email}
+            </div>
+          )}
+        </div>
+        {/* Cloud status */}
+        <div
+          className="flex items-center gap-3 px-3 py-2 text-[14px]"
+          style={{ color: "var(--color-text-tertiary)" }}
+        >
+          <SyncIndicator
+            isOnline={isOnline}
+            syncStatus={syncStatus}
+            pendingOps={pendingOps}
+            compact
+          />
+          <span>
+            {isOnline
+              ? t("app.cloudConnected")
+              : t("app.offline")}
+          </span>
+        </div>
+        {/* Theme mode — 3-way segmented control */}
+        <div className="px-3 py-2">
+          <div
+            className="text-[12px] mb-1.5"
+            style={{ color: "var(--color-text-quaternary)" }}
+          >
+            {t("settings.colorMode") || "Color Mode"}
+          </div>
+          <div
+            className="flex rounded-[var(--radius-6)] overflow-hidden"
+            style={{ border: "1px solid var(--color-border-primary)" }}
+          >
+            {themeModes.map(({ value, icon: Icon }) => (
+              <button
+                key={value}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setThemeMode(value);
+                }}
+                className="flex-1 flex items-center justify-center gap-1 py-1.5 cursor-pointer transition-colors"
                 style={{
+                  background:
+                    themeMode === value
+                      ? "var(--color-accent)"
+                      : "transparent",
+                  color:
+                    themeMode === value
+                      ? "var(--color-text-on-color)"
+                      : "var(--color-text-tertiary)",
+                  fontSize: "12px",
                   fontWeight: "var(--font-weight-medium)",
-                  color: "var(--color-text-primary)",
                 } as React.CSSProperties}
+                title={t(`settings.theme${value.charAt(0).toUpperCase() + value.slice(1)}`) || value}
               >
-                {operatorDisplayName}
-              </div>
-              {user?.email && (
-                <div
-                  className="text-[13px] truncate mt-0.5"
-                  style={{ color: "var(--color-text-quaternary)" }}
-                >
-                  {user.email}
-                </div>
-              )}
-            </div>
-            {/* Cloud status */}
-            <div
-              className="flex items-center gap-3 px-3 py-2 text-[14px]"
-              style={{ color: "var(--color-text-tertiary)" }}
-            >
-              <SyncIndicator
-                isOnline={isOnline}
-                syncStatus={syncStatus}
-                pendingOps={pendingOps}
-                compact
-              />
-              <span>
-                {isOnline
-                  ? t("app.cloudConnected")
-                  : t("app.offline")}
-              </span>
-            </div>
-            {/* Theme mode — 3-way segmented control */}
-            <div className="px-3 py-2">
-              <div
-                className="text-[12px] mb-1.5"
-                style={{ color: "var(--color-text-quaternary)" }}
-              >
-                {t("settings.colorMode") || "Color Mode"}
-              </div>
-              <div
-                className="flex rounded-[var(--radius-6)] overflow-hidden"
-                style={{ border: "1px solid var(--color-border-primary)" }}
-              >
-                {themeModes.map(({ value, icon: Icon }) => (
-                  <button
-                    key={value}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setThemeMode(value);
-                    }}
-                    className="flex-1 flex items-center justify-center gap-1 py-1.5 cursor-pointer transition-colors"
-                    style={{
-                      background:
-                        themeMode === value
-                          ? "var(--color-accent)"
-                          : "transparent",
-                      color:
-                        themeMode === value
-                          ? "var(--color-text-on-color)"
-                          : "var(--color-text-tertiary)",
-                      fontSize: "12px",
-                      fontWeight: "var(--font-weight-medium)",
-                    } as React.CSSProperties}
-                    title={t(`settings.theme${value.charAt(0).toUpperCase() + value.slice(1)}`) || value}
-                  >
-                    <Icon size={13} />
-                    <span>{t(`settings.theme${value.charAt(0).toUpperCase() + value.slice(1)}`) || value}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            {/* Settings */}
-            <button
-              onClick={handleSettingsClick}
-              role="menuitem"
-              className="flex items-center gap-3 w-full px-3 py-2 text-[15px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
-              style={{ color: "var(--color-text-secondary)" }}
-            >
-              <SettingsIcon
-                size={14}
-                aria-hidden="true"
-                style={{ color: "var(--color-text-quaternary)" }}
-              />
-              {t("nav.settings")}
-            </button>
-            {/* Divider */}
-            <div
-              style={{
-                height: 1,
-                background: "var(--color-line-tertiary)",
-                margin: "2px 0",
-              }}
-            />
-            {/* Sign out / Sign in */}
-            {user ? (
-              <button
-                onClick={handleSignOut}
-                role="menuitem"
-                className="flex items-center gap-3 w-full px-3 py-2 text-[15px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
-                style={{ color: "var(--color-danger)" }}
-              >
-                <LogOut size={14} aria-hidden="true" />
-                {t("common.signOut") || "Sign out"}
+                <Icon size={13} />
+                <span>{t(`settings.theme${value.charAt(0).toUpperCase() + value.slice(1)}`) || value}</span>
               </button>
-            ) : (
-              <button
-                onClick={() => { setUserMenuOpen(false); onSignIn?.(); }}
-                role="menuitem"
-                className="flex items-center gap-3 w-full px-3 py-2 text-[15px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
-                style={{ color: "var(--color-accent)" }}
-              >
-                <LogIn size={14} aria-hidden="true" />
-                {t("auth.loginOrRegister") || "Sign in"}
-              </button>
-            )}
-          </motion.div>
+            ))}
+          </div>
+        </div>
+        {/* Settings */}
+        <button
+          onClick={handleSettingsClick}
+          role="menuitem"
+          className="flex items-center gap-3 w-full px-3 py-2 text-[15px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
+          style={{ color: "var(--color-text-secondary)" }}
+        >
+          <SettingsIcon
+            size={14}
+            aria-hidden="true"
+            style={{ color: "var(--color-text-quaternary)" }}
+          />
+          {t("nav.settings")}
+        </button>
+        {/* Divider */}
+        <div
+          style={{
+            height: 1,
+            background: "var(--color-line-tertiary)",
+            margin: "2px 0",
+          }}
+        />
+        {/* Sign out / Sign in */}
+        {user ? (
+          <button
+            onClick={handleSignOut}
+            role="menuitem"
+            className="flex items-center gap-3 w-full px-3 py-2 text-[15px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
+            style={{ color: "var(--color-danger)" }}
+          >
+            <LogOut size={14} aria-hidden="true" />
+            {t("common.signOut") || "Sign out"}
+          </button>
+        ) : (
+          <button
+            onClick={() => { setUserMenuOpen(false); onSignIn?.(); }}
+            role="menuitem"
+            className="flex items-center gap-3 w-full px-3 py-2 text-[15px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
+            style={{ color: "var(--color-accent)" }}
+          >
+            <LogIn size={14} aria-hidden="true" />
+            {t("auth.loginOrRegister") || "Sign in"}
+          </button>
         )}
-      </AnimatePresence>
+      </div>
     </div>
   );
 }

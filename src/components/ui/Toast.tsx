@@ -1,6 +1,5 @@
 import React from "react";
 import { Check } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
 import { useUIStore } from "../../store/useUIStore";
 import { useIsMobile } from "../../hooks/useIsMobile";
 
@@ -12,37 +11,32 @@ export function GlobalToast() {
   const isMobile = useIsMobile();
 
   return (
-    <AnimatePresence>
-      {toastMessage && (
-        <motion.div
-          role="status"
-          aria-live="polite"
-          initial={{ opacity: 0, y: 8, scale: 0.92 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -12, scale: 0.92 }}
-          transition={{ type: "spring", stiffness: 320, damping: 30 }}
-          className="fixed right-4 md:right-6 px-4 py-2 rounded-full flex items-center gap-2 text-[15px] toast"
-          style={{
-            zIndex: "var(--layer-toasts)",
-            bottom: isMobile ? "80px" : "24px",
-          } as React.CSSProperties}
+    <div
+      role="status"
+      aria-live="polite"
+      className="fixed right-4 md:right-6 px-4 py-2 rounded-full flex items-center gap-2 text-[15px] toast transition-all duration-200"
+      style={{
+        zIndex: "var(--layer-toasts)",
+        bottom: isMobile ? "80px" : "24px",
+        opacity: toastMessage ? 1 : 0,
+        transform: toastMessage ? "translateY(0) scale(1)" : "translateY(8px) scale(0.92)",
+        pointerEvents: toastMessage ? "auto" : "none",
+      } as React.CSSProperties}
+    >
+      <Check size={14} style={{ color: "var(--color-success)" }} />
+      <span>{toastMessage}</span>
+      {toastAction && toastActionLabel && (
+        <button
+          onClick={() => { toastAction(); clearToast(); }}
+          aria-label={toastActionLabel}
+          className="ml-1 px-2 py-0.5 rounded-[var(--radius-4)] text-[14px] transition-colors"
+          style={{ color: "var(--color-accent)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}
+          onMouseEnter={(e) => e.currentTarget.style.background = "color-mix(in srgb, var(--color-bg-primary) 20%, transparent)"}
+          onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
         >
-          <Check size={14} style={{ color: "var(--color-success)" }} />
-          <span>{toastMessage}</span>
-          {toastAction && toastActionLabel && (
-            <button
-              onClick={() => { toastAction(); clearToast(); }}
-              aria-label={toastActionLabel}
-              className="ml-1 px-2 py-0.5 rounded-[var(--radius-4)] text-[14px] transition-colors"
-              style={{ color: "var(--color-accent)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}
-              onMouseEnter={(e) => e.currentTarget.style.background = "color-mix(in srgb, var(--color-bg-primary) 20%, transparent)"}
-              onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-            >
-              {toastActionLabel}
-            </button>
-          )}
-        </motion.div>
+          {toastActionLabel}
+        </button>
       )}
-    </AnimatePresence>
+    </div>
   );
 }

@@ -1,5 +1,4 @@
 import React, { Suspense, lazy, useEffect, useRef, useState, useMemo } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import {
   Home as HomeIcon,
   ClipboardList,
@@ -105,12 +104,14 @@ function App() {
   const { user, loading: authLoading, offlineMode, signOut, exitOfflineMode } = useAuth();
   const { t } = useT();
 
-  const {
-    activeTab, setActiveTab,
-    sidebarExpanded, toggleSidebar,
-    themeMode, setThemeMode, toggleDarkMode,
-    hideMobileNav,
-  } = useUIStore();
+  const activeTab = useUIStore((s) => s.activeTab);
+  const setActiveTab = useUIStore((s) => s.setActiveTab);
+  const sidebarExpanded = useUIStore((s) => s.sidebarExpanded);
+  const toggleSidebar = useUIStore((s) => s.toggleSidebar);
+  const themeMode = useUIStore((s) => s.themeMode);
+  const setThemeMode = useUIStore((s) => s.setThemeMode);
+  const toggleDarkMode = useUIStore((s) => s.toggleDarkMode);
+  const hideMobileNav = useUIStore((s) => s.hideMobileNav);
 
   // Cycle: light → auto → dark → light
   const cycleTheme = () => {
@@ -121,13 +122,15 @@ function App() {
   const themeMobileIcon = themeMode === "dark" ? <Moon size={16} /> : themeMode === "auto" ? <Monitor size={16} /> : <Sun size={16} />;
   const themeLabel = t(`settings.theme${themeMode.charAt(0).toUpperCase() + themeMode.slice(1)}`) || themeMode;
 
-  const {
-    operatorName, operatorAvatar,
-    setOperator,
-    isOnline, setOnline,
-    syncStatus, setSyncStatus,
-    pendingOps, setPendingOps,
-  } = useSettingsStore();
+  const operatorName = useSettingsStore((s) => s.operatorName);
+  const operatorAvatar = useSettingsStore((s) => s.operatorAvatar);
+  const setOperator = useSettingsStore((s) => s.setOperator);
+  const isOnline = useSettingsStore((s) => s.isOnline);
+  const setOnline = useSettingsStore((s) => s.setOnline);
+  const syncStatus = useSettingsStore((s) => s.syncStatus);
+  const setSyncStatus = useSettingsStore((s) => s.setSyncStatus);
+  const pendingOps = useSettingsStore((s) => s.pendingOps);
+  const setPendingOps = useSettingsStore((s) => s.setPendingOps);
 
   const sidebarRef = useRef<HTMLElement>(null);
   const mainScrollRef = useRef<HTMLDivElement>(null);
@@ -549,31 +552,28 @@ function App() {
             {/* FAB — global quick-create menu */}
             {activeTab !== "settings" && (
               <div className="shrink-0 relative" ref={fabMenuRef} style={{ pointerEvents: "auto" }}>
-                <AnimatePresence>
-                  {fabMenuOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.92, y: 10 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.92, y: 10 }}
-                      transition={{ duration: 0.25, ease: [0.175, 0.885, 0.32, 2.2] }}
-                      className="absolute bottom-[56px] right-0 w-[180px] py-1.5 rounded-[var(--radius-16)] fab-glass-menu"
-                      role="menu"
+                <div
+                  className="absolute bottom-[56px] right-0 w-[180px] py-1.5 rounded-[var(--radius-16)] fab-glass-menu transition-all duration-200 origin-bottom-right"
+                  role="menu"
+                  style={{
+                    opacity: fabMenuOpen ? 1 : 0,
+                    transform: fabMenuOpen ? "scale(1) translateY(0)" : "scale(0.92) translateY(10px)",
+                    pointerEvents: fabMenuOpen ? "auto" : "none",
+                  }}
+                >
+                  {quickCreateItems.map((item, i) => (
+                    <button
+                      key={i}
+                      role="menuitem"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-[15px] transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback"
+                      style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
+                      onClick={() => { setFabMenuOpen(false); item.action(); }}
                     >
-                      {quickCreateItems.map((item, i) => (
-                        <button
-                          key={i}
-                          role="menuitem"
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-[15px] transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback"
-                          style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
-                          onClick={() => { setFabMenuOpen(false); item.action(); }}
-                        >
-                          <span style={{ color: "var(--color-text-tertiary)" }}>{item.icon}</span>
-                          {item.label}
-                        </button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                      <span style={{ color: "var(--color-text-tertiary)" }}>{item.icon}</span>
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
                 <button
                   onClick={() => setFabMenuOpen(!fabMenuOpen)}
                   className="flex items-center justify-center rounded-full press-feedback"
