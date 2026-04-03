@@ -3,6 +3,18 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.22.2] - 2026-04-03
+
+### Changed
+- **Performance: motion.js removed from critical path** — replaced `AnimatePresence`/`motion.div` with CSS transitions in Toast, UserMenu, QuickCreateMenu, CommandPalette, and FAB menu; motion (96KB) now lazy-loads only when page components need it; main bundle **556→523KB** (-6%)
+- **Zustand selector refactor** — App.tsx and CommandPalette.tsx use individual selectors instead of full store destructuring, preventing unnecessary App shell re-renders
+- **Spacing density unified** — KPI grid gap 10→12px, secondary card padding 14→12px, TodayFocus subtitle gap 2→4px; eliminated orphan spacing values
+
+### Fixed
+- **Mobile nav pill fully opaque on Glassmorphism** — Android WebView renders `backdrop-filter` poorly; nav pill now uses `var(--color-bg-primary)` with no blur, ensuring 100% readability on all devices
+
+---
+
 ## [2.22.1] - 2026-04-03
 
 ### Changed
