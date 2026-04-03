@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { Plus, X } from "lucide-react";
 import { useT } from "../../../i18n/context";
 import { useWidgetScale } from "./useWidgetScale";
+import { syncPref } from "../../../lib/settings-sync";
 
 const STORAGE_KEY = "solo-ceo-countdowns";
 const LEGACY_KEY = "solo-ceo-countdown";
@@ -53,7 +54,11 @@ function loadItems(): CountdownItem[] {
 }
 
 function saveItems(items: CountdownItem[]) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); } catch {}
+  try {
+    const json = JSON.stringify(items);
+    localStorage.setItem(STORAGE_KEY, json);
+    syncPref("COUNTDOWNS", json);
+  } catch {}
 }
 
 function calcDays(dateStr: string): number {

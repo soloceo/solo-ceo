@@ -417,15 +417,15 @@ export function HomeMemoSection() {
 
                   if (isEditing) {
                     return (
-                      <div key={task.id} className="px-2 py-3 space-y-2.5 rounded-[var(--radius-8)] anim-appear" style={{ background: "var(--color-bg-tertiary)" }}>
+                      <div key={task.id} className="inline-form px-2 py-3 space-y-2.5 rounded-[var(--radius-8)] anim-appear" style={{ background: "var(--color-bg-tertiary)" }}>
                         <input type="text" value={editTitle} onChange={e => setEditTitle(e.target.value)}
                           onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) saveEdit(); if (e.key === "Escape") cancelEdit(); }}
                           className="input-base w-full px-2.5 py-2 text-[14px]" autoFocus />
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-2">
                           <Calendar size={13} className="shrink-0" style={{ color: "var(--color-text-quaternary)" }} />
                           <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)}
-                            className="input-base px-2 py-1.5 text-[13px]" style={{ color: editDate ? "var(--color-text-primary)" : "var(--color-text-quaternary)" }} />
-                          <TimePicker24 value={editTime} onChange={setEditTime} />
+                            className="input-base flex-1 min-w-0 px-2 py-1 text-[13px]" style={{ color: editDate ? "var(--color-text-primary)" : "var(--color-text-quaternary)" }} />
+                          <div className="shrink-0"><TimePicker24 value={editTime} onChange={setEditTime} /></div>
                           {(editDate || editTime) && <button onClick={() => { setEditDate(""); setEditTime(""); }} className="btn-icon-sm"><X size={12} /></button>}
                         </div>
                         <div className="flex items-center gap-2">
@@ -516,18 +516,18 @@ export function HomeMemoSection() {
 
             {/* ── Manual add inline ── */}
             {addingSimple && (
-              <div className="p-2 mt-1 space-y-2 rounded-[var(--radius-8)]" style={{ background: "var(--color-bg-tertiary)" }}>
+              <div className="inline-form p-2 mt-1 space-y-2 rounded-[var(--radius-8)]" style={{ background: "var(--color-bg-tertiary)" }}>
                 <div className="flex items-center gap-2">
                   <ScopeToggle value={memoScope} onChange={setMemoScope} lang={lang} size="md" />
                   <input type="text" value={simpleTitle} onChange={e => setSimpleTitle(e.target.value)}
                     onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) addMemo(); if (e.key === "Escape") { setAddingSimple(false); setSimpleTitle(""); setSimpleDate(""); setSimpleTime(""); } }}
-                    placeholder={t("home.memo.placeholder")} className="input-base flex-1 px-2.5 py-2 text-[14px]" autoFocus />
+                    placeholder={t("home.memo.placeholder")} className="input-base flex-1 min-w-0 px-2.5 py-2 text-[14px]" autoFocus />
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
                   <Calendar size={13} className="shrink-0" style={{ color: "var(--color-text-quaternary)" }} />
                   <input type="date" value={simpleDate} onChange={e => setSimpleDate(e.target.value)}
-                    className="input-base px-2 py-1 text-[13px]" style={{ color: simpleDate ? "var(--color-text-primary)" : "var(--color-text-quaternary)" }} />
-                  <TimePicker24 value={simpleTime} onChange={setSimpleTime} />
+                    className="input-base flex-1 min-w-0 px-2 py-1 text-[13px]" style={{ color: simpleDate ? "var(--color-text-primary)" : "var(--color-text-quaternary)" }} />
+                  <div className="shrink-0"><TimePicker24 value={simpleTime} onChange={setSimpleTime} /></div>
                   {(simpleDate || simpleTime) && <button onClick={() => { setSimpleDate(""); setSimpleTime(""); }} className="btn-icon-sm"><X size={12} /></button>}
                 </div>
                 <div className="flex items-center gap-2">

@@ -3,6 +3,21 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.21.0] - 2026-04-02
+
+### Added
+- **Settings cloud sync** — theme, style, palette, widget layout, countdowns, and energy data now sync to Supabase `app_settings` table and restore on new devices
+- **Offline `app_settings` API** — GET/POST `/api/settings` routes in sql.js offline layer
+
+### Changed
+- **QuickCreate menu simplified** — flat 4-item list (task/lead/client/finance), removed personal items and group headers, items open create forms directly
+- **Notion-style page tabs** — `.page-tabs` changed from full-width underline tabs to left-aligned pill buttons
+- **Finance page layout** — merged tabs row and actions row into a single line
+- **Work page button** — "新建" renamed to "新建任务" for clarity
+- **Memo form mobile fix** — date/time inputs now use compact `.inline-form` sizing (36px on mobile vs 48px), date input flexes to fill available width, all controls on one row
+
+---
+
 ## [2.20.0] - 2026-04-02
 
 ### Added

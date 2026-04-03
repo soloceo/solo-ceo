@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { syncPref } from "../../../lib/settings-sync";
 
 export interface WidgetLayout {
   id: string;
@@ -25,19 +26,23 @@ export const useWidgetStore = create<WidgetState>()(
   persist(
     (set) => ({
       layout: DEFAULT_LAYOUT,
-      setLayout: (layout) => set({ layout }),
+      setLayout: (layout) => { set({ layout }); syncPref("WIDGET_LAYOUT", JSON.stringify(layout)); },
       toggleWidget: (id) =>
-        set((s) => ({
-          layout: s.layout.map((w) =>
+        set((s) => {
+          const layout = s.layout.map((w) =>
             w.id === id ? { ...w, enabled: !w.enabled } : w
-          ),
-        })),
+          );
+          syncPref("WIDGET_LAYOUT", JSON.stringify(layout));
+          return { layout };
+        }),
       reorder: (fromIndex, toIndex) =>
         set((s) => {
           const arr = [...s.layout];
           const [moved] = arr.splice(fromIndex, 1);
           arr.splice(toIndex, 0, moved);
-          return { layout: arr.map((w, i) => ({ ...w, order: i })) };
+          const layout = arr.map((w, i) => ({ ...w, order: i }));
+          syncPref("WIDGET_LAYOUT", JSON.stringify(layout));
+          return { layout };
         }),
     }),
     {

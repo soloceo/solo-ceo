@@ -510,22 +510,20 @@ export default function FinancePage() {
     <div ref={pullRef} className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col p-4 md:p-6 lg:p-8 relative">
       <h1 className="sr-only">{t("nav.finance")}</h1>
 
-      {/* ── Segmented Tab Switcher ── */}
-      <div className="page-tabs mb-2">
-        {(["business", "personal"] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => { switchFinanceTab(tab); setFilters({ type: "all", category: "all", status: "all", dateFrom: "", dateTo: "", search: "" }); }}
-            data-active={financeTab === tab}
-          >
-            {tab === "business" ? <Building2 size={13} /> : <UserIcon size={13} />}
-            {tab === "business" ? t("money.tab.business") : t("money.tab.personal")}
-          </button>
-        ))}
-      </div>
-
-      {/* ── Actions row ── */}
+      {/* ── Tabs + Actions row ── */}
       <div className="flex items-center gap-2 mb-2">
+        <div className="page-tabs">
+          {(["business", "personal"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => { switchFinanceTab(tab); setFilters({ type: "all", category: "all", status: "all", dateFrom: "", dateTo: "", search: "" }); }}
+              data-active={financeTab === tab}
+            >
+              {tab === "business" ? <Building2 size={13} /> : <UserIcon size={13} />}
+              {tab === "business" ? t("money.tab.business") : t("money.tab.personal")}
+            </button>
+          ))}
+        </div>
         <div className="flex-1" />
         <button onClick={exportCSV} className="btn-ghost compact">
           <Download size={16} /> <span className="hidden sm:inline">{t("money.export.csv")}</span>

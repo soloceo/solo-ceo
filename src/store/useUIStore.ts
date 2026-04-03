@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { applyFullTheme } from "../themes";
+import { syncPref } from "../lib/settings-sync";
 
 export type TabId = "home" | "work" | "leads" | "clients" | "finance" | "settings";
 type ViewMode = "vertical" | "horizontal";
@@ -87,16 +88,19 @@ export const useUIStore = create<UIState>()(
         applyFullTheme(get().styleId, get().paletteId, mode);
         set({ themeMode: mode, darkMode: mode === "dark" });
         setupSystemListener(mode);
+        syncPref("THEME_MODE", mode);
       },
 
       setStyleId: (id) => {
         applyFullTheme(id, get().paletteId, get().themeMode);
         set({ styleId: id });
+        syncPref("STYLE_ID", id);
       },
 
       setPaletteId: (id) => {
         applyFullTheme(get().styleId, id, get().themeMode);
         set({ paletteId: id });
+        syncPref("PALETTE_ID", id);
       },
 
       setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),

@@ -385,6 +385,15 @@ function initSchema(db: Database) {
     )`,
     `ALTER TABLE payment_milestones ADD COLUMN project_id INTEGER`,
     `ALTER TABLE finance_transactions ADD COLUMN project_id INTEGER`,
+    // app_settings KV store
+    `CREATE TABLE IF NOT EXISTS app_settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      key TEXT NOT NULL,
+      value TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(key)
+    )`,
   ];
   for (const m of migrations) {
     try { db.run(m); } catch { /* already exists */ }
@@ -1454,6 +1463,28 @@ export async function handleApiRequest(
       newLeads,
       activities,
     });
+  }
+
+  // ── SETTINGS ────────────────────────────────────────────────────────
+  if (path === '/api/settings' && method === 'GET') {
+    const rows = all(db, 'SELECT key, value FROM app_settings');
+    const settings: Record<string, string> = {};
+    for (const r of rows) settings[r.key as string] = r.value as string;
+    return ok(settings);
+  }
+
+  if (path === '/api/settings' && method === 'POST') {
+    const entries = Object.entries(body || {});
+    for (const [key, value] of entries) {
+      run(db, `INSERT INTO app_settings (key, value, updated_at)
+               VALUES (?, ?, CURRENT_TIMESTAMP)
+               ON CONFLICT(key)
+               DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP`,
+        [key, String(value ?? '')]);
+    }
+    dirty = true;
+    await saveDb();
+    return ok({ success: true });
   }
 
   // ── SERVER TIME (local clock) ────────────────────────────────────

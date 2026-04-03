@@ -3,6 +3,7 @@ import { Coffee, Footprints, Moon, Zap, RotateCcw } from "lucide-react";
 import { useT } from "../../../i18n/context";
 import { todayDateKey } from "../../../lib/date-utils";
 import { useWidgetScale } from "./useWidgetScale";
+import { syncPref } from "../../../lib/settings-sync";
 
 /* ── Constants ── */
 const STORAGE_KEY = "solo-ceo-energy-v3";
@@ -91,7 +92,9 @@ function loadData(): StorageData {
 }
 
 function saveData(data: StorageData) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  const json = JSON.stringify(data);
+  localStorage.setItem(STORAGE_KEY, json);
+  syncPref("ENERGY_DATA", json);
 }
 
 /* ── Battery Shape SVG ── */

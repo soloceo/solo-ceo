@@ -11,6 +11,7 @@ import {
 import { useT } from "../i18n/context";
 import { useClickOutside } from "./useClickOutside";
 
+/* Quick-create FAB — navigate to page (no form) */
 export interface QuickCreateMenuProps {
   setActiveTab: (tab: string) => void;
 }
@@ -22,113 +23,11 @@ export function QuickCreateMenu({ setActiveTab }: QuickCreateMenuProps) {
 
   useClickOutside(quickCreateRef, () => setQuickCreateOpen(false), quickCreateOpen);
 
-  const quickCreateGroups = [
-    {
-      label: t("app.quickCreate.groupWork"),
-      items: [
-        {
-          icon: <ListTodo size={14} aria-hidden="true" />,
-          label: t("app.quickCreate.task"),
-          action: () => {
-            setActiveTab("work");
-            setTimeout(
-              () =>
-                window.dispatchEvent(
-                  new CustomEvent("quick-create", {
-                    detail: { type: "task" },
-                  })
-                ),
-              100
-            );
-          },
-        },
-        {
-          icon: <UserPlus size={14} aria-hidden="true" />,
-          label: t("app.quickCreate.lead"),
-          action: () => {
-            setActiveTab("leads");
-            setTimeout(
-              () =>
-                window.dispatchEvent(
-                  new CustomEvent("quick-create", {
-                    detail: { type: "lead" },
-                  })
-                ),
-              100
-            );
-          },
-        },
-        {
-          icon: <Users size={14} aria-hidden="true" />,
-          label: t("app.quickCreate.client"),
-          action: () => {
-            setActiveTab("clients");
-            setTimeout(
-              () =>
-                window.dispatchEvent(
-                  new CustomEvent("quick-create", {
-                    detail: { type: "client" },
-                  })
-                ),
-              100
-            );
-          },
-        },
-        {
-          icon: <FileText size={14} aria-hidden="true" />,
-          label: t("app.quickCreate.bizFinance"),
-          action: () => {
-            setActiveTab("finance");
-            setTimeout(
-              () =>
-                window.dispatchEvent(
-                  new CustomEvent("quick-create", {
-                    detail: { type: "biz-transaction" },
-                  })
-                ),
-              100
-            );
-          },
-        },
-      ],
-    },
-    {
-      label: t("app.quickCreate.groupPersonal"),
-      items: [
-        {
-          icon: <ListTodo size={14} aria-hidden="true" />,
-          label: t("app.quickCreate.personalTask"),
-          action: () => {
-            setActiveTab("work");
-            setTimeout(
-              () =>
-                window.dispatchEvent(
-                  new CustomEvent("quick-create", {
-                    detail: { type: "personal-task" },
-                  })
-                ),
-              100
-            );
-          },
-        },
-        {
-          icon: <FileText size={14} aria-hidden="true" />,
-          label: t("app.quickCreate.personalFinance"),
-          action: () => {
-            setActiveTab("finance");
-            setTimeout(
-              () =>
-                window.dispatchEvent(
-                  new CustomEvent("quick-create", {
-                    detail: { type: "personal-transaction" },
-                  })
-                ),
-              100
-            );
-          },
-        },
-      ],
-    },
+  const quickCreateItems = [
+    { icon: <ListTodo size={14} aria-hidden="true" />, label: t("app.quickCreate.task"), action: () => { setActiveTab("work"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "task" } })), 100); } },
+    { icon: <UserPlus size={14} aria-hidden="true" />, label: t("app.quickCreate.lead"), action: () => { setActiveTab("leads"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "lead" } })), 100); } },
+    { icon: <Users size={14} aria-hidden="true" />, label: t("app.quickCreate.client"), action: () => { setActiveTab("clients"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "client" } })), 100); } },
+    { icon: <FileText size={14} aria-hidden="true" />, label: t("app.quickCreate.bizFinance"), action: () => { setActiveTab("finance"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "biz-transaction" } })), 100); } },
   ];
 
   return (
@@ -176,41 +75,22 @@ export function QuickCreateMenu({ setActiveTab }: QuickCreateMenuProps) {
                   zIndex: "var(--layer-popover)",
                 }}
               >
-            {quickCreateGroups.map((group, gi) => (
-              <div key={gi}>
-                {gi > 0 && (
-                  <div
-                    className="my-1"
-                    style={{ borderTop: "1px solid var(--color-line-secondary)" }}
-                  />
-                )}
-                <div
-                  className="px-3 pt-1.5 pb-0.5 text-[11px]"
-                  style={{
-                    color: "var(--color-text-quaternary)",
-                    fontWeight: "var(--font-weight-semibold)",
-                  } as React.CSSProperties}
-                >
-                  {group.label}
-                </div>
-                {group.items.map((item, i) => (
-                  <button
-                    key={i}
-                    role="menuitem"
-                    onClick={() => {
-                      item.action();
-                      setQuickCreateOpen(false);
-                    }}
-                    className="flex items-center gap-3 w-full px-3 py-2 text-[15px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
-                    style={{ color: "var(--color-text-secondary)" }}
-                  >
-                    <span style={{ color: "var(--color-text-quaternary)" }}>
-                      {item.icon}
-                    </span>
-                    {item.label}
-                  </button>
-                ))}
-              </div>
+            {quickCreateItems.map((item, i) => (
+              <button
+                key={i}
+                role="menuitem"
+                onClick={() => {
+                  item.action();
+                  setQuickCreateOpen(false);
+                }}
+                className="flex items-center gap-3 w-full px-3 py-2 text-[15px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
+                style={{ color: "var(--color-text-secondary)" }}
+              >
+                <span style={{ color: "var(--color-text-quaternary)" }}>
+                  {item.icon}
+                </span>
+                {item.label}
+              </button>
             ))}
               </motion.div>
             );

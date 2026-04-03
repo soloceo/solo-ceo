@@ -30,6 +30,7 @@ import { OfflineBanner } from "../components/OfflineBanner";
 import { Avatar, PageSkeleton, GlobalToast } from "../components/ui";
 import { useUIStore } from "../store/useUIStore";
 import { useSettingsStore } from "../store/useSettingsStore";
+import { useWidgetStore } from "../features/home/widgets/useWidgetStore";
 import { todayDateKey, dateToKey } from "../lib/date-utils";
 import { api } from "../lib/api";
 import { CommandPalette } from "./CommandPalette";
@@ -172,21 +173,13 @@ function App() {
   const [fabMenuOpen, setFabMenuOpen] = useState(false);
   const fabMenuRef = useRef<HTMLDivElement>(null);
 
-  // Reusable quick create groups for both desktop and mobile
-  const getQuickCreateGroups = () => [
-    { label: t("app.quickCreate.groupWork"), items: [
-      { icon: <ListTodo size={14} aria-hidden="true" />, label: t("app.quickCreate.task"), action: () => { setActiveTab("work"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "task" } })), 100); } },
-      { icon: <UserPlus size={14} aria-hidden="true" />, label: t("app.quickCreate.lead"), action: () => { setActiveTab("leads"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "lead" } })), 100); } },
-      { icon: <Users size={14} aria-hidden="true" />, label: t("app.quickCreate.client"), action: () => { setActiveTab("clients"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "client" } })), 100); } },
-      { icon: <FileText size={14} aria-hidden="true" />, label: t("app.quickCreate.bizFinance"), action: () => { setActiveTab("finance"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "biz-transaction" } })), 100); } },
-    ]},
-    { label: t("app.quickCreate.groupPersonal"), items: [
-      { icon: <ListTodo size={14} aria-hidden="true" />, label: t("app.quickCreate.personalTask"), action: () => { setActiveTab("work"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "personal-task" } })), 100); } },
-      { icon: <FileText size={14} aria-hidden="true" />, label: t("app.quickCreate.personalFinance"), action: () => { setActiveTab("finance"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "personal-transaction" } })), 100); } },
-    ]},
-  ];
-
-  const quickCreateGroups = useMemo(() => getQuickCreateGroups(), [t]);
+  // Reusable quick create items for both desktop and mobile
+  const quickCreateItems = useMemo(() => [
+    { icon: <ListTodo size={14} aria-hidden="true" />, label: t("app.quickCreate.task"), action: () => { setActiveTab("work"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "task" } })), 100); } },
+    { icon: <UserPlus size={14} aria-hidden="true" />, label: t("app.quickCreate.lead"), action: () => { setActiveTab("leads"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "lead" } })), 100); } },
+    { icon: <Users size={14} aria-hidden="true" />, label: t("app.quickCreate.client"), action: () => { setActiveTab("clients"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "client" } })), 100); } },
+    { icon: <FileText size={14} aria-hidden="true" />, label: t("app.quickCreate.bizFinance"), action: () => { setActiveTab("finance"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "biz-transaction" } })), 100); } },
+  ], [t]);
 
   useClickOutside(fabMenuRef, () => setFabMenuOpen(false), fabMenuOpen);
 
@@ -207,6 +200,19 @@ function App() {
         if (s.CURRENCY) useSettingsStore.getState().setCurrency(s.CURRENCY);
         if (s.TIMEZONE) useSettingsStore.getState().setTimezone(s.TIMEZONE);
         if (s.protocol_streak) setProtocolStreakRaw(s.protocol_streak);
+        // Restore UI preferences from cloud
+        const ui = useUIStore.getState();
+        if (s.THEME_MODE && s.THEME_MODE !== ui.themeMode) ui.setThemeMode(s.THEME_MODE as "light" | "dark" | "auto");
+        if (s.STYLE_ID && s.STYLE_ID !== ui.styleId) ui.setStyleId(s.STYLE_ID);
+        if (s.PALETTE_ID && s.PALETTE_ID !== ui.paletteId) ui.setPaletteId(s.PALETTE_ID);
+        if (s.WIDGET_LAYOUT) try { useWidgetStore.getState().setLayout(JSON.parse(s.WIDGET_LAYOUT)); } catch {}
+        // Restore widget data from cloud (only if local is empty)
+        if (s.COUNTDOWNS && !localStorage.getItem("solo-ceo-countdowns")) {
+          try { localStorage.setItem("solo-ceo-countdowns", s.COUNTDOWNS); } catch {}
+        }
+        if (s.ENERGY_DATA && !localStorage.getItem("solo-ceo-energy-v3")) {
+          try { localStorage.setItem("solo-ceo-energy-v3", s.ENERGY_DATA); } catch {}
+        }
       })
       .catch((e) => {
         // operator profile sync failed — non-critical
@@ -558,23 +564,17 @@ function App() {
                       style={{ background: "var(--glass-bg)", backdropFilter: "blur(2px) saturate(180%)", WebkitBackdropFilter: "blur(2px) saturate(180%)", border: "1px solid var(--glass-border)", boxShadow: "var(--shadow-high)" }}
                       role="menu"
                     >
-                      {quickCreateGroups.map((group, gi) => (
-                        <div key={gi}>
-                          {gi > 0 && <div className="my-1" style={{ borderTop: "1px solid var(--color-line-secondary)" }} />}
-                          <div className="px-4 pt-1.5 pb-0.5 text-[11px]" style={{ color: "var(--color-text-quaternary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{group.label}</div>
-                          {group.items.map((item, i) => (
-                            <button
-                              key={i}
-                              role="menuitem"
-                              className="w-full flex items-center gap-3 px-4 py-2.5 text-[15px] transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback"
-                              style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
-                              onClick={() => { setFabMenuOpen(false); item.action(); }}
-                            >
-                              <span style={{ color: "var(--color-text-tertiary)" }}>{item.icon}</span>
-                              {item.label}
-                            </button>
-                          ))}
-                        </div>
+                      {quickCreateItems.map((item, i) => (
+                        <button
+                          key={i}
+                          role="menuitem"
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-[15px] transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback"
+                          style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
+                          onClick={() => { setFabMenuOpen(false); item.action(); }}
+                        >
+                          <span style={{ color: "var(--color-text-tertiary)" }}>{item.icon}</span>
+                          {item.label}
+                        </button>
                       ))}
                     </motion.div>
                   )}

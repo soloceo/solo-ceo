@@ -8,7 +8,7 @@ export const work = {
   "work.col.inProgress": "进行中",
   "work.col.review": "待审核",
   "work.col.done": "已完成",
-  "work.new": "新建",
+  "work.new": "新建任务",
   "work.view.board": "看板",
   "work.view.swimlane": "泳道",
   "work.aiPlan": "AI 规划",

@@ -119,24 +119,23 @@
 
   .page-tabs {
     @apply flex items-center;
-    gap: 0;
-    border-bottom: 1px solid var(--color-line-secondary);
+    gap: 4px;
   }
   .page-tabs > button {
-    @apply flex-1 flex items-center justify-center gap-1.5 text-[13px] transition-all;
-    padding: 8px 12px;
+    @apply flex items-center gap-1.5 text-[13px] transition-all;
+    padding: 6px 10px;
+    border-radius: var(--radius-6);
     font-weight: var(--font-weight-medium);
     color: var(--color-text-tertiary);
-    border-bottom: 2px solid transparent;
-    margin-bottom: -1px;
   }
   .page-tabs > button:hover {
     color: var(--color-text-secondary);
+    background: var(--color-bg-tertiary);
   }
   .page-tabs > button[data-active="true"] {
     color: var(--color-text-primary);
     font-weight: var(--font-weight-semibold);
-    border-bottom-color: var(--color-text-primary);
+    background: var(--color-bg-tertiary);
   }
 
   /* ── Segment switcher ───────────────────────────────────────── */
@@ -401,6 +400,30 @@
     .btn-icon-sm { width: 40px; height: 40px; }
   }
 
+  /* ── Inline compact form (memo / widget embedded forms) ───── */
+  .inline-form .input-base {
+    height: 34px;
+  }
+  .inline-form select.input-base {
+    padding-right: 24px;
+    background-position: right 6px center;
+  }
+  @media (max-width: 1023px) {
+    .inline-form .input-base {
+      height: 36px;
+    }
+    .inline-form .btn-primary,
+    .inline-form .btn-ghost {
+      height: 36px;
+      padding-top: 6px;
+      padding-bottom: 6px;
+    }
+    .inline-form .btn-icon-sm {
+      width: 32px;
+      height: 32px;
+    }
+  }
+
   /* ── Mobile sheet ──────────────────────────────────────────── */
 
   .mobile-sheet-overlay {
@@ -589,21 +612,18 @@
    Triggered by data-theme="neobrutalism" on <html>
    ══════════════════════════════════════════════════════════════════ */
 
-/* ── Page tabs — thick underline, bolder active ─────────────── */
-[data-theme="neobrutalism"] .page-tabs {
-  border-bottom: 2px solid var(--color-border-primary);
-  gap: 0;
-}
+/* ── Page tabs — bold pill, punchy ────────────────────────────── */
 [data-theme="neobrutalism"] .page-tabs > button {
-  border-bottom-width: 3px;
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   font-size: 12px;
+  border: 2px solid transparent;
+  border-radius: var(--radius-6);
 }
 [data-theme="neobrutalism"] .page-tabs > button[data-active="true"] {
   font-weight: var(--font-weight-bold);
-  border-bottom-color: var(--color-accent);
+  border-color: var(--color-border-primary);
   background: var(--color-accent-tint);
 }
 
