@@ -90,7 +90,7 @@ export function TodayFocus({
         <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
           {t("home.focus.title")}
         </h3>
-        <p className="text-[12px] mt-0.5" style={{ color: "var(--color-text-quaternary)" }}>{t("home.focus.desc")}</p>
+        <p className="text-[12px] mt-1" style={{ color: "var(--color-text-quaternary)" }}>{t("home.focus.desc")}</p>
       </div>
 
       {/* ── Tier 1: Due Today / Overdue ── */}

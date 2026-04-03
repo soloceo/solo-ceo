@@ -64,7 +64,7 @@ export function KPIGrid({ monthlyIncome, todayIncome, clientsCount, leadsCount, 
   const barColor = achieved ? "var(--color-success)" : "var(--color-accent)";
 
   return (
-    <div className="flex flex-col" style={{ gap: 10 }}>
+    <div className="flex flex-col" style={{ gap: 12 }}>
       {/* ── Hero metric — Monthly Income + Goal ── */}
       <div
         className="card px-5 py-5"
@@ -174,13 +174,13 @@ export function KPIGrid({ monthlyIncome, todayIncome, clientsCount, leadsCount, 
       </div>
 
       {/* ── Secondary metrics — 3 columns, whitespace separated ── */}
-      <div className="grid grid-cols-3" style={{ gap: 10 }}>
+      <div className="grid grid-cols-3" style={{ gap: 12 }}>
         {[
           { icon: Users, color: "var(--color-text-tertiary)", label: t("home.kpi.activeClients"), value: clientsCount, sub: leadsCount > 0 ? `+${leadsCount} ${t("home.kpi.leads")}` : null, subColor: "var(--color-text-tertiary)" },
           { icon: Briefcase, color: "var(--color-text-tertiary)", label: t("home.kpi.workTasks"), value: workTasks, sub: null, subColor: "" },
           { icon: User, color: "var(--color-text-tertiary)", label: t("home.kpi.personalTasks"), value: personalTasks, sub: null, subColor: "" },
         ].map((kpi, i) => (
-          <div key={i} className="card px-3.5 py-3.5">
+          <div key={i} className="card p-3">
             <div className="flex items-center gap-1.5 mb-2">
               <kpi.icon size={13} style={{ color: kpi.color }} />
               <span className="text-[11px] " style={{ color: "var(--color-text-quaternary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
