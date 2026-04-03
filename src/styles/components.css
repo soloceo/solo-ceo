@@ -113,6 +113,7 @@
     max-width: 100%;
     overflow: hidden;
     scroll-snap-align: start;
+    touch-action: pan-y pinch-zoom; /* horizontal gestures → parent scroll-snap */
   }
 
   /* ── Page tabs ──────────────────────────────────────────────── */
