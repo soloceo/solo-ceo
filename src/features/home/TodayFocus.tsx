@@ -165,14 +165,8 @@ export function TodayFocus({
 }
 
 /* ── Focus Row ────────────────────────────────────────────────────── */
-/* ── Standard category definitions — always visible ── */
-const typeHintMap: Record<string, { zh: string; en: string }> = {
-  '收入': { zh: '开拓新生意：找客户、谈合作、发报价、签单', en: 'Win new business: find clients, pitch, quote, close deals' },
-  '交付': { zh: '产出成果：写代码、做设计、完成客户项目', en: 'Produce output: code, design, ship to client' },
-  '系统': { zh: '维护运转：催收款、对账、整理数据、优化流程', en: 'Keep it running: collect payments, reconcile, optimize' },
-};
 
-function FocusRow({ item, badge, onNavigate, urgency, lang }: {
+function FocusRow({ item, badge, onNavigate, urgency }: {
   item: FocusItem;
   badge: { variant: "success" | "warning" | "accent" | "info" | "danger"; icon: React.ElementType };
   onNavigate: () => void;
@@ -187,92 +181,44 @@ function FocusRow({ item, badge, onNavigate, urgency, lang }: {
     danger: "var(--color-error)",
   };
   const badgeColor = colorMap[badge.variant];
-  const BadgeIcon = badge.icon;
   const hasLink = !!(item.entityType && item.entityId);
-
-  /* Dynamic reason: show only if different from static hint and not in urgency badge */
-  const showDynamicReason = !urgency && item.reason && (() => {
-    const hint = typeHintMap[item.type];
-    const hintText = hint ? (lang === "zh" ? hint.zh : hint.en) : "";
-    return item.reason !== hintText && !item.reason.includes(hintText);
-  })();
 
   return (
     <div
-      className={`flex items-stretch group transition-colors hover:bg-[var(--color-bg-tertiary)] ${hasLink ? "cursor-pointer" : ""}`}
+      className={`flex items-center gap-3 group transition-colors hover:bg-[var(--color-bg-tertiary)] px-4 py-2.5 ${hasLink ? "cursor-pointer" : ""}`}
       style={{ borderBottom: "1px solid var(--color-border-primary)" }}
       onClick={hasLink ? onNavigate : undefined}
     >
-      {/* Left accent bar */}
-      <div className="shrink-0" style={{ width: 3, background: badgeColor, borderRadius: "0 2px 2px 0" }} />
-
-      <div className="flex items-start gap-3 flex-1 min-w-0 px-3.5 py-3">
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          {/* Row 1: Title + badges */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[14px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-              {item.title}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[14px] truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
+            {item.title}
+          </span>
+          <span
+            className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-[var(--radius-4)] text-[10px]"
+            style={{ background: `color-mix(in srgb, ${badgeColor} 8%, transparent)`, color: badgeColor, fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}
+          >
+            {item.type}
+          </span>
+          {urgency === "overdue" && (
+            <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[var(--radius-4)] text-[10px]"
+              style={{ background: "color-mix(in srgb, var(--color-error) 8%, transparent)", color: "var(--color-error)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
+              <AlertTriangle size={9} />{item.reason}
             </span>
-            {/* Type badge */}
-            <span
-              className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[var(--radius-4)] text-[10px]"
-              style={{
-                background: `color-mix(in srgb, ${badgeColor} 8%, transparent)`,
-                color: badgeColor,
-                fontWeight: "var(--font-weight-semibold)",
-              } as React.CSSProperties}
-            >
-              <BadgeIcon size={9} />
-              {item.type}
+          )}
+          {urgency === "today" && (
+            <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[var(--radius-4)] text-[10px]"
+              style={{ background: "color-mix(in srgb, var(--color-warning) 8%, transparent)", color: "var(--color-warning)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
+              <Clock size={9} />{item.reason}
             </span>
-            {/* Urgency badge */}
-            {urgency === "overdue" && (
-              <span
-                className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[var(--radius-4)] text-[10px]"
-                style={{
-                  background: "color-mix(in srgb, var(--color-error) 8%, transparent)",
-                  color: "var(--color-error)",
-                  fontWeight: "var(--font-weight-semibold)",
-                } as React.CSSProperties}
-              >
-                <AlertTriangle size={9} />
-                {item.reason}
-              </span>
-            )}
-            {urgency === "today" && (
-              <span
-                className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[var(--radius-4)] text-[10px]"
-                style={{
-                  background: "color-mix(in srgb, var(--color-warning) 8%, transparent)",
-                  color: "var(--color-warning)",
-                  fontWeight: "var(--font-weight-semibold)",
-                } as React.CSSProperties}
-              >
-                <Clock size={9} />
-                {item.reason}
-              </span>
-            )}
-          </div>
-          {/* Row 2: Category definition (always) + dynamic reason (when available) */}
-          <p className="text-[11px] mt-1 leading-relaxed" style={{ color: "var(--color-text-quaternary)" }}>
-            {typeHintMap[item.type]
-              ? (lang === "zh" ? typeHintMap[item.type].zh : typeHintMap[item.type].en)
-              : ""}
-            {showDynamicReason && (
-              <span style={{ color: "var(--color-text-tertiary)" }}>{" · "}{item.reason}</span>
-            )}
-          </p>
+          )}
         </div>
-
-        {/* Navigate arrow */}
-        {hasLink && (
-          <div className="shrink-0 mt-1 opacity-40 group-hover:opacity-60 transition-opacity"
-            style={{ color: "var(--color-text-quaternary)" }}>
-            <ArrowRight size={14} />
-          </div>
-        )}
       </div>
+      {hasLink && (
+        <div className="shrink-0 opacity-40 group-hover:opacity-60 transition-opacity" style={{ color: "var(--color-text-quaternary)" }}>
+          <ArrowRight size={14} />
+        </div>
+      )}
     </div>
   );
 }

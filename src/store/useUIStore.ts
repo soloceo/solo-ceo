@@ -1,27 +1,10 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { applyFullTheme } from "../themes";
 
 export type TabId = "home" | "work" | "leads" | "clients" | "finance" | "settings";
 type ViewMode = "vertical" | "horizontal";
 type ThemeMode = "light" | "dark" | "auto";
-/** Meta theme-color (light / dark) */
-const META_THEME_COLORS = { light: "#ffffff", dark: "#191919" };
-
-/** Apply the .dark class to <html> and update meta theme-color for iOS status bar */
-function applyTheme(mode: ThemeMode) {
-  const isDark =
-    mode === "dark" ||
-    (mode === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-  document.documentElement.classList.toggle("dark", isDark);
-
-  // Force Safari to re-read theme-color by removing and re-inserting the meta tag.
-  const old = document.querySelector('meta[name="theme-color"]');
-  if (old) old.remove();
-  const meta = document.createElement("meta");
-  meta.name = "theme-color";
-  meta.content = isDark ? META_THEME_COLORS.dark : META_THEME_COLORS.light;
-  document.head.appendChild(meta);
-}
 
 interface UIState {
   activeTab: TabId;
@@ -29,6 +12,12 @@ interface UIState {
   /** @deprecated — use themeMode instead. Kept for migration. */
   darkMode: boolean;
   themeMode: ThemeMode;
+  /** Visual style ID (e.g. "default", "neobrutalism") */
+  styleId: string;
+  /** Color palette ID (e.g. "default", "ocean", "rose") */
+  paletteId: string;
+  /** @deprecated — legacy, kept for migration from V3.0 → V3.1 */
+  themeId?: string;
   commandPaletteOpen: boolean;
   hideMobileNav: boolean;
   tasksViewMode: ViewMode;
@@ -45,6 +34,8 @@ interface UIState {
   /** @deprecated — use setThemeMode instead */
   toggleDarkMode: () => void;
   setThemeMode: (mode: ThemeMode) => void;
+  setStyleId: (id: string) => void;
+  setPaletteId: (id: string) => void;
   setCommandPaletteOpen: (open: boolean) => void;
   setHideMobileNav: (hidden: boolean) => void;
   setTasksViewMode: (mode: ViewMode) => void;
@@ -60,6 +51,9 @@ let toastTimer: ReturnType<typeof setTimeout> | undefined;
 // System preference listener (set up once after store creation)
 let mediaQueryCleanup: (() => void) | undefined;
 
+/** Palette IDs that were valid in the old single-themeId system */
+const LEGACY_PALETTE_IDS = new Set(["default", "ocean", "rose", "forest", "midnight"]);
+
 export const useUIStore = create<UIState>()(
   persist(
     (set, get) => ({
@@ -67,6 +61,8 @@ export const useUIStore = create<UIState>()(
       sidebarExpanded: false,
       darkMode: false,
       themeMode: "auto" as ThemeMode,
+      styleId: "default",
+      paletteId: "default",
       commandPaletteOpen: false,
       hideMobileNav: false,
       tasksViewMode: "vertical",
@@ -83,15 +79,24 @@ export const useUIStore = create<UIState>()(
         // Legacy compat: cycle light → dark → light
         const current = get().themeMode;
         const next: ThemeMode = current === "dark" ? "light" : "dark";
-        applyTheme(next);
+        applyFullTheme(get().styleId, get().paletteId, next);
         set({ themeMode: next, darkMode: next === "dark" });
       },
 
       setThemeMode: (mode) => {
-        applyTheme(mode);
+        applyFullTheme(get().styleId, get().paletteId, mode);
         set({ themeMode: mode, darkMode: mode === "dark" });
-        // Re-register or remove system listener
         setupSystemListener(mode);
+      },
+
+      setStyleId: (id) => {
+        applyFullTheme(id, get().paletteId, get().themeMode);
+        set({ styleId: id });
+      },
+
+      setPaletteId: (id) => {
+        applyFullTheme(get().styleId, id, get().themeMode);
+        set({ paletteId: id });
       },
 
       setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
@@ -108,7 +113,6 @@ export const useUIStore = create<UIState>()(
           toastId: id,
         });
         toastTimer = setTimeout(() => {
-          // Only clear if this toast is still the active one
           if (get().toastId === id) {
             set({ toastMessage: "", toastAction: null, toastActionLabel: "", toastId: 0 });
           }
@@ -124,6 +128,8 @@ export const useUIStore = create<UIState>()(
       partialize: (state) => ({
         darkMode: state.darkMode,
         themeMode: state.themeMode,
+        styleId: state.styleId,
+        paletteId: state.paletteId,
         sidebarExpanded: state.sidebarExpanded,
         tasksViewMode: state.tasksViewMode,
         salesViewMode: state.salesViewMode,
@@ -139,7 +145,23 @@ export const useUIStore = create<UIState>()(
             rehydratedState.themeMode = mode;
           }
 
-          applyTheme(mode);
+          // Migration: old single themeId → styleId + paletteId
+          const legacy = (rehydratedState as any).themeId as string | undefined;
+          if (legacy && !rehydratedState.styleId) {
+            if (legacy === "neobrutalism") {
+              rehydratedState.styleId = "neobrutalism";
+              rehydratedState.paletteId = "default";
+            } else if (LEGACY_PALETTE_IDS.has(legacy)) {
+              rehydratedState.styleId = "default";
+              rehydratedState.paletteId = legacy;
+            }
+          }
+
+          // Ensure defaults
+          if (!rehydratedState.styleId) rehydratedState.styleId = "default";
+          if (!rehydratedState.paletteId) rehydratedState.paletteId = "default";
+
+          applyFullTheme(rehydratedState.styleId, rehydratedState.paletteId, mode);
           setupSystemListener(mode);
         };
       },
@@ -149,16 +171,15 @@ export const useUIStore = create<UIState>()(
 
 /** Set up or tear down the system preference change listener */
 function setupSystemListener(mode: ThemeMode) {
-  // Clean up any existing listener
   mediaQueryCleanup?.();
   mediaQueryCleanup = undefined;
 
   if (mode === "auto") {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const handler = () => {
-      // Only react if still in auto mode
-      if (useUIStore.getState().themeMode === "auto") {
-        applyTheme("auto");
+      const state = useUIStore.getState();
+      if (state.themeMode === "auto") {
+        applyFullTheme(state.styleId, state.paletteId, "auto");
       }
     };
     mq.addEventListener("change", handler);

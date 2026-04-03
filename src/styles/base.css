@@ -60,7 +60,7 @@ body {
   color: var(--color-text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-family: var(--font-regular);
+  font-family: var(--font-base);
   font-size: var(--font-size-base);
   line-height: var(--line-height-body);
   letter-spacing: -0.005em;
@@ -103,6 +103,7 @@ button:disabled {
 .text-title-3xl {
   font-size: var(--font-size-3xl);
   font-weight: var(--font-weight-bold);
+  font-family: var(--font-heading);
   line-height: var(--line-height-title);
   letter-spacing: -0.02em;
   color: var(--color-text-primary);
@@ -110,6 +111,7 @@ button:disabled {
 .text-title-2xl {
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-bold);
+  font-family: var(--font-heading);
   line-height: var(--line-height-title);
   letter-spacing: -0.02em;
   color: var(--color-text-primary);
@@ -117,6 +119,7 @@ button:disabled {
 .text-title-xl {
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-semibold);
+  font-family: var(--font-heading);
   line-height: var(--line-height-heading);
   letter-spacing: -0.015em;
   color: var(--color-text-primary);
@@ -124,6 +127,7 @@ button:disabled {
 .text-title-lg {
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
+  font-family: var(--font-heading);
   line-height: var(--line-height-heading);
   letter-spacing: -0.01em;
   color: var(--color-text-primary);

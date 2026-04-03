@@ -21,6 +21,10 @@ export default function SettingsPage() {
   const showToast = useUIStore((s) => s.showToast);
   const themeMode = useUIStore((s) => s.themeMode);
   const setThemeMode = useUIStore((s) => s.setThemeMode);
+  const styleId = useUIStore((s) => s.styleId);
+  const setStyleId = useUIStore((s) => s.setStyleId);
+  const paletteId = useUIStore((s) => s.paletteId);
+  const setPaletteId = useUIStore((s) => s.setPaletteId);
 
   const { settings: appSettings, save: saveAppSetting } = useAppSettings();
   const operatorName = useSettingsStore((s) => s.operatorName) || 'Andy';
@@ -143,6 +147,10 @@ export default function SettingsPage() {
         <AppearanceSection
           themeMode={themeMode}
           setThemeMode={setThemeMode}
+          styleId={styleId}
+          setStyleId={setStyleId}
+          paletteId={paletteId}
+          setPaletteId={setPaletteId}
           lang={lang}
           setLang={setLang}
           currency={currency}

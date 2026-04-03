@@ -3,6 +3,20 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.20.0] - 2026-04-02
+
+### Added
+- **Theme system v3** — two-axis architecture: Style (Classic / Neo Brutal) × Palette (Default / Ocean / Rose / Forest / Midnight / Mono), each with full light + dark variants
+- **Mono palette** — pure black/white/gray color scheme with no accent color
+- **Neo Brutal style** — bold borders, hard shadows, uppercase buttons, snap hover effects across all components
+- **Theme picker UI** — redesigned Settings appearance section with 2-col style grid + 3-col palette grid
+
+### Changed
+- **TodayFocus Notion-style cleanup** — removed category description subtitles, rows now show only title + type tag + urgency tag (minimal, text-first)
+- **Store upgrade** — `useUIStore` now manages `themeId` + `styleId` with CSS variable injection via `applyFullTheme()`
+
+---
+
 ## [2.19.1] - 2026-04-02
 
 ### Changed

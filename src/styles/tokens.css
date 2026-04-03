@@ -139,6 +139,17 @@
   --grid-line-color:       rgba(55,53,47,0.04);
   --grid-size:             32px;
 
+  /* ── Structural — themeable border, radius, font, hover ────── */
+  --border-width:          1px;
+  --border-width-heavy:    1px;
+  --radius-base:           var(--radius-6);
+  --font-heading:          var(--font-regular);
+  --font-base:             var(--font-regular);
+  --shadow-interactive:    var(--shadow-low);
+  --shadow-interactive-hover: var(--shadow-medium);
+  --translate-hover-x:     0px;
+  --translate-hover-y:     0px;
+
   color-scheme: light;
 }
 
