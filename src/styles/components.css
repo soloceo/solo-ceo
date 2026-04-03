@@ -113,7 +113,13 @@
     max-width: 100%;
     overflow: hidden;
     scroll-snap-align: start;
-    touch-action: pan-y pinch-zoom; /* horizontal gestures → parent scroll-snap */
+  }
+  /* Recharts SVG captures touch events for tooltips, blocking parent scroll-snap.
+     Disable pointer-events on mobile so touches pass through to swipe container. */
+  @media (max-width: 1023px) {
+    .home-swipe-panel .recharts-wrapper {
+      pointer-events: none;
+    }
   }
 
   /* ── Page tabs ──────────────────────────────────────────────── */
