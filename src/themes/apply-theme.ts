@@ -27,14 +27,6 @@ const TOKEN_KEYS: (keyof ThemeColorTokens)[] = [
   '--translate-hover-x', '--translate-hover-y',
 ];
 
-/** Remove all inline theme overrides from <html>, letting tokens.css take over */
-function clearThemeOverrides() {
-  const style = document.documentElement.style;
-  for (const key of TOKEN_KEYS) {
-    style.removeProperty(key);
-  }
-}
-
 /** Update Safari/iOS status bar meta theme-color */
 function updateMetaThemeColor(color: string) {
   const old = document.querySelector('meta[name="theme-color"]');
@@ -78,31 +70,38 @@ export function applyFullTheme(styleId: string, paletteId: string, mode: ThemeMo
   // Update meta theme-color (from palette)
   updateMetaThemeColor(isDark ? palette.meta.dark : palette.meta.light);
 
-  // Default style + default palette → clear overrides so tokens.css is single source of truth
-  if (styleId === 'default' && paletteId === 'default') {
-    clearThemeOverrides();
-    return;
-  }
+  // Build the complete set of tokens to apply BEFORE touching the DOM.
+  // This avoids flicker from "clear all → re-apply" across multiple frames.
+  const nextTokens = new Map<string, string>();
 
-  // Start fresh
-  clearThemeOverrides();
+  if (styleId !== 'default' || paletteId !== 'default') {
+    const paletteTokens = isDark ? palette.tokens.dark : palette.tokens.light;
+    const styleOverrides = isDark ? style.overrides.dark : style.overrides.light;
 
-  const htmlStyle = document.documentElement.style;
-  const paletteTokens = isDark ? palette.tokens.dark : palette.tokens.light;
-  const styleOverrides = isDark ? style.overrides.dark : style.overrides.light;
-
-  // Apply palette color tokens (skip structural — those come from style or tokens.css)
-  if (paletteId !== 'default') {
-    for (const [prop, value] of Object.entries(paletteTokens)) {
-      if (!STRUCTURAL_KEYS.has(prop)) {
-        htmlStyle.setProperty(prop, value);
+    // Palette color tokens (skip structural — those come from style or tokens.css)
+    if (paletteId !== 'default') {
+      for (const [prop, value] of Object.entries(paletteTokens)) {
+        if (!STRUCTURAL_KEYS.has(prop)) {
+          nextTokens.set(prop, value);
+        }
       }
+    }
+
+    // Style overrides on top (structural + any color adjustments)
+    for (const [prop, value] of Object.entries(styleOverrides)) {
+      nextTokens.set(prop, value);
     }
   }
 
-  // Apply style overrides on top (structural + any color adjustments)
-  for (const [prop, value] of Object.entries(styleOverrides)) {
-    htmlStyle.setProperty(prop, value);
+  // Single DOM pass: set new values and remove stale ones atomically
+  const htmlStyle = document.documentElement.style;
+  for (const key of TOKEN_KEYS) {
+    const next = nextTokens.get(key);
+    if (next != null) {
+      htmlStyle.setProperty(key, next);
+    } else {
+      htmlStyle.removeProperty(key);
+    }
   }
 }
 

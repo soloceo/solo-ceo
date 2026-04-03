@@ -82,6 +82,8 @@ export const settings = {
   "settings.style.defaultDesc": "Rounded & soft",
   "settings.style.neobrutalism": "Neo Brutal",
   "settings.style.neobrutalismDesc": "Bold borders · Hard shadows",
+  "settings.style.glassmorphism": "Glass",
+  "settings.style.glassmorphismDesc": "Frosted blur · Translucent",
   "settings.palette": "Colors",
   "settings.theme.default": "Default",
   "settings.theme.defaultDesc": "Notion-inspired",

@@ -7,6 +7,7 @@ import { midnightTheme } from './builtins/midnight';
 import { monoTheme } from './builtins/mono';
 import { defaultStyle } from './styles/default';
 import { neobrutalismStyle } from './styles/neobrutalism';
+import { glassmorphismStyle } from './styles/glassmorphism';
 
 /** Color palettes — order determines display order in the picker */
 export const palettes: ThemeDefinition[] = [
@@ -22,6 +23,7 @@ export const palettes: ThemeDefinition[] = [
 export const styles: StyleDefinition[] = [
   defaultStyle,
   neobrutalismStyle,
+  glassmorphismStyle,
 ];
 
 const paletteMap = new Map(palettes.map((p) => [p.id, p]));

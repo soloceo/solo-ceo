@@ -172,10 +172,9 @@ function KanbanColumn({ col, items, onAdd, onEdit, onDelete, onClientClick, empt
       <SortableContext id={col.id} items={itemIds} strategy={verticalListSortingStrategy}>
         <div
           ref={setDropRef}
-          className="flex flex-col flex-1 min-h-0 rounded-[var(--radius-8)] overflow-hidden"
+          className="flex flex-col flex-1 min-h-0 rounded-[var(--radius-8)] overflow-hidden kanban-column"
           role="list"
           style={{
-            background: "var(--color-bg-tertiary)",
             borderTop: `2px solid ${col.color}`,
           }}
         >

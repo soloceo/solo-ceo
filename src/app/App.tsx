@@ -530,12 +530,8 @@ function App() {
           >
             {/* Tab bar */}
             <nav
-              className="flex-1 flex items-center rounded-full"
+              className="flex-1 flex items-center rounded-full mobile-nav-pill"
               style={{
-                padding: "6px",
-                background: "var(--color-bg-primary)",
-                border: "1px solid var(--color-border-primary)",
-                boxShadow: "var(--shadow-medium)",
                 pointerEvents: "auto",
               }}
             >
@@ -560,8 +556,7 @@ function App() {
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.92, y: 10 }}
                       transition={{ duration: 0.25, ease: [0.175, 0.885, 0.32, 2.2] }}
-                      className="absolute bottom-[56px] right-0 w-[180px] py-1.5 rounded-[var(--radius-16)]"
-                      style={{ background: "var(--glass-bg)", backdropFilter: "blur(2px) saturate(180%)", WebkitBackdropFilter: "blur(2px) saturate(180%)", border: "1px solid var(--glass-border)", boxShadow: "var(--shadow-high)" }}
+                      className="absolute bottom-[56px] right-0 w-[180px] py-1.5 rounded-[var(--radius-16)] fab-glass-menu"
                       role="menu"
                     >
                       {quickCreateItems.map((item, i) => (

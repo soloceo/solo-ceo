@@ -128,6 +128,7 @@ export default function AppearanceSection({ themeMode, setThemeMode, styleId, se
             {styles.map((s) => {
               const isActive = styleId === s.id;
               const isNeo = s.id === 'neobrutalism';
+              const isGlass = s.id === 'glassmorphism';
               return (
                 <button
                   key={s.id}
@@ -142,15 +143,28 @@ export default function AppearanceSection({ themeMode, setThemeMode, styleId, se
                   <div
                     className="relative w-full h-14 mb-2.5 overflow-hidden"
                     style={{
-                      background: 'var(--color-bg-primary)',
+                      background: isGlass
+                        ? 'linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 15%, var(--color-bg-primary)), var(--color-bg-primary))'
+                        : 'var(--color-bg-primary)',
                       border: isNeo ? '2px solid var(--color-text-primary)' : '1px solid var(--color-border-secondary)',
-                      borderRadius: isNeo ? '3px' : '8px',
-                      boxShadow: isNeo ? '3px 3px 0 var(--color-text-primary)' : '0 1px 4px rgba(0,0,0,0.06)',
+                      borderRadius: isNeo ? '3px' : isGlass ? '12px' : '8px',
+                      boxShadow: isNeo
+                        ? '3px 3px 0 var(--color-text-primary)'
+                        : isGlass
+                        ? '0 4px 16px rgba(0,0,0,0.06)'
+                        : '0 1px 4px rgba(0,0,0,0.06)',
+                      backdropFilter: isGlass ? 'blur(8px)' : undefined,
                     }}
                   >
+                    {isGlass && (
+                      <div className="absolute inset-0 rounded-[11px]" style={{
+                        background: 'linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 60%)',
+                        pointerEvents: 'none',
+                      }} />
+                    )}
                     <div
                       className="absolute top-2 left-2.5 right-2.5"
-                      style={{ height: 5, background: 'var(--color-accent)', borderRadius: isNeo ? '1px' : '3px' }}
+                      style={{ height: 5, background: 'var(--color-accent)', borderRadius: isNeo ? '1px' : '3px', opacity: isGlass ? 0.8 : 1 }}
                     />
                     <div className="absolute bottom-2 left-2.5 flex flex-col gap-1">
                       <div style={{ width: 32, height: 3, background: 'var(--color-text-primary)', opacity: 0.5, borderRadius: isNeo ? 0 : 2 }} />

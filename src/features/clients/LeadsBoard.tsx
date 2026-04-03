@@ -622,8 +622,8 @@ function LeadDroppableColumn({ colId, color, children }: { colId: string; color:
   return (
     <div
       ref={setNodeRef}
-      className="flex flex-col flex-1 min-h-0 rounded-[var(--radius-8)] overflow-hidden"
-      style={{ background: "var(--color-bg-tertiary)", borderTop: `2px solid ${color}` }}
+      className="flex flex-col flex-1 min-h-0 rounded-[var(--radius-8)] overflow-hidden kanban-column"
+      style={{ borderTop: `2px solid ${color}` }}
     >
       {children}
     </div>

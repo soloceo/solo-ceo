@@ -3,6 +3,28 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.22.0] - 2026-04-03
+
+### Added
+- **Glassmorphism style** — new "Glass" option in Style picker: frosted blur, translucent surfaces, animated color orbs, Apple Liquid Glass-inspired design
+- **backdrop-filter: brightness(1.05)** — light mode glass panels gain luminous vibrancy (Apple-aligned)
+- **Accessibility: prefers-contrast: more** — glass falls back to solid backgrounds with visible borders
+- **Accessibility: prefers-reduced-motion** — disables orb animation and hover transforms
+- **Accessibility: prefers-reduced-transparency** — disables all glass effects
+- **backdrop-filter fallback** — `@supports not (backdrop-filter)` provides solid fallback for older browsers
+
+### Changed
+- **Glass opacity tuned** — light mode glass slightly more transparent (0.58 content, 0.45 panels) for better orb bleed-through
+- **Dark mode saturate reduced** — 180% → 140% to prevent garish color halos on dark backgrounds
+- **Shadows removed for glass style** — tiny/low/medium shadows set to `none` (both light and dark); depth via blur+translucency, not shadow
+- **Grain texture removed** — noise overlay deleted entirely (glass depth via blur, not texture)
+- **Inline styles → CSS base classes** — Modal overlay/content, Toast, CommandPalette, mobile nav pill, FAB menu, kanban columns now use CSS classes so `[data-theme]` selectors win without `!important`
+
+### Fixed
+- **Theme apply refactored** — single-pass Map-based DOM update instead of clearAll + re-apply; sets `data-theme` attribute for CSS targeting
+
+---
+
 ## [2.21.0] - 2026-04-02
 
 ### Added

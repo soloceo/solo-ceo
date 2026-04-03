@@ -86,7 +86,7 @@ export function Modal({ open, onClose, onSubmit, title, children, className, siz
           aria-modal="true"
           aria-label={title}
         >
-          <div className="absolute inset-0" style={{ background: "var(--color-overlay-primary)", backdropFilter: "blur(2px) saturate(180%)", WebkitBackdropFilter: "blur(2px) saturate(180%)" }} onClick={onClose} />
+          <div className="absolute inset-0 modal-overlay" onClick={onClose} />
 
           <motion.div
             ref={dialogRef}
@@ -95,15 +95,12 @@ export function Modal({ open, onClose, onSubmit, title, children, className, siz
             exit={{ opacity: 0, scale: 0.92, y: 4 }}
             transition={{ type: "spring", stiffness: 320, damping: 30 }}
             className={cn(
-              "relative w-full overflow-hidden flex flex-col max-h-[85vh]",
+              "relative w-full overflow-hidden flex flex-col max-h-[85vh] modal-content",
               sizes[size],
               className,
             )}
             style={{
-              background: "var(--color-bg-primary)",
               border: "1px solid var(--color-border-translucent)",
-              borderRadius: "var(--radius-12)",
-              boxShadow: "var(--shadow-high)",
             }}
           >
             {title && (

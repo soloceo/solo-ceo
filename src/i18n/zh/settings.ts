@@ -84,6 +84,8 @@ export const settings = {
   "settings.style.defaultDesc": "圆角·柔影",
   "settings.style.neobrutalism": "新粗野",
   "settings.style.neobrutalismDesc": "粗边框·硬阴影",
+  "settings.style.glassmorphism": "毛玻璃",
+  "settings.style.glassmorphismDesc": "半透明·柔光·模糊",
   "settings.palette": "配色",
   "settings.theme.default": "默认",
   "settings.theme.defaultDesc": "Notion 风格",

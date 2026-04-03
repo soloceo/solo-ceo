@@ -122,8 +122,7 @@ export function CommandPalette() {
           transition={{ duration: 0.12 }}
         >
           <div
-            className="absolute inset-0"
-            style={{ background: "var(--color-overlay-primary)" }}
+            className="absolute inset-0 modal-overlay"
             onClick={() => setCommandPaletteOpen(false)}
           />
 
@@ -135,12 +134,9 @@ export function CommandPalette() {
             role="dialog"
             aria-modal="true"
             aria-label="Command palette"
-            className="relative w-full max-w-[520px] mx-4 overflow-hidden"
+            className="relative w-full max-w-[520px] mx-4 overflow-hidden modal-content"
             style={{
-              background: "var(--color-bg-primary)",
               border: "1px solid var(--color-border-primary)",
-              borderRadius: "var(--radius-12)",
-              boxShadow: "var(--shadow-high)",
             }}
           >
             <Command
