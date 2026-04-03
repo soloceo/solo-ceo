@@ -1036,12 +1036,14 @@
 }
 
 /* ── Mobile bottom nav — frosted glass pill ───────────────────── */
+/* Nav is critical UI — use higher opacity so it stays readable
+   even when Android WebView renders backdrop-filter poorly */
 [data-theme="glassmorphism"] .mobile-nav-pill {
-  background: var(--glass-bg);
+  background: var(--glass-bg-content);
   backdrop-filter: blur(16px) saturate(180%) brightness(1.05);
   -webkit-backdrop-filter: blur(16px) saturate(180%) brightness(1.05);
   border-color: var(--glass-border);
-  box-shadow: var(--shadow-medium), var(--glass-inset);
+  box-shadow: 0 0 0 1px var(--glass-border), 0 -1px 12px rgba(0,0,0,0.06), var(--glass-inset);
 }
 
 /* ── FAB menu — stronger glass ────────────────────────────────── */
