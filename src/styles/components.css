@@ -114,10 +114,16 @@
     overflow: hidden;
     scroll-snap-align: start;
   }
-  /* Recharts SVG captures touch events for tooltips, blocking parent scroll-snap.
-     Disable pointer-events on mobile so touches pass through to swipe container. */
+  /* Recharts registers onTouchStart/Move/End on .recharts-wrapper that do
+     synchronous Redux dispatches + elementFromPoint() on every touchmove.
+     This confuses the browser's scroll-vs-interaction heuristic and blocks
+     the parent scroll-snap from receiving horizontal gestures.
+     Fix: touch-action (compositor level) + pointer-events (JS level). */
   @media (max-width: 1023px) {
-    .home-swipe-panel .recharts-wrapper {
+    .home-swipe-panel .recharts-responsive-container,
+    .home-swipe-panel .recharts-wrapper,
+    .home-swipe-panel .recharts-surface {
+      touch-action: none;
       pointer-events: none;
     }
   }
