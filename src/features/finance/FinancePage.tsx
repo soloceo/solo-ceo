@@ -539,7 +539,7 @@ export default function FinancePage() {
         onScroll={handleFinScroll}
         onTouchStart={handleFinTouchStart}
         onTouchMove={handleFinTouchMove}
-        className="home-swipe-container flex-1"
+        className="home-swipe-container"
       >
         {/* Panel 1: Business */}
         <div className="home-swipe-panel flex flex-col">
