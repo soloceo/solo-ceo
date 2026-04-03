@@ -84,6 +84,8 @@ export const settings = {
   "settings.style.neobrutalismDesc": "Bold borders · Hard shadows",
   "settings.style.glassmorphism": "Glass",
   "settings.style.glassmorphismDesc": "Frosted blur · Translucent",
+  "settings.style.hud": "HUD",
+  "settings.style.hudDesc": "Cockpit glow · Monospace",
   "settings.palette": "Colors",
   "settings.theme.default": "Default",
   "settings.theme.defaultDesc": "Notion-inspired",

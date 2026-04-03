@@ -1366,3 +1366,521 @@
     }
   }
 }
+
+
+/* ══════════════════════════════════════════════════════════════════
+   HUD — Space Capsule cockpit component overrides
+   Triggered by data-theme="hud" on <html>
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Root tokens — scan-line texture, glow layers, grid ─────── */
+[data-theme="hud"] {
+  /* Scan-line overlay */
+  --hud-scanline: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.02) 2px,
+    rgba(0,0,0,0.02) 4px
+  );
+  /* Glow tokens (palette-agnostic via color-mix) */
+  --hud-glow-color: var(--color-accent);
+  --hud-glow-soft: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  --hud-glow-medium: color-mix(in srgb, var(--color-accent) 22%, transparent);
+  --hud-glow-strong: color-mix(in srgb, var(--color-accent) 38%, transparent);
+  /* Corner bracket tokens */
+  --hud-corner-size: 10px;
+  --hud-corner-weight: 1.5px;
+  --hud-corner-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
+  /* Grid background tokens */
+  --hud-grid-color: rgba(0,0,0,0.025);
+  --hud-grid-size: 48px;
+  /* Z-layers for decorative elements */
+  --hud-layer-bg: 0;
+  --hud-layer-content: 1;
+}
+[data-theme="hud"].dark {
+  --hud-scanline: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(255,255,255,0.025) 2px,
+    rgba(255,255,255,0.025) 4px
+  );
+  --hud-glow-soft: color-mix(in srgb, var(--color-accent) 18%, transparent);
+  --hud-glow-medium: color-mix(in srgb, var(--color-accent) 30%, transparent);
+  --hud-glow-strong: color-mix(in srgb, var(--color-accent) 50%, transparent);
+  --hud-corner-color: color-mix(in srgb, var(--color-accent) 55%, transparent);
+  --hud-grid-color: color-mix(in srgb, var(--color-accent) 4%, transparent);
+}
+
+/* ── Background grid — cockpit coordinate grid ──────────────── */
+[data-theme="hud"] body {
+  background-color: var(--color-bg-primary);
+}
+[data-theme="hud"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: var(--hud-layer-bg);
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--hud-grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--hud-grid-color) 1px, transparent 1px);
+  background-size: var(--hud-grid-size) var(--hud-grid-size);
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, black 30%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, black 30%, transparent 70%);
+}
+/* Content above grid */
+[data-theme="hud"] #root > div {
+  position: relative;
+  z-index: var(--hud-layer-content);
+}
+
+/* ── Scan-line sweep — slow animated horizontal bar ─────────── */
+[data-theme="hud"] body::after {
+  content: "";
+  position: fixed;
+  left: 0;
+  right: 0;
+  height: 1px;
+  z-index: var(--hud-layer-bg);
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--hud-glow-soft) 20%,
+    var(--hud-glow-medium) 50%,
+    var(--hud-glow-soft) 80%,
+    transparent 100%
+  );
+  animation: hud-scan-sweep 8s linear infinite;
+  opacity: 0.6;
+}
+@keyframes hud-scan-sweep {
+  0%   { top: -2px; }
+  100% { top: 100%; }
+}
+
+/* ── Corner bracket reticle — THE signature HUD targeting marker ─ */
+/* Applied to all .card elements for consistent cockpit instrument feel.
+   Uses ::after pseudo-element with background-image gradients at 4 corners.
+   Inset 4px ensures visibility even with overflow:hidden. */
+
+[data-theme="hud"] .card,
+[data-theme="hud"] .stat-card,
+[data-theme="hud"] .widget-card {
+  position: relative;
+}
+[data-theme="hud"] .card::after,
+[data-theme="hud"] .stat-card::after,
+[data-theme="hud"] .widget-card::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  pointer-events: none;
+  border-radius: 0;
+  z-index: 1;
+  background-image:
+    /* Top-left ┌ */
+    linear-gradient(to right, var(--hud-corner-color), var(--hud-corner-color)),
+    linear-gradient(to bottom, var(--hud-corner-color), var(--hud-corner-color)),
+    /* Top-right ┐ */
+    linear-gradient(to left, var(--hud-corner-color), var(--hud-corner-color)),
+    linear-gradient(to bottom, var(--hud-corner-color), var(--hud-corner-color)),
+    /* Bottom-left └ */
+    linear-gradient(to right, var(--hud-corner-color), var(--hud-corner-color)),
+    linear-gradient(to top, var(--hud-corner-color), var(--hud-corner-color)),
+    /* Bottom-right ┘ */
+    linear-gradient(to left, var(--hud-corner-color), var(--hud-corner-color)),
+    linear-gradient(to top, var(--hud-corner-color), var(--hud-corner-color));
+  background-size:
+    var(--hud-corner-size) var(--hud-corner-weight), var(--hud-corner-weight) var(--hud-corner-size),
+    var(--hud-corner-size) var(--hud-corner-weight), var(--hud-corner-weight) var(--hud-corner-size),
+    var(--hud-corner-size) var(--hud-corner-weight), var(--hud-corner-weight) var(--hud-corner-size),
+    var(--hud-corner-size) var(--hud-corner-weight), var(--hud-corner-weight) var(--hud-corner-size);
+  background-position:
+    top left, top left,
+    top right, top right,
+    bottom left, bottom left,
+    bottom right, bottom right;
+  background-repeat: no-repeat;
+}
+/* Brighten brackets on hover */
+@media (hover: hover) {
+  [data-theme="hud"] .card:hover::after,
+  [data-theme="hud"] .stat-card:hover::after {
+    --hud-corner-color: color-mix(in srgb, var(--color-accent) 65%, transparent);
+  }
+}
+
+/* ── Cards — sharp corners, accent-glow border, scan-line texture ── */
+[data-theme="hud"] .card {
+  border-radius: 2px;
+  box-shadow: var(--shadow-low);
+  background-image: var(--hud-scanline);
+  background-size: 100% 4px;
+}
+[data-theme="hud"] .card-elevated {
+  box-shadow: var(--shadow-medium);
+}
+
+/* ── Stat cards — corner brackets, glow on hover ────────────── */
+[data-theme="hud"] .stat-card {
+  border-radius: 2px;
+  box-shadow: var(--shadow-low);
+  background-image: var(--hud-scanline);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+@media (hover: hover) {
+  [data-theme="hud"] .stat-card:hover {
+    box-shadow: var(--shadow-medium);
+    border-color: color-mix(in srgb, var(--color-accent) 50%, var(--color-border-primary));
+  }
+}
+
+/* ── Widget card — corner brackets, scan-line texture ────────── */
+[data-theme="hud"] .widget-card {
+  border-radius: 2px;
+  box-shadow: var(--shadow-low);
+  background-image: var(--hud-scanline);
+}
+
+/* ── Glass panel — no blur, opaque, sharp ────────────────────── */
+[data-theme="hud"] .glass {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-radius: 2px;
+}
+
+/* ── Header — accent glow line with subtle pulse ─────────────── */
+[data-theme="hud"] .header-glass {
+  border-radius: 0;
+  border-bottom-color: var(--hud-corner-color) !important;
+  box-shadow: 0 1px 6px var(--hud-glow-soft);
+}
+
+/* ── Mobile nav pill — sharp, glowing border ─────────────────── */
+[data-theme="hud"] .mobile-nav-pill {
+  border-radius: 2px;
+  box-shadow: 0 0 10px var(--hud-glow-soft), inset 0 1px 0 0 var(--hud-glow-soft);
+}
+
+/* ── Mobile nav active icon — glow dot indicator ─────────────── */
+[data-theme="hud"] .mobile-nav-pill button[data-active="true"],
+[data-theme="hud"] .mobile-nav-pill button.active {
+  text-shadow: 0 0 8px var(--hud-glow-medium);
+}
+
+/* ── FAB menu — sharp corners, glow ──────────────────────────── */
+[data-theme="hud"] .fab-glass-menu {
+  border-radius: 2px;
+  box-shadow: var(--shadow-medium);
+  background-image: var(--hud-scanline);
+}
+
+/* ── Sidebar — sharp, glow right edge ────────────────────────── */
+@media (min-width: 1024px) {
+  [data-theme="hud"] .sidebar-glass {
+    border-radius: 0;
+    border-right-color: var(--hud-corner-color) !important;
+    box-shadow: 1px 0 8px var(--hud-glow-soft);
+    background-image: var(--hud-scanline);
+    background-size: 100% 4px;
+  }
+}
+
+/* ── Sidebar nav — left accent line on active ────────────────── */
+@media (min-width: 1024px) {
+  [data-theme="hud"] .sidebar-glass nav button {
+    border-radius: 2px;
+    border-left: 2px solid transparent;
+    transition: border-color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
+  }
+  [data-theme="hud"] .sidebar-glass nav button[data-active="true"],
+  [data-theme="hud"] .sidebar-glass nav button.active {
+    border-left-color: var(--color-accent);
+    background: var(--color-accent-tint);
+    box-shadow: inset 2px 0 12px var(--hud-glow-soft);
+  }
+}
+
+/* ── Page tabs — monospace, accent glow on active ────────────── */
+[data-theme="hud"] .page-tabs > button {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Menlo', monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 2px;
+}
+[data-theme="hud"] .page-tabs > button[data-active="true"] {
+  background: var(--color-accent-tint);
+  box-shadow: 0 0 10px var(--hud-glow-soft);
+  border: 1px solid var(--hud-corner-color);
+}
+
+/* ── Segment switcher — thin accent line ─────────────────────── */
+[data-theme="hud"] .segment-switcher {
+  border-bottom: 1px solid var(--color-border-primary);
+}
+[data-theme="hud"] .segment-switcher > button {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Menlo', monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+[data-theme="hud"] .segment-switcher > button[data-active="true"],
+[data-theme="hud"] .segment-switcher > button.active {
+  border-bottom-color: var(--color-accent);
+  text-shadow: 0 0 8px var(--hud-glow-medium);
+}
+
+/* ── Badges — sharp, thin border, monospace ──────────────────── */
+[data-theme="hud"] .badge {
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  font-family: 'JetBrains Mono', 'SF Mono', 'Menlo', monospace;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ── Inputs — sharp, accent glow on focus ────────────────────── */
+[data-theme="hud"] .input-base {
+  border-radius: 2px;
+  background-image: var(--hud-scanline);
+}
+[data-theme="hud"] .input-base:focus {
+  border-color: var(--hud-corner-color);
+  box-shadow: 0 0 10px var(--hud-glow-soft),
+              inset 0 0 6px var(--hud-glow-soft);
+}
+
+/* ── Primary button — glow shadow, monospace ─────────────────── */
+[data-theme="hud"] .btn-primary {
+  border-radius: 2px;
+  font-family: 'JetBrains Mono', 'SF Mono', 'Menlo', monospace;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 12px;
+  box-shadow: var(--shadow-interactive);
+}
+@media (hover: hover) {
+  [data-theme="hud"] .btn-primary:hover {
+    box-shadow: var(--shadow-interactive-hover);
+  }
+}
+[data-theme="hud"] .btn-primary:active {
+  box-shadow: var(--shadow-tiny);
+}
+
+/* ── Secondary button — subtle glow ──────────────────────────── */
+[data-theme="hud"] .btn-secondary {
+  border-radius: 2px;
+  box-shadow: var(--shadow-tiny);
+}
+@media (hover: hover) {
+  [data-theme="hud"] .btn-secondary:hover {
+    box-shadow: var(--shadow-interactive);
+    border-color: var(--hud-corner-color);
+  }
+}
+
+/* ── Ghost button — glow on hover ────────────────────────────── */
+@media (hover: hover) {
+  [data-theme="hud"] .btn-ghost:hover {
+    background: var(--color-accent-tint);
+    box-shadow: 0 0 6px var(--hud-glow-soft);
+  }
+}
+
+/* ── Icon buttons — sharp, glow hover ────────────────────────── */
+[data-theme="hud"] .btn-icon,
+[data-theme="hud"] .btn-icon-sm {
+  border-radius: 2px;
+}
+@media (hover: hover) {
+  [data-theme="hud"] .btn-icon:hover,
+  [data-theme="hud"] .btn-icon-sm:hover {
+    background: var(--color-accent-tint);
+    box-shadow: 0 0 6px var(--hud-glow-soft);
+  }
+}
+
+/* ── Card interactive — glow on hover ────────────────────────── */
+@media (hover: hover) {
+  [data-theme="hud"] .card-interactive:hover {
+    box-shadow: var(--shadow-medium);
+    border-color: var(--hud-corner-color);
+  }
+}
+
+/* ── Button group — monospace, thin dividers ─────────────────── */
+[data-theme="hud"] .btn-group-inline {
+  border-radius: 2px;
+}
+[data-theme="hud"] .btn-group-inline > button {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Menlo', monospace;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+[data-theme="hud"] .btn-group-inline > button + button {
+  border-left: 1px solid var(--color-border-primary);
+}
+
+/* ── KPI values — monospace readout with text-shadow glow ────── */
+[data-theme="hud"] .kpi-value {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Menlo', monospace;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+[data-theme="hud"].dark .kpi-value {
+  text-shadow: 0 0 12px var(--hud-glow-soft);
+}
+[data-theme="hud"] .kpi-label {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Menlo', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 10px;
+}
+
+/* ── Section labels — monospace, tracked ─────────────────────── */
+[data-theme="hud"] .section-label {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Menlo', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ── Headings — monospace ────────────────────────────────────── */
+[data-theme="hud"] h1,
+[data-theme="hud"] h2 {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Menlo', monospace;
+  letter-spacing: -0.01em;
+}
+
+/* ── Tables — accent header line ─────────────────────────────── */
+[data-theme="hud"] .card table thead {
+  background: var(--color-bg-tertiary);
+  background-image: var(--hud-scanline);
+  border-bottom: 1px solid var(--color-border-primary);
+}
+[data-theme="hud"] .card table th {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Menlo', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 10px;
+}
+[data-theme="hud"] .card table tbody tr {
+  border-bottom: 1px solid var(--color-line-secondary);
+}
+
+/* ── Progress bar — sharp, glow pulse animation ─────────────── */
+[data-theme="hud"] .progress-track {
+  height: 4px;
+  border-radius: 0;
+  background: var(--color-bg-quaternary);
+  border: 1px solid var(--color-border-translucent);
+}
+[data-theme="hud"] .progress-fill {
+  border-radius: 0;
+  box-shadow: 0 0 6px var(--hud-glow-medium);
+  animation: hud-bar-glow 2s ease-in-out infinite;
+}
+@keyframes hud-bar-glow {
+  0%, 100% { box-shadow: 0 0 4px var(--hud-glow-medium); }
+  50%      { box-shadow: 0 0 10px var(--hud-glow-strong); }
+}
+
+/* ── Mobile sheet — sharp corners, accent glow ───────────────── */
+[data-theme="hud"] .mobile-sheet-content {
+  border-radius: 2px 2px 0 0;
+  border-top: 1px solid var(--hud-corner-color);
+  box-shadow: 0 -4px 20px var(--hud-glow-soft);
+  background-image: var(--hud-scanline);
+}
+@media (min-width: 768px) {
+  [data-theme="hud"] .mobile-sheet-content {
+    border-radius: 2px;
+    border: 1px solid var(--hud-corner-color);
+    box-shadow: var(--shadow-high);
+  }
+}
+
+/* ── Modal — sharp, glow border ──────────────────────────────── */
+[data-theme="hud"] .modal-content {
+  border-radius: 2px;
+  border-color: var(--hud-corner-color) !important;
+  box-shadow: var(--shadow-high);
+  background-image: var(--hud-scanline);
+}
+
+/* ── Toast — sharp, compact glow ─────────────────────────────── */
+[data-theme="hud"] .toast {
+  border-radius: 2px;
+  border: 1px solid var(--hud-corner-color);
+  box-shadow: var(--shadow-medium);
+  background-image: var(--hud-scanline);
+}
+
+/* ── Kanban columns — sharp, subtle texture ──────────────────── */
+[data-theme="hud"] .kanban-column {
+  border-radius: 2px;
+  background-image: var(--hud-scanline);
+}
+
+/* ── Focus visible — accent glow ring ────────────────────────── */
+[data-theme="hud"] .btn-primary:focus-visible,
+[data-theme="hud"] .btn-secondary:focus-visible,
+[data-theme="hud"] .btn-ghost:focus-visible,
+[data-theme="hud"] .btn-icon:focus-visible,
+[data-theme="hud"] .btn-icon-sm:focus-visible {
+  outline: 1px solid var(--color-accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 10px var(--hud-glow-medium);
+}
+
+/* ── Skeleton — sharp, no shimmer ────────────────────────────── */
+[data-theme="hud"] .skeleton-bone {
+  border-radius: 2px;
+  background: var(--color-bg-quaternary);
+  background-image: var(--hud-scanline);
+  animation: none;
+}
+
+/* ── Press feedback — slight glow flash ──────────────────────── */
+[data-theme="hud"] .press-feedback:active {
+  transform: scale(0.98);
+  box-shadow: 0 0 14px var(--hud-glow-medium);
+}
+
+/* ── Divider lines — thin accent-tinted ──────────────────────── */
+[data-theme="hud"] .card.divide-y > * + *,
+[data-theme="hud"] .divide-y > * + * {
+  border-top-width: 1px;
+}
+
+/* ── Select dropdown — sharp, monospace ──────────────────────── */
+[data-theme="hud"] select.input-base {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Menlo', monospace;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+/* ── Accessibility: reduced motion ───────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="hud"] .stat-card,
+  [data-theme="hud"] .card-interactive,
+  [data-theme="hud"] .btn-primary,
+  [data-theme="hud"] .btn-secondary {
+    transition: none;
+  }
+  [data-theme="hud"] .progress-fill {
+    animation: none;
+  }
+  [data-theme="hud"] body::after {
+    animation: none;
+    display: none;
+  }
+}

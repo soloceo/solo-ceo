@@ -86,6 +86,8 @@ export const settings = {
   "settings.style.neobrutalismDesc": "粗边框·硬阴影",
   "settings.style.glassmorphism": "毛玻璃",
   "settings.style.glassmorphismDesc": "半透明·柔光·模糊",
+  "settings.style.hud": "太空舱",
+  "settings.style.hudDesc": "荧光边框·等宽字体",
   "settings.palette": "配色",
   "settings.theme.default": "默认",
   "settings.theme.defaultDesc": "Notion 风格",

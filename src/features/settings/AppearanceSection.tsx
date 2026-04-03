@@ -129,6 +129,7 @@ export default function AppearanceSection({ themeMode, setThemeMode, styleId, se
               const isActive = styleId === s.id;
               const isNeo = s.id === 'neobrutalism';
               const isGlass = s.id === 'glassmorphism';
+              const isHud = s.id === 'hud';
               return (
                 <button
                   key={s.id}
@@ -145,13 +146,21 @@ export default function AppearanceSection({ themeMode, setThemeMode, styleId, se
                     style={{
                       background: isGlass
                         ? 'linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 15%, var(--color-bg-primary)), var(--color-bg-primary))'
+                        : isHud
+                        ? 'var(--color-bg-tertiary)'
                         : 'var(--color-bg-primary)',
-                      border: isNeo ? '2px solid var(--color-text-primary)' : '1px solid var(--color-border-secondary)',
-                      borderRadius: isNeo ? '3px' : isGlass ? '12px' : '8px',
+                      border: isNeo
+                        ? '2px solid var(--color-text-primary)'
+                        : isHud
+                        ? '1px solid color-mix(in srgb, var(--color-accent) 40%, var(--color-border-secondary))'
+                        : '1px solid var(--color-border-secondary)',
+                      borderRadius: isNeo ? '3px' : isGlass ? '12px' : isHud ? '2px' : '8px',
                       boxShadow: isNeo
                         ? '3px 3px 0 var(--color-text-primary)'
                         : isGlass
                         ? '0 4px 16px rgba(0,0,0,0.06)'
+                        : isHud
+                        ? '0 0 10px color-mix(in srgb, var(--color-accent) 20%, transparent), inset 0 0 20px color-mix(in srgb, var(--color-accent) 5%, transparent)'
                         : '0 1px 4px rgba(0,0,0,0.06)',
                       backdropFilter: isGlass ? 'blur(8px)' : undefined,
                     }}
@@ -162,17 +171,32 @@ export default function AppearanceSection({ themeMode, setThemeMode, styleId, se
                         pointerEvents: 'none',
                       }} />
                     )}
+                    {/* HUD corner brackets */}
+                    {isHud && (
+                      <>
+                        <div style={{ position: 'absolute', top: 3, left: 3, width: 6, height: 6, borderTop: '1.5px solid var(--color-accent)', borderLeft: '1.5px solid var(--color-accent)', opacity: 0.7 }} />
+                        <div style={{ position: 'absolute', top: 3, right: 3, width: 6, height: 6, borderTop: '1.5px solid var(--color-accent)', borderRight: '1.5px solid var(--color-accent)', opacity: 0.7 }} />
+                        <div style={{ position: 'absolute', bottom: 3, left: 3, width: 6, height: 6, borderBottom: '1.5px solid var(--color-accent)', borderLeft: '1.5px solid var(--color-accent)', opacity: 0.7 }} />
+                        <div style={{ position: 'absolute', bottom: 3, right: 3, width: 6, height: 6, borderBottom: '1.5px solid var(--color-accent)', borderRight: '1.5px solid var(--color-accent)', opacity: 0.7 }} />
+                      </>
+                    )}
                     <div
                       className="absolute top-2 left-2.5 right-2.5"
-                      style={{ height: 5, background: 'var(--color-accent)', borderRadius: isNeo ? '1px' : '3px', opacity: isGlass ? 0.8 : 1 }}
+                      style={{
+                        height: isHud ? 3 : 5,
+                        background: 'var(--color-accent)',
+                        borderRadius: isNeo ? '1px' : isHud ? '0' : '3px',
+                        opacity: isGlass ? 0.8 : 1,
+                        boxShadow: isHud ? '0 0 6px var(--color-accent)' : undefined,
+                      }}
                     />
                     <div className="absolute bottom-2 left-2.5 flex flex-col gap-1">
-                      <div style={{ width: 32, height: 3, background: 'var(--color-text-primary)', opacity: 0.5, borderRadius: isNeo ? 0 : 2 }} />
-                      <div style={{ width: 22, height: 3, background: 'var(--color-text-primary)', opacity: 0.25, borderRadius: isNeo ? 0 : 2 }} />
+                      <div style={{ width: 32, height: isHud ? 2 : 3, background: isHud ? 'var(--color-accent)' : 'var(--color-text-primary)', opacity: isHud ? 0.4 : 0.5, borderRadius: isNeo || isHud ? 0 : 2 }} />
+                      <div style={{ width: 22, height: isHud ? 2 : 3, background: isHud ? 'var(--color-accent)' : 'var(--color-text-primary)', opacity: isHud ? 0.25 : 0.25, borderRadius: isNeo || isHud ? 0 : 2 }} />
                     </div>
                   </div>
                   {/* Label */}
-                  <div className="text-[13px]" style={{ color: 'var(--color-text-primary)', fontWeight: 'var(--font-weight-semibold)' } as React.CSSProperties}>
+                  <div className="text-[13px]" style={{ color: 'var(--color-text-primary)', fontWeight: 'var(--font-weight-semibold)', fontFamily: isHud ? "'JetBrains Mono', 'SF Mono', monospace" : undefined } as React.CSSProperties}>
                     {t(s.nameKey)}
                   </div>
                   <div className="text-[11px] mt-0.5" style={{ color: 'var(--color-text-tertiary)' }}>

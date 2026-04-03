@@ -8,6 +8,7 @@ import { monoTheme } from './builtins/mono';
 import { defaultStyle } from './styles/default';
 import { neobrutalismStyle } from './styles/neobrutalism';
 import { glassmorphismStyle } from './styles/glassmorphism';
+import { hudStyle } from './styles/hud';
 
 /** Color palettes — order determines display order in the picker */
 export const palettes: ThemeDefinition[] = [
@@ -24,6 +25,7 @@ export const styles: StyleDefinition[] = [
   defaultStyle,
   neobrutalismStyle,
   glassmorphismStyle,
+  hudStyle,
 ];
 
 const paletteMap = new Map(palettes.map((p) => [p.id, p]));

@@ -3,6 +3,21 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.23.0] - 2026-04-03
+
+### Added
+- **Space Capsule HUD style** — new "太空舱" option in Style picker: cockpit-grade instrument panel aesthetic with sharp 2px corners, glowing accent-tinted borders, JetBrains Mono monospace headings, and glow-based shadows
+- **Corner bracket reticles** — ┌ ┐ └ ┘ targeting markers on all `.card` elements via pure CSS `::after` pseudo-elements (zero JS overhead)
+- **Background grid + scan-line sweep** — faint accent-tinted grid pattern with radial fade, plus animated horizontal scan-line bar (8s cycle) for immersive cockpit feel
+- **Palette-agnostic glow system** — all HUD effects use `color-mix(in srgb, var(--color-accent) N%, transparent)`, automatically adapting to all 6 palettes (yellow, blue, pink, green, purple, monochrome)
+- **Progress bar pulse animation** — `hud-bar-glow` 2s pulse on progress indicators
+- **KPI value text glow** — `text-shadow` glow on dashboard numbers in dark mode
+- **JetBrains Mono font** — loaded via Google Fonts with `display=swap` for non-blocking rendering; applied to headings, tabs, badges, buttons, and section labels in HUD style
+- **HUD preview card** — custom style picker preview with corner bracket indicators, accent glow bar, and monospace label
+- **Accessibility** — `prefers-reduced-motion: reduce` disables scan-sweep and bar-glow animations
+
+---
+
 ## [2.22.2] - 2026-04-03
 
 ### Changed
