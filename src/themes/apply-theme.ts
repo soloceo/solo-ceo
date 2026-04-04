@@ -37,6 +37,14 @@ function updateMetaThemeColor(color: string) {
   document.head.appendChild(meta);
 }
 
+/** Update iOS PWA status bar text color to match dark/light mode */
+function updateStatusBarStyle(isDark: boolean) {
+  const meta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+  if (meta) {
+    meta.setAttribute('content', isDark ? 'black-translucent' : 'default');
+  }
+}
+
 /**
  * Apply a style + palette + light/dark mode to the DOM.
  *
@@ -67,8 +75,9 @@ export function applyFullTheme(styleId: string, paletteId: string, mode: ThemeMo
     document.documentElement.dataset.theme = styleId;
   }
 
-  // Update meta theme-color (from palette)
+  // Update meta theme-color (from palette) + iOS status bar text color
   updateMetaThemeColor(isDark ? palette.meta.dark : palette.meta.light);
+  updateStatusBarStyle(isDark);
 
   // Build the complete set of tokens to apply BEFORE touching the DOM.
   // This avoids flicker from "clear all → re-apply" across multiple frames.

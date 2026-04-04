@@ -3,6 +3,13 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.24.1] - 2026-04-03
+
+### Fixed
+- **iOS PWA status bar** — dynamically switch `apple-mobile-web-app-status-bar-style` between `default` (light mode, black text) and `black-translucent` (dark mode, white text) on theme change; takes effect on next app launch
+
+---
+
 ## [2.24.0] - 2026-04-03
 
 ### Added
