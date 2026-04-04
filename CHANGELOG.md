@@ -3,6 +3,23 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.24.2] - 2026-04-03
+
+### Performance
+- **SWR cache layer** — cached GET responses for instant tab switching; background revalidation keeps data fresh
+- **Parallel data loading** — WorkPage, FinancePage, ClientList now load via `Promise.all` instead of sequential fetches
+- **Select column pruning** — all 11 `select('*')` replaced with specific columns, reducing payload size
+- **Subscription ledger batching** — sequential N+1 updates → parallel waves of 20 (240→12 round trips)
+- **Query optimization** — `.like('%应收%')` → `.eq('待收款 (应收)')` for index-friendly status filtering
+- **Cold-start timeout** — first Supabase request gets 15s (for DB wake-up), subsequent 8s
+- **useCallback stabilization** — `useRef` pattern prevents infinite re-fetch loops in WorkPage/FinancePage
+
+### Fixed
+- **Realtime cache coherence** — realtime events now invalidate SWR cache before triggering refetch, preventing stale data
+- **FinancePage Promise.allSettled** — was creating promises without awaiting; now properly awaited via `Promise.all`
+
+---
+
 ## [2.24.1] - 2026-04-03
 
 ### Fixed
