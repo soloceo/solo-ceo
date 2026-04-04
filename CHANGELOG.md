@@ -3,6 +3,37 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.24.0] - 2026-04-03
+
+### Added
+- **Interaction animation system** — comprehensive motion upgrade across the entire app for native-feel interactions
+  - Page tab transitions (`page-enter` fade+scale on route change)
+  - Task completion bounce (`.check-toggle` scale 1.3x + color transition)
+  - Dropdown menu spring physics (`.popover-spring` shared class for CommandPalette, QuickCreate, UserMenu)
+  - Mobile tab sliding indicator (`layoutId="mobile-tab-indicator"` spring physics)
+  - Desktop sidebar sliding indicator (`layoutId="sidebar-indicator"` spring physics)
+  - Kanban card reflow animation (`AnimatePresence` + `motion.div layout` with spring 320/30)
+  - List item deletion collapse animation (`.anim-collapse-exit` grid-template-rows transition)
+  - KPI number count-up animation (extended `useCountUp` to all 4 secondary KPIs)
+  - Toast spring entry (`.popover-spring` with scale 0.88 → 1 + translateY)
+  - Submit success pulse keyframe (`@keyframes submit-success`)
+- **Theme-specific navigation** — per-theme sidebar and mobile nav indicator styling
+  - Neobrutalism: hard 2px border + offset shadow indicators, squared corners, translate press feedback
+  - Glassmorphism: translucent accent-tinted glass pill, soft inner highlight, 10px rounded corners
+  - HUD: accent left-border glow, inset glow shadow, text-shadow glow on active
+- **Theme-specific mobile nav** — `.mobile-tab-indicator` CSS hook for per-theme bottom bar indicators
+- **Theme deep customization** — filled all missing component overrides:
+  - Neobrutalism: modal, toast, FAB menu, mobile header pill, kanban column, widget card
+  - Glassmorphism: KPI typography, section labels, button group inline, table cells
+  - HUD: modal overlay (dark + blur), card interactive hover glow
+- **Theme-specific hover states** — sidebar nav hover effects for glassmorphism (glass tint) and HUD (accent glow + border)
+
+### Changed
+- Segment switcher → page-tabs style on WorkPage and LeadsBoard for visual consistency
+- `prefers-reduced-motion: reduce` now covers all new animation classes
+
+---
+
 ## [2.23.1] - 2026-04-03
 
 ### Added

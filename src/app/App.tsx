@@ -42,6 +42,7 @@ import { QuickCreateMenu } from "./QuickCreateMenu";
 import { UserMenu } from "./UserMenu";
 import { SyncIndicator } from "./SyncIndicator";
 import { useClickOutside } from "./useClickOutside";
+import { motion } from "motion/react";
 
 /* ── Lazy page imports ─────────────────────────────────────────── */
 const HomePage = lazy(() => import("../features/home/HomePage"));
@@ -96,7 +97,9 @@ const Content = React.memo(({ activeTab }: { activeTab: string }) => {
   return (
     <PageErrorBoundary key={activeTab} pageName={activeTab}>
       <Suspense fallback={<PageSkeleton />}>
-        <Page />
+        <div className="page-enter">
+          <Page />
+        </div>
       </Suspense>
     </PageErrorBoundary>
   );
@@ -520,8 +523,9 @@ function App() {
             </button>
             {/* Dropdown menu */}
             <div
-              className="absolute right-0 w-52 py-1 overflow-hidden transition-all duration-150 origin-top-right"
+              className="absolute right-0 w-52 py-1 overflow-hidden popover-spring origin-top-right"
               role="menu"
+              data-open={mobileMenuOpen}
               style={{
                 top: "calc(100% + 6px)",
                 background: "var(--color-bg-primary)",
@@ -529,9 +533,7 @@ function App() {
                 borderRadius: "var(--radius-8)",
                 boxShadow: "var(--shadow-medium)",
                 zIndex: "var(--layer-popover)",
-                opacity: mobileMenuOpen ? 1 : 0,
-                transform: mobileMenuOpen ? "scale(1) translateY(0)" : "scale(0.95) translateY(-4px)",
-                pointerEvents: mobileMenuOpen ? "auto" : "none",
+                transform: mobileMenuOpen ? "scale(1) translateY(0)" : "scale(0.9) translateY(-8px)",
               } as React.CSSProperties}
             >
               {/* User info */}
@@ -727,14 +729,21 @@ const SidebarItem = React.memo(function SidebarItem({
       style={{
         color: active ? "var(--color-text-primary)" : "var(--color-text-tertiary)",
         fontWeight: active ? "var(--font-weight-semibold)" : "var(--font-weight-normal)",
-        background: active ? "var(--color-bg-tertiary)" : undefined,
         border: "1px solid transparent",
-        transition: "all 80ms var(--ease-out-quad)",
+        transition: "color 0.15s var(--ease-ios), font-weight 0.15s var(--ease-ios)",
       } as React.CSSProperties}
       onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "var(--color-bg-tertiary)"; }}
-      onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = ""; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = ""; }}
     >
-      <span className="shrink-0 relative" style={{ color: active ? "var(--color-text-primary)" : "var(--color-text-quaternary)" }}>
+      {active && (
+        <motion.div
+          layoutId="sidebar-indicator"
+          className="sidebar-indicator absolute inset-0 rounded-[var(--radius-6)]"
+          style={{ background: "var(--color-bg-tertiary)" }}
+          transition={{ type: "spring", stiffness: 400, damping: 30 }}
+        />
+      )}
+      <span className="shrink-0 relative z-10" style={{ color: active ? "var(--color-text-primary)" : "var(--color-text-quaternary)" }}>
         {icon}
         {/* Collapsed badge dot */}
         {!expanded && (hasSegments || (badge !== undefined && badge > 0)) && (
@@ -753,7 +762,7 @@ const SidebarItem = React.memo(function SidebarItem({
       )}
       {expanded && (
         <>
-          <span className="whitespace-nowrap truncate flex-1 text-left">{label}</span>
+          <span className="relative z-10 whitespace-nowrap truncate flex-1 text-left">{label}</span>
           {/* Segmented badge: colored pills */}
           {hasSegments ? (
             <span className="flex items-center gap-1">
@@ -795,14 +804,22 @@ const MobileNavItem = React.memo(function MobileNavItem({
     <button
       onClick={() => onClick(id)}
       aria-current={active ? "page" : undefined}
-      className={`relative flex-1 flex flex-col items-center justify-center gap-1 select-none rounded-full py-1.5 min-h-[44px] transition-all press-feedback`}
+      className={`relative flex-1 flex flex-col items-center justify-center gap-1 select-none rounded-full py-1.5 min-h-[44px] press-feedback`}
       style={{
         color: active ? "var(--color-accent)" : "var(--color-text-quaternary)",
-        background: active ? "var(--color-accent-tint)" : "transparent",
-      }}
+        transition: "color 0.2s var(--ease-ios), transform 0.15s var(--ease-ios-bounce)",
+      } as React.CSSProperties}
     >
-      {icon}
-      <span className="text-[13px]" style={{ fontWeight: active ? "var(--font-weight-semibold)" : "var(--font-weight-medium)" } as React.CSSProperties}>{label}</span>
+      {active && (
+        <motion.div
+          layoutId="mobile-tab-indicator"
+          className="mobile-tab-indicator absolute inset-0 rounded-full"
+          style={{ background: "var(--color-accent-tint)" }}
+          transition={{ type: "spring", stiffness: 400, damping: 30 }}
+        />
+      )}
+      <span className="relative z-10">{icon}</span>
+      <span className="relative z-10 text-[13px]" style={{ fontWeight: active ? "var(--font-weight-semibold)" : "var(--font-weight-medium)" } as React.CSSProperties}>{label}</span>
     </button>
   );
 });

@@ -136,8 +136,12 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
     api.put(`/api/tasks/${task.id}`, { column: newColumn }).then(() => onRefresh());
   };
 
+  const [removingId, setRemovingId] = useState<number | null>(null);
   const deleteTask = (id: number) => {
-    api.del(`/api/tasks/${id}`).then(() => onRefresh());
+    setRemovingId(id);
+    setTimeout(() => {
+      api.del(`/api/tasks/${id}`).then(() => { setRemovingId(null); onRefresh(); });
+    }, 250);
   };
 
   const startEdit = (task: Task) => {
@@ -408,7 +412,8 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
               /* ── Google Tasks style: tap row → inline edit, tap circle → toggle done ── */
               if (isEditing) {
                 return (
-                  <div key={task.id} className="px-3 py-2.5 space-y-2.5 anim-appear" style={{ background: "var(--color-bg-tertiary)" }}>
+                  <div key={task.id} className="anim-collapse-exit" data-removing={removingId === task.id}>
+                  <div className="px-3 py-2.5 space-y-2.5 anim-appear" style={{ background: "var(--color-bg-tertiary)" }}>
                     <input
                       type="text"
                       value={editTitle}
@@ -455,18 +460,19 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
                       </button>
                     </div>
                   </div>
+                  </div>
                 );
               }
 
               return (
+                <div key={task.id} className="anim-collapse-exit" data-removing={removingId === task.id}>
                 <div
-                  key={task.id}
                   className="flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback anim-appear"
                   onClick={() => startEdit(task)}
                 >
                   {/* Checkbox — separate tap target for toggle done */}
                   <button
-                    className="shrink-0 flex items-center justify-center"
+                    className="shrink-0 flex items-center justify-center check-toggle"
                     style={{ width: 44, height: 44, marginLeft: -8, marginRight: -8, borderRadius: "50%", background: "transparent", border: "none" }}
                     onClick={e => { e.stopPropagation(); toggleTask(task); }}
                   >
@@ -475,7 +481,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
                       : <Circle size={15} strokeWidth={1.5} style={{ color: "var(--color-border-secondary)" }} />
                     }
                   </button>
-                  <span className="flex-1 text-[14px] min-w-0 truncate" style={{
+                  <span className="flex-1 text-[14px] min-w-0 truncate memo-text-done" style={{
                     color: isDone ? "var(--color-text-quaternary)" : "var(--color-text-primary)",
                     textDecoration: isDone ? "line-through" : "none",
                   }}>
@@ -486,6 +492,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
                       {dateLabel}
                     </span>
                   )}
+                </div>
                 </div>
               );
             })}

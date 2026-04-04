@@ -696,6 +696,22 @@
   }
 }
 
+/* ── Mobile nav pill — hard border, square corners ───────────── */
+[data-theme="neobrutalism"] .mobile-nav-pill {
+  border-radius: var(--radius-base);
+  border: 2px solid var(--color-border-primary);
+  box-shadow: 3px 3px 0 var(--color-border-primary);
+}
+[data-theme="neobrutalism"] .mobile-nav-pill .mobile-tab-indicator {
+  border-radius: var(--radius-base) !important;
+  border: 2px solid var(--color-border-primary);
+  background: var(--color-accent-tint) !important;
+  box-shadow: var(--shadow-tiny);
+}
+[data-theme="neobrutalism"] .mobile-nav-pill button[aria-current="page"] {
+  font-weight: var(--font-weight-bold) !important;
+}
+
 /* ── KPI values — extra bold ─────────────────────────────────── */
 [data-theme="neobrutalism"] .kpi-value {
   font-weight: 900;
@@ -780,18 +796,30 @@
   border-radius: var(--radius-base);
 }
 
-/* ── Sidebar nav — thick accent border on active ───────────── */
+/* ── Sidebar nav — punchy border + hard shadow on active ───── */
 @media (min-width: 1024px) {
   [data-theme="neobrutalism"] .sidebar-glass nav button {
     border-radius: var(--radius-base);
-    border-left: 3px solid transparent;
-    transition: border-color var(--transition-fast), background var(--transition-fast);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: 13px;
+    transition: background var(--transition-fast), transform var(--transition-fast);
   }
-  [data-theme="neobrutalism"] .sidebar-glass nav button[data-active="true"],
-  [data-theme="neobrutalism"] .sidebar-glass nav button.active {
-    border-left-color: var(--color-accent);
-    background: var(--color-accent-tint);
+  [data-theme="neobrutalism"] .sidebar-glass nav .sidebar-indicator {
+    border-radius: var(--radius-base);
+    border: 2px solid var(--color-border-primary);
+    background: var(--color-accent-tint) !important;
+    box-shadow: var(--shadow-tiny);
+  }
+  [data-theme="neobrutalism"] .sidebar-glass nav button[aria-current="page"] {
     font-weight: var(--font-weight-bold);
+  }
+  [data-theme="neobrutalism"] .sidebar-glass nav button:hover:not([aria-current="page"]) {
+    background: var(--color-bg-tertiary);
+  }
+  [data-theme="neobrutalism"] .sidebar-glass nav button:active {
+    transform: translate(2px, 2px);
   }
 }
 
@@ -856,6 +884,50 @@
 [data-theme="neobrutalism"] h2 {
   font-weight: 900;
   letter-spacing: -0.02em;
+}
+
+/* ── Modal — hard border + offset shadow ─────────────────────── */
+[data-theme="neobrutalism"] .modal-content {
+  border-radius: var(--radius-base);
+  border: 3px solid var(--color-border-primary);
+  box-shadow: 6px 6px 0 var(--color-border-primary);
+}
+[data-theme="neobrutalism"] .modal-overlay {
+  background: rgba(0,0,0,0.3);
+}
+
+/* ── Toast — hard border pill ────────────────────────────────── */
+[data-theme="neobrutalism"] .toast {
+  border-radius: var(--radius-base);
+  border: 2px solid var(--color-border-primary);
+  box-shadow: 3px 3px 0 var(--color-border-primary);
+}
+
+/* ── FAB menu — hard border, offset shadow ───────────────────── */
+[data-theme="neobrutalism"] .fab-glass-menu {
+  border-radius: var(--radius-base);
+  border: 2px solid var(--color-border-primary);
+  box-shadow: 4px 4px 0 var(--color-border-primary);
+}
+
+/* ── Mobile header pill — hard border ────────────────────────── */
+[data-theme="neobrutalism"] .mobile-header-pill {
+  border-radius: var(--radius-base);
+  border: 2px solid var(--color-border-primary);
+  box-shadow: 3px 3px 0 var(--color-border-primary);
+}
+
+/* ── Kanban column — hard border top ─────────────────────────── */
+[data-theme="neobrutalism"] .kanban-column {
+  border: 2px solid var(--color-border-primary);
+  border-radius: var(--radius-base);
+}
+
+/* ── Widget card — hard border + shadow ──────────────────────── */
+[data-theme="neobrutalism"] .widget-card {
+  border: 2px solid var(--color-border-primary);
+  border-radius: var(--radius-base);
+  box-shadow: var(--shadow-tiny);
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -1063,6 +1135,15 @@
   border-color: var(--color-border-translucent);
   box-shadow: 0 0 0 1px var(--glass-border), 0 -1px 12px rgba(0,0,0,0.06);
 }
+[data-theme="glassmorphism"] .mobile-nav-pill .mobile-tab-indicator {
+  background: color-mix(in srgb, var(--color-accent) 10%, var(--glass-bg-content)) !important;
+  border: 1px solid var(--glass-border);
+  border-radius: 9999px !important;
+  box-shadow: var(--glass-inset-soft);
+}
+[data-theme="glassmorphism"] .mobile-nav-pill button[aria-current="page"] {
+  color: var(--color-accent) !important;
+}
 
 /* ── FAB menu — stronger glass ────────────────────────────────── */
 [data-theme="glassmorphism"] .fab-glass-menu {
@@ -1120,6 +1201,28 @@
     -webkit-backdrop-filter: blur(16px) saturate(180%) brightness(1.05);
     border-color: var(--glass-border);
     box-shadow: var(--shadow-low), var(--glass-inset-side);
+  }
+}
+
+/* ── Sidebar nav — glass tint on active ───────────────────────── */
+@media (min-width: 1024px) {
+  [data-theme="glassmorphism"] .sidebar-glass nav button {
+    border-radius: 10px;
+    transition: background 0.2s var(--ease-ios), color 0.15s var(--ease-ios);
+  }
+  [data-theme="glassmorphism"] .sidebar-glass nav .sidebar-indicator {
+    background: color-mix(in srgb, var(--color-accent) 10%, var(--glass-bg-content)) !important;
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    box-shadow: var(--glass-inset-soft),
+                0 1px 3px rgba(0,0,0,0.04);
+  }
+  [data-theme="glassmorphism"] .sidebar-glass nav button[aria-current="page"] {
+    color: var(--color-accent) !important;
+  }
+  [data-theme="glassmorphism"] .sidebar-glass nav button:hover:not([aria-current="page"]) {
+    background: color-mix(in srgb, var(--glass-bg-content) 60%, transparent) !important;
+    box-shadow: var(--glass-inset-subtle);
   }
 }
 
@@ -1387,6 +1490,44 @@
   }
 }
 
+/* ── KPI typography — lighter glass weight ───────────────────── */
+[data-theme="glassmorphism"] .kpi-value {
+  font-weight: var(--font-weight-semibold);
+}
+[data-theme="glassmorphism"] .kpi-label {
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.02em;
+}
+
+/* ── Section label — soft, rounded ───────────────────────────── */
+[data-theme="glassmorphism"] .section-label {
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.03em;
+}
+
+/* ── Button group inline — glass border ──────────────────────── */
+[data-theme="glassmorphism"] .btn-group-inline {
+  border-color: var(--glass-border);
+  border-radius: var(--radius-8);
+  background: var(--glass-bg-content);
+  box-shadow: var(--glass-inset-subtle);
+}
+[data-theme="glassmorphism"] .btn-group-inline > button[data-active="true"] {
+  background: color-mix(in srgb, var(--color-accent) 10%, var(--glass-bg-content));
+}
+
+/* ── Table — translucent rows ────────────────────────────────── */
+[data-theme="glassmorphism"] .card table th {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+[data-theme="glassmorphism"] .card table tbody tr {
+  border-color: var(--glass-border);
+}
+[data-theme="glassmorphism"] .card table tbody tr:hover {
+  background: color-mix(in srgb, var(--glass-bg-content) 50%, transparent);
+}
+
 
 /* ══════════════════════════════════════════════════════════════════
    HUD — Space Capsule cockpit component overrides
@@ -1592,6 +1733,15 @@
 }
 
 /* ── Mobile nav active icon — glow dot indicator ─────────────── */
+[data-theme="hud"] .mobile-nav-pill .mobile-tab-indicator {
+  border-radius: 2px !important;
+  background: var(--color-accent-tint) !important;
+  box-shadow: 0 0 8px var(--hud-glow-soft), inset 0 1px 0 0 var(--hud-glow-soft);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
+}
+[data-theme="hud"] .mobile-nav-pill button[aria-current="page"] {
+  text-shadow: 0 0 8px var(--hud-glow-medium);
+}
 [data-theme="hud"] .mobile-nav-pill button[data-active="true"],
 [data-theme="hud"] .mobile-nav-pill button.active {
   text-shadow: 0 0 8px var(--hud-glow-medium);
@@ -1623,10 +1773,25 @@
     transition: border-color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
   }
   [data-theme="hud"] .sidebar-glass nav button[data-active="true"],
+  [data-theme="hud"] .sidebar-glass nav button[aria-current="page"],
   [data-theme="hud"] .sidebar-glass nav button.active {
     border-left-color: var(--color-accent);
-    background: var(--color-accent-tint);
+    color: var(--color-accent) !important;
+    text-shadow: 0 0 8px var(--hud-glow-medium);
+  }
+  [data-theme="hud"] .sidebar-glass nav .sidebar-indicator {
+    border-radius: 2px;
+    border-left: 2px solid var(--color-accent);
+    background: var(--color-accent-tint) !important;
     box-shadow: inset 2px 0 12px var(--hud-glow-soft);
+  }
+  [data-theme="hud"] .sidebar-glass nav button:hover:not([aria-current="page"]) {
+    background: var(--color-accent-tint) !important;
+    border-left-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
+    box-shadow: inset 1px 0 6px var(--hud-glow-soft);
+  }
+  [data-theme="hud"] .sidebar-glass nav button:active {
+    background: color-mix(in srgb, var(--color-accent) 15%, transparent) !important;
   }
 }
 
@@ -1735,7 +1900,7 @@
 /* ── Card interactive — glow on hover ────────────────────────── */
 @media (hover: hover) {
   [data-theme="hud"] .card-interactive:hover {
-    box-shadow: var(--shadow-medium);
+    box-shadow: 0 0 16px var(--hud-glow-soft), var(--shadow-low);
     border-color: var(--hud-corner-color);
   }
 }
@@ -1838,6 +2003,11 @@
   border-color: var(--hud-corner-color) !important;
   box-shadow: var(--shadow-high);
   background-image: var(--hud-scanline);
+}
+[data-theme="hud"] .modal-overlay {
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
 }
 
 /* ── Toast — sharp, compact glow ─────────────────────────────── */

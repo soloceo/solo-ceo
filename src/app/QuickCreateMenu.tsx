@@ -65,7 +65,8 @@ export function QuickCreateMenu({ setActiveTab }: QuickCreateMenuProps) {
       {createPortal(
         <div
           role="menu"
-          className="fixed w-48 py-1 overflow-hidden transition-all duration-150 origin-top-left"
+          data-open={quickCreateOpen}
+          className="fixed w-48 py-1 overflow-hidden popover-spring origin-top-left"
           style={{
             ...menuStyle,
             background: "var(--color-bg-primary)",
@@ -73,9 +74,7 @@ export function QuickCreateMenu({ setActiveTab }: QuickCreateMenuProps) {
             borderRadius: "var(--radius-8)",
             boxShadow: "var(--shadow-medium)",
             zIndex: "var(--layer-popover)",
-            opacity: quickCreateOpen ? 1 : 0,
-            transform: quickCreateOpen ? "scale(1) translateY(0)" : "scale(0.92) translateY(-6px)",
-            pointerEvents: quickCreateOpen ? "auto" : "none",
+            transform: quickCreateOpen ? "scale(1) translateY(0)" : "scale(0.9) translateY(-8px)",
           } as React.CSSProperties}
         >
           {quickCreateItems.map((item, i) => (

@@ -112,17 +112,16 @@ export function UserMenu({
         )}
       </button>
       <div
-        className="absolute bottom-[calc(100%+6px)] left-0 w-48 py-1 overflow-hidden transition-all duration-150 origin-bottom-left"
+        className="absolute bottom-[calc(100%+6px)] left-0 w-48 py-1 overflow-hidden popover-spring origin-bottom-left"
         role="menu"
+        data-open={userMenuOpen}
         style={{
           background: "var(--color-bg-primary)",
           border: "1px solid var(--color-border-primary)",
           borderRadius: "var(--radius-8)",
           boxShadow: "var(--shadow-medium)",
           zIndex: 10,
-          opacity: userMenuOpen ? 1 : 0,
-          transform: userMenuOpen ? "scale(1) translateY(0)" : "scale(0.95) translateY(4px)",
-          pointerEvents: userMenuOpen ? "auto" : "none",
+          transform: userMenuOpen ? "scale(1) translateY(0)" : "scale(0.9) translateY(8px)",
         }}
       >
         {/* User info header */}

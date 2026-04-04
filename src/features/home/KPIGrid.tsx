@@ -20,6 +20,9 @@ export function KPIGrid({ monthlyIncome, todayIncome, clientsCount, leadsCount, 
   const { t } = useT();
   const { settings, loaded, save } = useAppSettings();
   const animIncome = useCountUp(monthlyIncome);
+  const animClients = useCountUp(clientsCount);
+  const animWork = useCountUp(workTasks);
+  const animPersonal = useCountUp(personalTasks);
 
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
@@ -176,9 +179,9 @@ export function KPIGrid({ monthlyIncome, todayIncome, clientsCount, leadsCount, 
       {/* ── Secondary metrics — 3 columns, whitespace separated ── */}
       <div className="grid grid-cols-3" style={{ gap: 12 }}>
         {[
-          { icon: Users, color: "var(--color-text-tertiary)", label: t("home.kpi.activeClients"), value: clientsCount, sub: leadsCount > 0 ? `+${leadsCount} ${t("home.kpi.leads")}` : null, subColor: "var(--color-text-tertiary)" },
-          { icon: Briefcase, color: "var(--color-text-tertiary)", label: t("home.kpi.workTasks"), value: workTasks, sub: null, subColor: "" },
-          { icon: User, color: "var(--color-text-tertiary)", label: t("home.kpi.personalTasks"), value: personalTasks, sub: null, subColor: "" },
+          { icon: Users, color: "var(--color-text-tertiary)", label: t("home.kpi.activeClients"), value: animClients, sub: leadsCount > 0 ? `+${leadsCount} ${t("home.kpi.leads")}` : null, subColor: "var(--color-text-tertiary)" },
+          { icon: Briefcase, color: "var(--color-text-tertiary)", label: t("home.kpi.workTasks"), value: animWork, sub: null, subColor: "" },
+          { icon: User, color: "var(--color-text-tertiary)", label: t("home.kpi.personalTasks"), value: animPersonal, sub: null, subColor: "" },
         ].map((kpi, i) => (
           <div key={i} className="card p-3">
             <div className="flex items-center gap-1.5 mb-2">

@@ -12,6 +12,7 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { Plus } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import { TaskCard, type Task } from "./TaskCard";
 
@@ -189,19 +190,29 @@ function KanbanColumn({ col, items, onAdd, onEdit, onDelete, onClientClick, empt
                 {emptyText}
               </button>
             )}
-            {items.map((task) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onClientClick={onClientClick}
-                onPriorityChange={onPriorityChange}
-                onDueChange={onDueChange}
-                columns={columns}
-                onColumnChange={onColumnChange}
-              />
-            ))}
+            <AnimatePresence mode="popLayout">
+              {items.map((task) => (
+                <motion.div
+                  key={task.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ type: "spring", stiffness: 320, damping: 30 }}
+                >
+                  <TaskCard
+                    task={task}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                    onClientClick={onClientClick}
+                    onPriorityChange={onPriorityChange}
+                    onDueChange={onDueChange}
+                    columns={columns}
+                    onColumnChange={onColumnChange}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         </div>
       </SortableContext>

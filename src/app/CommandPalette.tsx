@@ -115,11 +115,10 @@ export function CommandPalette() {
 
   return createPortal(
     <div
-      className="fixed inset-0 flex items-start justify-center pt-[20vh] transition-opacity duration-150"
+      className="fixed inset-0 flex items-start justify-center pt-[20vh] popover-spring"
+      data-open={commandPaletteOpen}
       style={{
         zIndex: "var(--layer-command-menu)",
-        opacity: commandPaletteOpen ? 1 : 0,
-        pointerEvents: commandPaletteOpen ? "auto" : "none",
       } as React.CSSProperties}
     >
       <div
@@ -131,11 +130,11 @@ export function CommandPalette() {
         role="dialog"
         aria-modal="true"
         aria-label="Command palette"
-        className="relative w-full max-w-[520px] mx-4 overflow-hidden modal-content transition-all duration-200"
+        className="relative w-full max-w-[520px] mx-4 overflow-hidden modal-content popover-spring"
+        data-open={commandPaletteOpen}
         style={{
           border: "1px solid var(--color-border-primary)",
-          opacity: commandPaletteOpen ? 1 : 0,
-          transform: commandPaletteOpen ? "scale(1) translateY(0)" : "scale(0.96) translateY(-8px)",
+          transform: commandPaletteOpen ? "scale(1) translateY(0)" : "scale(0.92) translateY(-12px)",
         }}
       >
             <Command

@@ -14,13 +14,12 @@ export function GlobalToast() {
     <div
       role="status"
       aria-live="polite"
-      className="fixed right-4 md:right-6 px-4 py-2 rounded-full flex items-center gap-2 text-[15px] toast transition-all duration-200"
+      className="fixed right-4 md:right-6 px-4 py-2 rounded-full flex items-center gap-2 text-[15px] toast popover-spring"
+      data-open={!!toastMessage}
       style={{
         zIndex: "var(--layer-toasts)",
         bottom: isMobile ? "80px" : "24px",
-        opacity: toastMessage ? 1 : 0,
-        transform: toastMessage ? "translateY(0) scale(1)" : "translateY(8px) scale(0.92)",
-        pointerEvents: toastMessage ? "auto" : "none",
+        transform: toastMessage ? "translateY(0) scale(1)" : "translateY(12px) scale(0.88)",
       } as React.CSSProperties}
     >
       <Check size={14} style={{ color: "var(--color-success)" }} />

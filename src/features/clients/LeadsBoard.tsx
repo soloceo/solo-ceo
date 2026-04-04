@@ -272,7 +272,7 @@ export function LeadsView() {
   return (
     <>
       <div className="flex items-center gap-2 mb-2 flex-wrap">
-        <div className="segment-switcher">
+        <div className="page-tabs">
           {([["vertical", <LayoutGrid size={14} key="v" />, "Board view"], ["horizontal", <AlignJustify size={14} key="h" />, "List view"]] as const).map(([m, icon, label]) => (
             <button key={m} onClick={() => setViewMode(m)} data-active={viewMode === m} aria-label={label}>{icon}</button>
           ))}

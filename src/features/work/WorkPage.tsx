@@ -305,7 +305,7 @@ export default function WorkPage() {
             <option value="Low">{t("work.filter.low")}</option>
           </select>
         </div>
-        <div className="segment-switcher">
+        <div className="page-tabs">
           {([
             ["vertical", <LayoutGrid size={14} />, "Board view"],
             ["horizontal", <AlignJustify size={14} />, "List view"],
