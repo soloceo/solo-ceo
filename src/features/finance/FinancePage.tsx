@@ -150,19 +150,24 @@ export default function FinancePage() {
   const statuses = TX_STATUSES;
 
   /* ── Fetch ── */
+  const showToastRef = useRef(showToast);
+  showToastRef.current = showToast;
+  const tRef = useRef(t);
+  tRef.current = t;
+
   const fetchFinance = useCallback(async () => {
     try {
       const data = await api.get<FinanceTransaction[]>("/api/finance");
       setTransactions(Array.isArray(data) ? data : []);
-    } catch { showToast(t("money.loadFail")); }
+    } catch { showToastRef.current(tRef.current("money.loadFail")); }
     finally { setIsLoading(false); }
-  }, [showToast, t]);
+  }, []);
 
   const fetchClients = useCallback(async () => {
     try { const d = await api.get<{ id: number; name: string }[]>("/api/clients"); setClientList(Array.isArray(d) ? d : []); } catch { /* client list unavailable */ }
   }, []);
 
-  useEffect(() => { Promise.allSettled([fetchFinance(), fetchClients()]); }, [fetchFinance, fetchClients]);
+  useEffect(() => { void Promise.all([fetchFinance(), fetchClients()]); }, [fetchFinance, fetchClients]);
   useRealtimeRefresh(FINANCE_TABLES, fetchFinance);
 
   const pullRef = useRef<HTMLDivElement>(null);

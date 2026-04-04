@@ -11,6 +11,7 @@ import { initDb, handleApiRequest } from './api';
 import { enqueue, startOfflineQueueListener } from './offline-queue';
 import { initSyncManager } from './sync-manager';
 import { supabase } from './supabase-client';
+import { cacheGet, cacheSet, cacheToResponse, isFresh, invalidateForMutation, notifyUpdate, clearCache } from './data-cache';
 
 let installed = false;
 
@@ -49,6 +50,7 @@ function isAuthenticated(): boolean {
 /** Clear cached auth state on sign-out to prevent stale routing */
 export function resetCachedAuth(): void {
   _cachedAuthed = false;
+  clearCache();
 }
 
 
@@ -156,16 +158,48 @@ export async function installSupabaseInterceptor(): Promise<void> {
     const path = url.split('?')[0];
     const body = await parseBody(input, init);
 
-    // Check if we're online and authenticated — both are sync, zero latency
-    if (isOnline() && isAuthenticated()) {
-      return await handleViaSupabase(method, path, body);
+    // ── Mutations: invalidate cache, then proceed ──
+    if (method !== 'GET') {
+      invalidateForMutation(path);
+      if (isOnline() && isAuthenticated()) {
+        return await handleViaSupabase(method, path, body);
+      }
+      enqueue(method, path, body).catch((e) => console.warn("[Offline] Failed to enqueue:", e));
+      return handleLocally(method, path, body);
     }
 
-    // Offline or not authenticated → use local DB
-    // Queue write operations for later replay
-    if (method !== 'GET') {
-      enqueue(method, path, body).catch((e) => console.warn("[Offline] Failed to enqueue:", e));
+    // ── GET: SWR cache layer ──
+    const cached = cacheGet(path);
+
+    // Helper: fetch fresh data, cache it, and return/notify
+    const fetchFresh = async (source: 'supabase' | 'local'): Promise<Response> => {
+      const resp = source === 'supabase'
+        ? await handleViaSupabase(method, path, body)
+        : await handleLocally(method, path, body);
+      const ct = resp.headers.get('Content-Type') || 'application/json';
+      const clone = resp.clone();
+      clone.text().then((text) => {
+        cacheSet(path, text, ct, resp.status);
+      }).catch(() => {});
+      return resp;
+    };
+
+    const online = isOnline() && isAuthenticated();
+
+    // If we have a cached response, return it immediately
+    if (cached) {
+      // If still fresh, just return cache — no revalidation needed
+      if (isFresh(cached)) {
+        return cacheToResponse(cached);
+      }
+      // Stale: return cache now, revalidate in background
+      fetchFresh(online ? 'supabase' : 'local').then(() => {
+        notifyUpdate(path);
+      }).catch(() => {});
+      return cacheToResponse(cached);
     }
-    return handleLocally(method, path, body);
+
+    // No cache — fetch and cache synchronously
+    return fetchFresh(online ? 'supabase' : 'local');
   };
 }

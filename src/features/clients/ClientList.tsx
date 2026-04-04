@@ -124,7 +124,7 @@ export function ClientsView() {
   const fetchPlans = async () => { try { const d = await api.get<unknown[]>("/api/plans"); setPlans(Array.isArray(d) ? d : []); } catch { showToast(t("common.loadFailed") || "Load failed"); } };
   const fetchClients = async () => { try { const data = await api.get<unknown[]>("/api/clients"); setClients(Array.isArray(data) ? data : []); } catch { showToast(t("pipeline.toast.clientLoadFailed")); } finally { setLoading(false); } };
 
-  useEffect(() => { fetchClients(); fetchPlans(); tx.fetchFinance(); }, []);
+  useEffect(() => { void Promise.all([fetchClients(), fetchPlans(), tx.fetchFinance()]); }, []);
   useRealtimeRefresh(CLIENTS_TABLES, () => { fetchClients(); tx.fetchFinance(); if (editId) { if (form.billing_type === "project") { ms.fetchMilestones(editId); proj.fetchProjects(editId); } } });
 
   /* ── Pull-to-refresh listener ── */

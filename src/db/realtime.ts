@@ -4,7 +4,21 @@
  * dispatches DOM events so components can re-fetch.
  */
 import { supabase } from './supabase-client';
+import { invalidateForMutation } from './data-cache';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+
+// Map table names to their API paths for cache invalidation
+const TABLE_API_PATH: Record<string, string> = {
+  leads: '/api/leads',
+  clients: '/api/clients',
+  tasks: '/api/tasks',
+  plans: '/api/plans',
+  finance_transactions: '/api/finance',
+  payment_milestones: '/api/milestones',
+  today_focus_state: '/api/today-focus',
+  today_focus_manual: '/api/today-focus',
+  client_projects: '/api/clients',
+};
 
 const REALTIME_TABLES = [
   'leads', 'clients', 'tasks', 'plans',
@@ -25,6 +39,13 @@ export function startRealtime() {
       'postgres_changes',
       { event: '*', schema: 'public', table },
       (payload) => {
+        // Invalidate SWR cache so refetch gets fresh data (not stale cache)
+        const apiPath = TABLE_API_PATH[table];
+        if (apiPath) {
+          invalidateForMutation(apiPath);
+          invalidateForMutation('/api/dashboard'); // dashboard aggregates all tables
+        }
+
         window.dispatchEvent(
           new CustomEvent('supabase-change', {
             detail: {

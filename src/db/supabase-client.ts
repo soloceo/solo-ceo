@@ -23,19 +23,24 @@ export const supabase = createClient(safeUrl, safeAnon, {
   realtime: {
     params: { eventsPerSecond: 10 },
   },
-  // Global fetch with timeout to prevent hanging when offline
-  // Auth endpoints get longer timeout (15s) for slow networks;
-  // data endpoints use 8s for snappy UX.
+  // Global fetch with timeout to prevent hanging when offline.
+  // First data request gets 15s for Supabase cold-start wake-up;
+  // subsequent data requests use 8s for snappy UX.
+  // Auth endpoints always get 15s.
   global: {
-    fetch: (input, init) => {
-      const isAuth = typeof input === 'string' && input.includes('/auth/');
-      const ms = isAuth ? 15000 : 8000;
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), ms);
-      return fetch(input, {
-        ...init,
-        signal: controller.signal,
-      }).finally(() => clearTimeout(timeout));
-    },
+    fetch: (() => {
+      let firstData = true;
+      return (input: RequestInfo | URL, init?: RequestInit) => {
+        const isAuth = typeof input === 'string' && input.includes('/auth/');
+        const ms = isAuth ? 15000 : (firstData ? 15000 : 8000);
+        if (!isAuth) firstData = false;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), ms);
+        return fetch(input, {
+          ...init,
+          signal: controller.signal,
+        }).finally(() => clearTimeout(timeout));
+      };
+    })(),
   },
 });

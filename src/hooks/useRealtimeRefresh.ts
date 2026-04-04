@@ -1,8 +1,20 @@
 import { useEffect, useCallback, useRef } from 'react';
 
+// Map table names to their primary API path for SWR cache-updated matching
+const TABLE_TO_PATH: Record<string, string> = {
+  leads: '/api/leads',
+  clients: '/api/clients',
+  tasks: '/api/tasks',
+  finance_transactions: '/api/finance',
+  plans: '/api/plans',
+  payment_milestones: '/api/milestones',
+  content_drafts: '/api/content-drafts',
+};
+
 /**
  * Re-runs `refetchFn` whenever a Supabase realtime change event
- * is received for any of the given `tables`.
+ * is received for any of the given `tables`, OR when the SWR cache
+ * background-revalidates a matching API path.
  * Debounced: batches rapid-fire events within 300ms into a single refetch.
  */
 export function useRealtimeRefresh(
@@ -33,11 +45,24 @@ export function useRealtimeRefresh(
       }
     };
 
+    // SWR cache background revalidation
+    const handleCacheUpdate = (e: Event) => {
+      const updatedPath = (e as CustomEvent).detail?.path as string | undefined;
+      if (!updatedPath) return;
+      const matches = tables.some(t => {
+        const apiPath = TABLE_TO_PATH[t];
+        return apiPath && (updatedPath === apiPath || updatedPath.startsWith(apiPath + '/'));
+      });
+      if (matches) scheduleRefetch();
+    };
+
     window.addEventListener('supabase-change', handleSingle);
     window.addEventListener('supabase-change-batch', handleBatch);
+    window.addEventListener('api-cache-updated', handleCacheUpdate);
     return () => {
       window.removeEventListener('supabase-change', handleSingle);
       window.removeEventListener('supabase-change-batch', handleBatch);
+      window.removeEventListener('api-cache-updated', handleCacheUpdate);
       clearTimeout(timer.current);
     };
   }, [tables, stableRefetch]);

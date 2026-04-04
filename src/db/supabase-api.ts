@@ -317,14 +317,20 @@ async function syncClientSubscriptionLedger(userId: string) {
   // Remaining in existingMap are rows that should no longer exist → soft delete
   const toDelete = [...existingMap.values()].map(e => e.id);
 
-  // Execute
+  // Execute — parallel batches to avoid N+1
+  const BATCH = 20; // concurrent updates per wave
   if (toInsert.length > 0) {
     for (let i = 0; i < toInsert.length; i += 500) {
       await supabase.from('finance_transactions').insert(toInsert.slice(i, i + 500));
     }
   }
-  for (const u of toUpdate) {
-    await supabase.from('finance_transactions').update(u.data).eq('id', u.id);
+  // Batch updates in parallel waves of BATCH size
+  for (let i = 0; i < toUpdate.length; i += BATCH) {
+    await Promise.all(
+      toUpdate.slice(i, i + BATCH).map(u =>
+        supabase.from('finance_transactions').update(u.data).eq('id', u.id)
+      )
+    );
   }
   if (toDelete.length > 0) {
     await supabase.from('finance_transactions').update({ soft_deleted: true }).in('id', toDelete);
@@ -352,7 +358,7 @@ export async function handleSupabaseRequest(
   if (path === '/api/leads' && method === 'GET') {
     const { data, error: e } = await supabase
       .from('leads')
-      .select('*')
+      .select('id, name, industry, needs, website, column, aiDraft, source, created_at, updated_at')
       .eq('user_id', userId)
       .eq('soft_deleted', false)
       .order('created_at', { ascending: false });
@@ -409,7 +415,7 @@ export async function handleSupabaseRequest(
   const convertMatch = path.match(/^\/api\/leads\/(\d+)\/convert$/);
   if (convertMatch && method === 'POST') {
     const id = Number(convertMatch[1]);
-    const { data: lead } = await supabase.from('leads').select('*').eq('id', id).eq('user_id', userId).single();
+    const { data: lead } = await supabase.from('leads').select('id, name, industry, needs').eq('id', id).eq('user_id', userId).single();
     if (!lead) return err(404, 'Lead not found');
     const { plan_tier, status, mrr, subscription_start_date, mrr_effective_from, billing_type, project_fee } = body || {};
     const np = normalizePlanTier(plan_tier || '');
@@ -444,7 +450,7 @@ export async function handleSupabaseRequest(
     const currentYear = new Date().getFullYear();
     const { data: clients } = await supabase
       .from('clients')
-      .select('*')
+      .select('id, name, company_name, plan_tier, status, mrr, billing_type, project_fee, tax_mode, tax_rate, payment_method, industry, brand_context, subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from, subscription_timeline, joined_at, created_at, updated_at')
       .eq('user_id', userId)
       .eq('soft_deleted', false)
       .order('joined_at', { ascending: false });
@@ -579,7 +585,7 @@ export async function handleSupabaseRequest(
     if (method === 'GET') {
       const { data, error: e } = await supabase
         .from('client_projects')
-        .select('*')
+        .select('id, client_id, name, description, status, total_fee, sort_order, created_at, updated_at')
         .eq('user_id', userId)
         .eq('client_id', clientId)
         .eq('soft_deleted', false)
@@ -645,7 +651,7 @@ export async function handleSupabaseRequest(
       const today = todayDateKey();
       const { data, error: e } = await supabase
         .from('payment_milestones')
-        .select('*')
+        .select('id, client_id, label, amount, percentage, due_date, status, finance_tx_id, sort_order, paid_date, payment_method, created_at')
         .eq('user_id', userId)
         .eq('client_id', clientId)
         .eq('soft_deleted', false)
@@ -776,7 +782,7 @@ export async function handleSupabaseRequest(
     const { payment_method, paid_date } = body || {};
     const actualDate = paid_date || todayDateKey();
 
-    const { data: milestone } = await supabase.from('payment_milestones').select('*').eq('id', id).eq('user_id', userId).single();
+    const { data: milestone } = await supabase.from('payment_milestones').select('id, client_id, label, amount, percentage, due_date, status, finance_tx_id, sort_order, paid_date, payment_method').eq('id', id).eq('user_id', userId).single();
     if (!milestone) return err(404, 'Milestone not found');
 
     // Fix Bug 2: Check idempotency - if milestone is already marked as paid, return early
@@ -834,7 +840,7 @@ export async function handleSupabaseRequest(
   const undoPaidMatch = path.match(/^\/api\/milestones\/(\d+)\/undo-paid$/);
   if (undoPaidMatch && method === 'POST') {
     const id = Number(undoPaidMatch[1]);
-    const { data: milestone } = await supabase.from('payment_milestones').select('*').eq('id', id).eq('user_id', userId).single();
+    const { data: milestone } = await supabase.from('payment_milestones').select('id, client_id, label, amount, status, finance_tx_id').eq('id', id).eq('user_id', userId).single();
     if (!milestone) return err(404, 'Milestone not found');
     // Idempotency: already pending, nothing to undo
     if (milestone.status === 'pending') return ok({ success: true, alreadyPending: true });
@@ -857,7 +863,7 @@ export async function handleSupabaseRequest(
   if (path === '/api/tasks' && method === 'GET') {
     const { data } = await supabase
       .from('tasks')
-      .select('*')
+      .select('id, title, client, client_id, priority, due, column, scope, parent_id, originalRequest, aiBreakdown, aiMjPrompts, aiStory, created_at, updated_at')
       .eq('user_id', userId)
       .eq('soft_deleted', false)
       .order('created_at', { ascending: false });
@@ -942,7 +948,7 @@ export async function handleSupabaseRequest(
 
     const { data: plans } = await supabase
       .from('plans')
-      .select('*')
+      .select('id, name, price, deliverySpeed, features, created_at, updated_at')
       .eq('user_id', userId)
       .eq('soft_deleted', false);
     const rows = (plans || []).map((p) => {
@@ -1003,7 +1009,7 @@ export async function handleSupabaseRequest(
     // Single table query — no more virtual rows!
     const { data, error: e } = await supabase
       .from('finance_transactions')
-      .select('*')
+      .select('id, type, amount, category, description, date, status, source, source_id, tax_mode, tax_rate, tax_amount, client_id, created_at, updated_at')
       .eq('user_id', userId)
       .eq('soft_deleted', false)
       .order('date', { ascending: false });
@@ -1023,10 +1029,10 @@ export async function handleSupabaseRequest(
     ] = await Promise.all([
       supabase.from('finance_transactions').select('amount').eq('user_id', userId).eq('type', 'income').eq('status', '已完成').eq('soft_deleted', false),
       supabase.from('finance_transactions').select('amount').eq('user_id', userId).eq('type', 'expense').eq('status', '已完成').eq('soft_deleted', false),
-      supabase.from('finance_transactions').select('amount').eq('user_id', userId).eq('soft_deleted', false).like('status', '%应收%'),
-      supabase.from('finance_transactions').select('amount').eq('user_id', userId).eq('soft_deleted', false).like('status', '%应付%'),
+      supabase.from('finance_transactions').select('amount').eq('user_id', userId).eq('soft_deleted', false).eq('status', '待收款 (应收)'),
+      supabase.from('finance_transactions').select('amount').eq('user_id', userId).eq('soft_deleted', false).eq('status', '待支付 (应付)'),
       supabase.from('finance_transactions').select('amount, tax_amount').eq('user_id', userId).eq('status', '已完成').eq('soft_deleted', false).gt('tax_amount', 0),
-      supabase.from('finance_transactions').select('*').eq('user_id', userId).eq('soft_deleted', false).order('date', { ascending: false }).limit(50),
+      supabase.from('finance_transactions').select('id, type, amount, category, description, date, status, source, source_id, tax_mode, tax_rate, tax_amount, client_id').eq('user_id', userId).eq('soft_deleted', false).order('date', { ascending: false }).limit(50),
     ]);
     const completedIncome = (completedIncomeRows || []).reduce((s: number, r: AmountRow) => s + Number(r.amount || 0), 0);
     const completedExpense = (completedExpenseRows || []).reduce((s: number, r: AmountRow) => s + Number(r.amount || 0), 0);
@@ -1129,7 +1135,7 @@ export async function handleSupabaseRequest(
   if (path === '/api/content-drafts' && method === 'GET') {
     const { data } = await supabase
       .from('content_drafts')
-      .select('*')
+      .select('id, topic, platform, language, content, created_at, updated_at')
       .eq('user_id', userId)
       .eq('soft_deleted', false)
       .order('updated_at', { ascending: false })

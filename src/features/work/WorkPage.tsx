@@ -57,9 +57,10 @@ export default function WorkPage() {
   const [editTask, setEditTask] = useState<Task | null>(null);
   const [defaultColumn, setDefaultColumn] = useState("todo");
 
-  useEffect(() => {
-    api.get<ClientItem[]>("/api/clients").then((d) => setClientList(Array.isArray(d) ? d.filter((c: ClientItem) => !c.soft_deleted) : [])).catch(() => { /* client list unavailable */ });
-  }, []);
+  const showToastRef = useRef(showToast);
+  showToastRef.current = showToast;
+  const tRef = useRef(t);
+  tRef.current = t;
 
   const fetchTasks = useCallback(async () => {
     try {
@@ -83,13 +84,21 @@ export default function WorkPage() {
       window.dispatchEvent(new CustomEvent("tasks-changed"));
     } catch (e) {
       console.warn('[WorkPage] fetchTasks', e);
-      showToast(t("work.loadFailed"));
+      showToastRef.current(tRef.current("work.loadFailed"));
     } finally {
       setIsLoading(false);
     }
-  }, [showToast, t]);
+  }, []);
 
-  useEffect(() => { fetchTasks(); }, [fetchTasks]);
+  useEffect(() => {
+    // Parallel load: tasks + clients
+    Promise.all([
+      fetchTasks(),
+      api.get<ClientItem[]>("/api/clients")
+        .then((d) => setClientList(Array.isArray(d) ? d.filter((c: ClientItem) => !c.soft_deleted) : []))
+        .catch(() => { /* client list unavailable */ }),
+    ]);
+  }, [fetchTasks]);
   useRealtimeRefresh(WORK_TABLES, fetchTasks);
 
   const scrollRef = useRef<HTMLDivElement>(null);
