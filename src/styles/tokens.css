@@ -124,6 +124,8 @@
   --focus-ring-width:      2px;
 
   /* ── Z-Index layers ──────────────────────────────────────────── */
+  --layer-base:            1;
+  --layer-float:           10;
   --layer-header:          100;
   --layer-overlay:         500;
   --layer-popover:         600;

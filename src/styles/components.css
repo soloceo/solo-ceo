@@ -878,6 +878,21 @@
   box-shadow: var(--shadow-high);
   font-weight: var(--font-weight-medium);
 }
+.mobile-header-pill {
+  padding: 5px;
+  border-radius: 9999px;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
+  box-shadow: var(--shadow-medium);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+@media (max-width: 1023px) {
+  .mobile-header-spacer {
+    padding-top: calc(var(--mobile-header-pt, env(safe-area-inset-top, 0px)) + 58px);
+  }
+}
 .mobile-nav-pill {
   padding: 6px;
   background: var(--color-bg-primary);
@@ -1003,6 +1018,7 @@
 [data-theme="glassmorphism"].dark .stat-card,
 [data-theme="glassmorphism"].dark .widget-card,
 [data-theme="glassmorphism"].dark .header-glass,
+[data-theme="glassmorphism"].dark .mobile-header-pill,
 [data-theme="glassmorphism"].dark .mobile-nav-pill,
 [data-theme="glassmorphism"].dark .fab-glass-menu,
 [data-theme="glassmorphism"].dark .modal-content,
@@ -1027,12 +1043,13 @@
   -webkit-backdrop-filter: blur(16px) saturate(180%) brightness(1.05);
 }
 
-/* ── Mobile header — frosted glass bar ────────────────────────── */
-[data-theme="glassmorphism"] .header-glass {
+/* ── Mobile header — frosted glass capsules ──────────────────── */
+[data-theme="glassmorphism"] .header-glass,
+[data-theme="glassmorphism"] .mobile-header-pill {
   background: var(--header-bg) !important;
   backdrop-filter: blur(16px) saturate(180%) brightness(1.05);
   -webkit-backdrop-filter: blur(16px) saturate(180%) brightness(1.05);
-  border-bottom-color: var(--glass-border) !important;
+  border-color: var(--glass-border) !important;
 }
 
 /* ── Mobile bottom nav — frosted glass pill ───────────────────── */
@@ -1294,6 +1311,7 @@
   [data-theme="glassmorphism"] .toast {
     background: var(--color-bg-primary);
   }
+  [data-theme="glassmorphism"] .mobile-header-pill,
   [data-theme="glassmorphism"] .mobile-nav-pill,
   [data-theme="glassmorphism"] .fab-glass-menu {
     background: var(--color-bg-primary);
@@ -1312,6 +1330,7 @@
   [data-theme="glassmorphism"] .modal-content,
   [data-theme="glassmorphism"] .mobile-sheet-content,
   [data-theme="glassmorphism"] .toast,
+  [data-theme="glassmorphism"] .mobile-header-pill,
   [data-theme="glassmorphism"] .mobile-nav-pill,
   [data-theme="glassmorphism"] .fab-glass-menu {
     background: var(--color-bg-primary);
@@ -1332,6 +1351,7 @@
   [data-theme="glassmorphism"] .modal-content,
   [data-theme="glassmorphism"] .mobile-sheet-content,
   [data-theme="glassmorphism"] .toast,
+  [data-theme="glassmorphism"] .mobile-header-pill,
   [data-theme="glassmorphism"] .mobile-nav-pill,
   [data-theme="glassmorphism"] .fab-glass-menu {
     background: var(--color-bg-primary);
@@ -1480,7 +1500,7 @@
   inset: 4px;
   pointer-events: none;
   border-radius: 0;
-  z-index: 1;
+  z-index: var(--layer-base);
   background-image:
     /* Top-left ┌ */
     linear-gradient(to right, var(--hud-corner-color), var(--hud-corner-color)),
@@ -1558,6 +1578,11 @@
   border-radius: 0;
   border-bottom-color: var(--hud-corner-color) !important;
   box-shadow: 0 1px 6px var(--hud-glow-soft);
+}
+[data-theme="hud"] .mobile-header-pill {
+  border-radius: 2px;
+  border-color: var(--hud-corner-color);
+  box-shadow: 0 0 8px var(--hud-glow-soft);
 }
 
 /* ── Mobile nav pill — sharp, glowing border ─────────────────── */

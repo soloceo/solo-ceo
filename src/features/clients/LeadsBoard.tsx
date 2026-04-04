@@ -232,7 +232,8 @@ export function LeadsView() {
         for (const k of Object.keys(form) as (keyof typeof form)[]) {
           if (form[k] !== originalFormRef.current[k]) diff[k] = form[k];
         }
-        await api.put(`/api/leads/${editId}`, Object.keys(diff).length > 0 ? diff : form);
+        if (Object.keys(diff).length === 0) { setShowPanel(false); return; }
+        await api.put(`/api/leads/${editId}`, diff);
         showToast(t("pipeline.toast.leadUpdated"));
       } else {
         await api.post("/api/leads", form);

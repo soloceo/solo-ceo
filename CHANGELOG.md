@@ -3,6 +3,20 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.23.1] - 2026-04-03
+
+### Added
+- **Mobile floating capsule header** — replaced full-width header with two floating circular pills: left for identity (avatar + online status dot), right for menu (ellipsis icon → dropdown with user info, cloud status, theme switcher, settings, login)
+
+### Fixed
+- **Data layer audit (5× P0)** — offline `db/api.ts` now mirrors `supabase-api.ts` validation: tasks POST/PUT, milestones POST/PUT, and finance PUT all use `str()`/`enumVal()` with correct limits and whitelists
+- **Partial update violations (2× P1)** — `TaskDetail` and `LeadsBoard` now skip API calls when diff is empty, preventing full-object overwrites
+- **XSS in error handler** — `src/main.tsx` replaced `innerHTML` with DOM API (`createElement` + `textContent`)
+- **Unused exports cleanup** — removed dead `Modal`/`BottomSheet` re-exports from `components/ui/index.ts`
+- **Z-index hardcodes** — `usePullToRefresh` and HUD card decoration now use `var(--layer-float)` / `var(--layer-base)` tokens
+
+---
+
 ## [2.23.0] - 2026-04-03
 
 ### Added

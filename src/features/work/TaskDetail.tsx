@@ -111,7 +111,8 @@ export function TaskDetail({ open, onClose, editTask, columns, defaultColumn, cl
       for (const k of Object.keys(form) as (keyof TaskForm)[]) {
         if (form[k] !== orig[k]) (diff as Record<string, unknown>)[k] = form[k];
       }
-      await onSave(Object.keys(diff).length > 0 ? diff as TaskForm : form, editId);
+      if (Object.keys(diff).length === 0) { onClose(); return; }
+      await onSave(diff as TaskForm, editId);
     } else {
       await onSave(form, editId);
     }

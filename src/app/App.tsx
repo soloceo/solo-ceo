@@ -19,6 +19,11 @@ import {
   UserPlus,
   FileText,
   ListTodo,
+  LogOut,
+  LogIn,
+  Cloud,
+  CloudOff,
+  Ellipsis,
 } from "lucide-react";
 import { useT } from "../i18n/context";
 import { useAuth } from "../auth/AuthProvider";
@@ -119,7 +124,7 @@ function App() {
     setThemeMode(next);
   };
   const themeIcon = themeMode === "dark" ? <Moon size={14} /> : themeMode === "auto" ? <Monitor size={14} /> : <Sun size={14} />;
-  const themeMobileIcon = themeMode === "dark" ? <Moon size={16} /> : themeMode === "auto" ? <Monitor size={16} /> : <Sun size={16} />;
+  const themeMobileIcon = themeMode === "dark" ? <Moon size={18} /> : themeMode === "auto" ? <Monitor size={18} /> : <Sun size={18} />;
   const themeLabel = t(`settings.theme${themeMode.charAt(0).toUpperCase() + themeMode.slice(1)}`) || themeMode;
 
   const operatorName = useSettingsStore((s) => s.operatorName);
@@ -172,6 +177,10 @@ function App() {
     return () => clearInterval(interval);
   }, [user]);
 
+  /* ── Mobile header menu ── */
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
+
   /* ── Mobile FAB menu ── */
   const [fabMenuOpen, setFabMenuOpen] = useState(false);
   const fabMenuRef = useRef<HTMLDivElement>(null);
@@ -185,6 +194,7 @@ function App() {
   ], [t]);
 
   useClickOutside(fabMenuRef, () => setFabMenuOpen(false), fabMenuOpen);
+  useClickOutside(mobileMenuRef, () => setMobileMenuOpen(false), mobileMenuOpen);
 
   // Realtime
   useEffect(() => {
@@ -471,51 +481,146 @@ function App() {
           backgroundColor: "var(--color-bg-primary)",
         }}
       >
-        {/* Mobile header */}
-        <header
-          className="lg:hidden shrink-0 flex items-center justify-between header-glass"
+        {/* Mobile header — floating capsules */}
+        <div
+          className="lg:hidden fixed left-0 right-0 z-[var(--layer-header)] flex items-center justify-between pointer-events-none"
           style={{
+            top: 0,
             paddingTop: "calc(var(--mobile-header-pt, env(safe-area-inset-top, 0px)) + 8px)",
-            paddingBottom: "8px",
             paddingLeft: "max(env(safe-area-inset-left), 16px)",
             paddingRight: "max(env(safe-area-inset-right), 16px)",
-            borderBottom: "1px solid var(--color-line-tertiary)",
-            background: "var(--color-bg-primary)",
           }}
         >
-          <span className="text-[16px] truncate" style={{ fontWeight: "var(--font-weight-semibold)", color: "var(--color-text-primary)" } as React.CSSProperties}>
-            {pageTitle}
-          </span>
-          <div className="flex items-center gap-1">
-            {streak > 1 && (
-              <span className="text-[13px] tabular-nums" style={{ fontWeight: "var(--font-weight-bold)", color: "var(--color-warning)" } as React.CSSProperties}>
-                🔥{streak}
-              </span>
-            )}
-            <SyncIndicator isOnline={isOnline} syncStatus={syncStatus} pendingOps={pendingOps} compact />
-            <button
-              onClick={cycleTheme}
-              className="btn-icon"
-              style={{ color: "var(--color-text-tertiary)" }}
-              aria-label={`Theme: ${themeMode}`}
-            >
-              {themeMobileIcon}
-            </button>
-            <button
-              onClick={() => setActiveTab("settings")}
-              className="btn-icon"
-              aria-label="Settings"
-            >
-              <Avatar src={operatorAvatar || undefined} name={operatorDisplayName} size="sm" />
-            </button>
+          {/* Left capsule — identity + online dot */}
+          <div className="mobile-header-pill pointer-events-auto relative">
+            <Avatar src={operatorAvatar || undefined} name={operatorDisplayName} size="md" />
+            {/* Online status dot */}
+            <span
+              className="absolute rounded-full border-2"
+              style={{
+                width: 10, height: 10,
+                bottom: 2, right: 2,
+                background: isOnline
+                  ? syncStatus === "syncing" ? "var(--color-accent)" : "var(--color-green)"
+                  : "var(--color-warning)",
+                borderColor: "var(--color-bg-primary)",
+              }}
+            />
           </div>
-        </header>
+          {/* Right capsule — menu trigger */}
+          <div className="relative pointer-events-auto" ref={mobileMenuRef}>
+            <button
+              onClick={() => setMobileMenuOpen((p) => !p)}
+              className="mobile-header-pill"
+              style={{ width: 42, height: 42, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+              aria-expanded={mobileMenuOpen}
+              aria-haspopup="true"
+            >
+              <Ellipsis size={20} />
+            </button>
+            {/* Dropdown menu */}
+            <div
+              className="absolute right-0 w-52 py-1 overflow-hidden transition-all duration-150 origin-top-right"
+              role="menu"
+              style={{
+                top: "calc(100% + 6px)",
+                background: "var(--color-bg-primary)",
+                border: "1px solid var(--color-border-primary)",
+                borderRadius: "var(--radius-8)",
+                boxShadow: "var(--shadow-medium)",
+                zIndex: "var(--layer-popover)",
+                opacity: mobileMenuOpen ? 1 : 0,
+                transform: mobileMenuOpen ? "scale(1) translateY(0)" : "scale(0.95) translateY(-4px)",
+                pointerEvents: mobileMenuOpen ? "auto" : "none",
+              } as React.CSSProperties}
+            >
+              {/* User info */}
+              <div className="px-3 py-2" style={{ borderBottom: "1px solid var(--color-line-tertiary)" }}>
+                <div className="text-[14px] truncate" style={{ fontWeight: "var(--font-weight-medium)", color: "var(--color-text-primary)" } as React.CSSProperties}>
+                  {operatorDisplayName}
+                </div>
+                {user?.email && (
+                  <div className="text-[13px] truncate mt-0.5" style={{ color: "var(--color-text-quaternary)" }}>{user.email}</div>
+                )}
+              </div>
+              {/* Cloud status */}
+              <div className="flex items-center gap-3 px-3 py-2 text-[14px]" style={{ color: "var(--color-text-tertiary)" }}>
+                {isOnline
+                  ? <Cloud size={16} style={{ color: "var(--color-green)" }} />
+                  : <CloudOff size={16} style={{ color: "var(--color-warning)" }} />}
+                <span>{isOnline ? t("app.cloudConnected") : t("app.offline")}</span>
+              </div>
+              {/* Theme mode — 3-way segmented control */}
+              <div className="px-3 py-2">
+                <div className="text-[12px] mb-1.5" style={{ color: "var(--color-text-quaternary)" }}>
+                  {t("settings.colorMode") || "Color Mode"}
+                </div>
+                <div className="flex rounded-[var(--radius-6)] overflow-hidden" style={{ border: "1px solid var(--color-border-primary)" }}>
+                  {(["light", "auto", "dark"] as const).map((value) => {
+                    const Icon = value === "light" ? Sun : value === "auto" ? Monitor : Moon;
+                    return (
+                      <button
+                        key={value}
+                        onClick={(e) => { e.stopPropagation(); setThemeMode(value); }}
+                        className="flex-1 flex items-center justify-center gap-1 py-1.5 cursor-pointer transition-colors"
+                        style={{
+                          background: themeMode === value ? "var(--color-accent)" : "transparent",
+                          color: themeMode === value ? "var(--color-text-on-color)" : "var(--color-text-tertiary)",
+                          fontSize: "12px",
+                          fontWeight: "var(--font-weight-medium)",
+                        } as React.CSSProperties}
+                        title={t(`settings.theme${value.charAt(0).toUpperCase() + value.slice(1)}`) || value}
+                      >
+                        <Icon size={13} />
+                        <span>{t(`settings.theme${value.charAt(0).toUpperCase() + value.slice(1)}`) || value}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              {/* Settings */}
+              <button
+                onClick={() => { setMobileMenuOpen(false); setActiveTab("settings"); }}
+                role="menuitem"
+                className="flex items-center gap-3 w-full px-3 py-2 text-[15px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
+                style={{ color: "var(--color-text-secondary)" }}
+              >
+                <SettingsIcon size={14} style={{ color: "var(--color-text-quaternary)" }} />
+                {t("nav.settings")}
+              </button>
+              {/* Divider */}
+              <div style={{ height: 1, background: "var(--color-line-tertiary)", margin: "2px 0" }} />
+              {/* Sign out / Sign in */}
+              {user ? (
+                <button
+                  onClick={() => { setMobileMenuOpen(false); signOut(); }}
+                  role="menuitem"
+                  className="flex items-center gap-3 w-full px-3 py-2 text-[15px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
+                  style={{ color: "var(--color-danger)" }}
+                >
+                  <LogOut size={14} />
+                  {t("common.signOut") || "Sign out"}
+                </button>
+              ) : (
+                <button
+                  onClick={() => { setMobileMenuOpen(false); exitOfflineMode(); }}
+                  role="menuitem"
+                  className="flex items-center gap-3 w-full px-3 py-2 text-[15px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
+                  style={{ color: "var(--color-accent)" }}
+                >
+                  <LogIn size={14} />
+                  {t("auth.loginOrRegister") || "Sign in"}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
 
         <OfflineBanner />
 
         {/* Page content — instant switch, no animation (Linear-style) */}
         <main className="flex-1 overflow-hidden">
-          <div ref={mainScrollRef} className="h-full overflow-y-auto" style={{ overscrollBehavior: "contain" }}>
+          <div ref={mainScrollRef} className="h-full overflow-y-auto mobile-header-spacer" style={{ overscrollBehavior: "contain" }}>
             <Content activeTab={activeTab} />
           </div>
         </main>

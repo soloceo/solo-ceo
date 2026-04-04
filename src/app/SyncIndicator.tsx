@@ -16,7 +16,7 @@ export const SyncIndicator = React.memo(function SyncIndicator({
     return (
       <div className="flex items-center gap-1">
         <RefreshCw
-          size={compact ? 13 : 14}
+          size={compact ? 18 : 14}
           className="animate-spin"
           style={{ color: "var(--color-accent)" }}
         />
@@ -37,13 +37,13 @@ export const SyncIndicator = React.memo(function SyncIndicator({
   if (!isOnline)
     return (
       <CloudOff
-        size={compact ? 13 : 14}
+        size={compact ? 18 : 14}
         style={{ color: "var(--color-warning)" }}
       />
     );
   return (
     <Cloud
-      size={compact ? 13 : 14}
+      size={compact ? 18 : 14}
       style={{ color: "var(--color-green)" }}
     />
   );

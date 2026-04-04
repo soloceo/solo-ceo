@@ -58,12 +58,19 @@ bootstrap().catch((err) => {
   // Last-resort: show something instead of white screen
   const root = document.getElementById('root');
   if (root) {
-    root.innerHTML = `
-      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:system-ui;color:#666;gap:12px;">
-        <p style="font-size:16px;">App failed to load</p>
-        <p style="font-size:13px;color:#999;">${String(err?.message || err)}</p>
-        <button onclick="location.reload()" style="padding:8px 20px;border-radius:8px;border:1px solid #ddd;background:#fff;cursor:pointer;font-size:14px;">Reload</button>
-      </div>
-    `;
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:system-ui;color:#666;gap:12px';
+    const p1 = document.createElement('p');
+    p1.style.fontSize = '16px';
+    p1.textContent = 'App failed to load';
+    const p2 = document.createElement('p');
+    p2.style.cssText = 'font-size:13px;color:#999';
+    p2.textContent = String(err?.message || err);
+    const btn = document.createElement('button');
+    btn.style.cssText = 'padding:8px 20px;border-radius:8px;border:1px solid #ddd;background:#fff;cursor:pointer;font-size:14px';
+    btn.textContent = 'Reload';
+    btn.addEventListener('click', () => location.reload());
+    wrap.append(p1, p2, btn);
+    root.replaceChildren(wrap);
   }
 });

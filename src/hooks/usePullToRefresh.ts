@@ -26,7 +26,7 @@ export function usePullToRefresh(
       display: flex; align-items: center; justify-content: center;
       background: var(--color-bg-primary); border: 1px solid var(--color-border-primary);
       box-shadow: var(--shadow-sm); color: var(--color-accent);
-      transition: transform 0.2s, opacity 0.2s; opacity: 0; z-index: 10;
+      transition: transform 0.2s, opacity 0.2s; opacity: 0; z-index: var(--layer-float);
     `;
     containerRef.current?.style.setProperty('position', 'relative');
     containerRef.current?.prepend(el);

@@ -901,7 +901,7 @@ export async function handleApiRequest(
       const res = run(db,
         `INSERT INTO payment_milestones (client_id, label, amount, percentage, due_date, payment_method, invoice_number, note, sort_order, status, project_id)
          VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
-        [clientId, label||'', amount||0, percentage||0, due_date||'', payment_method||'', invoice_number||'', note||'', sort_order??0, 'pending', project_id||null]);
+        [clientId, str(label, 255), amount||0, percentage||0, str(due_date, 10), str(payment_method, 50), str(invoice_number, 100), str(note, 1000), sort_order??0, 'pending', project_id||null]);
       const client = get(db, 'SELECT name FROM clients WHERE id=?', [clientId]) as DbRow;
       logActivity(db, 'milestone', 'created', `新增付款节点：${client?.name||''} · ${label||''}`,
         amount ? `$${Number(amount).toLocaleString()}` : '', res.lastInsertRowid);
@@ -916,8 +916,13 @@ export async function handleApiRequest(
     if (method === 'PUT') {
       const sets: string[] = [];
       const vals: unknown[] = [];
-      const strFields = ['label','due_date','paid_date','payment_method','status','invoice_number','note'];
-      for (const f of strFields) { if (body[f] !== undefined) { sets.push(`${f}=?`); vals.push(body[f]); } }
+      if (body.label !== undefined) { sets.push('label=?'); vals.push(str(body.label, 255)); }
+      if (body.due_date !== undefined) { sets.push('due_date=?'); vals.push(str(body.due_date, 10)); }
+      if (body.paid_date !== undefined) { sets.push('paid_date=?'); vals.push(str(body.paid_date, 16)); }
+      if (body.payment_method !== undefined) { sets.push('payment_method=?'); vals.push(str(body.payment_method, 50)); }
+      if (body.status !== undefined) { sets.push('status=?'); vals.push(enumVal(body.status, VALID_MS_STATUSES, 'pending')); }
+      if (body.invoice_number !== undefined) { sets.push('invoice_number=?'); vals.push(str(body.invoice_number, 100)); }
+      if (body.note !== undefined) { sets.push('note=?'); vals.push(str(body.note, 1000)); }
       if (body.project_id !== undefined) { sets.push('project_id=?'); vals.push(body.project_id); }
       const numFields = ['amount','percentage','sort_order'];
       for (const f of numFields) { if (body[f] !== undefined) { sets.push(`${f}=?`); vals.push(body[f]); } }
@@ -1042,8 +1047,10 @@ export async function handleApiRequest(
     const { title, client, client_id, priority, due, column, originalRequest, aiBreakdown, aiMjPrompts, aiStory, scope, parent_id } = body;
     const res = run(db, `INSERT INTO tasks (title, client, client_id, priority, due, "column", originalRequest, aiBreakdown, aiMjPrompts, aiStory, scope, parent_id)
       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [title||'', client||'', client_id||null, priority||'Medium', due||'', column||'todo',
-       originalRequest||'', aiBreakdown||'', aiMjPrompts||'', aiStory||'', scope||'work', parent_id||null]);
+      [str(title, 500), str(client, 255), client_id||null, enumVal(priority, VALID_TASK_PRIORITIES, 'Medium'),
+       str(due, 16), enumVal(column, VALID_TASK_COLUMNS, 'todo'),
+       str(originalRequest, 5000), str(aiBreakdown, 10000), str(aiMjPrompts, 5000), str(aiStory, 5000),
+       enumVal(scope, VALID_TASK_SCOPES, 'work'), parent_id||null]);
     logActivity(db, 'task', 'created', `新增任务：${title||'未命名任务'}`, client ? `客户：${client}` : '', res.lastInsertRowid);
     await saveDb();
     return ok({ id: res.lastInsertRowid });
@@ -1056,9 +1063,16 @@ export async function handleApiRequest(
       const prev = get(db, 'SELECT title, "column" FROM tasks WHERE id=?', [id]) as DbRow;
       const sets: string[] = [];
       const vals: unknown[] = [];
-      const strFields = ['title','client','priority','due','originalRequest','aiBreakdown','aiMjPrompts','aiStory','scope'];
-      for (const f of strFields) { if (body[f] !== undefined) { sets.push(`${f}=?`); vals.push(body[f]); } }
-      if (body.column !== undefined) { sets.push('"column"=?'); vals.push(body.column); }
+      if (body.title !== undefined) { sets.push('title=?'); vals.push(str(body.title, 500)); }
+      if (body.client !== undefined) { sets.push('client=?'); vals.push(str(body.client, 255)); }
+      if (body.priority !== undefined) { sets.push('priority=?'); vals.push(enumVal(body.priority, VALID_TASK_PRIORITIES, 'Medium')); }
+      if (body.due !== undefined) { sets.push('due=?'); vals.push(str(body.due, 16)); }
+      if (body.originalRequest !== undefined) { sets.push('originalRequest=?'); vals.push(str(body.originalRequest, 5000)); }
+      if (body.aiBreakdown !== undefined) { sets.push('aiBreakdown=?'); vals.push(str(body.aiBreakdown, 10000)); }
+      if (body.aiMjPrompts !== undefined) { sets.push('aiMjPrompts=?'); vals.push(str(body.aiMjPrompts, 5000)); }
+      if (body.aiStory !== undefined) { sets.push('aiStory=?'); vals.push(str(body.aiStory, 5000)); }
+      if (body.scope !== undefined) { sets.push('scope=?'); vals.push(enumVal(body.scope, VALID_TASK_SCOPES, 'work')); }
+      if (body.column !== undefined) { sets.push('"column"=?'); vals.push(enumVal(body.column, VALID_TASK_COLUMNS, 'todo')); }
       if (body.client_id !== undefined) { sets.push('client_id=?'); vals.push(body.client_id); }
       if (body.parent_id !== undefined) { sets.push('parent_id=?'); vals.push(body.parent_id); }
       if (sets.length > 0) {
@@ -1181,8 +1195,13 @@ export async function handleApiRequest(
     if (method === 'PUT') {
       const sets: string[] = [];
       const vals: unknown[] = [];
-      const strFields = ['type','category','description','date','status','tax_mode','client_name'];
-      for (const f of strFields) { if (body[f] !== undefined) { sets.push(`${f}=?`); vals.push(body[f]); } }
+      if (body.type !== undefined) { sets.push('type=?'); vals.push(enumVal(body.type, VALID_TX_TYPES, 'income')); }
+      if (body.category !== undefined) { sets.push('category=?'); vals.push(str(body.category, 100)); }
+      if (body.description !== undefined) { sets.push('description=?'); vals.push(str(body.description, 500)); }
+      if (body.date !== undefined) { sets.push('date=?'); vals.push(str(body.date, 10)); }
+      if (body.status !== undefined) { sets.push('status=?'); vals.push(enumVal(body.status, VALID_TX_STATUSES, '已完成')); }
+      if (body.tax_mode !== undefined) { sets.push('tax_mode=?'); vals.push(enumVal(body.tax_mode, VALID_TAX_MODES, 'none')); }
+      if (body.client_name !== undefined) { sets.push('client_name=?'); vals.push(str(body.client_name, 255)); }
       const numFields = ['amount','tax_rate','tax_amount'];
       for (const f of numFields) { if (body[f] !== undefined) { sets.push(`${f}=?`); vals.push(body[f]); } }
       if (body.client_id !== undefined) { sets.push('client_id=?'); vals.push(body.client_id); }
