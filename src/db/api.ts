@@ -553,7 +553,7 @@ function seedData(db: Database) {
   db.run(`INSERT INTO activity_log (entity_type, action, title, detail, created_at) VALUES (?,?,?,?,?)`,
     ['lead', 'updated', '更新线索：海蓝科技', '阶段变更：contacted → proposal', mins(120)]);
   db.run(`INSERT INTO activity_log (entity_type, action, title, detail, created_at) VALUES (?,?,?,?,?)`,
-    ['finance', 'created', '记录收入：原木工坊品牌诊断 ¥1,500', '', mins(240)]);
+    ['finance', 'created', '记录收入：原木工坊品牌诊断 $1,500', '', mins(240)]);
   db.run(`INSERT INTO activity_log (entity_type, action, title, detail, created_at) VALUES (?,?,?,?,?)`,
     ['client', 'created', '新增客户：青柠工作室', '项目制客户 · 官网设计', mins(1440)]);
   db.run(`INSERT INTO activity_log (entity_type, action, title, detail, created_at) VALUES (?,?,?,?,?)`,

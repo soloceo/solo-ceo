@@ -36,10 +36,10 @@ function buildSystemPrompt(
     if (dashboard) {
       const d = dashboard;
       lines.push("", "## 业务概览");
-      if (d.mrr != null) lines.push(`- MRR（月经常性收入）：¥${Number(d.mrr).toLocaleString()}`);
-      if (d.ytdRevenue != null) lines.push(`- 年度累计收入：¥${Number(d.ytdRevenue).toLocaleString()}`);
-      if (d.monthlyIncome != null) lines.push(`- 本月收入：¥${Number(d.monthlyIncome).toLocaleString()}`);
-      if (d.todayIncome != null && Number(d.todayIncome) > 0) lines.push(`- 今日收入：¥${Number(d.todayIncome).toLocaleString()}`);
+      if (d.mrr != null) lines.push(`- MRR（月经常性收入）：$${Number(d.mrr).toLocaleString()}`);
+      if (d.ytdRevenue != null) lines.push(`- 年度累计收入：$${Number(d.ytdRevenue).toLocaleString()}`);
+      if (d.monthlyIncome != null) lines.push(`- 本月收入：$${Number(d.monthlyIncome).toLocaleString()}`);
+      if (d.todayIncome != null && Number(d.todayIncome) > 0) lines.push(`- 今日收入：$${Number(d.todayIncome).toLocaleString()}`);
       if (d.clientsCount != null) lines.push(`- 活跃客户：${d.clientsCount} 个`);
       if (d.activeTasks != null) lines.push(`- 进行中任务：${d.activeTasks} 个（待办 ${d.todoCount || 0}，进行中 ${d.inProgressCount || 0}）`);
       if (d.leadsCount != null) lines.push(`- 线索管道：共 ${d.leadsCount} 条（新 ${d.leadsNew || 0} / 跟进 ${d.leadsContacted || 0} / 提案 ${d.leadsProposal || 0}）`);
@@ -60,7 +60,7 @@ function buildSystemPrompt(
           const parts = [item.title || item.name || item.description || ""];
           if (item.column) parts.push(`[${item.column}]`);
           if (item.status) parts.push(`(${item.status})`);
-          if (item.amount != null) parts.push(`¥${Number(item.amount).toLocaleString()}`);
+          if (item.amount != null) parts.push(`$${Number(item.amount).toLocaleString()}`);
           if (item.due) parts.push(`截止 ${item.due}`);
           lines.push(`- ${parts.join(" ")}`);
         });
