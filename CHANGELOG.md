@@ -3,6 +3,18 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.26.1] - 2026-04-04
+
+### Enhanced
+- **AI Chat — Markdown rendering** — assistant responses now render with formatted lists, bold, code blocks, links, and blockquotes via `react-markdown`
+- **AI Chat — Quick prompt suggestions** — empty state shows 4 clickable prompts based on the current page (e.g., "业务总览", "逾期任务", page-specific analysis)
+- **AI Chat — Page-aware context** — chat automatically injects current page data (tasks/leads/clients/transactions) into system prompt for more relevant answers
+- **AI Chat — Copy button** — hover over any assistant message to copy its content
+- **AI Chat — Textarea auto-resize** — input grows with content up to 120px max height
+- **AI Chat — No-provider state** — when no AI is configured, shows a "去设置" button that navigates directly to Settings page
+
+---
+
 ## [2.26.0] - 2026-04-04
 
 ### Added
