@@ -21,7 +21,7 @@ export default defineConfig(({mode}) => {
         registerType: 'prompt',
         includeAssets: ['sql-js/**/*'],
         manifest: {
-          name: '一人CEO · Solo CEO',
+          name: 'Solo CEO',
           short_name: 'Solo CEO',
           description: 'All-in-one management tool for solo entrepreneurs',
           theme_color: '#ffffff',
