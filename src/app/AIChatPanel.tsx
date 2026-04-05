@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { MessageCircle, X, Send, Loader2, Trash2, Copy, Check, Settings, Plus, ChevronLeft, MessagesSquare } from "lucide-react";
+import { MessageCircle, X, Send, Loader2, Trash2, Copy, Check, Settings, Plus, ChevronLeft, MessagesSquare, Zap, CheckCircle2, XCircle } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -18,11 +18,22 @@ import {
   type ChatMessage,
   type StreamResult,
 } from "../lib/ai-client";
+import {
+  buildToolsPrompt,
+  buildConfirmInfo,
+  executeTool,
+  type ToolCall,
+  type ToolConfirmInfo,
+} from "./ai-tools";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
   streaming?: boolean;
+  /** Tool confirmation pending user action */
+  toolConfirm?: ToolConfirmInfo;
+  /** Tool execution result */
+  toolResult?: { success: boolean; message: string };
 }
 
 interface Conversation {
@@ -240,6 +251,9 @@ function buildSystemPrompt(
       if (pageContext.items.length > 20) lines.push(`- ...and ${pageContext.items.length - 20} more`);
     }
   }
+
+  // Append agent tools
+  lines.push(buildToolsPrompt(lang));
 
   return lines.join("\n");
 }
@@ -532,6 +546,127 @@ function ConversationList({
   );
 }
 
+/* ── Tool call parser ──────────────────────────────────────── */
+
+/** Try to extract a tool_call JSON from the AI response text */
+function parseToolCall(text: string): ToolCall | null {
+  try {
+    // Try direct parse
+    const direct = JSON.parse(text.trim());
+    if (direct?.tool_call?.name) return direct.tool_call;
+  } catch { /* not pure JSON */ }
+
+  // Try extracting from markdown code fence
+  const fenceMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+  if (fenceMatch) {
+    try {
+      const parsed = JSON.parse(fenceMatch[1].trim());
+      if (parsed?.tool_call?.name) return parsed.tool_call;
+    } catch { /* skip */ }
+  }
+
+  // Try extracting any {"tool_call": ...} block
+  const jsonMatch = text.match(/\{\s*"tool_call"\s*:\s*\{[\s\S]*?\}\s*\}/);
+  if (jsonMatch) {
+    try {
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (parsed?.tool_call?.name) return parsed.tool_call;
+    } catch { /* skip */ }
+  }
+
+  return null;
+}
+
+/* ── Tool confirmation card ──────────────────────────────── */
+
+function ToolConfirmCard({
+  confirm,
+  onConfirm,
+  onReject,
+  lang,
+  executing,
+  result,
+}: {
+  confirm: ToolConfirmInfo;
+  onConfirm: () => void;
+  onReject: () => void;
+  lang: string;
+  executing: boolean;
+  result?: { success: boolean; message: string } | null;
+}) {
+  const isZh = lang === "zh";
+
+  return (
+    <div
+      className="rounded-xl overflow-hidden"
+      style={{
+        border: "1px solid var(--color-line-secondary)",
+        background: "var(--color-bg-secondary)",
+      }}
+    >
+      {/* Header */}
+      <div
+        className="flex items-center gap-2 px-3 py-2"
+        style={{
+          background: "var(--color-accent-tint)",
+          borderBottom: "1px solid var(--color-line-tertiary)",
+        }}
+      >
+        <Zap size={14} style={{ color: "var(--color-accent)" }} />
+        <span className="text-[13px] font-medium" style={{ color: "var(--color-text-primary)" }}>
+          {confirm.label}
+        </span>
+      </div>
+
+      {/* Details */}
+      <div className="px-3 py-2 space-y-0.5">
+        {confirm.details.map((d, i) => (
+          <p key={i} className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>
+            {d}
+          </p>
+        ))}
+      </div>
+
+      {/* Actions or result */}
+      {result ? (
+        <div
+          className="flex items-center gap-2 px-3 py-2"
+          style={{
+            borderTop: "1px solid var(--color-line-tertiary)",
+            color: result.success ? "var(--color-success)" : "var(--color-danger)",
+          }}
+        >
+          {result.success ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
+          <span className="text-[13px]">{result.success ? (isZh ? "已执行" : "Done") : (isZh ? "失败" : "Failed")}</span>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 px-3 py-2" style={{ borderTop: "1px solid var(--color-line-tertiary)" }}>
+          <button
+            onClick={onConfirm}
+            disabled={executing}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50"
+            style={{
+              background: "var(--color-accent)",
+              color: "var(--color-brand-text)",
+            }}
+          >
+            {executing ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+            {isZh ? "确认执行" : "Confirm"}
+          </button>
+          <button
+            onClick={onReject}
+            disabled={executing}
+            className="px-3 py-1.5 rounded-lg text-[13px] transition-colors disabled:opacity-50"
+            style={{ color: "var(--color-text-tertiary)" }}
+          >
+            {isZh ? "取消" : "Cancel"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Main component ────────────────────────────────────────── */
 interface AIChatPanelProps {
   open: boolean;
@@ -565,6 +700,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
 
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [executingTool, setExecutingTool] = useState(false);
   const [dashboard, setDashboard] = useState<Record<string, unknown> | null>(null);
   const [pageContext, setPageContext] = useState<Record<string, unknown> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -722,7 +858,68 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
         },
         abort.signal,
       );
-      if (result.truncated) {
+      // Check if the response contains a tool_call
+      const toolCall = parseToolCall(result.text);
+      if (toolCall) {
+        if (toolCall.name === "search_data" || toolCall.name === "web_search") {
+          // Auto-execute search, then re-send with results
+          const searchResult = await executeTool(toolCall);
+          // Replace the assistant message with search context, then ask AI to summarize
+          const searchContext = JSON.stringify(searchResult.data || [], null, 2);
+          const followUp: ChatMessage[] = [
+            ...chatHistory,
+            { role: "assistant" as const, content: result.text },
+            { role: "user" as const, content: `[Search results for "${toolCall.args.query || toolCall.args.scope}"]\n${searchContext}\n\nNow answer the user's original question using this data. Reply in natural language, not JSON.` },
+          ];
+          // Clear the tool_call message and stream a new response
+          updateConversations(prev => prev.map(c => {
+            if (c.id !== convId) return c;
+            const msgs = [...c.messages];
+            const last = msgs[msgs.length - 1];
+            if (last && last.role === "assistant") {
+              msgs[msgs.length - 1] = { ...last, content: "", streaming: true };
+            }
+            return { ...c, messages: msgs };
+          }));
+          const followUpResult = await streamChat(
+            aiConfig.provider as AIProvider, aiConfig.apiKey, followUp,
+            (chunk) => {
+              updateConversations(prev => prev.map(c => {
+                if (c.id !== convId) return c;
+                const msgs = [...c.messages];
+                const last = msgs[msgs.length - 1];
+                if (last && last.role === "assistant") {
+                  msgs[msgs.length - 1] = { ...last, content: last.content + chunk };
+                }
+                return { ...c, messages: msgs, updatedAt: Date.now() };
+              }));
+            },
+            abort.signal,
+          );
+          if (followUpResult.truncated) {
+            const hint = lang === "zh" ? "\n\n---\n⚠️ *回答已达长度限制。*" : "\n\n---\n⚠️ *Response truncated.*";
+            updateConversations(prev => prev.map(c => {
+              if (c.id !== convId) return c;
+              const msgs = [...c.messages];
+              const last = msgs[msgs.length - 1];
+              if (last && last.role === "assistant") msgs[msgs.length - 1] = { ...last, content: last.content + hint };
+              return { ...c, messages: msgs };
+            }));
+          }
+        } else {
+          // Non-search tool: show confirmation card
+          const confirm = buildConfirmInfo(toolCall, lang);
+          updateConversations(prev => prev.map(c => {
+            if (c.id !== convId) return c;
+            const msgs = [...c.messages];
+            const last = msgs[msgs.length - 1];
+            if (last && last.role === "assistant") {
+              msgs[msgs.length - 1] = { ...last, content: "", toolConfirm: confirm };
+            }
+            return { ...c, messages: msgs };
+          }));
+        }
+      } else if (result.truncated) {
         const hint = lang === "zh" ? "\n\n---\n⚠️ *回答已达长度限制，发送「继续」可接着生成。*" : "\n\n---\n⚠️ *Response was truncated. Send \"continue\" to keep generating.*";
         updateConversations(prev => prev.map(c => {
           if (c.id !== convId) return c;
@@ -754,6 +951,52 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
       abortRef.current = null;
     }
   }, [isStreaming, settings, dashboard, pageContext, activeTab, lang, conversations, activeConvId, t, operatorName, businessDesc, currency, updateConversations]);
+
+  /** Execute a confirmed tool call */
+  const handleToolConfirm = useCallback(async (msgIndex: number) => {
+    if (!activeConvId) return;
+    const conv = conversations.find(c => c.id === activeConvId);
+    if (!conv) return;
+    const msg = conv.messages[msgIndex];
+    if (!msg?.toolConfirm) return;
+
+    setExecutingTool(true);
+    try {
+      const result = await executeTool({ name: msg.toolConfirm.toolName, args: msg.toolConfirm.args });
+      updateConversations(prev => prev.map(c => {
+        if (c.id !== activeConvId) return c;
+        const msgs = [...c.messages];
+        msgs[msgIndex] = { ...msgs[msgIndex], toolResult: result, toolConfirm: undefined };
+        // Add a follow-up assistant message
+        const successText = lang === "zh"
+          ? (result.success ? `✅ ${result.message}` : `❌ ${result.message}`)
+          : (result.success ? `✅ ${result.message}` : `❌ ${result.message}`);
+        msgs.push({ role: "assistant", content: successText });
+        return { ...c, messages: msgs, updatedAt: Date.now() };
+      }));
+    } catch {
+      updateConversations(prev => prev.map(c => {
+        if (c.id !== activeConvId) return c;
+        const msgs = [...c.messages];
+        msgs[msgIndex] = { ...msgs[msgIndex], toolResult: { success: false, message: "Execution failed" }, toolConfirm: undefined };
+        return { ...c, messages: msgs };
+      }));
+    } finally {
+      setExecutingTool(false);
+    }
+  }, [activeConvId, conversations, lang, updateConversations]);
+
+  /** Reject/cancel a tool call */
+  const handleToolReject = useCallback((msgIndex: number) => {
+    if (!activeConvId) return;
+    const cancelText = lang === "zh" ? "已取消操作。" : "Action cancelled.";
+    updateConversations(prev => prev.map(c => {
+      if (c.id !== activeConvId) return c;
+      const msgs = [...c.messages];
+      msgs[msgIndex] = { ...msgs[msgIndex], content: cancelText, toolConfirm: undefined };
+      return { ...c, messages: msgs, updatedAt: Date.now() };
+    }));
+  }, [activeConvId, lang, updateConversations]);
 
   const handleSend = useCallback(() => {
     const text = input.trim();
@@ -929,36 +1172,50 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                     key={i}
                     className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                   >
-                    <div
-                      className={`ai-chat-bubble max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[14px] leading-relaxed ${msg.role === "assistant" ? "ai-chat-bubble-assistant group relative" : "ai-chat-bubble-user"}`}
-                      style={msg.role === "user" ? {
-                        background: "var(--color-accent)",
-                        color: "var(--color-brand-text)",
-                        borderBottomRightRadius: 6,
-                        whiteSpace: "pre-wrap",
-                      } : {
-                        background: "var(--color-bg-secondary)",
-                        color: "var(--color-text-primary)",
-                        borderBottomLeftRadius: 6,
-                      }}
-                    >
-                      {msg.role === "assistant" ? (
-                        msg.content ? (
-                          <>
-                            <MarkdownContent content={msg.content} />
-                            {!msg.streaming && (
-                              <div className="flex justify-end mt-1 -mb-1 -mr-1">
-                                <CopyButton text={msg.content} />
-                              </div>
-                            )}
-                          </>
-                        ) : msg.streaming ? (
-                          <Loader2 size={14} className="animate-spin" style={{ color: "var(--color-text-tertiary)" }} />
-                        ) : null
-                      ) : (
-                        msg.content
-                      )}
-                    </div>
+                    {msg.toolConfirm ? (
+                      /* Tool confirmation card */
+                      <div className="max-w-[85%]">
+                        <ToolConfirmCard
+                          confirm={msg.toolConfirm}
+                          onConfirm={() => handleToolConfirm(i)}
+                          onReject={() => handleToolReject(i)}
+                          lang={lang}
+                          executing={executingTool}
+                          result={msg.toolResult}
+                        />
+                      </div>
+                    ) : (
+                      <div
+                        className={`ai-chat-bubble max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[14px] leading-relaxed ${msg.role === "assistant" ? "ai-chat-bubble-assistant group relative" : "ai-chat-bubble-user"}`}
+                        style={msg.role === "user" ? {
+                          background: "var(--color-accent)",
+                          color: "var(--color-brand-text)",
+                          borderBottomRightRadius: 6,
+                          whiteSpace: "pre-wrap",
+                        } : {
+                          background: "var(--color-bg-secondary)",
+                          color: "var(--color-text-primary)",
+                          borderBottomLeftRadius: 6,
+                        }}
+                      >
+                        {msg.role === "assistant" ? (
+                          msg.content ? (
+                            <>
+                              <MarkdownContent content={msg.content} />
+                              {!msg.streaming && (
+                                <div className="flex justify-end mt-1 -mb-1 -mr-1">
+                                  <CopyButton text={msg.content} />
+                                </div>
+                              )}
+                            </>
+                          ) : msg.streaming ? (
+                            <Loader2 size={14} className="animate-spin" style={{ color: "var(--color-text-tertiary)" }} />
+                          ) : null
+                        ) : (
+                          msg.content
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
