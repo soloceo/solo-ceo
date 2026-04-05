@@ -31,7 +31,7 @@ export function setDeviceAIProvider(p: AIProvider | ""): void {
 export function getOllamaConfig(): { url: string; model: string } {
   return {
     url: localStorage.getItem(LS_OLLAMA_URL) || "http://localhost:11434",
-    model: localStorage.getItem(LS_OLLAMA_MODEL) || "gemma3",
+    model: localStorage.getItem(LS_OLLAMA_MODEL) || "gemma4",
   };
 }
 export function setOllamaConfig(url: string, model: string): void {

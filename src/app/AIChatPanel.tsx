@@ -11,6 +11,8 @@ import { api } from "../lib/api";
 import { useSettingsStore } from "../store/useSettingsStore";
 import {
   getAIConfig,
+  getDeviceAIProvider,
+  getOllamaConfig,
   streamChat,
   type AIProvider,
   type ChatMessage,
@@ -352,6 +354,51 @@ const MarkdownContent = React.memo(({ content }: { content: string }) => (
   </ReactMarkdown>
 ));
 
+/* ── AI connection status ─────────────────────────────────── */
+const PROVIDER_LABELS: Record<string, string> = {
+  gemini: "Gemini",
+  claude: "Claude",
+  openai: "OpenAI",
+  ollama: "Ollama",
+};
+
+function AIConnectionStatus({ settings }: { settings: Record<string, string> | null }) {
+  const config = getAIConfig(settings);
+  if (!config) {
+    return (
+      <div
+        className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px]"
+        style={{
+          color: "var(--color-text-quaternary)",
+          background: "var(--color-bg-tertiary)",
+        }}
+      >
+        <span className="inline-block w-[5px] h-[5px] rounded-full" style={{ background: "var(--color-text-quaternary)" }} />
+        <span>未连接</span>
+      </div>
+    );
+  }
+
+  let modelLabel = PROVIDER_LABELS[config.provider] || config.provider;
+  if (config.provider === "ollama") {
+    const { model } = getOllamaConfig();
+    modelLabel = `Ollama · ${model}`;
+  }
+
+  return (
+    <div
+      className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px]"
+      style={{
+        color: "var(--color-text-tertiary)",
+        background: "var(--color-bg-tertiary)",
+      }}
+    >
+      <span className="inline-block w-[5px] h-[5px] rounded-full" style={{ background: "#34d399" }} />
+      <span>{modelLabel}</span>
+    </div>
+  );
+}
+
 /* ── Main component ────────────────────────────────────────── */
 interface AIChatPanelProps {
   open: boolean;
@@ -542,6 +589,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
               <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
                 {t("ai.chat.title")}
               </span>
+              <AIConnectionStatus settings={settings} />
             </div>
             <div className="flex items-center gap-1">
               {messages.length > 0 && (
