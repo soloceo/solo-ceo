@@ -25,8 +25,8 @@ import { api } from "../lib/api";
 
 const NAV_ITEMS = [
   { id: "home" as const, icon: Home, labelKey: "nav.home" },
-  { id: "work" as const, icon: ClipboardList, labelKey: "nav.work" },
   { id: "leads" as const, icon: UserPlus, labelKey: "nav.leads" },
+  { id: "work" as const, icon: ClipboardList, labelKey: "nav.work" },
   { id: "clients" as const, icon: Users, labelKey: "nav.clients" },
   { id: "finance" as const, icon: Wallet, labelKey: "nav.finance" },
 ] as const;

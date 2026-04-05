@@ -3,6 +3,13 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.26.2] - 2026-04-04
+
+### Changed
+- Navigation tab order: Leads now appears before Tasks across all surfaces (sidebar, mobile nav, command palette, quick-create menus, keyboard shortcuts 2↔3)
+
+---
+
 ## [2.26.1] - 2026-04-04
 
 ### Enhanced
