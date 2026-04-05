@@ -3,6 +3,17 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.27.1] - 2026-04-05
+
+### Fixed
+- **Currency symbol** — AI Chat system prompt and demo seed data used ¥ instead of $ (app default is USD)
+
+### Docs
+- **README** — rewritten with theme system section, AI Chat module, updated tech stack
+- **LICENSE** — cleaner language, added SaaS restriction clause
+
+---
+
 ## [2.27.0] - 2026-04-05
 
 ### Added
