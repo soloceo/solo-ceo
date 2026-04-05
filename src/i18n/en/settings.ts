@@ -196,6 +196,8 @@ export const settings = {
   "settings.ai": "AI Assistant",
   "settings.ai.active": "Active",
   "settings.ai.select": "Select",
+  "settings.ai.connect": "Connect",
+  "settings.ai.disconnect": "Disconnect",
   "settings.ai.test": "Test",
   "settings.ai.save": "Save",
   "settings.ai.getKey": "Get Key",

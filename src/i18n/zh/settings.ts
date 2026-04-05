@@ -198,6 +198,8 @@ export const settings = {
   "settings.ai": "AI 助手",
   "settings.ai.active": "使用中",
   "settings.ai.select": "选择",
+  "settings.ai.connect": "链接",
+  "settings.ai.disconnect": "取消链接",
   "settings.ai.test": "测试",
   "settings.ai.save": "保存",
   "settings.ai.getKey": "获取 Key",

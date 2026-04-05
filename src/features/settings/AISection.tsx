@@ -127,7 +127,7 @@ export default function AISection({ settings, save }: AISectionProps) {
                     {t("settings.ai.getKey")}
                   </a>
                   <button
-                    onClick={() => selectProvider(id)}
+                    onClick={() => selectProvider(isActive ? "" : id)}
                     className="text-[12px] px-2 py-0.5 rounded-[var(--radius-4)] transition-colors"
                     style={isActive ? {
                       background: "var(--color-accent)", color: "var(--color-brand-text)",
@@ -137,7 +137,7 @@ export default function AISection({ settings, save }: AISectionProps) {
                       fontWeight: "var(--font-weight-medium)",
                     } as React.CSSProperties}
                   >
-                    {isActive ? t("settings.ai.active") : t("settings.ai.select")}
+                    {isActive ? t("settings.ai.disconnect") : t("settings.ai.connect")}
                   </button>
                 </div>
               </div>
@@ -219,7 +219,7 @@ export default function AISection({ settings, save }: AISectionProps) {
               </span>
             </div>
             <button
-              onClick={handleSelectOllama}
+              onClick={() => activeProvider === "ollama" ? selectProvider("") : handleSelectOllama()}
               className="text-[12px] px-2 py-0.5 rounded-[var(--radius-4)] transition-colors"
               style={activeProvider === "ollama" ? {
                 background: "var(--color-accent)", color: "var(--color-brand-text)",
@@ -229,7 +229,7 @@ export default function AISection({ settings, save }: AISectionProps) {
                 fontWeight: "var(--font-weight-medium)",
               } as React.CSSProperties}
             >
-              {activeProvider === "ollama" ? t("settings.ai.active") : t("settings.ai.select")}
+              {activeProvider === "ollama" ? t("settings.ai.disconnect") : t("settings.ai.connect")}
             </button>
           </div>
 
