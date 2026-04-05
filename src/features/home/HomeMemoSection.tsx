@@ -4,6 +4,7 @@ import { api } from "../../lib/api";
 import { useT } from "../../i18n/context";
 import { useAppSettings } from "../../hooks/useAppSettings";
 import { useUIStore } from "../../store/useUIStore";
+import { getAIConfig, getOllamaConfig } from "../../lib/ai-client";
 import { useRealtimeRefresh } from "../../hooks/useRealtimeRefresh";
 import type { Task } from "../work/TaskCard";
 
@@ -219,15 +220,14 @@ export function HomeMemoSection() {
     const text = aiInput.trim();
     if (!text) return;
 
-    const provider = appSettings?.ai_provider as string | undefined;
-    const keyMap: Record<string, string> = { openai: "openai_api_key", claude: "claude_api_key", deepseek: "deepseek_api_key", gemini: "gemini_api_key" };
-    const apiKey = provider ? appSettings?.[keyMap[provider]] : undefined;
+    const aiConfig = getAIConfig(appSettings);
 
-    if (!provider || !apiKey) {
+    if (!aiConfig) {
       await api.post("/api/tasks", { title: text, scope: memoScope, column: "todo", priority: "Medium" });
       showToast(`✓ ${text}`);
       setAiInput(""); fetchTasks(); return;
     }
+    const { provider, apiKey } = aiConfig;
 
     setAiLoading(true);
     try {
@@ -261,6 +261,15 @@ export function HomeMemoSection() {
         });
         const raw = (await r.json()).candidates[0].content.parts[0].text.replace(/```json\n?|\n?```/g, "").trim();
         result = JSON.parse(raw);
+      } else if (provider === "ollama") {
+        const { url, model } = getOllamaConfig();
+        const r = await fetch(`${url}/v1/chat/completions`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ model, messages: [{ role: "system", content: sysPrompt }, { role: "user", content: text }], response_format: { type: "json_object" }, stream: false }),
+        });
+        const raw = (await r.json()).choices?.[0]?.message?.content || "";
+        const match = raw.match(/\{[\s\S]*\}/);
+        result = match ? JSON.parse(match[0]) : JSON.parse(raw);
       }
 
       if (result) {

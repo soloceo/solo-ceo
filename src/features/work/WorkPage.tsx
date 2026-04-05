@@ -4,7 +4,7 @@ import { usePullToRefresh } from "../../hooks/usePullToRefresh";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import { exportCSV } from "../../lib/csv-export";
 import { useAppSettings } from "../../hooks/useAppSettings";
-import { parseWorkTask, AI_KEY_MAP, type AIProvider } from "../../lib/ai-client";
+import { parseWorkTask, getAIConfig, type AIProvider } from "../../lib/ai-client";
 import { api } from "../../lib/api";
 import { Skeleton } from "../../components/ui";
 import { useT } from "../../i18n/context";
@@ -153,16 +153,15 @@ export default function WorkPage() {
   const handleAiTask = async () => {
     const text = aiInput.trim();
     if (!text) return;
-    const provider = appSettings?.ai_provider as AIProvider | undefined;
-    const keyMap = AI_KEY_MAP;
-    const apiKey = provider ? appSettings?.[keyMap[provider]] : undefined;
-    if (!provider || !apiKey) {
+    const aiConfig = getAIConfig(appSettings);
+    if (!aiConfig) {
       showToast(t("work.ai.noKey"), 5000, {
         label: t("common.goSettings"),
         fn: () => setActiveTab("settings"),
       });
       return;
     }
+    const { provider, apiKey } = aiConfig;
     setAiParsing(true);
     try {
       const clientNames = clientList.map((c: ClientItem) => c.company_name || c.name).filter(Boolean);

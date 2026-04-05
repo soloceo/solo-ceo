@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { useAppSettings } from "../../hooks/useAppSettings";
 import { useUIStore } from "../../store/useUIStore";
 import { useT } from "../../i18n/context";
-import { generateOutreach, analyzeLeadQuality, AI_KEY_MAP, type AIProvider, type LeadAnalysis } from "../../lib/ai-client";
+import { generateOutreach, analyzeLeadQuality, getAIConfig, type AIProvider, type LeadAnalysis } from "../../lib/ai-client";
 
 export type { LeadAnalysis };
 
@@ -34,20 +34,14 @@ export function useLeadAI(lang: string) {
   const [leadScores, setLeadScores] = useState<Record<number, LeadAnalysis>>({});
   const [batchAnalyzing, setBatchAnalyzing] = useState(false);
 
-  const getAiConfig = useCallback(() => {
-    const provider = appSettings?.ai_provider as AIProvider | undefined;
-    const apiKey = provider ? appSettings?.[AI_KEY_MAP[provider]] : undefined;
-    return { provider, apiKey };
-  }, [appSettings]);
-
   const requireAiConfig = useCallback(() => {
-    const config = getAiConfig();
-    if (!config.provider || !config.apiKey) {
+    const config = getAIConfig(appSettings);
+    if (!config) {
       showToast(t("money.ai.noKey"), 5000, { label: t("common.goSettings"), fn: () => setActiveTab("settings") });
       return null;
     }
-    return config as { provider: AIProvider; apiKey: string };
-  }, [getAiConfig, showToast, t, setActiveTab]);
+    return config;
+  }, [appSettings, showToast, t, setActiveTab]);
 
   const handleGenerateOutreach = useCallback(async (lead: LeadLike) => {
     const config = requireAiConfig();

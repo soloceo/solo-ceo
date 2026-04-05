@@ -28,7 +28,7 @@ import {
 import { api } from "../../lib/api";
 import { calcTaxAmount, catLabel, STATUS_I18N } from "../../lib/tax";
 import { todayDateKey } from "../../lib/date-utils";
-import { parseExpense, AI_KEY_MAP, type AIProvider } from "../../lib/ai-client";
+import { parseExpense, getAIConfig, type AIProvider } from "../../lib/ai-client";
 import { useAppSettings } from "../../hooks/useAppSettings";
 const FinanceChart = React.lazy(() => import("./FinanceChart"));
 import { StatCard, TxRow, VirtualTxList } from "./TransactionList";
@@ -391,16 +391,15 @@ export default function FinancePage() {
   const handleAiRecord = async () => {
     const text = aiInput.trim();
     if (!text) return;
-    const provider = appSettings?.ai_provider as AIProvider | undefined;
-    const keyMap = AI_KEY_MAP;
-    const apiKey = provider ? appSettings?.[keyMap[provider]] : undefined;
-    if (!provider || !apiKey) {
+    const aiConfig = getAIConfig(appSettings);
+    if (!aiConfig) {
       showToast(t("money.ai.noKey"), 5000, {
         label: t("common.goSettings"),
         fn: () => setActiveTab("settings"),
       });
       return;
     }
+    const { provider, apiKey } = aiConfig;
 
     setAiParsing(true);
     try {

@@ -4,6 +4,7 @@ import { api } from "../../lib/api";
 import { useT } from "../../i18n/context";
 import { useAppSettings } from "../../hooks/useAppSettings";
 import { useUIStore } from "../../store/useUIStore";
+import { getAIConfig, getOllamaConfig } from "../../lib/ai-client";
 import type { Task } from "./TaskCard";
 
 interface WorkMemoListProps {
@@ -192,18 +193,17 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
     const text = aiInput.trim();
     if (!text) return;
 
-    const provider = appSettings?.ai_provider as string | undefined;
-    const keyMap: Record<string, string> = { openai: "openai_api_key", claude: "claude_api_key", deepseek: "deepseek_api_key", gemini: "gemini_api_key" };
-    const apiKey = provider ? appSettings?.[keyMap[provider]] : undefined;
+    const aiConfig = getAIConfig(appSettings);
 
-    if (!provider || !apiKey) {
-      // No AI key — just create directly with text as title
+    if (!aiConfig) {
+      // No AI configured — just create directly with text as title
       await api.post("/api/tasks", { title: text, scope: createScope, column: "todo", priority: "Medium" });
       showToast(`✓ ${text}`);
       setAiInput("");
       onRefresh();
       return;
     }
+    const { provider, apiKey } = aiConfig;
 
     setAiLoading(true);
     try {
@@ -242,6 +242,16 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
         const d = await r.json();
         const raw = d.candidates[0].content.parts[0].text.replace(/```json\n?|\n?```/g, "").trim();
         result = JSON.parse(raw);
+      } else if (provider === "ollama") {
+        const { url, model } = getOllamaConfig();
+        const r = await fetch(`${url}/v1/chat/completions`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ model, messages: [{ role: "system", content: sysPrompt }, { role: "user", content: text }], response_format: { type: "json_object" }, stream: false }),
+        });
+        const d = await r.json();
+        const raw = d.choices?.[0]?.message?.content || "";
+        const match = raw.match(/\{[\s\S]*\}/);
+        result = match ? JSON.parse(match[0]) : JSON.parse(raw);
       }
 
       if (result) {

@@ -3,6 +3,20 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.25.0] - 2026-04-04
+
+### Added
+- **Ollama 本地模型支持** — 在设置页可选择 Ollama 作为 AI 提供商，连接本地运行的大语言模型（如 Gemma 4）
+  - 自动发现已安装模型（`GET /api/tags`），下拉选择
+  - 服务地址可配置（默认 `http://localhost:11434`）
+  - 使用 OpenAI 兼容接口，零额外依赖
+  - 所有 AI 功能均支持：支出解析、任务拆解、线索分析、邮件生成、备忘录解析
+- **设备级 AI 选择** — `ai_provider` 改为 localStorage 存储，每台设备可独立选择 AI 提供商（电脑用本地模型，手机用云端 API）
+- **`getAIConfig` 统一配置读取** — 所有 AI 消费者统一通过 `getAIConfig()` 获取配置，消除重复代码
+- **`extractJSON` 容错解析** — 本地模型 JSON 输出不稳定时，自动提取 `{...}` 块再解析
+
+---
+
 ## [2.24.2] - 2026-04-03
 
 ### Performance

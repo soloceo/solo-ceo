@@ -5,7 +5,7 @@
 
 import { todayDateKey } from "./date-utils";
 
-export type AIProvider = "gemini" | "claude" | "openai";
+export type AIProvider = "gemini" | "claude" | "openai" | "ollama";
 
 export const AI_KEY_MAP: Record<string, string> = {
   gemini: "gemini_api_key",
@@ -13,10 +13,80 @@ export const AI_KEY_MAP: Record<string, string> = {
   openai: "openai_api_key",
 };
 
+// ── Device-level AI provider (localStorage) ──────────────────
+
+const LS_PROVIDER = "solo_ai_provider";
+const LS_OLLAMA_URL = "solo_ollama_url";
+const LS_OLLAMA_MODEL = "solo_ollama_model";
+
+export function getDeviceAIProvider(): AIProvider | "" {
+  return (localStorage.getItem(LS_PROVIDER) || "") as AIProvider | "";
+}
+export function setDeviceAIProvider(p: AIProvider | ""): void {
+  if (p) localStorage.setItem(LS_PROVIDER, p);
+  else localStorage.removeItem(LS_PROVIDER);
+}
+export function getOllamaConfig(): { url: string; model: string } {
+  return {
+    url: localStorage.getItem(LS_OLLAMA_URL) || "http://localhost:11434",
+    model: localStorage.getItem(LS_OLLAMA_MODEL) || "gemma3",
+  };
+}
+export function setOllamaConfig(url: string, model: string): void {
+  localStorage.setItem(LS_OLLAMA_URL, url);
+  localStorage.setItem(LS_OLLAMA_MODEL, model);
+}
+
+/**
+ * Unified config reader — device-level provider takes precedence.
+ * Returns null if no provider configured or cloud provider has no key.
+ */
+export function getAIConfig(settings: Record<string, string> | null): { provider: AIProvider; apiKey: string } | null {
+  const provider = getDeviceAIProvider() || (settings?.ai_provider as AIProvider | "");
+  if (!provider) return null;
+  if (provider === "ollama") return { provider, apiKey: "" };
+  const keyName = AI_KEY_MAP[provider];
+  const apiKey = keyName ? (settings?.[keyName] || "") : "";
+  if (!apiKey) return null;
+  return { provider, apiKey };
+}
+
 /* ── Low-level API callers ──────────────────────────────── */
+
+/** Safely extract JSON from AI output (handles markdown fences, leading text) */
+function extractJSON(text: string): any {
+  // Try direct parse first
+  try { return JSON.parse(text); } catch {}
+  // Strip markdown fences
+  const stripped = text.replace(/```json\n?|\n?```/g, "").trim();
+  try { return JSON.parse(stripped); } catch {}
+  // Extract first {...} block
+  const match = stripped.match(/\{[\s\S]*\}/);
+  if (match) return JSON.parse(match[0]);
+  throw new Error("Cannot parse JSON from AI response");
+}
 
 /** Call AI and get structured JSON response */
 async function callJSON(provider: AIProvider, apiKey: string, systemPrompt: string, userText: string): Promise<any> {
+  if (provider === "ollama") {
+    const { url, model } = getOllamaConfig();
+    const res = await fetch(`${url}/v1/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userText }],
+        response_format: { type: "json_object" },
+        stream: false,
+      }),
+    });
+    if (!res.ok) throw new Error(`Ollama error: ${res.status}`);
+    const data = await res.json();
+    const text = data.choices?.[0]?.message?.content;
+    if (!text) throw new Error("Empty Ollama response");
+    return extractJSON(text);
+  }
+
   if (provider === "gemini") {
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`,
@@ -57,7 +127,7 @@ async function callJSON(provider: AIProvider, apiKey: string, systemPrompt: stri
     const data = await res.json();
     const text = data.content?.[0]?.text;
     if (!text) throw new Error("Empty Claude response");
-    return JSON.parse(text.replace(/```json\n?|\n?```/g, "").trim());
+    return extractJSON(text);
   }
 
   // OpenAI
@@ -80,6 +150,22 @@ async function callJSON(provider: AIProvider, apiKey: string, systemPrompt: stri
 
 /** Call AI and get plain text response (for emails, etc.) */
 async function callText(provider: AIProvider, apiKey: string, systemPrompt: string, userText: string): Promise<string> {
+  if (provider === "ollama") {
+    const { url, model } = getOllamaConfig();
+    const res = await fetch(`${url}/v1/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userText }],
+        stream: false,
+      }),
+    });
+    if (!res.ok) throw new Error(`Ollama error: ${res.status}`);
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content || "";
+  }
+
   if (provider === "gemini") {
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`,
@@ -367,8 +453,23 @@ Return JSON only: {"title":"concise task name","steps":["step 1","step 2",...]}`
 
 /* ── API Key Test ──────────────────────────────── */
 
+/** Fetch installed models from Ollama */
+export async function fetchOllamaModels(url: string): Promise<string[]> {
+  try {
+    const res = await fetch(`${url}/api/tags`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.models || []).map((m: { name: string }) => m.name);
+  } catch { return []; }
+}
+
 export async function testApiKey(provider: AIProvider, apiKey: string): Promise<boolean> {
   try {
+    if (provider === "ollama") {
+      const { url } = getOllamaConfig();
+      const models = await fetchOllamaModels(url);
+      return models.length > 0;
+    }
     if (provider === "gemini") {
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`,
