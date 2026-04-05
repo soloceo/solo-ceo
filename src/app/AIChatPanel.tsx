@@ -400,7 +400,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: "100%" }}
             transition={{ type: "spring", stiffness: 400, damping: 35 }}
-            className="fixed z-[var(--layer-dialog)] flex flex-col
+            className="ai-chat-panel fixed z-[var(--layer-dialog)] flex flex-col
               inset-0
               lg:inset-y-2 lg:right-2 lg:left-auto lg:w-[400px] lg:rounded-[var(--radius-16)]"
             style={{
@@ -463,7 +463,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                         <button
                           key={i}
                           onClick={() => sendMessage(qp.prompt)}
-                          className="px-3 py-1.5 rounded-full text-[13px] transition-colors hover:opacity-80 press-feedback"
+                          className="ai-chat-quick-prompt px-3 py-1.5 rounded-full text-[13px] transition-colors hover:opacity-80 press-feedback"
                           style={{
                             background: "var(--color-bg-secondary)",
                             color: "var(--color-text-secondary)",
@@ -502,7 +502,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[14px] leading-relaxed ${msg.role === "assistant" ? "group relative" : ""}`}
+                  className={`ai-chat-bubble max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[14px] leading-relaxed ${msg.role === "assistant" ? "ai-chat-bubble-assistant group relative" : "ai-chat-bubble-user"}`}
                   style={msg.role === "user" ? {
                     background: "var(--color-accent)",
                     color: "var(--color-brand-text)",
@@ -558,7 +558,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
               <button
                 onClick={handleSend}
                 disabled={!input.trim() || isStreaming}
-                className="shrink-0 rounded-full flex items-center justify-center transition-all disabled:opacity-30"
+                className="ai-chat-send shrink-0 rounded-full flex items-center justify-center transition-all disabled:opacity-30"
                 style={{
                   width: 40,
                   height: 40,

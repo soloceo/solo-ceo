@@ -696,14 +696,14 @@
   }
 }
 
-/* ── Mobile nav pill — hard border, square corners ───────────── */
+/* ── Mobile nav pill — hard border, keep round ──────────────── */
 [data-theme="neobrutalism"] .mobile-nav-pill {
-  border-radius: var(--radius-base);
+  border-radius: var(--radius-pill);
   border: 2px solid var(--color-border-primary);
   box-shadow: 3px 3px 0 var(--color-border-primary);
 }
 [data-theme="neobrutalism"] .mobile-nav-pill .mobile-tab-indicator {
-  border-radius: var(--radius-base) !important;
+  border-radius: var(--radius-pill) !important;
   border: 2px solid var(--color-border-primary);
   background: var(--color-accent-tint) !important;
   box-shadow: var(--shadow-tiny);
@@ -910,9 +910,9 @@
   box-shadow: 4px 4px 0 var(--color-border-primary);
 }
 
-/* ── Mobile header pill — hard border ────────────────────────── */
+/* ── Mobile header pill — hard border, keep round ───────────── */
 [data-theme="neobrutalism"] .mobile-header-pill {
-  border-radius: var(--radius-base);
+  border-radius: var(--radius-pill);
   border: 2px solid var(--color-border-primary);
   box-shadow: 3px 3px 0 var(--color-border-primary);
 }
@@ -928,6 +928,36 @@
   border: 2px solid var(--color-border-primary);
   border-radius: var(--radius-base);
   box-shadow: var(--shadow-tiny);
+}
+
+/* ── AI Chat — hard borders, offset shadows ─────────────────── */
+[data-theme="neobrutalism"] .ai-chat-panel {
+  border: 2px solid var(--color-border-primary) !important;
+  box-shadow: -6px 6px 0 var(--color-border-primary) !important;
+  border-radius: 0 !important;
+}
+[data-theme="neobrutalism"] .ai-chat-bubble-user {
+  border: 2px solid var(--color-border-primary);
+  box-shadow: 2px 2px 0 var(--color-border-primary);
+  border-radius: var(--radius-base) !important;
+}
+[data-theme="neobrutalism"] .ai-chat-bubble-assistant {
+  border: 2px solid var(--color-border-primary);
+  box-shadow: 2px 2px 0 var(--color-border-primary);
+  border-radius: var(--radius-base) !important;
+}
+[data-theme="neobrutalism"] .ai-chat-quick-prompt {
+  border: 2px solid var(--color-border-primary) !important;
+  box-shadow: 2px 2px 0 var(--color-border-primary);
+  border-radius: var(--radius-base) !important;
+}
+[data-theme="neobrutalism"] .ai-chat-send {
+  border: 2px solid var(--color-border-primary);
+  box-shadow: 2px 2px 0 var(--color-border-primary);
+}
+[data-theme="neobrutalism"] .ai-chat-send:active {
+  box-shadow: none;
+  transform: translate(2px, 2px);
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -978,6 +1008,458 @@
 }
 .kanban-column {
   background: var(--color-bg-tertiary);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Material Design 3 — Deep component overrides
+   Triggered by data-theme="material" on <html>
+
+   Official MD3 spec reference (m3.material.io):
+   ─ Shape scale: None=0, XS=4dp, S=8dp, M=12dp, L=16dp, XL=28dp, Full=pill
+   ─ Elevation: Level 1–3 shadows use rgb(0 0 0 / 30%) + rgb(0 0 0 / 15%)
+   ─ Buttons: 40dp height, Full (pill) radius, 24dp H-padding, label-large (14px/500)
+   ─ Cards: Medium (12dp) radius, Level 1 elevation
+   ─ Dialog: Extra Large (28dp) radius, Level 3 elevation
+   ─ Snackbar: Extra Small (4dp) radius, Level 3 elevation
+   ─ FAB: Large (16dp) radius, Level 3 elevation
+   ─ Chips/Badges: Small (8dp) radius
+   ─ Nav bar: 80dp height, active indicator pill
+   ─ State layers: hover 8%, pressed 12%, focused 12%
+   ─ Typography: Google Sans (headings), Google Sans Text (body)
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Glass — kill blur, opaque surfaces (Google = no glassmorphism) ── */
+[data-theme="material"] .glass {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+}
+
+/* ── Cards — MD3 Elevated card: Medium radius (12dp), Level 1 shadow ── */
+[data-theme="material"] .card {
+  border: none;
+  box-shadow: var(--shadow-tiny);
+  border-radius: var(--radius-12);
+}
+[data-theme="material"] .card-elevated {
+  border: none;
+  box-shadow: var(--shadow-low);
+  border-radius: var(--radius-12);
+}
+/* MD3 Filled card: no shadow, tonal surface */
+[data-theme="material"] .card-interactive {
+  border: none;
+  box-shadow: none;
+  border-radius: var(--radius-12);
+  background: var(--color-bg-secondary);
+}
+/* MD3 state layer: hover = 8% overlay on surface */
+@media (hover: hover) {
+  [data-theme="material"] .card-interactive:hover {
+    background: var(--color-bg-tertiary);
+    box-shadow: var(--shadow-tiny);
+    transform: none;
+  }
+}
+.dark[data-theme="material"] .card {
+  box-shadow: var(--shadow-tiny);
+}
+.dark[data-theme="material"] .card-elevated {
+  box-shadow: var(--shadow-low);
+}
+
+/* ── Stat cards — MD3 Elevated card ────────────────────────────── */
+[data-theme="material"] .stat-card {
+  border: none;
+  box-shadow: var(--shadow-tiny);
+  border-radius: var(--radius-12);
+  transition: box-shadow var(--transition-fast), background var(--transition-fast);
+}
+/* MD3: hover lifts card from Level 1 → Level 2 */
+@media (hover: hover) {
+  [data-theme="material"] .stat-card:hover {
+    box-shadow: var(--shadow-low);
+  }
+}
+
+/* ── Primary button — MD3 Filled button: pill, 40dp, no shadow ──── */
+[data-theme="material"] .btn-primary {
+  border-radius: var(--radius-20);
+  border: none;
+  box-shadow: none;
+  font-weight: 500;
+  letter-spacing: 0.1px;   /* MD3 label-large: 0.1px */
+  transition: background var(--transition-fast), box-shadow var(--transition-fast);
+}
+/* MD3 state layer: hover 8% white overlay on filled surface */
+@media (hover: hover) {
+  [data-theme="material"] .btn-primary:hover {
+    box-shadow: var(--shadow-tiny);
+    transform: none;
+    filter: brightness(1.08);
+  }
+}
+/* MD3 state layer: pressed 12% */
+[data-theme="material"] .btn-primary:active {
+  filter: brightness(0.92);
+  box-shadow: none;
+}
+
+/* ── Secondary button — MD3 Outlined button: pill, 1px outline ──── */
+[data-theme="material"] .btn-secondary {
+  border-radius: var(--radius-20);
+  border: 1px solid var(--color-border-primary);
+  box-shadow: none;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  color: var(--color-accent);
+  transition: background var(--transition-fast);
+}
+/* MD3 state layer: hover 8% accent tint */
+@media (hover: hover) {
+  [data-theme="material"] .btn-secondary:hover {
+    background: var(--color-accent-tint);
+    box-shadow: none;
+    transform: none;
+  }
+}
+
+/* ── Ghost button — MD3 Text button: pill, no container ──────────── */
+[data-theme="material"] .btn-ghost {
+  border-radius: var(--radius-20);
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  color: var(--color-accent);
+}
+@media (hover: hover) {
+  [data-theme="material"] .btn-ghost:hover {
+    background: var(--color-accent-tint);
+  }
+}
+
+/* ── Icon buttons — MD3: circular, 40dp, state layer hover ────── */
+[data-theme="material"] .btn-icon,
+[data-theme="material"] .btn-icon-sm {
+  border-radius: 9999px;
+}
+@media (hover: hover) {
+  [data-theme="material"] .btn-icon:hover,
+  [data-theme="material"] .btn-icon-sm:hover {
+    background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  }
+}
+
+/* ── Inputs — MD3 Outlined text field: 1px outline, 4dp radius top ── */
+[data-theme="material"] .input-base {
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-4);
+  box-shadow: none;
+}
+[data-theme="material"] .input-base:hover {
+  border-color: var(--color-text-primary);
+}
+/* MD3: focus = 2px accent border via outline (no layout shift) */
+[data-theme="material"] .input-base:focus {
+  border-color: var(--color-accent);
+  outline: 1px solid var(--color-accent);
+  outline-offset: -1px;
+  box-shadow: none;
+}
+[data-theme="material"] select.input-base {
+  border-radius: var(--radius-4);
+}
+
+/* ── Page tabs — MD3 pill tabs with accent tint ────────────────── */
+[data-theme="material"] .page-tabs > button {
+  border-radius: var(--radius-pill);
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+[data-theme="material"] .page-tabs > button[data-active="true"] {
+  background: var(--color-accent-tint);
+  color: var(--color-accent);
+  font-weight: 500;
+}
+@media (hover: hover) {
+  [data-theme="material"] .page-tabs > button:hover:not([data-active="true"]) {
+    background: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+  }
+}
+
+/* ── Segment switcher — MD3 Primary tabs: accent underline ─────── */
+[data-theme="material"] .segment-switcher {
+  border-bottom: 1px solid var(--color-line-secondary);
+}
+[data-theme="material"] .segment-switcher > button {
+  font-weight: 500;
+  letter-spacing: 0.1px;
+}
+[data-theme="material"] .segment-switcher > button[data-active="true"],
+[data-theme="material"] .segment-switcher > button.active {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+  border-bottom-width: 3px;
+  font-weight: 500;
+}
+
+/* ── Badges — MD3 Assist chip: Small radius (8dp) ──────────────── */
+[data-theme="material"] .badge {
+  border-radius: var(--radius-8);
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+/* ── Button group — MD3 Segmented button: pill container ─────────── */
+[data-theme="material"] .btn-group-inline {
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border-primary);
+  box-shadow: none;
+  overflow: hidden;
+}
+[data-theme="material"] .btn-group-inline > button {
+  font-weight: 500;
+  letter-spacing: 0.1px;
+}
+[data-theme="material"] .btn-group-inline > button + button {
+  border-left: 1px solid var(--color-border-primary);
+}
+[data-theme="material"] .btn-group-inline > button[data-active="true"] {
+  background: var(--color-accent-tint);
+  color: var(--color-accent);
+}
+
+/* ── Tables — clean, MD3-inspired ──────────────────────────────── */
+[data-theme="material"] .card table thead {
+  background: var(--color-bg-secondary);
+}
+[data-theme="material"] .card table th {
+  font-weight: 500;
+  letter-spacing: 0;
+  font-size: var(--font-size-xs);
+}
+[data-theme="material"] .card table tbody tr {
+  border-bottom: 1px solid var(--color-line-tertiary);
+}
+
+/* ── Progress bar — MD3 Linear progress: rounded, 4dp ──────────── */
+[data-theme="material"] .progress-track {
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-quaternary);
+}
+[data-theme="material"] .progress-fill {
+  border-radius: var(--radius-pill);
+}
+
+/* ── Skeleton — rounded shimmer ────────────────────────────────── */
+[data-theme="material"] .skeleton-bone {
+  border-radius: var(--radius-8);
+}
+
+/* ── KPI — Google product number styling ───────────────────────── */
+[data-theme="material"] .kpi-value {
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.02em;
+}
+[data-theme="material"] .kpi-label {
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* ── Section labels — MD3: medium weight, no uppercase ─────────── */
+[data-theme="material"] .section-label {
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* ── Sidebar — MD3 Navigation rail / drawer ────────────────────── */
+@media (min-width: 1024px) {
+  [data-theme="material"] .sidebar-glass {
+    border: none;
+    box-shadow: none;
+    background: var(--glass-bg-sidebar);
+    border-radius: 0;
+    margin: 0;
+    height: 100%;
+  }
+  [data-theme="material"] .sidebar-glass nav button {
+    border-radius: var(--radius-pill);
+    font-weight: 500;
+    letter-spacing: 0;
+    transition: background var(--transition-fast), color var(--transition-fast);
+  }
+  /* MD3 nav active indicator: pill with accent tint */
+  [data-theme="material"] .sidebar-glass nav .sidebar-indicator {
+    border-radius: var(--radius-pill);
+    background: var(--color-accent-tint) !important;
+    border: none;
+    box-shadow: none;
+  }
+  [data-theme="material"] .sidebar-glass nav button[aria-current="page"] {
+    color: var(--color-accent);
+    font-weight: 600;
+  }
+  /* MD3 state layer: hover 8% on non-active items */
+  [data-theme="material"] .sidebar-glass nav button:hover:not([aria-current="page"]) {
+    background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  }
+}
+
+/* ── Mobile header pill — MD3 elevation Level 2, no border ─────── */
+[data-theme="material"] .mobile-header-pill {
+  border: none;
+  box-shadow: var(--shadow-low);
+  border-radius: var(--radius-pill);
+}
+
+/* ── Mobile nav pill — MD3 Navigation bar (80dp height) ────────── */
+[data-theme="material"] .mobile-nav-pill {
+  border: none;
+  box-shadow: var(--shadow-low);
+  border-radius: var(--radius-pill);
+}
+/* MD3: active indicator = 64×32dp pill with accent tint */
+[data-theme="material"] .mobile-nav-pill .mobile-tab-indicator {
+  border-radius: var(--radius-pill) !important;
+  background: var(--color-accent-tint) !important;
+  border: none;
+  box-shadow: none;
+}
+[data-theme="material"] .mobile-nav-pill button[aria-current="page"] {
+  color: var(--color-accent);
+}
+
+/* ── FAB menu — MD3 FAB: Large radius (16dp), Level 3 elevation ── */
+[data-theme="material"] .fab-glass-menu {
+  border: none;
+  border-radius: var(--radius-16);
+  box-shadow: var(--shadow-high);
+}
+
+/* ── Modal — MD3 Dialog: XL radius (28dp), Level 3 elevation ───── */
+[data-theme="material"] .modal-content {
+  border-radius: var(--radius-28);
+  border: none;
+  box-shadow: var(--shadow-high);
+}
+[data-theme="material"] .modal-overlay {
+  background: rgba(0,0,0,0.32);  /* MD3 scrim: #000 at 32% */
+}
+
+/* ── Mobile sheet — MD3 Bottom sheet: XL radius (28dp) ─────────── */
+[data-theme="material"] .mobile-sheet-content {
+  border-radius: var(--radius-28) var(--radius-28) 0 0;
+  border: none;
+  box-shadow: var(--shadow-high);
+}
+@media (min-width: 768px) {
+  [data-theme="material"] .mobile-sheet-content {
+    border-radius: var(--radius-28);
+  }
+}
+
+/* ── Toast — MD3 Snackbar: XS radius (4dp), Level 3 elevation ──── */
+[data-theme="material"] .toast {
+  border-radius: var(--radius-4);
+  border: none;
+  box-shadow: var(--shadow-medium);
+}
+
+/* ── Kanban column — MD3 surface container ─────────────────────── */
+[data-theme="material"] .kanban-column {
+  border: none;
+  border-radius: var(--radius-12);
+}
+
+/* ── Widget card — MD3 Elevated card: Medium (12dp) ────────────── */
+[data-theme="material"] .widget-card {
+  border: none;
+  border-radius: var(--radius-12);
+  box-shadow: var(--shadow-tiny);
+}
+
+/* ── Divider lines — MD3 uses outline-variant color ────────────── */
+[data-theme="material"] .card.divide-y > * + *,
+[data-theme="material"] .divide-y > * + * {
+  border-top-width: 1px;
+  border-color: var(--color-line-tertiary);
+}
+
+/* ── Focus visible — MD3 focus indicator: 3px accent outline ───── */
+[data-theme="material"] .btn-primary:focus-visible,
+[data-theme="material"] .btn-secondary:focus-visible,
+[data-theme="material"] .btn-ghost:focus-visible,
+[data-theme="material"] .btn-icon:focus-visible,
+[data-theme="material"] .btn-icon-sm:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* ── Press feedback — MD3 pressed state layer (12% opacity) ────── */
+[data-theme="material"] .press-feedback:active {
+  transform: none !important;
+  opacity: 0.88;
+}
+
+/* ── Headings — MD3 Headline: Google Sans, weight 400-500 ──────── */
+[data-theme="material"] h1,
+[data-theme="material"] h2 {
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+/* ── Header glass (desktop) — MD3 Top app bar: flat, no shadow ─── */
+[data-theme="material"] .header-glass {
+  border: none;
+  box-shadow: none;
+}
+
+/* ── MD3 state layer tokens (used across components) ───────────── */
+[data-theme="material"] .btn-primary:active,
+[data-theme="material"] .btn-secondary:active,
+[data-theme="material"] .btn-ghost:active {
+  opacity: 0.88;
+}
+
+/* ── AI Chat — MD3 elevation, no border, rounded ───────────── */
+[data-theme="material"] .ai-chat-panel {
+  border: none !important;
+  box-shadow: var(--shadow-md3-3) !important;
+  border-radius: var(--radius-16) !important;
+}
+[data-theme="material"] .ai-chat-bubble-user {
+  border-radius: var(--radius-16) !important;
+  border-bottom-right-radius: var(--radius-4) !important;
+}
+[data-theme="material"] .ai-chat-bubble-assistant {
+  border-radius: var(--radius-16) !important;
+  border-bottom-left-radius: var(--radius-4) !important;
+}
+[data-theme="material"] .ai-chat-quick-prompt {
+  border-color: var(--color-border-secondary) !important;
+  letter-spacing: 0.1px;
+  font-weight: 500;
+}
+@media (hover: hover) {
+  [data-theme="material"] .ai-chat-quick-prompt:hover {
+    background: color-mix(in srgb, var(--color-text-primary) 8%, transparent) !important;
+  }
+}
+[data-theme="material"] .ai-chat-send {
+  box-shadow: var(--shadow-md3-1);
+}
+
+/* ── Reduced motion ────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="material"] .card-interactive,
+  [data-theme="material"] .stat-card,
+  [data-theme="material"] .btn-primary,
+  [data-theme="material"] .btn-secondary {
+    transition: none;
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -1528,6 +2010,27 @@
   background: color-mix(in srgb, var(--glass-bg-content) 50%, transparent);
 }
 
+/* ── AI Chat — frosted glass panel ─────────────────────────── */
+[data-theme="glassmorphism"] .ai-chat-panel {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important;
+}
+[data-theme="glassmorphism"] .ai-chat-bubble-assistant {
+  background: var(--glass-bg-content) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+}
+[data-theme="glassmorphism"] .ai-chat-quick-prompt {
+  background: var(--glass-bg-content) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-border) !important;
+}
+
 
 /* ══════════════════════════════════════════════════════════════════
    HUD — Space Capsule cockpit component overrides
@@ -2061,6 +2564,41 @@
   font-size: 11px;
   letter-spacing: 0.03em;
   text-transform: uppercase;
+}
+
+/* ── AI Chat — cockpit terminal aesthetic ───────────────────── */
+[data-theme="hud"] .ai-chat-panel {
+  background: var(--color-bg-primary) !important;
+  border: 1px solid var(--hud-glow-subtle, var(--color-accent)) !important;
+  box-shadow: 0 0 20px var(--hud-glow-faint, rgba(0,255,157,0.05)), inset 0 0 40px rgba(0,0,0,0.3) !important;
+  border-radius: 2px !important;
+}
+[data-theme="hud"] .ai-chat-bubble-user {
+  border-radius: 2px !important;
+  font-family: 'JetBrains Mono', 'SF Mono', 'Menlo', monospace;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+[data-theme="hud"] .ai-chat-bubble-assistant {
+  border-radius: 2px !important;
+  border: 1px solid var(--color-border-primary);
+  font-family: 'JetBrains Mono', 'SF Mono', 'Menlo', monospace;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+[data-theme="hud"] .ai-chat-quick-prompt {
+  border-radius: 2px !important;
+  border: 1px solid var(--color-accent) !important;
+  background: transparent !important;
+  color: var(--color-accent) !important;
+  font-family: 'JetBrains Mono', 'SF Mono', 'Menlo', monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+[data-theme="hud"] .ai-chat-send {
+  border-radius: 2px;
+  box-shadow: 0 0 8px var(--hud-glow-faint, rgba(0,255,157,0.1));
 }
 
 /* ── Accessibility: reduced motion ───────────────────────────── */

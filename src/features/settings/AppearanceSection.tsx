@@ -130,6 +130,7 @@ export default function AppearanceSection({ themeMode, setThemeMode, styleId, se
               const isNeo = s.id === 'neobrutalism';
               const isGlass = s.id === 'glassmorphism';
               const isHud = s.id === 'hud';
+              const isMaterial = s.id === 'material';
               return (
                 <button
                   key={s.id}
@@ -153,14 +154,18 @@ export default function AppearanceSection({ themeMode, setThemeMode, styleId, se
                         ? '2px solid var(--color-text-primary)'
                         : isHud
                         ? '1px solid color-mix(in srgb, var(--color-accent) 40%, var(--color-border-secondary))'
+                        : isMaterial
+                        ? 'none'
                         : '1px solid var(--color-border-secondary)',
-                      borderRadius: isNeo ? '3px' : isGlass ? '12px' : isHud ? '2px' : '8px',
+                      borderRadius: isNeo ? '3px' : (isGlass || isMaterial) ? '12px' : isHud ? '2px' : '8px',
                       boxShadow: isNeo
                         ? '3px 3px 0 var(--color-text-primary)'
                         : isGlass
                         ? '0 4px 16px rgba(0,0,0,0.06)'
                         : isHud
                         ? '0 0 10px color-mix(in srgb, var(--color-accent) 20%, transparent), inset 0 0 20px color-mix(in srgb, var(--color-accent) 5%, transparent)'
+                        : isMaterial
+                        ? '0 1px 2px rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15)'
                         : '0 1px 4px rgba(0,0,0,0.06)',
                       backdropFilter: isGlass ? 'blur(8px)' : undefined,
                     }}
@@ -180,20 +185,34 @@ export default function AppearanceSection({ themeMode, setThemeMode, styleId, se
                         <div style={{ position: 'absolute', bottom: 3, right: 3, width: 6, height: 6, borderBottom: '1.5px solid var(--color-accent)', borderRight: '1.5px solid var(--color-accent)', opacity: 0.7 }} />
                       </>
                     )}
-                    <div
-                      className="absolute top-2 left-2.5 right-2.5"
-                      style={{
-                        height: isHud ? 3 : 5,
-                        background: 'var(--color-accent)',
-                        borderRadius: isNeo ? '1px' : isHud ? '0' : '3px',
-                        opacity: isGlass ? 0.8 : 1,
-                        boxShadow: isHud ? '0 0 6px var(--color-accent)' : undefined,
-                      }}
-                    />
-                    <div className="absolute bottom-2 left-2.5 flex flex-col gap-1">
-                      <div style={{ width: 32, height: isHud ? 2 : 3, background: isHud ? 'var(--color-accent)' : 'var(--color-text-primary)', opacity: isHud ? 0.4 : 0.5, borderRadius: isNeo || isHud ? 0 : 2 }} />
-                      <div style={{ width: 22, height: isHud ? 2 : 3, background: isHud ? 'var(--color-accent)' : 'var(--color-text-primary)', opacity: isHud ? 0.25 : 0.25, borderRadius: isNeo || isHud ? 0 : 2 }} />
-                    </div>
+                    {/* Material: pill button + chip row */}
+                    {isMaterial ? (
+                      <>
+                        <div className="absolute top-2 left-2.5" style={{ height: 10, width: 28, background: 'var(--color-accent)', borderRadius: 999 }} />
+                        <div className="absolute bottom-2 left-2.5 flex gap-1">
+                          <div style={{ width: 20, height: 6, background: 'var(--color-accent)', opacity: 0.12, borderRadius: 999 }} />
+                          <div style={{ width: 16, height: 6, background: 'var(--color-text-primary)', opacity: 0.08, borderRadius: 999 }} />
+                          <div style={{ width: 18, height: 6, background: 'var(--color-text-primary)', opacity: 0.08, borderRadius: 999 }} />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div
+                          className="absolute top-2 left-2.5 right-2.5"
+                          style={{
+                            height: isHud ? 3 : 5,
+                            background: 'var(--color-accent)',
+                            borderRadius: isNeo ? '1px' : isHud ? '0' : '3px',
+                            opacity: isGlass ? 0.8 : 1,
+                            boxShadow: isHud ? '0 0 6px var(--color-accent)' : undefined,
+                          }}
+                        />
+                        <div className="absolute bottom-2 left-2.5 flex flex-col gap-1">
+                          <div style={{ width: 32, height: isHud ? 2 : 3, background: isHud ? 'var(--color-accent)' : 'var(--color-text-primary)', opacity: isHud ? 0.4 : 0.5, borderRadius: isNeo || isHud ? 0 : 2 }} />
+                          <div style={{ width: 22, height: isHud ? 2 : 3, background: isHud ? 'var(--color-accent)' : 'var(--color-text-primary)', opacity: isHud ? 0.25 : 0.25, borderRadius: isNeo || isHud ? 0 : 2 }} />
+                        </div>
+                      </>
+                    )}
                   </div>
                   {/* Label */}
                   <div className="text-[13px]" style={{ color: 'var(--color-text-primary)', fontWeight: 'var(--font-weight-semibold)', fontFamily: isHud ? "'JetBrains Mono', 'SF Mono', monospace" : undefined } as React.CSSProperties}>

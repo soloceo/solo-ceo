@@ -177,7 +177,7 @@ function FocusRow({ item, badge, onNavigate, urgency }: {
     success: "var(--color-success)",
     accent: "var(--color-accent)",
     warning: "var(--color-warning)",
-    info: "var(--color-info)",
+    info: "var(--color-purple)",
     danger: "var(--color-error)",
   };
   const badgeColor = colorMap[badge.variant];
