@@ -3,6 +3,19 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.26.0] - 2026-04-04
+
+### Added
+- **AI Chat Panel** — floating chat button opens a slide-up conversation panel with streaming AI responses
+  - Business context injection: automatically loads dashboard data (MRR, clients, tasks, leads) into system prompt
+  - Streaming responses with real-time token display (SSE)
+  - Supports all connected providers: Ollama, OpenAI, Claude, Gemini, DeepSeek
+  - Conversation history (last 10 messages) for multi-turn context
+  - No persistence — chat clears on close for privacy
+  - Spring animation entry/exit, mobile safe-area support
+
+---
+
 ## [2.25.1] - 2026-04-04
 
 ### Fixed

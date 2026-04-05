@@ -224,6 +224,102 @@ async function callText(provider: AIProvider, apiKey: string, systemPrompt: stri
   return data.choices?.[0]?.message?.content || "";
 }
 
+/* ── Streaming chat ──────────────────────────────── */
+
+export interface ChatMessage {
+  role: "system" | "user" | "assistant";
+  content: string;
+}
+
+/**
+ * Stream a chat completion. Calls `onChunk` with each text delta.
+ * Returns the full accumulated text. Supports abort via AbortSignal.
+ */
+export async function streamChat(
+  provider: AIProvider,
+  apiKey: string,
+  messages: ChatMessage[],
+  onChunk: (text: string) => void,
+  signal?: AbortSignal,
+): Promise<string> {
+  // Build request based on provider
+  let url: string;
+  let headers: Record<string, string>;
+  let body: string;
+
+  if (provider === "ollama") {
+    const cfg = getOllamaConfig();
+    url = `${cfg.url}/v1/chat/completions`;
+    headers = { "Content-Type": "application/json" };
+    body = JSON.stringify({ model: cfg.model, messages, stream: true });
+  } else if (provider === "openai") {
+    url = "https://api.openai.com/v1/chat/completions";
+    headers = { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` };
+    body = JSON.stringify({ model: "gpt-4.1-mini", messages, stream: true, max_tokens: 2048 });
+  } else if (provider === "claude") {
+    url = "https://api.anthropic.com/v1/messages";
+    headers = {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+    };
+    const sysMsg = messages.find(m => m.role === "system")?.content || "";
+    const chatMsgs = messages.filter(m => m.role !== "system");
+    body = JSON.stringify({ model: "claude-sonnet-4-6-20250514", max_tokens: 2048, system: sysMsg, messages: chatMsgs, stream: true });
+  } else if (provider === "gemini") {
+    // Gemini uses a different streaming format — fall back to non-streaming
+    const sysMsg = messages.find(m => m.role === "system")?.content || "";
+    const userMsgs = messages.filter(m => m.role !== "system").map(m => m.content).join("\n");
+    const text = await callText(provider, apiKey, sysMsg, userMsgs);
+    onChunk(text);
+    return text;
+  } else {
+    throw new Error(`Unsupported provider: ${provider}`);
+  }
+
+  const res = await fetch(url, { method: "POST", headers, body, signal });
+  if (!res.ok) throw new Error(`AI error: ${res.status}`);
+  if (!res.body) throw new Error("No response body");
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let full = "";
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed === "data: [DONE]") continue;
+
+      if (trimmed.startsWith("data: ")) {
+        try {
+          const json = JSON.parse(trimmed.slice(6));
+          // OpenAI / Ollama format
+          const delta = json.choices?.[0]?.delta?.content;
+          if (delta) { full += delta; onChunk(delta); continue; }
+          // Claude format
+          if (json.type === "content_block_delta") {
+            const text = json.delta?.text;
+            if (text) { full += text; onChunk(text); }
+          }
+        } catch { /* skip unparseable lines */ }
+      } else if (trimmed.startsWith("event:")) {
+        continue; // Claude SSE event labels
+      }
+    }
+  }
+
+  return full;
+}
+
 /* ── Expense Parsing ──────────────────────────────── */
 
 export interface ParsedTx {

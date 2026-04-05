@@ -68,4 +68,12 @@ export const common = {
   "app.pwa.update": "立即更新",
   "app.reminder.title": "一人CEO · 提醒",
   "app.reminder.tasksDue": "{n} 个任务已到期或即将到期",
+  "ai.chat.title": "AI 助手",
+  "ai.chat.open": "打开 AI 助手",
+  "ai.chat.placeholder": "输入消息...",
+  "ai.chat.send": "发送",
+  "ai.chat.clear": "清空对话",
+  "ai.chat.welcome": "你好，有什么可以帮你的？\n可以问我业务数据、任务进展、客户情况等。",
+  "ai.chat.noProvider": "请先在设置中链接一个 AI 服务。",
+  "ai.chat.error": "请求失败，请稍后重试。",
 };

@@ -24,6 +24,7 @@ import {
   Cloud,
   CloudOff,
   Ellipsis,
+  MessageCircle,
 } from "lucide-react";
 import { useT } from "../i18n/context";
 import { useAuth } from "../auth/AuthProvider";
@@ -39,6 +40,7 @@ import { todayDateKey, dateToKey } from "../lib/date-utils";
 import { api } from "../lib/api";
 import { CommandPalette } from "./CommandPalette";
 import { QuickCreateMenu } from "./QuickCreateMenu";
+import { AIChatPanel } from "./AIChatPanel";
 import { UserMenu } from "./UserMenu";
 import { SyncIndicator } from "./SyncIndicator";
 import { useClickOutside } from "./useClickOutside";
@@ -187,6 +189,9 @@ function App() {
   /* ── Mobile FAB menu ── */
   const [fabMenuOpen, setFabMenuOpen] = useState(false);
   const fabMenuRef = useRef<HTMLDivElement>(null);
+
+  /* ── AI Chat panel ── */
+  const [aiChatOpen, setAIChatOpen] = useState(false);
 
   // Reusable quick create items for both desktop and mobile
   const quickCreateItems = useMemo(() => [
@@ -446,6 +451,15 @@ function App() {
                 {themeIcon}
               </button>
               <button
+                onClick={() => setAIChatOpen(true)}
+                className="btn-icon-sm"
+                style={{ color: "var(--color-text-quaternary)" }}
+                title={t("ai.chat.title")}
+                aria-label={t("ai.chat.open")}
+              >
+                <MessageCircle size={14} />
+              </button>
+              <button
                 onClick={() => setActiveTab("settings")}
                 className="btn-icon-sm"
                 style={{ color: activeTab === "settings" ? "var(--color-text-primary)" : "var(--color-text-quaternary)" }}
@@ -457,6 +471,18 @@ function App() {
             </div>
           )}
 
+
+          {/* AI Chat — expanded sidebar */}
+          {isExpanded && (
+            <button
+              onClick={() => setAIChatOpen(true)}
+              className="flex items-center gap-2 w-full px-2 py-1.5 rounded-[var(--radius-6)] text-[15px] transition-colors hover:bg-[var(--color-bg-tertiary)] mb-1"
+              style={{ color: "var(--color-text-tertiary)" }}
+            >
+              <MessageCircle size={16} />
+              <span>{t("ai.chat.title")}</span>
+            </button>
+          )}
 
           {/* User */}
           <UserMenu
@@ -680,6 +706,16 @@ function App() {
                       {item.label}
                     </button>
                   ))}
+                  <div className="mx-3 my-1" style={{ borderTop: "1px solid var(--color-line-tertiary)" }} />
+                  <button
+                    role="menuitem"
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-[15px] transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback"
+                    style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
+                    onClick={() => { setFabMenuOpen(false); setAIChatOpen(true); }}
+                  >
+                    <span style={{ color: "var(--color-accent)" }}><MessageCircle size={14} /></span>
+                    {t("ai.chat.title")}
+                  </button>
                 </div>
                 <button
                   onClick={() => setFabMenuOpen(!fabMenuOpen)}
@@ -703,6 +739,7 @@ function App() {
       </div>
 
       <CommandPalette />
+      <AIChatPanel open={aiChatOpen} onClose={() => setAIChatOpen(false)} />
       <GlobalToast />
       <SyncToast />
     </div>

@@ -68,4 +68,12 @@ export const common = {
   "app.pwa.update": "Update",
   "app.reminder.title": "Solo CEO · Reminder",
   "app.reminder.tasksDue": "{n} task(s) due or overdue",
+  "ai.chat.title": "AI Assistant",
+  "ai.chat.open": "Open AI Assistant",
+  "ai.chat.placeholder": "Type a message...",
+  "ai.chat.send": "Send",
+  "ai.chat.clear": "Clear chat",
+  "ai.chat.welcome": "Hi, how can I help?\nAsk me about your business data, tasks, clients, and more.",
+  "ai.chat.noProvider": "Please connect an AI provider in Settings first.",
+  "ai.chat.error": "Request failed. Please try again.",
 };
