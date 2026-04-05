@@ -384,29 +384,37 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
   return createPortal(
     <AnimatePresence>
       {open && (
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 40 }}
-          transition={{ type: "spring", stiffness: 400, damping: 30 }}
-          className="fixed z-[var(--layer-dialog)] flex flex-col"
-          style={{
-            bottom: 0,
-            right: 0,
-            width: "100%",
-            height: "100%",
-            maxWidth: "min(480px, 100%)",
-            maxHeight: "min(680px, 100%)",
-            background: "var(--color-bg-primary)",
-            borderLeft: "1px solid var(--color-line-secondary)",
-            boxShadow: "-4px 0 24px rgba(0,0,0,0.15)",
-          }}
-        >
+        <>
+          {/* Backdrop — desktop only */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[var(--layer-dialog)] hidden lg:block"
+            style={{ background: "rgba(0,0,0,0.3)" }}
+            onClick={handleClose}
+          />
+          <motion.div
+            initial={{ opacity: 0, x: "100%" }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: "100%" }}
+            transition={{ type: "spring", stiffness: 400, damping: 35 }}
+            className="fixed z-[var(--layer-dialog)] flex flex-col
+              inset-0
+              lg:inset-y-2 lg:right-2 lg:left-auto lg:w-[400px] lg:rounded-[var(--radius-16)]"
+            style={{
+              background: "var(--color-bg-primary)",
+              boxShadow: "-4px 0 24px rgba(0,0,0,0.15)",
+              border: "1px solid var(--color-line-secondary)",
+            }}
+          >
           {/* Header */}
           <div
             className="flex items-center justify-between px-4 shrink-0"
             style={{
               height: 52,
+              paddingTop: "env(safe-area-inset-top, 0px)",
               borderBottom: "1px solid var(--color-line-secondary)",
             }}
           >
@@ -564,6 +572,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
             </div>
           </div>
         </motion.div>
+        </>
       )}
     </AnimatePresence>,
     document.body,

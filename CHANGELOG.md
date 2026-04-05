@@ -3,6 +3,13 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.26.3] - 2026-04-04
+
+### Improved
+- **AI Chat Panel layout** — desktop: right-side 400px rounded drawer with backdrop overlay, slide-in from right; mobile: true fullscreen with safe-area top padding, no page content bleed-through
+
+---
+
 ## [2.26.2] - 2026-04-04
 
 ### Changed
