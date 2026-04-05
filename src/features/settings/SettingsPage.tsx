@@ -30,7 +30,15 @@ export default function SettingsPage() {
   const operatorName = useSettingsStore((s) => s.operatorName) || 'Andy';
   const operatorAvatar = useSettingsStore((s) => s.operatorAvatar);
   const setProfileField = useSettingsStore((s) => s.setProfileField);
-  const getProfileField = (field: string) => useSettingsStore.getState()[field as keyof typeof PROFILE_SYNC_KEYS] as string || '';
+  const businessTitle = useSettingsStore((s) => s.businessTitle);
+  const businessName = useSettingsStore((s) => s.businessName);
+  const businessDescription = useSettingsStore((s) => s.businessDescription);
+  const businessEmail = useSettingsStore((s) => s.businessEmail);
+  const businessPhone = useSettingsStore((s) => s.businessPhone);
+  const businessWebsite = useSettingsStore((s) => s.businessWebsite);
+  const businessLocation = useSettingsStore((s) => s.businessLocation);
+  const profileFieldValues: Record<string, string> = { businessTitle, businessName, businessDescription, businessEmail, businessPhone, businessWebsite, businessLocation };
+  const getProfileField = (field: string) => profileFieldValues[field] || '';
   const currency = useSettingsStore((s) => s.currency);
   const timezone = useSettingsStore((s) => s.timezone);
   const isOnline = useSettingsStore((s) => s.isOnline);
