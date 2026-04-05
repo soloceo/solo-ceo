@@ -3,6 +3,21 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.27.0] - 2026-04-05
+
+### Added
+- **Google Workspace palette** — authentic Google hex codes (#1a73e8 accent, #dadce0 borders), dark mode pastels (#8ab4f8), production shadow formula (rgba(60,64,67,...))
+- **Material Design 3 style** — borderless elevation, MD3 shape scale (12dp radius), 3-level shadow system, pill tabs, 0.1px letter-spacing, 32% scrim
+- **Material preview card** — style picker shows pill-shaped button + chip row for Material
+- **AI Chat theme adaptation** — all 4 styles (Neobrutalism, Material, Glassmorphism, HUD) now style the AI Chat panel, message bubbles, quick prompts, and send button
+
+### Fixed
+- **Login input icon overlap** — Material focus style no longer overrides padding-left (uses outline instead of border-width)
+- **Neobrutalism mobile nav** — header pill, menu button, and bottom nav stay round instead of square
+- **TodayFocus badge colors** — "系统" badge now uses purple (was same blue as "交付")
+
+---
+
 ## [2.26.3] - 2026-04-04
 
 ### Improved
