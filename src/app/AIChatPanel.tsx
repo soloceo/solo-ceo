@@ -521,7 +521,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
             transition={{ type: "spring", stiffness: 400, damping: 35 }}
             className="ai-chat-panel fixed z-[var(--layer-dialog)] flex flex-col
               inset-0
-              lg:inset-y-2 lg:right-2 lg:left-auto lg:w-[400px] lg:rounded-[var(--radius-16)]"
+              lg:inset-y-2 lg:right-2 lg:left-auto lg:w-[480px] lg:rounded-[var(--radius-16)]"
             style={{
               background: "var(--color-bg-primary)",
               boxShadow: "-4px 0 24px rgba(0,0,0,0.15)",
