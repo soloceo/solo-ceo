@@ -4,7 +4,7 @@ import { useT } from '../../i18n/context';
 import { useAuth } from '../../auth/AuthProvider';
 import { getQueueLength } from '../../db/offline-queue';
 import { useUIStore } from '../../store/useUIStore';
-import { useSettingsStore } from '../../store/useSettingsStore';
+import { useSettingsStore, PROFILE_SYNC_KEYS } from '../../store/useSettingsStore';
 
 import { useAppSettings } from '../../hooks/useAppSettings';
 import { api } from '../../lib/api';
@@ -29,6 +29,8 @@ export default function SettingsPage() {
   const { settings: appSettings, save: saveAppSetting } = useAppSettings();
   const operatorName = useSettingsStore((s) => s.operatorName) || 'Andy';
   const operatorAvatar = useSettingsStore((s) => s.operatorAvatar);
+  const setProfileField = useSettingsStore((s) => s.setProfileField);
+  const getProfileField = (field: string) => useSettingsStore.getState()[field as keyof typeof PROFILE_SYNC_KEYS] as string || '';
   const currency = useSettingsStore((s) => s.currency);
   const timezone = useSettingsStore((s) => s.timezone);
   const isOnline = useSettingsStore((s) => s.isOnline);
@@ -73,8 +75,15 @@ export default function SettingsPage() {
     setOperator(cleanedName, operatorAvatar || '');
     window.dispatchEvent(new Event('operator-name-updated'));
     window.dispatchEvent(new Event('operator-avatar-updated'));
-    api.post('/api/settings', { OPERATOR_NAME: cleanedName, OPERATOR_AVATAR: operatorAvatar || '' })
-      .catch(() => { /* save failed — toast already shown */ });
+    // Build payload from all profile sync keys
+    const payload: Record<string, string> = {};
+    const store = useSettingsStore.getState();
+    for (const [field, key] of Object.entries(PROFILE_SYNC_KEYS)) {
+      payload[key] = (store[field as keyof typeof PROFILE_SYNC_KEYS] as string) || '';
+    }
+    payload.OPERATOR_NAME = cleanedName;
+    payload.OPERATOR_AVATAR = operatorAvatar || '';
+    api.post('/api/settings', payload).catch(() => {});
     showToast(t("settings.saved"));
   };
 
@@ -141,6 +150,8 @@ export default function SettingsPage() {
           handleAvatarUpload={handleAvatarUpload}
           clearAvatar={clearAvatar}
           handleSave={handleSave}
+          getField={getProfileField}
+          setField={(field, value) => setProfileField(field as keyof typeof PROFILE_SYNC_KEYS, value)}
         />
 
         {/* 2. Appearance — theme, language, currency */}

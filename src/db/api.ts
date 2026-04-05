@@ -575,16 +575,22 @@ export async function exportAllData(): Promise<Record<string, any>> {
   for (const t of SYNC_TABLES) snapshot[t] = all(db, `SELECT * FROM ${t}`);
   // Include recent activity log for reference
   snapshot['activity_log'] = all(db, 'SELECT * FROM activity_log ORDER BY created_at DESC LIMIT 500');
-  // Include settings (avatar, name, etc.) — read from Zustand persisted storage
+  // Include settings (profile fields) — read from Zustand persisted storage
   try {
     const stored = JSON.parse(localStorage.getItem('solo-ceo-settings') || '{}');
     const state = stored?.state || {};
-    snapshot['settings'] = {
-      OPERATOR_NAME: state.operatorName || '',
-      OPERATOR_AVATAR: state.operatorAvatar || '',
+    const FIELD_MAP: Record<string, string> = {
+      operatorName: 'OPERATOR_NAME', operatorAvatar: 'OPERATOR_AVATAR',
+      businessName: 'BUSINESS_NAME', businessDescription: 'BUSINESS_DESCRIPTION',
+      businessTitle: 'BUSINESS_TITLE', businessEmail: 'BUSINESS_EMAIL',
+      businessPhone: 'BUSINESS_PHONE', businessWebsite: 'BUSINESS_WEBSITE',
+      businessLocation: 'BUSINESS_LOCATION',
     };
+    const s: Record<string, string> = {};
+    for (const [local, remote] of Object.entries(FIELD_MAP)) s[remote] = state[local] || '';
+    snapshot['settings'] = s;
   } catch {
-    snapshot['settings'] = { OPERATOR_NAME: '', OPERATOR_AVATAR: '' };
+    snapshot['settings'] = {};
   }
   return snapshot;
 }
@@ -605,14 +611,22 @@ export async function importAllData(data: Record<string, unknown>): Promise<void
       );
     }
   }
-  // Restore settings (avatar, name) — write to Zustand persisted storage
+  // Restore settings (profile fields) — write to Zustand persisted storage
   const settings = data.settings as Record<string, string> | undefined;
   if (settings && typeof settings === 'object' && !Array.isArray(settings)) {
     try {
       const stored = JSON.parse(localStorage.getItem('solo-ceo-settings') || '{}');
       const state = stored?.state || {};
-      if (settings.OPERATOR_NAME) state.operatorName = settings.OPERATOR_NAME;
-      if (settings.OPERATOR_AVATAR) state.operatorAvatar = settings.OPERATOR_AVATAR;
+      const REVERSE_MAP: Record<string, string> = {
+        OPERATOR_NAME: 'operatorName', OPERATOR_AVATAR: 'operatorAvatar',
+        BUSINESS_NAME: 'businessName', BUSINESS_DESCRIPTION: 'businessDescription',
+        BUSINESS_TITLE: 'businessTitle', BUSINESS_EMAIL: 'businessEmail',
+        BUSINESS_PHONE: 'businessPhone', BUSINESS_WEBSITE: 'businessWebsite',
+        BUSINESS_LOCATION: 'businessLocation',
+      };
+      for (const [remote, local] of Object.entries(REVERSE_MAP)) {
+        if (settings[remote]) state[local] = settings[remote];
+      }
       stored.state = state;
       localStorage.setItem('solo-ceo-settings', JSON.stringify(stored));
     } catch (e) { console.warn('[api] restoreSettings', e); }

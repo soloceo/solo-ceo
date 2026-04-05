@@ -34,7 +34,7 @@ import { PageErrorBoundary } from "../components/PageErrorBoundary";
 import { OfflineBanner } from "../components/OfflineBanner";
 import { Avatar, PageSkeleton, GlobalToast } from "../components/ui";
 import { useUIStore } from "../store/useUIStore";
-import { useSettingsStore } from "../store/useSettingsStore";
+import { useSettingsStore, PROFILE_SYNC_KEYS } from "../store/useSettingsStore";
 import { useWidgetStore } from "../features/home/widgets/useWidgetStore";
 import { todayDateKey, dateToKey } from "../lib/date-utils";
 import { api } from "../lib/api";
@@ -218,6 +218,12 @@ function App() {
       .then((s) => {
         // Always sync from server — use empty string if not set (prevents stale data from previous user)
         setOperator(s.OPERATOR_NAME || '', s.OPERATOR_AVATAR || '');
+        // Sync all profile fields from cloud
+        const store = useSettingsStore.getState();
+        for (const [field, key] of Object.entries(PROFILE_SYNC_KEYS)) {
+          if (field === 'operatorName' || field === 'operatorAvatar') continue; // handled above
+          if (s[key] != null) store.setProfileField(field as keyof typeof PROFILE_SYNC_KEYS, s[key]);
+        }
         if (s.CURRENCY) useSettingsStore.getState().setCurrency(s.CURRENCY);
         if (s.TIMEZONE) useSettingsStore.getState().setTimezone(s.TIMEZONE);
         if (s.protocol_streak) setProtocolStreakRaw(s.protocol_streak);

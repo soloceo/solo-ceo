@@ -329,34 +329,67 @@ export interface ParsedTx {
   date: string;
 }
 
-const BIZ_CATS = ["收入", "软件支出", "外包支出", "其他支出"];
-const PERSONAL_CATS = ["餐饮", "交通", "房租", "娱乐", "个人其他"];
+const BIZ_CATS_ZH = ["收入", "软件支出", "硬件支出", "外包支出", "营销推广", "办公费用", "差旅费", "其他支出"];
+const PERSONAL_CATS_ZH = ["餐饮", "交通", "房租", "购物", "娱乐", "医疗", "学习", "个人其他"];
+const BIZ_CATS_EN = ["Income", "Software", "Hardware", "Outsourcing", "Marketing", "Office", "Travel", "Other Expense"];
+const PERSONAL_CATS_EN = ["Food", "Transport", "Rent", "Shopping", "Entertainment", "Health", "Education", "Other"];
 
 export async function parseExpense(
   text: string, tab: "business" | "personal", lang: string,
   provider: AIProvider, apiKey: string
 ): Promise<ParsedTx> {
-  const cats = tab === "business" ? BIZ_CATS : PERSONAL_CATS;
+  const isZh = lang === "zh";
+  const cats = tab === "business"
+    ? (isZh ? BIZ_CATS_ZH : BIZ_CATS_EN)
+    : (isZh ? PERSONAL_CATS_ZH : PERSONAL_CATS_EN);
   const today = todayDateKey();
 
-  const prompt = `You are a bookkeeping assistant. Parse natural language into a transaction.
+  const examples = isZh
+    ? `示例：
+输入："午饭 35" → {"category":"餐饮","amount":35,"description":"午饭","date":"${today}"}
+输入："上月AWS 200" → {"category":"软件支出","amount":200,"description":"AWS 云服务","date":"YYYY-MM-DD"}（取上月某日）
+输入："收到客户尾款5000" → {"category":"收入","amount":5000,"description":"客户尾款","date":"${today}"}
+输入："打车去客户公司 45" → {"category":"差旅费","amount":45,"description":"打车去客户公司","date":"${today}"}`
+    : `Examples:
+"lunch 35" → {"category":"Food","amount":35,"description":"Lunch","date":"${today}"}
+"AWS last month 200" → {"category":"Software","amount":200,"description":"AWS cloud","date":"YYYY-MM-DD"}
+"client payment 5000" → {"category":"Income","amount":5000,"description":"Client payment","date":"${today}"}
+"taxi to client 45" → {"category":"Travel","amount":45,"description":"Taxi to client","date":"${today}"}`;
+
+  const prompt = isZh
+    ? `你是记账助手。把用户输入解析为一笔交易记录。
+
+可用分类：${JSON.stringify(cats)}
+今天：${today}
+
+规则：
+- 从列表中选最合适的分类
+- 金额必须是正数
+- 描述：简短说明用途（10字以内）
+- 日期：没提到就用今天；提到"昨天/上周/上月"等要推算
+- ${tab === "business" ? '"收入"是收入类，其余都是支出类' : '所有分类都是支出'}
+
+${examples}
+
+只返回 JSON：{"category":"...","amount":0,"description":"...","date":"YYYY-MM-DD"}`
+    : `You are a bookkeeping assistant. Parse natural language into a transaction.
 
 Categories: ${JSON.stringify(cats)}
 Today: ${today}
-Language: ${lang === "zh" ? "Chinese" : "English"}
 
 Rules:
 - Pick the best category from the list
 - Amount must be a positive number
-- Description: short summary of what the expense is for
-- Date: use today unless user specifies another date
-- ${tab === "business" ? '"收入" = income, others = expenses' : 'All categories are expenses'}
+- Description: short summary (under 10 words)
+- Date: use today unless user specifies another date (yesterday, last week, etc.)
+- ${tab === "business" ? '"Income" = income, others = expenses' : 'All categories are expenses'}
+
+${examples}
 
 Return ONLY JSON: {"category":"...","amount":0,"description":"...","date":"YYYY-MM-DD"}`;
 
   const result = await callJSON(provider, apiKey, prompt, text);
-  const validCats = tab === "business" ? BIZ_CATS : PERSONAL_CATS;
-  if (!validCats.includes(result.category)) result.category = validCats[validCats.length - 1];
+  if (!cats.includes(result.category)) result.category = cats[cats.length - 1];
   if (!result.amount || result.amount <= 0) throw new Error("Invalid amount");
   if (!result.date) result.date = today;
   if (!result.description) result.description = text;
@@ -369,8 +402,10 @@ export async function generateOutreach(
   lead: { name: string; industry?: string; needs?: string; website?: string },
   tone: "formal" | "friendly" | "direct",
   lang: "zh" | "en",
-  provider: AIProvider, apiKey: string
+  provider: AIProvider, apiKey: string,
+  businessDescription?: string,
 ): Promise<string> {
+  const bizCtx = businessDescription || (lang === "zh" ? "独立创业者" : "solo entrepreneur");
   const toneGuide = {
     formal: lang === "zh"
       ? "正式商务风格，使用敬语（您、贵公司），结构清晰"
@@ -384,7 +419,9 @@ export async function generateOutreach(
   };
 
   const prompt = lang === "zh"
-    ? `你是一位独立设计师/开发者的销售文案助手。根据以下线索信息撰写一封冷开发邮件。
+    ? `你是一位销售文案助手。用户的业务：${bizCtx}
+
+根据以下线索信息撰写一封冷开发邮件。
 
 线索信息：
 - 公司/姓名：${lead.name}
@@ -396,13 +433,15 @@ export async function generateOutreach(
 - 语气：${toneGuide[tone]}
 - 第一行写邮件主题（格式：主题：xxx）
 - 正文开头表明你了解他们的业务
-- 中间说明你能提供的具体价值（设计/开发服务）
+- 中间说明你能提供的具体价值（结合用户的业务描述）
 - 结尾给出明确的行动号召（比如约个15分钟电话）
 - 控制在150字以内
 - 纯文本格式，不要用markdown
 
 直接输出邮件内容，不要额外解释。`
-    : `You are a sales copywriter for a solo designer/developer. Write a cold outreach email.
+    : `You are a sales copywriter. User's business: ${bizCtx}
+
+Write a cold outreach email based on this lead.
 
 Lead info:
 - Company/Name: ${lead.name}
@@ -414,7 +453,7 @@ Requirements:
 - Tone: ${toneGuide[tone]}
 - First line: Subject: xxx
 - Opening: show you understand their business
-- Middle: specific value you can provide (design/dev services)
+- Middle: specific value you can provide (based on user's business description)
 - Closing: clear call to action (e.g., 15-min call)
 - Under 150 words
 - Plain text only, no markdown
@@ -433,10 +472,14 @@ export interface LeadAnalysis {
 
 export async function analyzeLeadQuality(
   lead: { name: string; industry?: string; needs?: string; website?: string },
-  lang: string, provider: AIProvider, apiKey: string
+  lang: string, provider: AIProvider, apiKey: string,
+  businessDescription?: string,
 ): Promise<LeadAnalysis> {
+  const bizCtx = businessDescription || (lang === "zh" ? "独立创业者" : "solo entrepreneur");
   const prompt = lang === "zh"
-    ? `你是一位独立设计师/开发者的销售顾问。分析以下线索的跟进价值。
+    ? `你是一位销售顾问。用户的业务：${bizCtx}
+
+分析以下线索的跟进价值。
 
 线索信息：
 - 公司/姓名：${lead.name}
@@ -445,15 +488,17 @@ export async function analyzeLeadQuality(
 - 网站/简介：${lead.website || "无"}
 
 评估标准：
-- 需求匹配度：是否需要设计/网站/品牌服务？
-- 预算潜力：该行业通常有多少预算？
+- 需求匹配度：该线索的需求是否和用户的业务相关？
+- 预算潜力：该行业/规模通常有多少预算？
 - 信息完整度：是否有足够信息开始跟进？
 
 评为 "high"（值得立即跟进）、"medium"（可以跟进）或 "low"（暂时搁置）。
-用中文写一句话理由。
+用中文写一句话理由，要具体（提到线索的具体情况，不要泛泛而谈）。
 
 返回JSON：{"score":"high|medium|low","reason":"一句话理由"}`
-    : `You are a sales advisor for a solo designer/developer. Analyze this lead.
+    : `You are a sales advisor. User's business: ${bizCtx}
+
+Analyze this lead's follow-up value.
 
 Lead info:
 - Company/Name: ${lead.name}
@@ -462,12 +507,12 @@ Lead info:
 - Website/Bio: ${lead.website || "none"}
 
 Criteria:
-- Need match: do they need design/web/branding services?
-- Budget potential: typical budget in this industry?
+- Need match: does this lead's needs align with the user's business?
+- Budget potential: typical budget in this industry/company size?
 - Info completeness: enough to start outreach?
 
 Rate as "high" (pursue now), "medium" (worth following up), or "low" (park for later).
-One sentence reason.
+One specific sentence reason (mention the lead's specifics, not generic advice).
 
 Return JSON: {"score":"high|medium|low","reason":"one sentence"}`;
 
@@ -490,17 +535,46 @@ export async function parseWorkTask(
   text: string, clientNames: string[], lang: string,
   provider: AIProvider, apiKey: string
 ): Promise<ParsedWorkTask> {
-  const prompt = `Parse natural language into a work task.
+  const isZh = lang === "zh";
+  const clientList = clientNames.length ? clientNames.join(", ") : (isZh ? "无" : "none");
 
-Known clients: ${clientNames.length ? clientNames.join(", ") : "none"}
+  const examples = isZh
+    ? `示例：
+"给Aegis设计logo 高优" → {"title":"设计Logo","client":"Aegis","priority":"High","column":"todo"}
+"写周报" → {"title":"写周报","client":"","priority":"Medium","column":"todo"}
+"紧急修复Acme的登录bug" → {"title":"修复登录Bug","client":"Acme","priority":"High","column":"todo"}`
+    : `Examples:
+"design logo for Aegis high priority" → {"title":"Design logo","client":"Aegis","priority":"High","column":"todo"}
+"write weekly report" → {"title":"Write weekly report","client":"","priority":"Medium","column":"todo"}
+"urgent fix login bug for Acme" → {"title":"Fix login bug","client":"Acme","priority":"High","column":"todo"}`;
+
+  const prompt = isZh
+    ? `把用户输入解析为一个工作任务。
+
+已有客户列表：${clientList}
+优先级：High / Medium / Low（默认 Medium）
+
+规则：
+- 标题：简洁、动词开头（如"设计..."、"修复..."、"编写..."）
+- 客户：从已有客户列表中模糊匹配（拼音、简写都算），没提到就留空
+- 优先级：检测关键词（高/紧急/重要→High，低/不急→Low）
+- column 固定为 "todo"
+
+${examples}
+
+只返回 JSON：{"title":"...","client":"","priority":"Medium","column":"todo"}`
+    : `Parse natural language into a work task.
+
+Known clients: ${clientList}
 Priorities: High, Medium, Low (default: Medium)
-Language: ${lang === "zh" ? "Chinese" : "English"}
 
 Rules:
-- Title: concise, action-oriented (${lang === "zh" ? "用中文" : "in English"})
-- Client: match from known list if mentioned, otherwise empty string
-- Priority: detect from text (高/urgent/important → High, 低/low → Low)
+- Title: concise, action-oriented verb phrase
+- Client: fuzzy match from known clients if mentioned, otherwise empty string
+- Priority: detect keywords (urgent/important/high → High, low/not urgent → Low)
 - Column: always "todo"
+
+${examples}
 
 Return ONLY JSON: {"title":"...","client":"","priority":"Medium","column":"todo"}`;
 
@@ -522,24 +596,37 @@ export async function parseTaskBreakdown(
   text: string, lang: string,
   provider: AIProvider, apiKey: string
 ): Promise<TaskBreakdown> {
-  const prompt = lang === "zh"
-    ? `你是一个效率助手。用户描述一个任务或目标，你把它拆解成5-8个小步骤。
+  const isZh = lang === "zh";
+
+  const prompt = isZh
+    ? `你是一个效率助手。用户描述一个任务或目标，你把它拆解成5-8个可执行的小步骤。
 
 拆解原则：
 - 每步5-30分钟可完成
 - 按执行顺序排列
-- 动词开头，具体可执行（如"打电话给..."而不是"联系相关方"）
-- 目标是让每步都小到不会拖延
+- 动词开头，具体可执行（"打电话给XX确认需求"而不是"联系相关方"）
+- 每步都小到让人愿意立刻开始
+
+示例：
+输入："搬家"
+输出：{"title":"搬家","steps":["��出所有需要搬的物品清单","联系3家���家公司比价","预约搬家日期和时间","打包不常用物品（书籍、冬衣等）","打包日常用品和电子设备","监督搬家公司搬运","到新家检查物品是否完好","整理新家布置家具"]}
+
+输入："做一个产品官网"
+输出：{"title":"产品官网","steps":["收集3个喜欢的参考网站截图","写首页文案（标题+卖点+CTA）","用Figma画首页线框图","选定技术方案（框架+部署）","开发首页响应式布局","添加内容和图片素材","部署上线并测试各设备显示"]}
 
 返回JSON（不要markdown）：
 {"title":"简洁的任务名","steps":["步骤1","步骤2",...]}`
-    : `You are a productivity assistant. Break down the user's task into 5-8 small steps.
+    : `You are a productivity assistant. Break down the user's task into 5-8 actionable steps.
 
 Principles:
 - Each step takes 5-30 minutes
 - In execution order
-- Start with a verb, be specific (e.g., "Call the..." not "Contact relevant parties")
-- Goal: each step should feel small enough to start immediately
+- Start with a verb, be specific ("Call X to confirm requirements" not "Contact stakeholders")
+- Each step should feel small enough to start immediately
+
+Example:
+Input: "Launch a product landing page"
+Output: {"title":"Product landing page","steps":["Collect 3 reference sites for inspiration","Write hero copy (headline + value props + CTA)","Wireframe the page layout in Figma","Choose tech stack (framework + hosting)","Build responsive page layout","Add content, images, and SEO meta","Deploy, test on mobile/desktop, share link"]}
 
 Return JSON only: {"title":"concise task name","steps":["step 1","step 2",...]}`;
 

@@ -3,6 +3,28 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.28.0] - 2026-04-05
+
+### Added
+- **Complete profile fields** — business email, phone, title, company, website, location with full Supabase sync
+- **PROFILE_SYNC_KEYS mapping** — generic profile field system for automatic cloud sync on login
+- **Bilingual expense categories** — 8 business + 8 personal categories in both Chinese and English
+
+### Enhanced
+- **AI Chat system prompt** — richer business context injection (title + company + description), 20-item page context, aggregate stats per tab
+- **AI parsing prompts** — few-shot examples for bookkeeping, task creation, and task breakdown; bilingual prompt support
+- **Lead AI analysis** — scoring and outreach now reference user's actual business description
+- **Backup/restore** — exports and imports all 9 profile fields
+
+### Changed
+- **Profile section redesign** — removed gradient hero, inline avatar with name on single row, clean single-column form layout
+- **Income detection** — handles both Chinese and English category names
+
+### Fixed
+- **English income categorization** — `parsed.category === "Income"` check added alongside Chinese `"收入"`
+
+---
+
 ## [2.27.1] - 2026-04-05
 
 ### Fixed

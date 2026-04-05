@@ -8,6 +8,7 @@ import { useT } from "../i18n/context";
 import { useAppSettings } from "../hooks/useAppSettings";
 import { useUIStore } from "../store/useUIStore";
 import { api } from "../lib/api";
+import { useSettingsStore } from "../store/useSettingsStore";
 import {
   getAIConfig,
   streamChat,
@@ -23,75 +24,184 @@ interface Message {
 
 /* ── Page-aware context builder ─────────────────────────────── */
 
+function formatItemDetail(item: Record<string, unknown>, activeTab: string, currency: string): string {
+  const parts: string[] = [];
+  const name = (item.title || item.name || item.description || "") as string;
+  parts.push(name);
+
+  if (activeTab === "work") {
+    if (item.column) parts.push(`[${item.column}]`);
+    if (item.priority) parts.push(`P:${item.priority}`);
+    if (item.client) parts.push(`@${item.client}`);
+    if (item.due) parts.push(`due:${item.due}`);
+    if (item.scope) parts.push(`(${item.scope})`);
+  } else if (activeTab === "leads") {
+    if (item.column) parts.push(`[${item.column}]`);
+    if (item.industry) parts.push(`${item.industry}`);
+    if (item.needs) parts.push(`needs:${item.needs}`);
+    if (item.source) parts.push(`via:${item.source}`);
+  } else if (activeTab === "clients") {
+    if (item.status) parts.push(`(${item.status})`);
+    if (item.billing_type) parts.push(`[${item.billing_type}]`);
+    if (item.mrr != null && Number(item.mrr) > 0) parts.push(`MRR:${currency}${Number(item.mrr).toLocaleString()}`);
+    if (item.project_fee != null && Number(item.project_fee) > 0) parts.push(`fee:${currency}${Number(item.project_fee).toLocaleString()}`);
+    if (item.plan_tier) parts.push(`plan:${item.plan_tier}`);
+  } else if (activeTab === "finance") {
+    if (item.type) parts.push(`[${item.type}]`);
+    if (item.category) parts.push(`${item.category}`);
+    if (item.amount != null) parts.push(`${currency}${Number(item.amount).toLocaleString()}`);
+    if (item.date) parts.push(`${item.date}`);
+    if (item.status) parts.push(`(${item.status})`);
+  } else {
+    if (item.column) parts.push(`[${item.column}]`);
+    if (item.status) parts.push(`(${item.status})`);
+    if (item.amount != null) parts.push(`${currency}${Number(item.amount).toLocaleString()}`);
+  }
+
+  return parts.join(" ");
+}
+
+function buildAggregateStats(items: Record<string, unknown>[], activeTab: string): string[] {
+  if (!items.length) return [];
+  const stats: string[] = [];
+
+  if (activeTab === "work") {
+    const byCol: Record<string, number> = {};
+    const byPriority: Record<string, number> = {};
+    let overdue = 0;
+    const today = new Date().toISOString().slice(0, 10);
+    for (const t of items) {
+      const col = (t.column as string) || "unknown";
+      byCol[col] = (byCol[col] || 0) + 1;
+      const pri = (t.priority as string) || "Medium";
+      byPriority[pri] = (byPriority[pri] || 0) + 1;
+      if (t.due && (t.due as string).slice(0, 10) < today && col !== "done") overdue++;
+    }
+    stats.push(`Distribution: ${Object.entries(byCol).map(([k, v]) => `${k}=${v}`).join(", ")}`);
+    stats.push(`Priority: ${Object.entries(byPriority).map(([k, v]) => `${k}=${v}`).join(", ")}`);
+    if (overdue > 0) stats.push(`Overdue: ${overdue}`);
+  } else if (activeTab === "leads") {
+    const byCol: Record<string, number> = {};
+    for (const l of items) {
+      const col = (l.column as string) || "new";
+      byCol[col] = (byCol[col] || 0) + 1;
+    }
+    stats.push(`Pipeline: ${Object.entries(byCol).map(([k, v]) => `${k}=${v}`).join(", ")}`);
+  } else if (activeTab === "finance") {
+    let totalIncome = 0, totalExpense = 0;
+    for (const tx of items) {
+      const amt = Number(tx.amount) || 0;
+      if (tx.type === "income") totalIncome += amt;
+      else totalExpense += amt;
+    }
+    stats.push(`Income total: ${totalIncome.toLocaleString()}, Expense total: ${totalExpense.toLocaleString()}, Net: ${(totalIncome - totalExpense).toLocaleString()}`);
+  }
+
+  return stats;
+}
+
 function buildSystemPrompt(
   dashboard: Record<string, unknown> | null,
   pageContext: Record<string, unknown> | null,
   activeTab: string,
   lang: string,
+  operatorName: string,
+  businessDescription: string,
+  currency: string,
 ): string {
   const lines: string[] = [];
+  const sym = currency === "CNY" ? "¥" : "$";
 
   if (lang === "zh") {
-    lines.push("你是 Solo CEO 的 AI 助手。");
+    // ── Role & persona ──
+    lines.push(`你是${operatorName || "用户"}的商业助手，内置在 Solo CEO 工作台中。`);
+    if (businessDescription) {
+      lines.push(`用户的业务：${businessDescription}`);
+    }
+    lines.push("");
+    lines.push("## 回答原则");
+    lines.push("- 简洁直接，不说废话。先给结论，再给理由");
+    lines.push("- 善用 **加粗**、列表、表格让信息一目了然");
+    lines.push("- 给建议时要具体可执行，不要泛泛而谈（「跟进客户」→「给 XX 发一封邮件确认需求」）");
+    lines.push("- 涉及数字时引用实际数据，不要凭空编造");
+    lines.push("- 如果数据不足以回答，说明缺什么，不要猜测");
+    lines.push("- 不要重复列出所有数据，只回答用户问的部分");
+
+    // ── Business overview ──
     if (dashboard) {
       const d = dashboard;
-      lines.push("", "## 业务概览");
-      if (d.mrr != null) lines.push(`- MRR（月经常性收入）：$${Number(d.mrr).toLocaleString()}`);
-      if (d.ytdRevenue != null) lines.push(`- 年度累计收入：$${Number(d.ytdRevenue).toLocaleString()}`);
-      if (d.monthlyIncome != null) lines.push(`- 本月收入：$${Number(d.monthlyIncome).toLocaleString()}`);
-      if (d.todayIncome != null && Number(d.todayIncome) > 0) lines.push(`- 今日收入：$${Number(d.todayIncome).toLocaleString()}`);
+      lines.push("", "## 业务数据");
+      if (d.mrr != null) lines.push(`- MRR：${sym}${Number(d.mrr).toLocaleString()}`);
+      if (d.ytdRevenue != null) lines.push(`- 年度累计收入：${sym}${Number(d.ytdRevenue).toLocaleString()}`);
+      if (d.monthlyIncome != null) lines.push(`- 本月收入：${sym}${Number(d.monthlyIncome).toLocaleString()}`);
+      if (d.todayIncome != null && Number(d.todayIncome) > 0) lines.push(`- 今日收入：${sym}${Number(d.todayIncome).toLocaleString()}`);
       if (d.clientsCount != null) lines.push(`- 活跃客户：${d.clientsCount} 个`);
-      if (d.activeTasks != null) lines.push(`- 进行中任务：${d.activeTasks} 个（待办 ${d.todoCount || 0}，进行中 ${d.inProgressCount || 0}）`);
-      if (d.leadsCount != null) lines.push(`- 线索管道：共 ${d.leadsCount} 条（新 ${d.leadsNew || 0} / 跟进 ${d.leadsContacted || 0} / 提案 ${d.leadsProposal || 0}）`);
+      if (d.activeTasks != null) lines.push(`- 进行中任务：${d.activeTasks} 个（待办 ${d.todoCount || 0}，进行中 ${d.inProgressCount || 0}，评审 ${d.reviewCount || 0}）`);
+      if (d.leadsCount != null) lines.push(`- 线索管道：共 ${d.leadsCount} 条（新线索 ${d.leadsNew || 0} / 已联系 ${d.leadsContacted || 0} / 提案中 ${d.leadsProposal || 0} / 成交 ${d.leadsWon || 0}）`);
       if (Array.isArray(d.urgentTasks) && d.urgentTasks.length > 0) {
-        lines.push(`- 紧急/逾期任务：${d.urgentTasks.map((t: { title: string }) => t.title).join("、")}`);
+        lines.push(`- ⚠️ 紧急/逾期：${d.urgentTasks.map((t: { title: string }) => t.title).join("、")}`);
       }
       if (Array.isArray(d.receivables) && d.receivables.length > 0) {
-        lines.push(`- 待收款：${d.receivables.length} 笔`);
+        const total = d.receivables.reduce((s: number, r: { amount?: number }) => s + (r.amount || 0), 0);
+        lines.push(`- 待收款：${d.receivables.length} 笔，合计 ${sym}${total.toLocaleString()}`);
       }
     }
-    // Page-specific context
-    if (pageContext) {
+
+    // ── Page context ──
+    if (pageContext && Array.isArray(pageContext.items) && pageContext.items.length > 0) {
       const tabNames: Record<string, string> = { work: "任务", leads: "线索", clients: "客户", finance: "收支" };
-      lines.push("", `## 当前页面：${tabNames[activeTab] || activeTab}`);
-      if (Array.isArray(pageContext.items)) {
-        lines.push(`共 ${pageContext.items.length} 条记录：`);
-        pageContext.items.slice(0, 15).forEach((item: Record<string, unknown>) => {
-          const parts = [item.title || item.name || item.description || ""];
-          if (item.column) parts.push(`[${item.column}]`);
-          if (item.status) parts.push(`(${item.status})`);
-          if (item.amount != null) parts.push(`$${Number(item.amount).toLocaleString()}`);
-          if (item.due) parts.push(`截止 ${item.due}`);
-          lines.push(`- ${parts.join(" ")}`);
-        });
-        if (pageContext.items.length > 15) lines.push(`- ...还有 ${pageContext.items.length - 15} 条`);
-      }
+      lines.push("", `## 当前页面：${tabNames[activeTab] || activeTab}（共 ${pageContext.items.length} 条）`);
+      const agg = buildAggregateStats(pageContext.items as Record<string, unknown>[], activeTab);
+      if (agg.length) lines.push(agg.join(" | "));
+      lines.push("");
+      pageContext.items.slice(0, 20).forEach((item: Record<string, unknown>) => {
+        lines.push(`- ${formatItemDetail(item, activeTab, sym)}`);
+      });
+      if (pageContext.items.length > 20) lines.push(`- ...还有 ${pageContext.items.length - 20} 条`);
     }
-    lines.push("", "根据以上数据回答用户问题。用简洁专业的中文回答，善用 Markdown 格式（列表、加粗等）让回复更清晰。不要重复列出所有数据，只回答用户问的部分。");
   } else {
-    lines.push("You are Solo CEO's AI assistant.");
+    // ── English ──
+    lines.push(`You are ${operatorName || "the user"}'s business assistant, built into the Solo CEO workspace.`);
+    if (businessDescription) {
+      lines.push(`User's business: ${businessDescription}`);
+    }
+    lines.push("");
+    lines.push("## Response guidelines");
+    lines.push("- Be concise and direct. Lead with conclusions, then reasoning");
+    lines.push("- Use **bold**, lists, and tables for clarity");
+    lines.push("- Give specific, actionable advice (not \"follow up\" but \"send X an email to confirm scope\")");
+    lines.push("- Cite actual data when discussing numbers — never fabricate");
+    lines.push("- If data is insufficient, state what's missing instead of guessing");
+    lines.push("- Only address what the user asks — don't dump all data");
+
     if (dashboard) {
       const d = dashboard;
-      lines.push("", "## Business Overview");
-      if (d.mrr != null) lines.push(`- MRR: $${Number(d.mrr).toLocaleString()}`);
-      if (d.ytdRevenue != null) lines.push(`- YTD Revenue: $${Number(d.ytdRevenue).toLocaleString()}`);
-      if (d.monthlyIncome != null) lines.push(`- This month: $${Number(d.monthlyIncome).toLocaleString()}`);
+      lines.push("", "## Business Data");
+      if (d.mrr != null) lines.push(`- MRR: ${sym}${Number(d.mrr).toLocaleString()}`);
+      if (d.ytdRevenue != null) lines.push(`- YTD Revenue: ${sym}${Number(d.ytdRevenue).toLocaleString()}`);
+      if (d.monthlyIncome != null) lines.push(`- This month: ${sym}${Number(d.monthlyIncome).toLocaleString()}`);
       if (d.clientsCount != null) lines.push(`- Active clients: ${d.clientsCount}`);
-      if (d.activeTasks != null) lines.push(`- Active tasks: ${d.activeTasks} (todo ${d.todoCount || 0}, in progress ${d.inProgressCount || 0})`);
-      if (d.leadsCount != null) lines.push(`- Leads: ${d.leadsCount} total (new ${d.leadsNew || 0} / contacted ${d.leadsContacted || 0} / proposal ${d.leadsProposal || 0})`);
+      if (d.activeTasks != null) lines.push(`- Active tasks: ${d.activeTasks} (todo ${d.todoCount || 0}, in progress ${d.inProgressCount || 0}, review ${d.reviewCount || 0})`);
+      if (d.leadsCount != null) lines.push(`- Leads: ${d.leadsCount} total (new ${d.leadsNew || 0} / contacted ${d.leadsContacted || 0} / proposal ${d.leadsProposal || 0} / won ${d.leadsWon || 0})`);
+      if (Array.isArray(d.urgentTasks) && d.urgentTasks.length > 0) {
+        lines.push(`- ⚠️ Urgent/overdue: ${d.urgentTasks.map((t: { title: string }) => t.title).join(", ")}`);
+      }
+      if (Array.isArray(d.receivables) && d.receivables.length > 0) {
+        const total = d.receivables.reduce((s: number, r: { amount?: number }) => s + (r.amount || 0), 0);
+        lines.push(`- Receivables: ${d.receivables.length} pending, total ${sym}${total.toLocaleString()}`);
+      }
     }
-    if (pageContext && Array.isArray(pageContext.items)) {
-      lines.push("", `## Current Page: ${activeTab}`);
-      lines.push(`${pageContext.items.length} items:`);
-      pageContext.items.slice(0, 15).forEach((item: Record<string, unknown>) => {
-        const parts = [item.title || item.name || item.description || ""];
-        if (item.column) parts.push(`[${item.column}]`);
-        if (item.status) parts.push(`(${item.status})`);
-        if (item.amount != null) parts.push(`$${Number(item.amount).toLocaleString()}`);
-        lines.push(`- ${parts.join(" ")}`);
+
+    if (pageContext && Array.isArray(pageContext.items) && pageContext.items.length > 0) {
+      lines.push("", `## Current Page: ${activeTab} (${pageContext.items.length} items)`);
+      const agg = buildAggregateStats(pageContext.items as Record<string, unknown>[], activeTab);
+      if (agg.length) lines.push(agg.join(" | "));
+      lines.push("");
+      pageContext.items.slice(0, 20).forEach((item: Record<string, unknown>) => {
+        lines.push(`- ${formatItemDetail(item, activeTab, sym)}`);
       });
+      if (pageContext.items.length > 20) lines.push(`- ...and ${pageContext.items.length - 20} more`);
     }
-    lines.push("", "Answer concisely using Markdown formatting. Only address what the user asks.");
   }
 
   return lines.join("\n");
@@ -253,6 +363,15 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
   const { settings } = useAppSettings();
   const activeTab = useUIStore((s) => s.activeTab);
   const setActiveTab = useUIStore((s) => s.setActiveTab);
+  const operatorName = useSettingsStore((s) => s.operatorName);
+  const businessDesc = useSettingsStore((s) => {
+    const parts: string[] = [];
+    if (s.businessTitle) parts.push(s.businessTitle);
+    if (s.businessName) parts.push(`@${s.businessName}`);
+    if (s.businessDescription) parts.push(`— ${s.businessDescription}`);
+    return parts.join(' ') || s.businessDescription;
+  });
+  const currency = useSettingsStore((s) => s.currency);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -319,7 +438,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
     setMessages(prev => [...prev, userMsg, assistantMsg]);
     setIsStreaming(true);
 
-    const systemPrompt = buildSystemPrompt(dashboard, pageContext, activeTab, lang);
+    const systemPrompt = buildSystemPrompt(dashboard, pageContext, activeTab, lang, operatorName, businessDesc, currency);
     const chatHistory: ChatMessage[] = [
       { role: "system", content: systemPrompt },
       ...messages.slice(-10).map(m => ({ role: m.role as "user" | "assistant", content: m.content })),
@@ -361,7 +480,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
       setMessages(prev => prev.map(m => ({ ...m, streaming: false })));
       abortRef.current = null;
     }
-  }, [isStreaming, settings, dashboard, pageContext, activeTab, lang, messages, t]);
+  }, [isStreaming, settings, dashboard, pageContext, activeTab, lang, messages, t, operatorName, businessDesc, currency]);
 
   const handleSend = useCallback(() => {
     const text = input.trim();

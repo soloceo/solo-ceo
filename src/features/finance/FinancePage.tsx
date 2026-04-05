@@ -407,7 +407,7 @@ export default function FinancePage() {
         setTimeout(() => reject(new Error('AI parsing timeout')), 15000)
       );
       const parsed = await Promise.race([parseExpense(text, financeTab, lang, provider, apiKey), timeoutPromise]);
-      const isIncome = financeTab === "business" && parsed.category === "收入";
+      const isIncome = financeTab === "business" && (parsed.category === "收入" || parsed.category === "Income");
       await api.post("/api/finance", {
         date: parsed.date,
         description: parsed.description,
