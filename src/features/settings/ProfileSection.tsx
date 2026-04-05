@@ -49,14 +49,15 @@ export default function ProfileSection({
             className="input-base flex-1 px-3 py-2 text-[15px]"
             style={{ fontWeight: 'var(--font-weight-semibold)' } as React.CSSProperties}
           />
-          <div className="flex items-center gap-1.5 shrink-0">
-            <label className="btn-ghost compact text-[13px] px-2.5 cursor-pointer" style={{ color: 'var(--color-accent)' }}>
-              <Upload size={14} /> {t("settings.uploadAvatar")}
+          <div className="flex items-center gap-1 shrink-0">
+            <label className="btn-ghost compact cursor-pointer" style={{ color: 'var(--color-accent)' }} title={t("settings.uploadAvatar")}>
+              <Upload size={16} />
+              <span className="max-lg:hidden">{t("settings.uploadAvatar")}</span>
               <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
             </label>
             {operatorAvatar && (
-              <button type="button" onClick={clearAvatar} className="btn-ghost compact text-[13px] px-2" style={{ color: 'var(--color-danger)' }}>
-                <Trash2 size={14} />
+              <button type="button" onClick={clearAvatar} className="btn-ghost compact" style={{ color: 'var(--color-danger)' }} title={t("settings.deleteAvatar") || "Delete"}>
+                <Trash2 size={16} />
               </button>
             )}
           </div>
