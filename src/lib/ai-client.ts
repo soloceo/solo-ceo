@@ -231,9 +231,14 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface StreamResult {
+  text: string;
+  truncated: boolean;
+}
+
 /**
  * Stream a chat completion. Calls `onChunk` with each text delta.
- * Returns the full accumulated text. Supports abort via AbortSignal.
+ * Returns the full accumulated text and whether it was truncated.
  */
 export async function streamChat(
   provider: AIProvider,
@@ -241,7 +246,7 @@ export async function streamChat(
   messages: ChatMessage[],
   onChunk: (text: string) => void,
   signal?: AbortSignal,
-): Promise<string> {
+): Promise<StreamResult> {
   // Build request based on provider
   let url: string;
   let headers: Record<string, string>;
@@ -268,12 +273,18 @@ export async function streamChat(
     const chatMsgs = messages.filter(m => m.role !== "system");
     body = JSON.stringify({ model: "claude-sonnet-4-6-20250514", max_tokens: 2048, system: sysMsg, messages: chatMsgs, stream: true });
   } else if (provider === "gemini") {
-    // Gemini uses a different streaming format — fall back to non-streaming
     const sysMsg = messages.find(m => m.role === "system")?.content || "";
-    const userMsgs = messages.filter(m => m.role !== "system").map(m => m.content).join("\n");
-    const text = await callText(provider, apiKey, sysMsg, userMsgs);
-    onChunk(text);
-    return text;
+    const chatMsgs = messages.filter(m => m.role !== "system").map(m => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }],
+    }));
+    url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${apiKey}`;
+    headers = { "Content-Type": "application/json" };
+    body = JSON.stringify({
+      system_instruction: { parts: [{ text: sysMsg }] },
+      contents: chatMsgs,
+      generationConfig: { maxOutputTokens: 2048 },
+    });
   } else {
     throw new Error(`Unsupported provider: ${provider}`);
   }
@@ -286,38 +297,53 @@ export async function streamChat(
   const decoder = new TextDecoder();
   let full = "";
   let buffer = "";
+  let truncated = false;
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-
-    const lines = buffer.split("\n");
-    buffer = lines.pop() || "";
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed === "data: [DONE]") continue;
-
-      if (trimmed.startsWith("data: ")) {
-        try {
-          const json = JSON.parse(trimmed.slice(6));
-          // OpenAI / Ollama format
-          const delta = json.choices?.[0]?.delta?.content;
-          if (delta) { full += delta; onChunk(delta); continue; }
-          // Claude format
-          if (json.type === "content_block_delta") {
-            const text = json.delta?.text;
-            if (text) { full += text; onChunk(text); }
-          }
-        } catch { /* skip unparseable lines */ }
-      } else if (trimmed.startsWith("event:")) {
-        continue; // Claude SSE event labels
+  const parseLine = (trimmed: string) => {
+    if (!trimmed || trimmed === "data: [DONE]") return;
+    if (trimmed.startsWith("event:")) return;
+    if (!trimmed.startsWith("data: ")) return;
+    try {
+      const json = JSON.parse(trimmed.slice(6));
+      // OpenAI / Ollama format
+      const finish = json.choices?.[0]?.finish_reason;
+      if (finish === "length") truncated = true;
+      const delta = json.choices?.[0]?.delta?.content;
+      if (delta) { full += delta; onChunk(delta); return; }
+      // Claude format
+      if (json.type === "content_block_delta") {
+        const text = json.delta?.text;
+        if (text) { full += text; onChunk(text); return; }
       }
+      if (json.type === "message_delta" && json.delta?.stop_reason === "max_tokens") {
+        truncated = true;
+      }
+      // Gemini format
+      const geminiFinish = json.candidates?.[0]?.finishReason;
+      if (geminiFinish === "MAX_TOKENS") truncated = true;
+      const geminiText = json.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (geminiText) { full += geminiText; onChunk(geminiText); return; }
+    } catch { /* skip unparseable lines */ }
+  };
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+      for (const line of lines) parseLine(line.trim());
     }
+    // Flush remaining buffer
+    if (buffer.trim()) parseLine(buffer.trim());
+  } catch (err) {
+    if ((err as Error).name === "AbortError") return { text: full, truncated: true };
+    throw err;
   }
 
-  return full;
+  return { text: full, truncated };
 }
 
 /* ── Expense Parsing ──────────────────────────────── */

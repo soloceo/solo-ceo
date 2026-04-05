@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { MessageCircle, X, Send, Loader2, Trash2, Copy, Check, Settings } from "lucide-react";
+import { MessageCircle, X, Send, Loader2, Trash2, Copy, Check, Settings, Plus, ChevronLeft, MessagesSquare } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -16,12 +16,51 @@ import {
   streamChat,
   type AIProvider,
   type ChatMessage,
+  type StreamResult,
 } from "../lib/ai-client";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
   streaming?: boolean;
+}
+
+interface Conversation {
+  id: string;
+  title: string;
+  messages: Message[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+/* ── Conversation storage ─────────────────────────────────── */
+const LS_CONVERSATIONS = "solo_ai_conversations";
+const LS_ACTIVE_CONV = "solo_ai_active_conversation";
+
+function loadConversations(): Conversation[] {
+  try {
+    const saved = localStorage.getItem(LS_CONVERSATIONS);
+    return saved ? JSON.parse(saved) : [];
+  } catch { return []; }
+}
+
+function saveConversations(convs: Conversation[]) {
+  const trimmed = convs.slice(0, 50).map(c => ({
+    ...c,
+    messages: c.messages.slice(-100).map(m => ({ role: m.role, content: m.content })),
+  }));
+  localStorage.setItem(LS_CONVERSATIONS, JSON.stringify(trimmed));
+}
+
+function generateId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+function generateTitle(messages: Message[], lang: string): string {
+  const firstUser = messages.find(m => m.role === "user");
+  if (!firstUser) return lang === "zh" ? "新对话" : "New chat";
+  const text = firstUser.content.trim();
+  return text.length > 30 ? text.slice(0, 30) + "..." : text;
 }
 
 /* ── Page-aware context builder ─────────────────────────────── */
@@ -115,7 +154,6 @@ function buildSystemPrompt(
   const sym = currency === "CNY" ? "¥" : "$";
 
   if (lang === "zh") {
-    // ── Role & persona ──
     lines.push(`你是${operatorName || "用户"}的商业助手，内置在 Solo CEO 工作台中。`);
     if (businessDescription) {
       lines.push(`用户的业务：${businessDescription}`);
@@ -129,7 +167,6 @@ function buildSystemPrompt(
     lines.push("- 如果数据不足以回答，说明缺什么，不要猜测");
     lines.push("- 不要重复列出所有数据，只回答用户问的部分");
 
-    // ── Business overview ──
     if (dashboard) {
       const d = dashboard;
       lines.push("", "## 业务数据");
@@ -149,7 +186,6 @@ function buildSystemPrompt(
       }
     }
 
-    // ── Page context ──
     if (pageContext && Array.isArray(pageContext.items) && pageContext.items.length > 0) {
       const tabNames: Record<string, string> = { work: "任务", leads: "线索", clients: "客户", finance: "收支" };
       lines.push("", `## 当前页面：${tabNames[activeTab] || activeTab}（共 ${pageContext.items.length} 条）`);
@@ -162,7 +198,6 @@ function buildSystemPrompt(
       if (pageContext.items.length > 20) lines.push(`- ...还有 ${pageContext.items.length - 20} 条`);
     }
   } else {
-    // ── English ──
     lines.push(`You are ${operatorName || "the user"}'s business assistant, built into the Solo CEO workspace.`);
     if (businessDescription) {
       lines.push(`User's business: ${businessDescription}`);
@@ -399,6 +434,104 @@ function AIConnectionStatus({ settings }: { settings: Record<string, string> | n
   );
 }
 
+/* ── Conversation list view ───────────────────────────────── */
+function ConversationList({
+  conversations,
+  activeId,
+  onSelect,
+  onDelete,
+  onNew,
+  lang,
+}: {
+  conversations: Conversation[];
+  activeId: string | null;
+  onSelect: (id: string) => void;
+  onDelete: (id: string) => void;
+  onNew: () => void;
+  lang: string;
+}) {
+  const formatTime = (ts: number) => {
+    const d = new Date(ts);
+    const now = new Date();
+    const isToday = d.toDateString() === now.toDateString();
+    if (isToday) return d.toLocaleTimeString(lang === "zh" ? "zh-CN" : "en-US", { hour: "2-digit", minute: "2-digit" });
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (d.toDateString() === yesterday.toDateString()) return lang === "zh" ? "昨天" : "Yesterday";
+    return d.toLocaleDateString(lang === "zh" ? "zh-CN" : "en-US", { month: "short", day: "numeric" });
+  };
+
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="px-3 py-2 shrink-0">
+        <button
+          onClick={onNew}
+          className="ai-chat-new-btn w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-[14px] transition-colors press-feedback"
+          style={{
+            background: "var(--color-accent)",
+            color: "var(--color-brand-text)",
+          }}
+        >
+          <Plus size={16} />
+          <span>{lang === "zh" ? "新对话" : "New chat"}</span>
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-2">
+        {conversations.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-32 gap-2 opacity-40">
+            <MessagesSquare size={24} style={{ color: "var(--color-text-quaternary)" }} />
+            <p className="text-[13px]" style={{ color: "var(--color-text-tertiary)" }}>
+              {lang === "zh" ? "还没有对话" : "No conversations yet"}
+            </p>
+          </div>
+        ) : (
+          conversations.map((conv) => (
+            <div
+              key={conv.id}
+              className="ai-chat-conv-item group flex items-center gap-2.5 px-3.5 py-3 rounded-xl cursor-pointer transition-all"
+              style={{
+                background: conv.id === activeId ? "var(--color-bg-tertiary)" : "var(--color-bg-secondary)",
+                border: conv.id === activeId ? "1px solid var(--color-accent)" : "1px solid var(--color-line-tertiary)",
+              }}
+              onClick={() => onSelect(conv.id)}
+              onMouseEnter={(e) => { if (conv.id !== activeId) { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--color-accent)"; (e.currentTarget as HTMLDivElement).style.background = "var(--color-bg-tertiary)"; } }}
+              onMouseLeave={(e) => { if (conv.id !== activeId) { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--color-line-tertiary)"; (e.currentTarget as HTMLDivElement).style.background = "var(--color-bg-secondary)"; } }}
+            >
+              <div
+                className="shrink-0 flex items-center justify-center rounded-lg"
+                style={{
+                  width: 32,
+                  height: 32,
+                  background: conv.id === activeId ? "var(--color-accent)" : "var(--color-bg-tertiary)",
+                }}
+              >
+                <MessageCircle size={14} style={{ color: conv.id === activeId ? "var(--color-brand-text)" : "var(--color-text-tertiary)" }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] truncate" style={{ color: "var(--color-text-primary)", fontWeight: conv.id === activeId ? 600 : 400 }}>
+                  {conv.title}
+                </p>
+                <p className="text-[11px] mt-0.5" style={{ color: "var(--color-text-quaternary)" }}>
+                  {conv.messages.length} {lang === "zh" ? "条消息" : "messages"} · {formatTime(conv.updatedAt)}
+                </p>
+              </div>
+              <button
+                onClick={(e) => { e.stopPropagation(); onDelete(conv.id); }}
+                className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-[var(--color-bg-primary)]"
+                style={{ color: "var(--color-text-quaternary)" }}
+                aria-label="Delete"
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ── Main component ────────────────────────────────────────── */
 interface AIChatPanelProps {
   open: boolean;
@@ -419,7 +552,17 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
     return parts.join(' ') || s.businessDescription;
   });
   const currency = useSettingsStore((s) => s.currency);
-  const [messages, setMessages] = useState<Message[]>([]);
+
+  // Multi-conversation state
+  const [conversations, setConversations] = useState<Conversation[]>(loadConversations);
+  const [activeConvId, setActiveConvId] = useState<string | null>(() => {
+    return localStorage.getItem(LS_ACTIVE_CONV) || null;
+  });
+  const [showList, setShowList] = useState(false);
+
+  const activeConv = conversations.find(c => c.id === activeConvId) || null;
+  const messages = activeConv?.messages || [];
+
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [dashboard, setDashboard] = useState<Record<string, unknown> | null>(null);
@@ -429,6 +572,24 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const hasAI = !!getAIConfig(settings);
+
+  // Persist conversations
+  const updateConversations = useCallback((updater: (prev: Conversation[]) => Conversation[]) => {
+    setConversations(prev => {
+      const next = updater(prev);
+      saveConversations(next);
+      return next;
+    });
+  }, []);
+
+  // Persist active conversation id
+  useEffect(() => {
+    if (activeConvId) {
+      localStorage.setItem(LS_ACTIVE_CONV, activeConvId);
+    } else {
+      localStorage.removeItem(LS_ACTIVE_CONV);
+    }
+  }, [activeConvId]);
 
   // Fetch dashboard + page context when panel opens
   useEffect(() => {
@@ -445,10 +606,10 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
     }
   }, [messages]);
 
-  // Focus input when opened
+  // Focus input when opened or switched conversation
   useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 100);
-  }, [open]);
+    if (open && !showList) setTimeout(() => inputRef.current?.focus(), 100);
+  }, [open, showList, activeConvId]);
 
   // Textarea auto-resize
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -461,34 +622,82 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
   const handleClose = () => {
     if (abortRef.current) abortRef.current.abort();
     onClose();
-    setMessages([]);
     setInput("");
     setIsStreaming(false);
     setDashboard(null);
     setPageContext(null);
+    setShowList(false);
+  };
+
+  const handleNewConversation = () => {
+    const newConv: Conversation = {
+      id: generateId(),
+      title: lang === "zh" ? "新对话" : "New chat",
+      messages: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    updateConversations(prev => [newConv, ...prev]);
+    setActiveConvId(newConv.id);
+    setShowList(false);
+  };
+
+  const handleSelectConversation = (id: string) => {
+    setActiveConvId(id);
+    setShowList(false);
+  };
+
+  const handleDeleteConversation = (id: string) => {
+    updateConversations(prev => prev.filter(c => c.id !== id));
+    if (activeConvId === id) {
+      setActiveConvId(null);
+    }
   };
 
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || isStreaming) return;
 
     const aiConfig = getAIConfig(settings);
+
+    // Auto-create conversation if none active
+    let convId = activeConvId;
+    if (!convId) {
+      const newConv: Conversation = {
+        id: generateId(),
+        title: text.length > 30 ? text.slice(0, 30) + "..." : text,
+        messages: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      updateConversations(prev => [newConv, ...prev]);
+      convId = newConv.id;
+      setActiveConvId(convId);
+    }
+
     if (!aiConfig) {
-      setMessages(prev => [...prev,
-        { role: "user", content: text },
-        { role: "assistant", content: t("ai.chat.noProvider") },
-      ]);
+      updateConversations(prev => prev.map(c => {
+        if (c.id !== convId) return c;
+        const newMsgs = [...c.messages, { role: "user" as const, content: text }, { role: "assistant" as const, content: t("ai.chat.noProvider") }];
+        return { ...c, messages: newMsgs, title: generateTitle(newMsgs, lang), updatedAt: Date.now() };
+      }));
       return;
     }
 
+    const currentMessages = conversations.find(c => c.id === convId)?.messages || [];
     const userMsg: Message = { role: "user", content: text };
     const assistantMsg: Message = { role: "assistant", content: "", streaming: true };
-    setMessages(prev => [...prev, userMsg, assistantMsg]);
+
+    updateConversations(prev => prev.map(c => {
+      if (c.id !== convId) return c;
+      const newMsgs = [...c.messages, userMsg, assistantMsg];
+      return { ...c, messages: newMsgs, title: generateTitle(newMsgs, lang), updatedAt: Date.now() };
+    }));
     setIsStreaming(true);
 
     const systemPrompt = buildSystemPrompt(dashboard, pageContext, activeTab, lang, operatorName, businessDesc, currency);
     const chatHistory: ChatMessage[] = [
       { role: "system", content: systemPrompt },
-      ...messages.slice(-10).map(m => ({ role: m.role as "user" | "assistant", content: m.content })),
+      ...currentMessages.slice(-10).map(m => ({ role: m.role as "user" | "assistant", content: m.content })),
       { role: "user" as const, content: text },
     ];
 
@@ -496,44 +705,60 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
     abortRef.current = abort;
 
     try {
-      await streamChat(
+      const result = await streamChat(
         aiConfig.provider as AIProvider,
         aiConfig.apiKey,
         chatHistory,
         (chunk) => {
-          setMessages(prev => {
-            const updated = [...prev];
-            const last = updated[updated.length - 1];
+          updateConversations(prev => prev.map(c => {
+            if (c.id !== convId) return c;
+            const msgs = [...c.messages];
+            const last = msgs[msgs.length - 1];
             if (last && last.role === "assistant") {
-              updated[updated.length - 1] = { ...last, content: last.content + chunk };
+              msgs[msgs.length - 1] = { ...last, content: last.content + chunk };
             }
-            return updated;
-          });
+            return { ...c, messages: msgs, updatedAt: Date.now() };
+          }));
         },
         abort.signal,
       );
+      if (result.truncated) {
+        const hint = lang === "zh" ? "\n\n---\n⚠️ *回答已达长度限制，发送「继续」可接着生成。*" : "\n\n---\n⚠️ *Response was truncated. Send \"continue\" to keep generating.*";
+        updateConversations(prev => prev.map(c => {
+          if (c.id !== convId) return c;
+          const msgs = [...c.messages];
+          const last = msgs[msgs.length - 1];
+          if (last && last.role === "assistant") {
+            msgs[msgs.length - 1] = { ...last, content: last.content + hint };
+          }
+          return { ...c, messages: msgs };
+        }));
+      }
     } catch (e) {
       if ((e as Error).name === "AbortError") return;
-      setMessages(prev => {
-        const updated = [...prev];
-        const last = updated[updated.length - 1];
+      updateConversations(prev => prev.map(c => {
+        if (c.id !== convId) return c;
+        const msgs = [...c.messages];
+        const last = msgs[msgs.length - 1];
         if (last && last.role === "assistant" && !last.content) {
-          updated[updated.length - 1] = { ...last, content: t("ai.chat.error") };
+          msgs[msgs.length - 1] = { ...last, content: t("ai.chat.error") };
         }
-        return updated;
-      });
+        return { ...c, messages: msgs };
+      }));
     } finally {
       setIsStreaming(false);
-      setMessages(prev => prev.map(m => ({ ...m, streaming: false })));
+      updateConversations(prev => prev.map(c => {
+        if (c.id !== convId) return c;
+        return { ...c, messages: c.messages.map(m => ({ ...m, streaming: false })) };
+      }));
       abortRef.current = null;
     }
-  }, [isStreaming, settings, dashboard, pageContext, activeTab, lang, messages, t, operatorName, businessDesc, currency]);
+  }, [isStreaming, settings, dashboard, pageContext, activeTab, lang, conversations, activeConvId, t, operatorName, businessDesc, currency, updateConversations]);
 
   const handleSend = useCallback(() => {
     const text = input.trim();
     if (!text) return;
     setInput("");
-    // Reset textarea height
     if (inputRef.current) inputRef.current.style.height = "auto";
     sendMessage(text);
   }, [input, sendMessage]);
@@ -568,7 +793,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
             transition={{ type: "spring", stiffness: 400, damping: 35 }}
             className="ai-chat-panel fixed z-[var(--layer-dialog)] flex flex-col
               inset-0
-              lg:inset-y-2 lg:right-2 lg:left-auto lg:w-1/2 lg:rounded-[var(--radius-16)]"
+              lg:inset-y-2 lg:right-2 lg:left-auto lg:w-2/3 lg:rounded-[var(--radius-16)]"
             style={{
               background: "var(--color-bg-primary)",
               boxShadow: "-4px 0 24px rgba(0,0,0,0.15)",
@@ -577,29 +802,55 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
           >
           {/* Header */}
           <div
-            className="flex items-center justify-between px-4 shrink-0"
+            className="flex items-center justify-between px-3 shrink-0"
             style={{
               height: 52,
               paddingTop: "env(safe-area-inset-top, 0px)",
               borderBottom: "1px solid var(--color-line-secondary)",
             }}
           >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              {showList ? (
+                <div className="w-1" />
+              ) : activeConvId ? (
+                <button
+                  onClick={() => setShowList(true)}
+                  className="btn-icon-sm"
+                  aria-label={lang === "zh" ? "对话列表" : "Conversations"}
+                >
+                  <ChevronLeft size={18} />
+                </button>
+              ) : (
+                <div className="w-1" />
+              )}
               <MessageCircle size={18} style={{ color: "var(--color-accent)" }} />
               <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
-                {t("ai.chat.title")}
+                {showList
+                  ? (lang === "zh" ? "对话记录" : "Conversations")
+                  : t("ai.chat.title")
+                }
               </span>
-              <AIConnectionStatus settings={settings} />
+              {!showList && <AIConnectionStatus settings={settings} />}
             </div>
             <div className="flex items-center gap-1">
-              {messages.length > 0 && (
+              {!showList && (
                 <button
-                  onClick={() => { setMessages([]); setDashboard(null); setPageContext(null); }}
+                  onClick={() => setShowList(true)}
                   className="btn-icon-sm"
-                  aria-label={t("ai.chat.clear")}
-                  title={t("ai.chat.clear")}
+                  aria-label={lang === "zh" ? "对话列表" : "Conversations"}
+                  title={lang === "zh" ? "对话列表" : "Conversations"}
                 >
-                  <Trash2 size={15} />
+                  <MessagesSquare size={16} />
+                </button>
+              )}
+              {!showList && (
+                <button
+                  onClick={handleNewConversation}
+                  className="btn-icon-sm"
+                  aria-label={lang === "zh" ? "新对话" : "New chat"}
+                  title={lang === "zh" ? "新对话" : "New chat"}
+                >
+                  <Plus size={16} />
                 </button>
               )}
               <button onClick={handleClose} className="btn-icon-sm" aria-label={t("common.close")}>
@@ -608,136 +859,148 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
             </div>
           </div>
 
-          {/* Messages */}
-          <div
-            ref={scrollRef}
-            className="flex-1 overflow-y-auto px-4 py-3 space-y-3"
-            style={{ overscrollBehavior: "contain" }}
-          >
-            {messages.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-full gap-4">
-                {hasAI ? (
-                  <>
-                    <div className="flex flex-col items-center gap-2 opacity-50">
-                      <MessageCircle size={32} style={{ color: "var(--color-text-quaternary)" }} />
-                      <p className="text-[13px] text-center" style={{ color: "var(--color-text-tertiary)" }}>
-                        {t("ai.chat.welcome")}
-                      </p>
-                    </div>
-                    {/* Quick prompts */}
-                    <div className="flex flex-wrap gap-2 justify-center max-w-[320px]">
-                      {quickPrompts.map((qp, i) => (
+          {showList ? (
+            <ConversationList
+              conversations={conversations}
+              activeId={activeConvId}
+              onSelect={handleSelectConversation}
+              onDelete={handleDeleteConversation}
+              onNew={handleNewConversation}
+              lang={lang}
+            />
+          ) : (
+            <>
+              {/* Messages */}
+              <div
+                ref={scrollRef}
+                className="flex-1 overflow-y-auto px-4 py-3 space-y-3"
+                style={{ overscrollBehavior: "contain" }}
+              >
+                {messages.length === 0 && (
+                  <div className="flex flex-col items-center justify-center h-full gap-4">
+                    {hasAI ? (
+                      <>
+                        <div className="flex flex-col items-center gap-2 opacity-50">
+                          <MessageCircle size={32} style={{ color: "var(--color-text-quaternary)" }} />
+                          <p className="text-[13px] text-center" style={{ color: "var(--color-text-tertiary)" }}>
+                            {t("ai.chat.welcome")}
+                          </p>
+                        </div>
+                        {/* Quick prompts */}
+                        <div className="flex flex-wrap gap-2 justify-center max-w-[320px]">
+                          {quickPrompts.map((qp, i) => (
+                            <button
+                              key={i}
+                              onClick={() => sendMessage(qp.prompt)}
+                              className="ai-chat-quick-prompt px-3 py-1.5 rounded-full text-[13px] transition-colors hover:opacity-80 press-feedback"
+                              style={{
+                                background: "var(--color-bg-secondary)",
+                                color: "var(--color-text-secondary)",
+                                border: "1px solid var(--color-line-tertiary)",
+                              }}
+                            >
+                              {qp.label}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center gap-3 opacity-60">
+                        <Settings size={32} style={{ color: "var(--color-text-quaternary)" }} />
+                        <p className="text-[13px] text-center" style={{ color: "var(--color-text-tertiary)" }}>
+                          {t("ai.chat.noProvider")}
+                        </p>
                         <button
-                          key={i}
-                          onClick={() => sendMessage(qp.prompt)}
-                          className="ai-chat-quick-prompt px-3 py-1.5 rounded-full text-[13px] transition-colors hover:opacity-80 press-feedback"
+                          onClick={() => { setActiveTab("settings"); handleClose(); }}
+                          className="px-4 py-1.5 rounded-full text-[13px] transition-colors"
                           style={{
-                            background: "var(--color-bg-secondary)",
-                            color: "var(--color-text-secondary)",
-                            border: "1px solid var(--color-line-tertiary)",
+                            background: "var(--color-accent)",
+                            color: "var(--color-brand-text)",
                           }}
                         >
-                          {qp.label}
+                          {t("common.goSettings")}
                         </button>
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  /* No AI configured — guide to settings */
-                  <div className="flex flex-col items-center gap-3 opacity-60">
-                    <Settings size={32} style={{ color: "var(--color-text-quaternary)" }} />
-                    <p className="text-[13px] text-center" style={{ color: "var(--color-text-tertiary)" }}>
-                      {t("ai.chat.noProvider")}
-                    </p>
-                    <button
-                      onClick={() => { setActiveTab("settings"); handleClose(); }}
-                      className="px-4 py-1.5 rounded-full text-[13px] transition-colors"
-                      style={{
-                        background: "var(--color-accent)",
-                        color: "var(--color-brand-text)",
-                      }}
-                    >
-                      {t("common.goSettings")}
-                    </button>
+                      </div>
+                    )}
                   </div>
                 )}
+                {messages.map((msg, i) => (
+                  <div
+                    key={i}
+                    className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                  >
+                    <div
+                      className={`ai-chat-bubble max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[14px] leading-relaxed ${msg.role === "assistant" ? "ai-chat-bubble-assistant group relative" : "ai-chat-bubble-user"}`}
+                      style={msg.role === "user" ? {
+                        background: "var(--color-accent)",
+                        color: "var(--color-brand-text)",
+                        borderBottomRightRadius: 6,
+                        whiteSpace: "pre-wrap",
+                      } : {
+                        background: "var(--color-bg-secondary)",
+                        color: "var(--color-text-primary)",
+                        borderBottomLeftRadius: 6,
+                      }}
+                    >
+                      {msg.role === "assistant" ? (
+                        msg.content ? (
+                          <>
+                            <MarkdownContent content={msg.content} />
+                            {!msg.streaming && (
+                              <div className="flex justify-end mt-1 -mb-1 -mr-1">
+                                <CopyButton text={msg.content} />
+                              </div>
+                            )}
+                          </>
+                        ) : msg.streaming ? (
+                          <Loader2 size={14} className="animate-spin" style={{ color: "var(--color-text-tertiary)" }} />
+                        ) : null
+                      ) : (
+                        msg.content
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
-            )}
-            {messages.map((msg, i) => (
+
+              {/* Input */}
               <div
-                key={i}
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                className="shrink-0 px-3 pb-3 pt-2"
+                style={{
+                  borderTop: "1px solid var(--color-line-secondary)",
+                  paddingBottom: "max(12px, env(safe-area-inset-bottom))",
+                }}
               >
-                <div
-                  className={`ai-chat-bubble max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[14px] leading-relaxed ${msg.role === "assistant" ? "ai-chat-bubble-assistant group relative" : "ai-chat-bubble-user"}`}
-                  style={msg.role === "user" ? {
-                    background: "var(--color-accent)",
-                    color: "var(--color-brand-text)",
-                    borderBottomRightRadius: 6,
-                    whiteSpace: "pre-wrap",
-                  } : {
-                    background: "var(--color-bg-secondary)",
-                    color: "var(--color-text-primary)",
-                    borderBottomLeftRadius: 6,
-                  }}
-                >
-                  {msg.role === "assistant" ? (
-                    msg.content ? (
-                      <>
-                        <MarkdownContent content={msg.content} />
-                        {!msg.streaming && (
-                          <div className="flex justify-end mt-1 -mb-1 -mr-1">
-                            <CopyButton text={msg.content} />
-                          </div>
-                        )}
-                      </>
-                    ) : msg.streaming ? (
-                      <Loader2 size={14} className="animate-spin" style={{ color: "var(--color-text-tertiary)" }} />
-                    ) : null
-                  ) : (
-                    msg.content
-                  )}
+                <div className="flex items-end gap-2">
+                  <textarea
+                    ref={inputRef}
+                    value={input}
+                    onChange={handleInputChange}
+                    onKeyDown={handleKeyDown}
+                    placeholder={t("ai.chat.placeholder")}
+                    rows={1}
+                    className="input-base flex-1 px-3 py-2.5 text-[14px] resize-none"
+                    style={{ maxHeight: 120, minHeight: 40 }}
+                    disabled={isStreaming}
+                  />
+                  <button
+                    onClick={handleSend}
+                    disabled={!input.trim() || isStreaming}
+                    className="ai-chat-send shrink-0 rounded-full flex items-center justify-center transition-all disabled:opacity-30"
+                    style={{
+                      width: 40,
+                      height: 40,
+                      background: "var(--color-accent)",
+                      color: "var(--color-brand-text)",
+                    }}
+                    aria-label={t("ai.chat.send")}
+                  >
+                    {isStreaming ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
-
-          {/* Input */}
-          <div
-            className="shrink-0 px-3 pb-3 pt-2"
-            style={{
-              borderTop: "1px solid var(--color-line-secondary)",
-              paddingBottom: "max(12px, env(safe-area-inset-bottom))",
-            }}
-          >
-            <div className="flex items-end gap-2">
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={handleInputChange}
-                onKeyDown={handleKeyDown}
-                placeholder={t("ai.chat.placeholder")}
-                rows={1}
-                className="input-base flex-1 px-3 py-2.5 text-[14px] resize-none"
-                style={{ maxHeight: 120, minHeight: 40 }}
-                disabled={isStreaming}
-              />
-              <button
-                onClick={handleSend}
-                disabled={!input.trim() || isStreaming}
-                className="ai-chat-send shrink-0 rounded-full flex items-center justify-center transition-all disabled:opacity-30"
-                style={{
-                  width: 40,
-                  height: 40,
-                  background: "var(--color-accent)",
-                  color: "var(--color-brand-text)",
-                }}
-                aria-label={t("ai.chat.send")}
-              >
-                {isStreaming ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-              </button>
-            </div>
-          </div>
+            </>
+          )}
         </motion.div>
         </>
       )}
