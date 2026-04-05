@@ -3,6 +3,14 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.25.1] - 2026-04-04
+
+### Fixed
+- AI provider buttons now show "Connect / Disconnect" toggle instead of "Select / Active"
+- Disconnecting AI now fully disables all AI features — previously fell back to cloud settings due to localStorage removal instead of explicit "off" sentinel
+
+---
+
 ## [2.25.0] - 2026-04-04
 
 ### Added
