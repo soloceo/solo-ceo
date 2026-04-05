@@ -3,6 +3,14 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.28.1] - 2026-04-05
+
+### Fixed
+- **Profile fields not editable** — `getState()` replaced with hook subscriptions so typing triggers re-renders
+- **AI Chat panel width** — desktop drawer widened from 400px to 50% viewport for better readability
+
+---
+
 ## [2.28.0] - 2026-04-05
 
 ### Added
