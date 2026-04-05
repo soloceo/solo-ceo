@@ -20,11 +20,13 @@ const LS_OLLAMA_URL = "solo_ollama_url";
 const LS_OLLAMA_MODEL = "solo_ollama_model";
 
 export function getDeviceAIProvider(): AIProvider | "" {
-  return (localStorage.getItem(LS_PROVIDER) || "") as AIProvider | "";
+  const val = localStorage.getItem(LS_PROVIDER);
+  if (!val || val === "off") return "";
+  return val as AIProvider;
 }
 export function setDeviceAIProvider(p: AIProvider | ""): void {
-  if (p) localStorage.setItem(LS_PROVIDER, p);
-  else localStorage.removeItem(LS_PROVIDER);
+  // Store "off" explicitly so getAIConfig won't fall back to cloud settings
+  localStorage.setItem(LS_PROVIDER, p || "off");
 }
 export function getOllamaConfig(): { url: string; model: string } {
   return {
@@ -42,7 +44,9 @@ export function setOllamaConfig(url: string, model: string): void {
  * Returns null if no provider configured or cloud provider has no key.
  */
 export function getAIConfig(settings: Record<string, string> | null): { provider: AIProvider; apiKey: string } | null {
-  const provider = getDeviceAIProvider() || (settings?.ai_provider as AIProvider | "");
+  // Device-level preference takes full precedence (including explicit "off")
+  const hasDevicePref = localStorage.getItem(LS_PROVIDER) != null;
+  const provider = hasDevicePref ? getDeviceAIProvider() : (settings?.ai_provider as AIProvider | "");
   if (!provider) return null;
   if (provider === "ollama") return { provider, apiKey: "" };
   const keyName = AI_KEY_MAP[provider];
