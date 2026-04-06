@@ -2071,7 +2071,8 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                     && (prevMsg.agentId || null) === (msg.agentId || null)
                     && !prevMsg.toolConfirm;
                   const senderName = isUser ? operatorName : (msgAgent?.name || (lang === "zh" ? "AI 助手" : "Assistant"));
-                  const senderAvatar = isUser ? (operatorAvatar || "👤") : (msgAgent?.avatar || "🤖");
+                  const senderAvatarRaw = isUser ? (operatorAvatar || "👤") : (msgAgent?.avatar || "🤖");
+                  const senderIsImage = typeof senderAvatarRaw === "string" && (senderAvatarRaw.startsWith("data:") || senderAvatarRaw.startsWith("http"));
 
                   return (
                   <div key={i} className={`flex gap-2.5 ${isUser ? "flex-row-reverse" : "flex-row"}`}>
@@ -2079,10 +2080,12 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                     <div className="shrink-0" style={{ width: 28 }}>
                       {!sameSender && (
                         <div
-                          className="flex items-center justify-center rounded-full text-[14px]"
+                          className="flex items-center justify-center rounded-full text-[14px] overflow-hidden"
                           style={{ width: 28, height: 28, background: "var(--color-bg-tertiary)" }}
                         >
-                          {senderAvatar}
+                          {senderIsImage
+                            ? <img src={senderAvatarRaw} alt="" className="w-full h-full object-cover rounded-full" />
+                            : senderAvatarRaw}
                         </div>
                       )}
                     </div>
