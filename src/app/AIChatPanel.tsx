@@ -635,7 +635,7 @@ function ConversationList({
           }}
         >
           <Plus size={16} />
-          <span>{lang === "zh" ? "新对话" : "New chat"}</span>
+          <span>{t("ai.chat.newChat")}</span>
         </button>
       </div>
 
@@ -644,7 +644,7 @@ function ConversationList({
           <div className="flex flex-col items-center justify-center h-32 gap-2 opacity-40">
             <MessagesSquare size={24} style={{ color: "var(--color-text-quaternary)" }} />
             <p className="text-[13px]" style={{ color: "var(--color-text-tertiary)" }}>
-              {lang === "zh" ? "还没有对话" : "No conversations yet"}
+              {t("ai.chat.noConversations")}
             </p>
           </div>
         ) : (
@@ -702,7 +702,7 @@ function ConversationList({
                     ? (convAgents.length <= 3
                         ? convAgents.map(a => a!.name).join(", ")
                         : `${convAgents.slice(0, 2).map(a => a!.name).join(", ")} +${convAgents.length - 2}`)
-                    : convAgents[0]?.name || (lang === "zh" ? "AI 助手" : "Assistant")
+                    : convAgents[0]?.name || t("ai.chat.defaultAssistant")
                   }
                 </p>
                 {/* Last message preview or topic */}
@@ -710,7 +710,7 @@ function ConversationList({
                   {conv.title}
                 </p>
                 <p className="text-[10px] mt-0.5" style={{ color: "var(--color-text-quaternary)" }}>
-                  {conv.messages.length} {lang === "zh" ? "条消息" : "msgs"} · {formatTime(conv.updatedAt)}
+                  {conv.messages.length} {t("ai.chat.msgs")} · {formatTime(conv.updatedAt)}
                 </p>
               </div>
               <button
@@ -788,7 +788,7 @@ function ToolConfirmCard({
   executing: boolean;
   result?: { success: boolean; message: string } | null;
 }) {
-  const isZh = lang === "zh";
+  const { t } = useT();
   const isTransaction = confirm.toolName === "record_transaction";
   const scope = (confirm.args.scope as string) || "business";
 
@@ -827,7 +827,7 @@ function ToolConfirmCard({
       {isTransaction && !result && onUpdateArgs && (
         <div className="px-3 pb-2 flex items-center gap-2">
           <span className="text-[12px]" style={{ color: "var(--color-text-tertiary)" }}>
-            {isZh ? "归属：" : "Scope:"}
+            {t("ai.chat.scope")}
           </span>
           <div className="page-tabs" style={{ fontSize: 12 }}>
             {(["business", "personal"] as const).map(s => (
@@ -850,7 +850,7 @@ function ToolConfirmCard({
                 className="px-2 py-1"
                 style={{ fontSize: 12 }}
               >
-                {s === "business" ? (isZh ? "公司" : "Business") : (isZh ? "个人" : "Personal")}
+                {s === "business" ? t("ai.chat.scopeBusiness") : t("ai.chat.scopePersonal")}
               </button>
             ))}
           </div>
@@ -867,7 +867,7 @@ function ToolConfirmCard({
           }}
         >
           {result.success ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
-          <span className="text-[13px]">{result.success ? (isZh ? "已执行" : "Done") : (isZh ? "失败" : "Failed")}</span>
+          <span className="text-[13px]">{result.success ? t("ai.chat.toolDone") : t("ai.chat.toolFailed")}</span>
         </div>
       ) : (
         <div className="flex items-center gap-2 px-3 py-2" style={{ borderTop: "1px solid var(--color-line-tertiary)" }}>
@@ -881,7 +881,7 @@ function ToolConfirmCard({
             }}
           >
             {executing ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-            {isZh ? "确认执行" : "Confirm"}
+            {t("ai.chat.confirmExec")}
           </button>
           <button
             onClick={onReject}
@@ -889,7 +889,7 @@ function ToolConfirmCard({
             className="px-3 py-1.5 rounded-lg text-[13px] transition-colors disabled:opacity-50"
             style={{ color: "var(--color-text-tertiary)" }}
           >
-            {isZh ? "取消" : "Cancel"}
+            {t("common.cancel")}
           </button>
         </div>
       )}
@@ -1187,7 +1187,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
   const handleNewConversation = () => {
     const newConv: Conversation = {
       id: generateId(),
-      title: lang === "zh" ? "新对话" : "New chat",
+      title: t("ai.chat.newChat"),
       messages: [],
       agentId: activeAgentIds[0] || null,
       agentIds: activeAgentIds.length > 0 ? [...activeAgentIds] : undefined,
@@ -1747,7 +1747,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                         {/* Section label */}
                         <div className="px-3 pt-1 pb-2">
                           <span className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--color-text-quaternary)', fontWeight: 600 }}>
-                            {lang === 'zh' ? '选择参与者（可多选）' : 'Select participants (multi-select)'}
+                            {t("ai.chat.selectParticipants")}
                           </span>
                         </div>
 
@@ -1785,7 +1785,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                                   {selected && <Check size={11} style={{ color: 'var(--color-brand-text)' }} />}
                                 </span>
                                 <span>{a.avatar || '🤖'}</span>
-                                <span className="flex-1 truncate">{a.name}</span>
+                                <span className="flex-1 min-w-0 truncate">{a.name}</span>
                               </button>
                             );
                           });
@@ -1807,7 +1807,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                               // No agents → default assistant mode
                               if (curConv && curConv.messages.length > 0) {
                                 const newConv: Conversation = {
-                                  id: generateId(), title: lang === "zh" ? "新对话" : "New chat",
+                                  id: generateId(), title: t("ai.chat.newChat"),
                                   messages: [], agentId: null, agentIds: [], createdAt: Date.now(), updatedAt: Date.now(),
                                 };
                                 updateConversations(prev => [newConv, ...prev]);
@@ -1821,7 +1821,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                             // Create new conversation with selected agents (or update empty current one)
                             if (curConv && curConv.messages.length > 0) {
                               const newConv: Conversation = {
-                                id: generateId(), title: lang === "zh" ? "新对话" : "New chat",
+                                id: generateId(), title: t("ai.chat.newChat"),
                                 messages: [], agentId: activeAgentIds[0], agentIds: [...activeAgentIds],
                                 createdAt: Date.now(), updatedAt: Date.now(),
                               };
@@ -1844,10 +1844,10 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                                 style={{ background: 'var(--color-accent)', color: 'var(--color-brand-text)' }}
                               >
                                 {activeAgentIds.length > 1
-                                  ? (lang === 'zh' ? `建群聊 (${activeAgentIds.length})` : `Group (${activeAgentIds.length})`)
+                                  ? t("ai.chat.groupChat").replace("{count}", String(activeAgentIds.length))
                                   : activeAgentIds.length === 1
-                                    ? (lang === 'zh' ? '开始对话' : 'Start chat')
-                                    : (lang === 'zh' ? '默认助手' : 'Default')
+                                    ? t("ai.chat.startChat")
+                                    : t("ai.chat.defaultAssistant")
                                 }
                               </button>
                               <button
@@ -1864,7 +1864,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                                 }}
                                 className="flex items-center justify-center px-2 py-2 rounded-lg transition-colors"
                                 style={{ color: 'var(--color-text-tertiary)' }}
-                                title={lang === 'zh' ? '管理 Agent' : 'Manage Agents'}
+                                title={t("ai.chat.manageAgents")}
                               >
                                 <Settings size={14} />
                               </button>
@@ -1991,7 +1991,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                                   : `${activeAgents.slice(0, 3).map(a => a.name).join(' · ')} +${activeAgents.length - 3}`}
                               </p>
                               <p className="text-[12px] mt-1" style={{ color: 'var(--color-text-tertiary)' }}>
-                                {lang === 'zh' ? '你的 AI 团队已就绪，随时听候指令' : 'Your AI team is ready. Give a directive.'}
+                                {t("ai.chat.teamReady")}
                               </p>
                             </div>
                           </div>
@@ -2022,7 +2022,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                               {t("ai.chat.defaultAssistant")}
                             </p>
                             <p className="text-[12px] text-center max-w-[260px]" style={{ color: 'var(--color-text-tertiary)' }}>
-                              {lang === 'zh' ? '通用 AI 助手，无特定人设。可在顶部切换到专业 Agent。' : 'General AI assistant, no specific persona. Switch to a specialized Agent above.'}
+                              {t("ai.chat.defaultDesc")}
                             </p>
                           </div>
                         )}
@@ -2083,7 +2083,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                     && prevMsg.role === msg.role
                     && (prevMsg.agentId || null) === (msg.agentId || null)
                     && !prevMsg.toolConfirm;
-                  const senderName = isUser ? operatorName : (msgAgent?.name || (lang === "zh" ? "AI 助手" : "Assistant"));
+                  const senderName = isUser ? operatorName : (msgAgent?.name || t("ai.chat.defaultAssistant"));
                   const senderAvatarRaw = isUser ? (operatorAvatar || "👤") : (msgAgent?.avatar || "🤖");
                   const senderIsImage = typeof senderAvatarRaw === "string" && (senderAvatarRaw.startsWith("data:") || senderAvatarRaw.startsWith("http"));
 
@@ -2184,7 +2184,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
               {isStreamingHere && (() => {
                 const streamingMsg = [...messages].reverse().find(m => m.role === 'assistant' && m.streaming);
                 const typingAgent = streamingMsg?.agentId ? agentMap.get(streamingMsg.agentId) : null;
-                const typingName = typingAgent?.name || (lang === 'zh' ? 'AI 助手' : 'Assistant');
+                const typingName = typingAgent?.name || t("ai.chat.defaultAssistant");
                 const typingAvatar = typingAgent?.avatar || '🤖';
                 return (
                   <div
@@ -2266,7 +2266,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                         background: "var(--color-danger, #eb5757)",
                         color: "var(--color-text-on-color, #fff)",
                       }}
-                      aria-label={lang === 'zh' ? '停止' : 'Stop'}
+                      aria-label={t("ai.chat.stop")}
                     >
                       <Square size={14} fill="currentColor" />
                     </button>

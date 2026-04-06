@@ -379,7 +379,7 @@ export function HomeMemoSection() {
                 }
                 {displayedMemos.length === 0 && ` · ${t("home.memo.noItems")}`}
               </span>
-              <button onClick={() => setSelectedDay(null)} className="btn-icon-sm" style={{ marginRight: -4 }}><X size={12} /></button>
+              <button onClick={() => setSelectedDay(null)} className="btn-icon-sm" style={{ marginRight: -4 }} aria-label={t("common.close")}><X size={12} /></button>
             </div>
           )}
 

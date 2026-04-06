@@ -370,7 +370,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
                 }
                 {displayedMemos.length === 0 && ` — ${t(`${prefix}.noItems`)}`}
               </span>
-              <button onClick={() => setSelectedDay(null)} className="btn-icon-sm">
+              <button onClick={() => setSelectedDay(null)} className="btn-icon-sm" aria-label={t("common.close")}>
                 <X size={12} />
               </button>
             </div>
@@ -524,7 +524,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
                 <button onClick={addMemo} disabled={!simpleTitle.trim()} className="btn-primary compact text-[13px] disabled:opacity-40">
                   {t("common.add")}
                 </button>
-                <button onClick={() => { setAddingSimple(false); setSimpleTitle(""); setSimpleDate(""); setSimpleTime(""); }} className="btn-icon-sm">
+                <button onClick={() => { setAddingSimple(false); setSimpleTitle(""); setSimpleDate(""); setSimpleTime(""); }} className="btn-icon-sm" aria-label={t("common.cancel")}>
                   <X size={14} />
                 </button>
               </div>

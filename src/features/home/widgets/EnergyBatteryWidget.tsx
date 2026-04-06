@@ -223,7 +223,7 @@ function EnergyBatteryWidget() {
         <>
           {/* Header: title + reset + percentage */}
           <div className="flex items-center shrink-0" style={{ marginBottom: s(2), gap: s(2), paddingInline: s(4) }}>
-            <span className="flex-1 truncate" style={{ fontSize: s(13), fontWeight: 700, color, lineHeight: 1 }}>
+            <span className="flex-1 min-w-0 truncate" style={{ fontSize: s(13), fontWeight: 700, color, lineHeight: 1 }}>
               {title}
             </span>
             <button

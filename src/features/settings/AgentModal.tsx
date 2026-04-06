@@ -435,9 +435,9 @@ export default function AgentModal({ open, onClose, onSave, editAgent }: AgentMo
                 style={{ borderTop: '1px solid var(--color-line-secondary)' }}
               >
                 <button onClick={onClose} className="btn-secondary compact text-[14px]">
-                  {lang === 'en' ? 'Cancel' : '取消'}
+                  {t('common.cancel')}
                 </button>
-                <button onClick={handleSubmit} className="btn-primary compact text-[14px] flex items-center gap-1.5">
+                <button onClick={handleSubmit} disabled={!name.trim()} className="btn-primary compact text-[14px] flex items-center gap-1.5 disabled:opacity-40">
                   <Save size={14} />
                   {t('settings.agents.modal.save')}
                 </button>

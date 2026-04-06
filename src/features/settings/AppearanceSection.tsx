@@ -319,7 +319,7 @@ export default function AppearanceSection({ themeMode, setThemeMode, styleId, se
                   {t("settings.timezone")}
                 </div>
                 <div className="text-[13px] mt-0.5 truncate" style={{ color: 'var(--color-text-tertiary)' }}>
-                  {timezone.replace(/_/g, ' ')}{isAutoDetected ? (lang === 'zh' ? '（自动）' : ' (auto)') : ''}
+                  {timezone.replace(/_/g, ' ')}{isAutoDetected ? t('settings.timezoneAuto') : ''}
                 </div>
               </div>
             </div>
@@ -364,7 +364,7 @@ export default function AppearanceSection({ themeMode, setThemeMode, styleId, se
               style={{ color: 'var(--color-text-tertiary)' }}
             >
               <ChevronDown size={12} className={'transition-transform ' + (showTzPicker ? 'rotate-180' : '')} />
-              {lang === 'zh' ? '手动选择时区' : 'Change timezone'}
+              {t('settings.changeTz')}
             </button>
             {showTzPicker && (
               <div className="mt-1.5 flex items-center gap-2">

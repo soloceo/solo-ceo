@@ -91,10 +91,10 @@ export default function AgentSection() {
           {showResetAll ? (
             <div className="flex items-center gap-1">
               <button onClick={handleResetAll} className="btn-ghost compact text-[12px]" style={{ color: 'var(--color-danger)' }}>
-                {lang === 'en' ? 'Confirm Reset' : '确认重置'}
+                {t('common.confirm')}
               </button>
               <button onClick={() => setShowResetAll(false)} className="btn-ghost compact text-[12px]" style={{ color: 'var(--color-text-tertiary)' }}>
-                {lang === 'en' ? 'Cancel' : '取消'}
+                {t('common.cancel')}
               </button>
             </div>
           ) : (
@@ -102,6 +102,7 @@ export default function AgentSection() {
               onClick={() => setShowResetAll(true)}
               className="btn-ghost compact flex items-center gap-1 text-[13px]"
               style={{ color: 'var(--color-text-tertiary)' }}
+              aria-label={t('settings.agents.resetAll')}
             >
               <RotateCcw size={13} />
             </button>
@@ -110,6 +111,7 @@ export default function AgentSection() {
             onClick={handleCreate}
             className="btn-ghost compact flex items-center gap-1 text-[13px]"
             style={{ color: 'var(--color-accent)' }}
+            aria-label={t('common.create')}
           >
             <Plus size={14} />
           </button>
@@ -196,19 +198,19 @@ export default function AgentSection() {
                   {deleteId === agent.id ? (
                     <div className="flex items-center gap-0.5">
                       <button onClick={() => handleDelete(agent.id)} className="btn-ghost compact text-[11px]" style={{ color: 'var(--color-danger)' }}>
-                        {lang === 'en' ? 'Yes' : '删除'}
+                        {t('common.delete')}
                       </button>
                       <button onClick={() => setDeleteId(null)} className="btn-ghost compact text-[11px]" style={{ color: 'var(--color-text-tertiary)' }}>
-                        {lang === 'en' ? 'No' : '取消'}
+                        {t('common.cancel')}
                       </button>
                     </div>
                   ) : resetOneId === agent.id ? (
                     <div className="flex items-center gap-0.5">
                       <button onClick={() => handleResetOne(agent.id)} className="btn-ghost compact text-[11px]" style={{ color: 'var(--color-warning)' }}>
-                        {lang === 'en' ? 'Reset' : '重置'}
+                        {t('common.confirm')}
                       </button>
                       <button onClick={() => setResetOneId(null)} className="btn-ghost compact text-[11px]" style={{ color: 'var(--color-text-tertiary)' }}>
-                        {lang === 'en' ? 'No' : '取消'}
+                        {t('common.cancel')}
                       </button>
                     </div>
                   ) : (
@@ -216,6 +218,7 @@ export default function AgentSection() {
                       onClick={() => setDeleteId(agent.id)}
                       className="btn-ghost compact"
                       style={{ color: 'var(--color-text-quaternary)' }}
+                      aria-label={t('common.delete')}
                     >
                       <Trash2 size={13} />
                     </button>

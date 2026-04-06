@@ -131,7 +131,7 @@ export default function AgentTestPanel({ open, onClose, agent }: Props) {
         const copy = [...prev];
         const last = copy[copy.length - 1];
         if (last && last.role === 'assistant' && !last.content) {
-          copy[copy.length - 1] = { role: 'assistant', content: lang === 'zh' ? '(连接失败，请检查 AI 设置)' : '(Connection failed, check AI settings)' };
+          copy[copy.length - 1] = { role: 'assistant', content: t('settings.agents.test.failed') };
         }
         return copy;
       });
@@ -189,7 +189,7 @@ export default function AgentTestPanel({ open, onClose, agent }: Props) {
               <div className="flex items-center gap-2">
                 <span className="text-lg">{agent.avatar}</span>
                 <span className="text-[14px]" style={{ fontWeight: 'var(--font-weight-semibold)' } as React.CSSProperties}>
-                  {lang === 'zh' ? '测试' : 'Test'} · {agent.name}
+                  {t('settings.agents.test.title').replace('{name}', agent.name)}
                 </span>
               </div>
               <button onClick={onClose} className="btn-icon-sm">
@@ -203,7 +203,7 @@ export default function AgentTestPanel({ open, onClose, agent }: Props) {
                 <div className="flex flex-col items-center justify-center h-full gap-2 opacity-40">
                   <span className="text-3xl">{agent.avatar}</span>
                   <p className="text-[13px] text-center" style={{ color: 'var(--color-text-tertiary)' }}>
-                    {lang === 'zh' ? '发送消息测试 Agent 的回复效果' : 'Send a message to test the agent'}
+                    {t('settings.agents.test.empty')}
                   </p>
                 </div>
               )}
@@ -261,7 +261,7 @@ export default function AgentTestPanel({ open, onClose, agent }: Props) {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={lang === 'zh' ? '输入测试消息...' : 'Type a test message...'}
+                  placeholder={t('settings.agents.test.placeholder')}
                   rows={1}
                   className="input-base flex-1 px-3 py-2.5 text-[14px] resize-none"
                   style={{ maxHeight: 80, minHeight: 40 }}

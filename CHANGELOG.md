@@ -3,6 +3,15 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.29.7] - 2026-04-06
+
+### Changed
+- **AI Chat i18n** — replaced 20+ hardcoded `lang === 'zh' ? ... : ...` ternaries in AIChatPanel with proper `t()` calls
+- **Agent section i18n** — replaced hardcoded confirm/cancel/delete strings in AgentSection, AgentTestPanel, AppearanceSection with `t()` calls
+- **AgentModal UX** — save button now disabled when name is empty; cancel button uses `t('common.cancel')`
+- **Accessibility** — added `aria-label` to icon-only buttons in AgentSection, WorkMemoList, HomeMemoSection
+- **Flex truncation** — added `min-w-0` to 3 flex+truncate elements (AIChatPanel, App sidebar, EnergyBatteryWidget)
+
 ## [2.29.5] - 2026-04-06
 
 ### Added

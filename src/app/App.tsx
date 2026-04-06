@@ -810,7 +810,7 @@ const SidebarItem = React.memo(function SidebarItem({
       )}
       {expanded && (
         <>
-          <span className="relative z-10 whitespace-nowrap truncate flex-1 text-left">{label}</span>
+          <span className="relative z-10 whitespace-nowrap truncate flex-1 min-w-0 text-left">{label}</span>
           {/* Segmented badge: colored pills */}
           {hasSegments ? (
             <span className="flex items-center gap-1">
