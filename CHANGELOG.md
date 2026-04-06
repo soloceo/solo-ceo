@@ -3,6 +3,20 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.29.2] - 2026-04-05
+
+### Fixed
+- **CSP removed** — Content Security Policy meta tag was blocking sql.js WebAssembly and Supabase connections on GitHub Pages; removed entirely to restore offline mode and cloud sync
+- **viewport-fit=cover** — enable `env(safe-area-inset-*)` CSS on notched iPhones (was returning 0)
+- **AIChatPanel lazy-load** — split from main bundle via React.lazy(); main JS reduced from 843KB to 593KB (-250KB)
+- **Google Fonts non-blocking** — moved render-blocking `@import` to async `<link>` with preconnect
+- **Touch targets** — TaskCard priority badge and column-change button enlarged to 44px minimum
+- **300ms tap delay** — global `touch-action: manipulation` prevents double-tap-to-zoom delay
+- **Rule 17 weekly report** — offline tasksCompleted now filters by updated_at within the week
+- **Content drafts soft_deleted** — offline GET now excludes soft-deleted drafts
+
+---
+
 ## [2.29.1] - 2026-04-05
 
 ### Security

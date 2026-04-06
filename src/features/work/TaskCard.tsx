@@ -97,7 +97,7 @@ export const TaskCard = React.memo(function TaskCard({
             align="start"
             trigger={
               <span
-                className="text-[11px] shrink-0 px-1.5 py-0.5 rounded-[var(--radius-4)] transition-colors hover:bg-[var(--color-bg-quaternary)]"
+                className="text-[11px] shrink-0 px-1.5 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-[var(--radius-4)] transition-colors hover:bg-[var(--color-bg-quaternary)] -my-2"
                 style={{ color: prio?.color || "var(--color-text-quaternary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
               >
                 {prio?.[lang] || ""}
@@ -204,7 +204,7 @@ export const TaskCard = React.memo(function TaskCard({
               align="end"
               trigger={
                 <span
-                  className="inline-flex items-center gap-1 text-[12px] px-1.5 py-0.5 rounded-[var(--radius-4)] transition-colors hover:bg-[var(--color-bg-quaternary)] cursor-pointer"
+                  className="inline-flex items-center gap-1 text-[12px] px-1.5 min-h-[44px] rounded-[var(--radius-4)] transition-colors hover:bg-[var(--color-bg-quaternary)] cursor-pointer -my-2"
                   style={{ color: columns.find(c => c.id === task.column)?.color || "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
                 >
                   <ArrowRightLeft size={11} />

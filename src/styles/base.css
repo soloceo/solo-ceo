@@ -43,7 +43,7 @@ html, body, #root {
   html { scroll-behavior: smooth; }
 }
 
-* { -webkit-tap-highlight-color: transparent; }
+* { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 a, button, [role="button"] { cursor: pointer; }
 input, textarea, select { cursor: text; }
 [draggable="true"] { cursor: grab; }

@@ -40,7 +40,7 @@ import { todayDateKey, dateToKey } from "../lib/date-utils";
 import { api } from "../lib/api";
 import { CommandPalette } from "./CommandPalette";
 import { QuickCreateMenu } from "./QuickCreateMenu";
-import { AIChatPanel } from "./AIChatPanel";
+const AIChatPanel = lazy(() => import("./AIChatPanel").then(m => ({ default: m.AIChatPanel })));
 import { UserMenu } from "./UserMenu";
 import { SyncIndicator } from "./SyncIndicator";
 import { useClickOutside } from "./useClickOutside";
@@ -745,7 +745,9 @@ function App() {
       </div>
 
       <CommandPalette />
-      <AIChatPanel open={aiChatOpen} onClose={() => setAIChatOpen(false)} />
+      <Suspense fallback={null}>
+        <AIChatPanel open={aiChatOpen} onClose={() => setAIChatOpen(false)} />
+      </Suspense>
       <GlobalToast />
       <SyncToast />
     </div>

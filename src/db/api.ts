@@ -1373,7 +1373,7 @@ export async function handleApiRequest(
 
   // ── CONTENT DRAFTS ─────────────────────────────────────────────────────
   if (path === '/api/content-drafts' && method === 'GET') {
-    return ok(all(db, 'SELECT * FROM content_drafts ORDER BY updated_at DESC, id DESC LIMIT 20'));
+    return ok(all(db, 'SELECT * FROM content_drafts WHERE soft_deleted=0 ORDER BY updated_at DESC, id DESC LIMIT 20'));
   }
 
   if (path === '/api/content-drafts' && method === 'POST') {
@@ -1611,7 +1611,7 @@ export async function handleApiRequest(
     const income = weekTx.filter((t: DbRow) => t.type === 'income').reduce((s: number, t: DbRow) => s + Number(t.amount || 0), 0);
     const expenses = Math.abs(weekTx.filter((t: DbRow) => t.type === 'expense').reduce((s: number, t: DbRow) => s + Number(t.amount || 0), 0));
 
-    const tasksCompleted = Number(get(db, `SELECT COUNT(*) as c FROM tasks WHERE "column"='done' AND soft_deleted=0`)?.c || 0);
+    const tasksCompleted = Number(get(db, `SELECT COUNT(*) as c FROM tasks WHERE "column"='done' AND soft_deleted=0 AND updated_at >= ? AND updated_at <= ?`, [`${weekStart}T00:00:00`, `${weekEnd}T23:59:59`])?.c || 0);
     const newClients = Number(get(db, `SELECT COUNT(*) as c FROM clients WHERE soft_deleted=0 AND created_at >= ? AND created_at <= ?`, [`${weekStart}T00:00:00`, `${weekEnd}T23:59:59`])?.c || 0);
     const newLeads = Number(get(db, `SELECT COUNT(*) as c FROM leads WHERE soft_deleted=0 AND created_at >= ? AND created_at <= ?`, [`${weekStart}T00:00:00`, `${weekEnd}T23:59:59`])?.c || 0);
 
