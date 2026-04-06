@@ -287,7 +287,7 @@ export default function AISection({ settings, save }: AISectionProps) {
                     setOllamaModel(m[0]);
                     setOllamaConfig(ollamaUrl, m[0]);
                   }
-                });
+                }).catch(() => { setOllamaLoading(false); });
               }}
               disabled={ollamaLoading}
               className="btn-ghost compact text-[13px] shrink-0 disabled:opacity-40"

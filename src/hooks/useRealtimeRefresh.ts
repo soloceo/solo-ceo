@@ -9,6 +9,11 @@ const TABLE_TO_PATH: Record<string, string> = {
   plans: '/api/plans',
   payment_milestones: '/api/milestones',
   content_drafts: '/api/content-drafts',
+  today_focus_state: '/api/today-focus',
+  today_focus_manual: '/api/today-focus',
+  client_projects: '/api/clients',
+  ai_agents: '/api/agents',
+  ai_conversations: '/api/conversations',
 };
 
 /**

@@ -154,15 +154,11 @@ export default function AgentSection() {
           </div>
         ) : (
           /* Agent list */
-          <div className="space-y-2">
+          <div className="divide-y divide-[var(--color-line-secondary)]">
             {agents.map((agent) => (
               <div
                 key={agent.id}
-                className="flex items-center gap-3 rounded-[var(--radius-8)] px-3 py-2.5"
-                style={{
-                  background: 'var(--color-bg-tertiary)',
-                  border: '1px solid var(--color-border-translucent)',
-                }}
+                className="flex items-center gap-3 px-3 py-2.5"
               >
                 {/* Avatar */}
                 <span className="text-xl shrink-0">{agent.avatar || '🤖'}</span>

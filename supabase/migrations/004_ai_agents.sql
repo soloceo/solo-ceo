@@ -26,7 +26,7 @@ CREATE INDEX IF NOT EXISTS idx_agents_user_active
 ALTER TABLE ai_agents ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "select_own_ai_agents" ON ai_agents
-  FOR SELECT USING (auth.uid() = user_id AND soft_deleted = false);
+  FOR SELECT USING (auth.uid() = user_id);
 
 CREATE POLICY "insert_own_ai_agents" ON ai_agents
   FOR INSERT WITH CHECK (auth.uid() = user_id);

@@ -420,7 +420,8 @@ export async function handleSupabaseRequest(
     }
     if (method === 'DELETE') {
       const { data: prev } = await supabase.from('leads').select('name').eq('id', id).eq('user_id', userId).single();
-      await supabase.from('leads').update({ soft_deleted: true }).eq('id', id).eq('user_id', userId);
+      const { error: delErr } = await supabase.from('leads').update({ soft_deleted: true }).eq('id', id).eq('user_id', userId);
+      if (delErr) return err(500, delErr.message);
       await logActivity(userId, 'lead', 'deleted', `删除线索：${prev?.name || '未命名线索'}`, '', id);
       return ok({ success: true });
     }
@@ -585,7 +586,8 @@ export async function handleSupabaseRequest(
       await supabase.from('client_projects').update({ soft_deleted: true }).eq('client_id', id).eq('user_id', userId);
 
       // Soft-delete the client
-      await supabase.from('clients').update({ soft_deleted: true }).eq('id', id).eq('user_id', userId);
+      const { error: delErr } = await supabase.from('clients').update({ soft_deleted: true }).eq('id', id).eq('user_id', userId);
+      if (delErr) return err(500, delErr.message);
       syncClientSubscriptionLedger(userId).catch((err) => console.error('[SyncLedger]', err));
       await logActivity(userId, 'client', 'deleted', `删除客户：${prev?.name || '未命名客户'}`, '', id);
       return ok({ success: true });
@@ -619,7 +621,7 @@ export async function handleSupabaseRequest(
           project_start_date: str(body.project_start_date, 10),
           project_end_date: str(body.project_end_date, 10),
           status: 'active',
-          tax_mode: body.tax_mode || 'none',
+          tax_mode: enumVal(body.tax_mode, VALID_TAX_MODES, 'none'),
           tax_rate: body.tax_rate || 0,
           note: str(body.note, 2000),
         })
@@ -721,7 +723,7 @@ export async function handleSupabaseRequest(
         if (txErr) {
           // Rollback: delete the milestone we just created
           console.warn('[supabase-api] Finance tx failed, rolling back milestone', txErr);
-          await supabase.from('payment_milestones').delete().eq('id', data!.id).eq('user_id', userId);
+          await supabase.from('payment_milestones').update({ soft_deleted: true }).eq('id', data!.id).eq('user_id', userId);
           return err(500, `创建财务记录失败: ${txErr.message}`);
         }
         // Link milestone to finance transaction
@@ -933,7 +935,8 @@ export async function handleSupabaseRequest(
     }
     if (method === 'DELETE') {
       const { data: prev } = await supabase.from('tasks').select('title').eq('id', id).eq('user_id', userId).single();
-      await supabase.from('tasks').update({ soft_deleted: true }).eq('id', id).eq('user_id', userId);
+      const { error: delErr } = await supabase.from('tasks').update({ soft_deleted: true }).eq('id', id).eq('user_id', userId);
+      if (delErr) return err(500, delErr.message);
       // Also delete subtasks if this is a parent task
       await supabase.from('tasks').update({ soft_deleted: true }).eq('parent_id', id).eq('user_id', userId);
       await logActivity(userId, 'task', 'deleted', `删除任务：${prev?.title || '未命名任务'}`, '', id);
@@ -1140,7 +1143,8 @@ export async function handleSupabaseRequest(
       return ok({ success: true });
     }
     if (method === 'DELETE') {
-      await supabase.from('finance_transactions').update({ soft_deleted: true }).eq('id', id).eq('user_id', userId);
+      const { error: delErr } = await supabase.from('finance_transactions').update({ soft_deleted: true }).eq('id', id).eq('user_id', userId);
+      if (delErr) return err(500, delErr.message);
       await logActivity(userId, 'finance', 'deleted', `删除交易：${txRow.description || '未命名交易'}`, '', id);
       return ok({ success: true });
     }
@@ -1656,7 +1660,8 @@ export async function handleSupabaseRequest(
 
   if (convMatch && method === 'DELETE') {
     const id = convMatch[1];
-    await supabase.from('ai_conversations').update({ soft_deleted: true }).eq('id', id).eq('user_id', userId);
+    const { error: convDelErr } = await supabase.from('ai_conversations').update({ soft_deleted: true }).eq('id', id).eq('user_id', userId);
+    if (convDelErr) return err(500, convDelErr.message);
     return ok({ success: true });
   }
 

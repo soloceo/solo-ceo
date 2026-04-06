@@ -3,6 +3,47 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.29.4] - 2026-04-06
+
+### Fixed
+- **RLS soft-delete policy** — remove `soft_deleted = false` from SELECT policies on ai_agents and ai_conversations to allow soft-delete UPDATEs
+- **DELETE error handling** — add error checks on leads, tasks, clients, and finance_transactions soft-delete operations (previously always returned success)
+- **Milestone rollback hard DELETE** — changed `.delete()` to `.update({ soft_deleted: true })` when rolling back failed milestone creation
+- **Agent tool permissions** — `[]` (no tools) no longer maps to `null` (all tools); split `buildFilteredToolsPrompt` for correct empty vs null handling
+- **Stream reader leak** — add `reader.releaseLock()` in finally blocks for Ollama and SSE streaming paths
+- **Ollama tool args crash** — wrap `JSON.parse(args)` in try/catch with `{}` fallback
+- **Ollama refresh hang** — add `.catch()` to model refresh fetch to reset loading state on failure
+- **Error responses cached** — `cacheSet()` now rejects `status >= 400`, preventing stale errors from being served
+- **SYNC_TABLES incomplete** — add `ai_agents` and `ai_conversations` to sync manager for offline→online sync
+- **TABLE_TO_PATH incomplete** — add 5 missing tables to `useRealtimeRefresh` for SWR cache invalidation
+- **Chart income tax mismatch** — income with exclusive tax mode now includes tax in chart aggregation, matching stat cards
+- **CSV formula injection** — finance export now sanitizes strings starting with `=+\-@\t\r` characters
+- **Virtual list layout overlap** — `TransactionList` now uses `measureElement` for dynamic row heights instead of fixed 56px estimate
+- **Virtual list bounds crash** — `ClientList` adds `if (!c) return null` guard when virtualizer index exceeds filtered array
+- **TaskCard date input** — extract date-only via `slice(0, 10)` for `type="date"` input when due has time component
+- **BottomSheet RAF leak** — `requestAnimationFrame` now cancelled via `cancelAnimationFrame` on cleanup
+- **Settings import store rehydration** — call `useSettingsStore.setState()` after writing to localStorage during data restore
+- **Auth refresh race** — add `refreshing` guard to prevent concurrent `refreshSession()` calls on rapid online events
+- **Sign-out UI reset** — reset `activeTab`, `commandPaletteOpen`, and toast on sign-out via `useUIStore`
+- **MonthlyGoal division safety** — explicit `goal > 0` check before division
+- **Toast safe-area** — use `max()` with `env(safe-area-inset-bottom)` for notched mobile devices
+- **CountdownWidget timezone** — use consistent local-midnight calculation
+- **Offline numeric fallbacks** — add `|| 0` / `?? 0` for numeric fields in offline PUT handlers (clients, finance, milestones)
+- **Offline finance client_id** — add `|| null` fallback matching supabase-api.ts
+- **Client projects tax_mode** — validate via `enumVal()` instead of raw `|| 'none'`
+- **Request body stream** — use `input.clone().json()` in interceptor to avoid consuming original stream
+- **HomeMemoSection UTC date** — use local `toDateStr()` instead of `toISOString().slice(0,10)`
+- **Undo-delete scope** — preserve original task scope on undo instead of defaulting to 'work'
+- **Keyboard shortcuts in contentEditable** — skip shortcuts when focused on contentEditable elements
+- **Sync manager queue length** — read actual queue length after sync instead of hardcoded 0
+
+### Changed
+- **Agent section theme support** — replace inline background/border styles with `divide-y` pattern for cross-theme compatibility
+- **prefers-reduced-motion** — disable `highlight-pulse` and `skeleton-bone` animations when user prefers reduced motion
+- **Avatar onload race** — handle synchronous image load via `img.complete` check
+
+---
+
 ## [2.29.3] - 2026-04-06
 
 ### Fixed

@@ -342,10 +342,11 @@ export async function streamChat(
     for (const tc of toolCalls as Array<{ function?: { name?: string; arguments?: unknown } }>) {
       if (tc.function?.name) {
         const args = tc.function.arguments;
-        parsedToolCalls.push({
-          name: tc.function.name,
-          args: typeof args === "string" ? JSON.parse(args) : (args as Record<string, unknown> || {}),
-        });
+        let parsed: Record<string, unknown> = {};
+        try {
+          parsed = typeof args === "string" ? JSON.parse(args) : (args as Record<string, unknown> ?? {});
+        } catch { /* malformed args — use empty */ }
+        parsedToolCalls.push({ name: tc.function.name, args: parsed });
       }
     }
   };
@@ -382,6 +383,8 @@ export async function streamChat(
     } catch (err) {
       if ((err as Error).name === "AbortError") return { text: full, truncated: true };
       throw err;
+    } finally {
+      reader.releaseLock();
     }
   } else {
     // ── SSE format (OpenAI, Claude, Gemini) ──
@@ -442,6 +445,8 @@ export async function streamChat(
     } catch (err) {
       if ((err as Error).name === "AbortError") return { text: full, truncated: true };
       throw err;
+    } finally {
+      reader.releaseLock();
     }
 
     // Parse accumulated SSE tool calls

@@ -231,7 +231,7 @@ export function HomeMemoSection() {
 
     setAiLoading(true);
     try {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = toDateStr(new Date());
       const dayOfWeek = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][new Date().getDay()];
       const sysPrompt = `You extract a memo/event from user input. Today is ${today} (${dayOfWeek}). Return JSON: {"title":"short title","due":"YYYY-MM-DD" or "YYYY-MM-DDThh:mm" or null}. Only JSON, no markdown.`;
       let result: { title: string; due?: string | null } | null = null;

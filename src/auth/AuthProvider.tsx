@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../db/supabase-client';
 import { useSettingsStore } from '../store/useSettingsStore';
+import { useUIStore } from '../store/useUIStore';
 import { invalidateSettingsCache } from '../hooks/useAppSettings';
 import { clearQueue } from '../db/offline-queue';
 import { clearLocalDb } from '../db/index';
@@ -91,7 +92,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Listen for online/offline to toggle offline mode
+    let refreshing = false;
     const handleOnline = () => {
+      if (refreshing) return;
+      refreshing = true;
       // When back online, try to refresh session first (handles expired tokens)
       supabase.auth.refreshSession()
         .then(({ data: { session: s } }) => {
@@ -112,7 +116,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             });
           }
         })
-        .catch(() => { /* Session refresh failed — stays in current mode */ });
+        .catch(() => { /* Session refresh failed — stays in current mode */ })
+        .finally(() => { refreshing = false; });
     };
     const handleOffline = () => {
       if (!user) setOfflineMode(true);
@@ -150,6 +155,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // 3. Clear all user-specific persisted state
     useSettingsStore.getState().resetForSignOut();
+    useUIStore.setState({ activeTab: 'home', commandPaletteOpen: false });
+    useUIStore.getState().clearToast();
     invalidateSettingsCache();
 
     // 4. Clear offline data (prevents cross-user data leaks)

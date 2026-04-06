@@ -283,9 +283,9 @@ export default function FinancePage() {
       const tax = Math.abs(Number(tx.tax_amount || 0));
       const isIncome = tx.type === "income";
       const txMode = tx.tax_mode || 'none';
-      const expenseTotal = txMode === 'exclusive' ? amt + tax : amt;
-      if (isIncome) months[m].income += amt;
-      else months[m].expense += expenseTotal;
+      const total = txMode === 'exclusive' ? amt + tax : amt;
+      if (isIncome) months[m].income += total;
+      else months[m].expense += total;
     }
 
     return Object.values(months).map(m => ({
@@ -477,8 +477,13 @@ export default function FinancePage() {
   const exportCSV = () => {
     const data = filteredTxs.length > 0 ? filteredTxs : transactions;
     const header = [t("money.table.date"), t("money.table.description"), t("money.table.category"), t("money.table.amount"), t("finance.tax"), t("money.table.status"), t("money.filter.client")].join(",");
+    const safeCsv = (val: string) => {
+      let v = val.replace(/"/g, '""');
+      if (/^[=+\-@\t\r]/.test(v)) v = "\t" + v;
+      return `"${v}"`;
+    };
     const rows = data.map(tx =>
-      [tx.date, `"${(tx.description || tx.desc || "").replace(/"/g, '""')}"`, tx.category, tx.amount, tx.tax_amount || 0, tx.status, `"${tx.client_name || ""}"`].join(",")
+      [tx.date, safeCsv(tx.description || tx.desc || ""), tx.category, tx.amount, tx.tax_amount || 0, tx.status, safeCsv(tx.client_name || "")].join(",")
     );
     const csv = [header, ...rows].join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });

@@ -390,6 +390,7 @@ export function ClientsView() {
                 {padTop > 0 && <tr><td style={{ height: padTop, padding: 0 }} colSpan={9} /></tr>}
                 {vItems.map(vr => {
                   const c = filtered[vr.index];
+                  if (!c) return null;
                   const plan = c.plan_tier === "Basic" ? t("pipeline.convert.planBasic") : c.plan_tier === "Pro" ? t("pipeline.convert.planPro") : c.plan_tier === "Enterprise" ? t("pipeline.convert.planEnterprise") : (c.plan_tier || c.plan);
                   const displayName = c.company_name || c.name;
                   const displayInitial = displayName.charAt(0).toUpperCase();

@@ -52,13 +52,16 @@ export function BottomSheet({ open, onClose, title, children, className }: Botto
   useEffect(() => {
     if (!open) return;
     document.addEventListener("keydown", trapFocus);
-    requestAnimationFrame(() => {
+    const rafId = requestAnimationFrame(() => {
       const el = sheetRef.current?.querySelector<HTMLElement>(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
       );
       el?.focus();
     });
-    return () => document.removeEventListener("keydown", trapFocus);
+    return () => {
+      cancelAnimationFrame(rafId);
+      document.removeEventListener("keydown", trapFocus);
+    };
   }, [open, trapFocus]);
 
   return createPortal(

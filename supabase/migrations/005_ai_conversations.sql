@@ -20,7 +20,7 @@ CREATE INDEX IF NOT EXISTS idx_ai_conversations_user
 ALTER TABLE ai_conversations ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "select_own_ai_conversations" ON ai_conversations
-  FOR SELECT USING (auth.uid() = user_id AND soft_deleted = false);
+  FOR SELECT USING (auth.uid() = user_id);
 
 CREATE POLICY "insert_own_ai_conversations" ON ai_conversations
   FOR INSERT WITH CHECK (auth.uid() = user_id);

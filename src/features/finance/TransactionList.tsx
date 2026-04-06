@@ -164,7 +164,7 @@ export function VirtualTxList({ items, t, lang, fmtAmt, fmtAmtColor, onEdit, onD
   const rowVirtualizer = useVirtualizer({
     count: items.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 56,
+    estimateSize: () => 80,
     overscan: 10,
   });
 
@@ -175,7 +175,7 @@ export function VirtualTxList({ items, t, lang, fmtAmt, fmtAmtColor, onEdit, onD
           const tx = items[vRow.index];
           const isSystem = tx.source && tx.source !== 'manual';
           return (
-            <div key={tx.id} style={{ position: "absolute", top: 0, left: 0, width: "100%", transform: `translateY(${vRow.start}px)` }}>
+            <div key={tx.id} data-index={vRow.index} ref={rowVirtualizer.measureElement} style={{ position: "absolute", top: 0, left: 0, width: "100%", transform: `translateY(${vRow.start}px)` }}>
               <TxRow
                 tx={tx} t={t} lang={lang} fmtAmt={fmtAmt} fmtAmtColor={fmtAmtColor}
                 onEdit={() => onEdit(tx)} onDelete={() => onDelete(tx)}

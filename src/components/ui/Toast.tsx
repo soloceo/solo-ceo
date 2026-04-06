@@ -18,7 +18,7 @@ export function GlobalToast() {
       data-open={!!toastMessage}
       style={{
         zIndex: "var(--layer-toasts)",
-        bottom: isMobile ? "80px" : "24px",
+        bottom: isMobile ? "max(80px, calc(60px + env(safe-area-inset-bottom, 20px)))" : "24px",
         transform: toastMessage ? "translateY(0) scale(1)" : "translateY(12px) scale(0.88)",
       } as React.CSSProperties}
     >

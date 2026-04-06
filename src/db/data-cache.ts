@@ -35,6 +35,8 @@ const FRESH_MS = 10_000;  // 10 seconds
 
 /** Store a GET response in cache. ver must match current pathVersion or write is rejected (stale). */
 export function cacheSet(path: string, body: string, contentType: string, status: number, ver?: number): void {
+  // Never cache error responses — they should not be served from cache
+  if (status >= 400) return;
   // If a version is provided, reject stale writes (a mutation happened after this fetch started)
   if (ver !== undefined && ver < curVer(path)) return;
   cache.set(path, { body, contentType, status, ts: Date.now(), ver: ver ?? curVer(path) });

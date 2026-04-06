@@ -100,7 +100,7 @@ export default function SettingsPage() {
 
   const compressAndSaveAvatar = (dataUrl: string) => {
     const img = new Image();
-    img.onload = () => {
+    const onLoaded = () => {
       const canvas = document.createElement('canvas');
       const size = 128;
       canvas.width = size;
@@ -119,6 +119,8 @@ export default function SettingsPage() {
       showToast(t("settings.avatarUpdated"));
     };
     img.src = dataUrl;
+    if (img.complete) onLoaded();
+    else img.onload = onLoaded;
   };
 
   const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {

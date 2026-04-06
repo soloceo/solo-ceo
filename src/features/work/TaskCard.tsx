@@ -163,7 +163,7 @@ export const TaskCard = React.memo(function TaskCard({
                     <Clock size={12} /> {fmtDate(task.due!, lang)}
                     <input
                       type="date"
-                      value={task.due}
+                      value={task.due?.slice(0, 10)}
                       onChange={(e) => { e.stopPropagation(); onDueChange(task.id, e.target.value); }}
                       className="absolute inset-0 opacity-0 cursor-pointer"
                       style={{ width: "100%", height: "100%" }}

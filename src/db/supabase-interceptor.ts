@@ -61,7 +61,7 @@ async function parseBody(input: RequestInfo | URL, init?: RequestInit): Promise<
     try { return JSON.parse(init.body as string); } catch { return init.body; }
   }
   if (input instanceof Request && input.body) {
-    try { return await input.json(); } catch { return null; }
+    try { return await input.clone().json(); } catch { return null; }
   }
   return null;
 }

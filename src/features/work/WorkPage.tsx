@@ -234,6 +234,7 @@ export default function WorkPage() {
               priority: cached.priority,
               due: cached.due || "",
               column: cached.column,
+              scope: cached.scope || "work",
               originalRequest: cached.originalRequest || "",
             });
             fetchTasks();

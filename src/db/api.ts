@@ -723,6 +723,11 @@ export async function importAllData(data: Record<string, unknown>): Promise<void
       }
       stored.state = state;
       localStorage.setItem('solo-ceo-settings', JSON.stringify(stored));
+      // Rehydrate Zustand in-memory store so UI updates immediately
+      try {
+        const { useSettingsStore } = await import('../store/useSettingsStore');
+        useSettingsStore.setState(state);
+      } catch { /* store not yet initialized */ }
     } catch (e) { console.warn('[api] restoreSettings', e); }
     window.dispatchEvent(new Event('operator-name-updated'));
     window.dispatchEvent(new Event('operator-avatar-updated'));
@@ -905,11 +910,11 @@ export async function handleApiRequest(
       if (body.project_end_date !== undefined) { sets.push('project_end_date=?'); vals.push(str(body.project_end_date, 10)); }
       if (body.plan_tier !== undefined) { sets.push('plan_tier=?'); vals.push(normalizePlanTier(body.plan_tier||'')); }
       if (body.status !== undefined) { sets.push('status=?'); vals.push(enumVal(body.status, VALID_CLIENT_STATUSES, 'Active')); }
-      if (body.mrr !== undefined) { sets.push('mrr=?'); vals.push(body.mrr); }
+      if (body.mrr !== undefined) { sets.push('mrr=?'); vals.push(body.mrr || 0); }
       if (body.billing_type !== undefined) { sets.push('billing_type=?'); vals.push(enumVal(body.billing_type, VALID_BILLING_TYPES, 'subscription')); }
-      if (body.project_fee !== undefined) { sets.push('project_fee=?'); vals.push(body.project_fee); }
+      if (body.project_fee !== undefined) { sets.push('project_fee=?'); vals.push(body.project_fee || 0); }
       if (body.tax_mode !== undefined) { sets.push('tax_mode=?'); vals.push(enumVal(body.tax_mode, VALID_TAX_MODES, 'none')); }
-      if (body.tax_rate !== undefined) { sets.push('tax_rate=?'); vals.push(body.tax_rate); }
+      if (body.tax_rate !== undefined) { sets.push('tax_rate=?'); vals.push(body.tax_rate || 0); }
       if (body.drive_folder_url !== undefined) { sets.push('drive_folder_url=?'); vals.push(str(body.drive_folder_url, 2048)); }
       if (body.payment_method !== undefined) { sets.push('payment_method=?'); vals.push(enumVal(body.payment_method, VALID_PAYMENT_METHODS, 'auto')); }
       if (sets.length > 0) {
@@ -1055,7 +1060,7 @@ export async function handleApiRequest(
       if (body.note !== undefined) { sets.push('note=?'); vals.push(str(body.note, 1000)); }
       if (body.project_id !== undefined) { sets.push('project_id=?'); vals.push(body.project_id); }
       const numFields = ['amount','percentage','sort_order'];
-      for (const f of numFields) { if (body[f] !== undefined) { sets.push(`${f}=?`); vals.push(body[f]); } }
+      for (const f of numFields) { if (body[f] !== undefined) { sets.push(`${f}=?`); vals.push(body[f] ?? 0); } }
       if (sets.length > 0) {
         sets.push('updated_at=CURRENT_TIMESTAMP');
         vals.push(id);
@@ -1360,8 +1365,8 @@ export async function handleApiRequest(
       if (body.tax_mode !== undefined) { sets.push('tax_mode=?'); vals.push(enumVal(body.tax_mode, VALID_TAX_MODES, 'none')); }
       if (body.client_name !== undefined) { sets.push('client_name=?'); vals.push(str(body.client_name, 255)); }
       const numFields = ['amount','tax_rate','tax_amount'];
-      for (const f of numFields) { if (body[f] !== undefined) { sets.push(`${f}=?`); vals.push(body[f]); } }
-      if (body.client_id !== undefined) { sets.push('client_id=?'); vals.push(body.client_id); }
+      for (const f of numFields) { if (body[f] !== undefined) { sets.push(`${f}=?`); vals.push(body[f] || 0); } }
+      if (body.client_id !== undefined) { sets.push('client_id=?'); vals.push(body.client_id || null); }
       if (sets.length > 0) {
         vals.push(id);
         run(db, `UPDATE finance_transactions SET ${sets.join(',')} WHERE id=?`, vals);

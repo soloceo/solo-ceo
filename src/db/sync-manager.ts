@@ -14,6 +14,7 @@ const SYNC_TABLES = [
   'leads', 'clients', 'tasks', 'plans',
   'finance_transactions', 'payment_milestones', 'client_projects',
   'content_drafts', 'today_focus_state', 'today_focus_manual',
+  'ai_agents', 'ai_conversations',
 ] as const;
 
 let syncing = false;
@@ -84,13 +85,15 @@ export async function triggerFullSync(): Promise<void> {
     }
 
     // Step 2: Pull fresh data from cloud → trigger component refresh
-    dispatchSyncStatus('syncing', { pending: 0 });
+    const remaining = await getQueueLength();
+    dispatchSyncStatus('syncing', { pending: remaining });
     await pullCloudState();
 
-    dispatchSyncStatus('idle', { pending: 0 });
+    dispatchSyncStatus('idle', { pending: remaining });
   } catch (e) {
     // Sync failed — will retry on next trigger
-    dispatchSyncStatus('idle', { pending: 0 });
+    const remaining = await getQueueLength().catch(() => 0);
+    dispatchSyncStatus('idle', { pending: remaining });
   } finally {
     syncing = false;
     lastSyncAt = Date.now();

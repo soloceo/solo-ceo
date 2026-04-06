@@ -86,7 +86,7 @@ export function MonthlyGoal({ monthlyIncome, loading }: MonthlyGoalProps) {
   }
 
   // Goal exists — show progress
-  const progress = Math.min(1, monthlyIncome / goal);
+  const progress = goal > 0 ? Math.min(1, monthlyIncome / goal) : 0;
   const percentage = Math.round(progress * 100);
   const achieved = monthlyIncome >= goal;
   const diff = Math.abs(monthlyIncome - goal);

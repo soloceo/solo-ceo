@@ -62,10 +62,11 @@ function saveItems(items: CountdownItem[]) {
 }
 
 function calcDays(dateStr: string): number {
-  const target = new Date(dateStr + "T00:00:00");
+  // Parse both dates as local midnight to avoid UTC/timezone mismatch
+  const target = new Date(dateStr + "T00:00:00").getTime();
   const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  return Math.ceil((target.getTime() - todayStart.getTime()) / DAY_MS);
+  const todayMs = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  return Math.ceil((target - todayMs) / DAY_MS);
 }
 
 function calcHoursRemaining(dateStr: string): number {

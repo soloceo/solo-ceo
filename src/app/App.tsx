@@ -294,9 +294,11 @@ function App() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // Don't trigger when typing in inputs
-      const tag = (e.target as HTMLElement)?.tagName;
+      // Don't trigger when typing in inputs or editable areas
+      const el = e.target as HTMLElement;
+      const tag = el?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (el?.contentEditable === "true" || el?.isContentEditable) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
 
       const num = parseInt(e.key, 10);
