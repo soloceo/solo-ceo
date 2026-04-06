@@ -153,87 +153,72 @@ export default function AgentSection() {
             {agents.map((agent) => (
               <div
                 key={agent.id}
-                className="px-3 py-3"
+                className="flex items-center gap-2.5 px-2 py-2"
+                onClick={() => handleEdit(agent)}
+                style={{ cursor: 'pointer' }}
               >
-                {/* Top row: avatar + name + actions */}
-                <div className="flex items-center gap-3">
-                  <span className="text-xl shrink-0">{agent.avatar || '🤖'}</span>
-                  <div className="flex-1 min-w-0">
-                    <span className="text-[15px] truncate block" style={{ fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>
+                {/* Avatar */}
+                <span className="text-lg shrink-0">{agent.avatar || '🤖'}</span>
+
+                {/* Name + meta */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[14px] truncate" style={{ fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>
                       {agent.name}
                     </span>
-                  </div>
-                  {/* Compact action icons */}
-                  <div className="flex items-center gap-0.5 shrink-0">
-                    <button
-                      onClick={() => setTestAgent(agent)}
-                      className="btn-ghost compact"
-                      style={{ color: 'var(--color-accent)' }}
-                      title={t('settings.agents.modal.test')}
-                    >
-                      <Play size={14} />
-                    </button>
-                    <button
-                      onClick={() => handleEdit(agent)}
-                      className="btn-ghost compact"
-                      style={{ color: 'var(--color-text-tertiary)' }}
-                    >
-                      <Pencil size={14} />
-                    </button>
-                    {deleteId === agent.id ? (
-                      <div className="flex items-center gap-0.5 shrink-0">
-                        <button onClick={() => handleDelete(agent.id)} className="btn-ghost compact text-[12px]" style={{ color: 'var(--color-danger)' }}>
-                          {lang === 'en' ? 'Yes' : '确认'}
-                        </button>
-                        <button onClick={() => setDeleteId(null)} className="btn-ghost compact text-[12px]" style={{ color: 'var(--color-text-tertiary)' }}>
-                          {lang === 'en' ? 'No' : '取消'}
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setDeleteId(agent.id)}
-                        className="btn-ghost compact"
-                        style={{ color: 'var(--color-text-quaternary)' }}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-                {/* Bottom row: meta info */}
-                <div className="flex items-center gap-2 mt-1 ml-9">
-                  <Wrench size={10} style={{ color: 'var(--color-text-quaternary)' }} />
-                  <span className="text-[12px]" style={{ color: 'var(--color-text-quaternary)' }}>
-                    {t('settings.agents.tools').replace('{count}', String(agent.tools?.length || 0))}
-                  </span>
-                  {agent.template_id && (
-                    <>
+                    {agent.template_id && (
                       <span
-                        className="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap"
+                        className="text-[10px] px-1.5 py-px rounded-full whitespace-nowrap shrink-0"
                         style={{ background: 'var(--color-accent-tint)', color: 'var(--color-accent)' }}
                       >
                         {getTemplateName(agent.template_id)}
                       </span>
-                      {resetOneId === agent.id ? (
-                        <div className="flex items-center gap-0.5">
-                          <button onClick={() => handleResetOne(agent.id)} className="btn-ghost compact text-[11px]" style={{ color: 'var(--color-warning)' }}>
-                            {lang === 'en' ? 'Reset?' : '重置?'}
-                          </button>
-                          <button onClick={() => setResetOneId(null)} className="btn-ghost compact text-[11px]" style={{ color: 'var(--color-text-tertiary)' }}>
-                            {lang === 'en' ? 'No' : '取消'}
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => setResetOneId(agent.id)}
-                          className="btn-ghost compact"
-                          style={{ color: 'var(--color-text-quaternary)' }}
-                          title={t('settings.agents.resetOne')}
-                        >
-                          <RotateCcw size={11} />
-                        </button>
-                      )}
-                    </>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <Wrench size={9} style={{ color: 'var(--color-text-quaternary)' }} />
+                    <span className="text-[11px]" style={{ color: 'var(--color-text-quaternary)' }}>
+                      {t('settings.agents.tools').replace('{count}', String(agent.tools?.length || 0))}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center shrink-0" onClick={e => e.stopPropagation()}>
+                  <button
+                    onClick={() => setTestAgent(agent)}
+                    className="btn-ghost compact"
+                    style={{ color: 'var(--color-accent)' }}
+                    title={t('settings.agents.modal.test')}
+                  >
+                    <Play size={13} />
+                  </button>
+                  {deleteId === agent.id ? (
+                    <div className="flex items-center gap-0.5">
+                      <button onClick={() => handleDelete(agent.id)} className="btn-ghost compact text-[11px]" style={{ color: 'var(--color-danger)' }}>
+                        {lang === 'en' ? 'Yes' : '删除'}
+                      </button>
+                      <button onClick={() => setDeleteId(null)} className="btn-ghost compact text-[11px]" style={{ color: 'var(--color-text-tertiary)' }}>
+                        {lang === 'en' ? 'No' : '取消'}
+                      </button>
+                    </div>
+                  ) : resetOneId === agent.id ? (
+                    <div className="flex items-center gap-0.5">
+                      <button onClick={() => handleResetOne(agent.id)} className="btn-ghost compact text-[11px]" style={{ color: 'var(--color-warning)' }}>
+                        {lang === 'en' ? 'Reset' : '重置'}
+                      </button>
+                      <button onClick={() => setResetOneId(null)} className="btn-ghost compact text-[11px]" style={{ color: 'var(--color-text-tertiary)' }}>
+                        {lang === 'en' ? 'No' : '取消'}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setDeleteId(agent.id)}
+                      className="btn-ghost compact"
+                      style={{ color: 'var(--color-text-quaternary)' }}
+                    >
+                      <Trash2 size={13} />
+                    </button>
                   )}
                 </div>
               </div>
