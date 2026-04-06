@@ -108,7 +108,8 @@ export function useAgents() {
   /** Seed default agents from templates (for first-time users) */
   const seedDefaults = useCallback(async (lang: 'zh' | 'en') => {
     const { AGENT_TEMPLATES } = await import('../data/agent-templates');
-    // Check existing agents first to avoid duplicates
+    // Force fresh fetch to avoid stale cache causing duplicate creation
+    invalidateForMutation('/api/agents');
     let existing: AgentConfig[] = [];
     try { existing = await api.get<AgentConfig[]>('/api/agents'); } catch { /* empty */ }
     const existingTemplateIds = new Set(existing.filter(a => a.template_id).map(a => a.template_id));
@@ -138,10 +139,14 @@ export function useAgents() {
   }, [fetch]);
 
   /** Seed missing templates + upgrade existing template-based agents on version bump */
-  const seedMissing = useCallback(async (lang: 'zh' | 'en', existingAgents: AgentConfig[]) => {
+  const seedMissing = useCallback(async (lang: 'zh' | 'en', _existingAgents: AgentConfig[]) => {
     const { AGENT_TEMPLATES } = await import('../data/agent-templates');
+    // Always fetch fresh to avoid stale hook state causing duplicate creation
+    invalidateForMutation('/api/agents');
+    let freshAgents: AgentConfig[] = _existingAgents;
+    try { freshAgents = await api.get<AgentConfig[]>('/api/agents'); } catch { /* use passed-in */ }
     const existingByTemplate = new Map(
-      existingAgents.filter(a => a.template_id).map(a => [a.template_id, a])
+      freshAgents.filter(a => a.template_id).map(a => [a.template_id, a])
     );
 
     let changed = false;
@@ -242,6 +247,10 @@ export function useAgents() {
   const resetAll = useCallback(async (lang: 'zh' | 'en') => {
     clearDismissed();
     const { AGENT_TEMPLATES } = await import('../data/agent-templates');
+    // Force-clear cache to ensure we see ALL agents (including duplicates)
+    invalidateForMutation('/api/agents');
+    agentsCache = null;
+    cacheTs = 0;
     let existing: AgentConfig[] = [];
     try { existing = await api.get<AgentConfig[]>('/api/agents'); } catch { /* empty */ }
     const templateIds = new Set(AGENT_TEMPLATES.map(t => t.id));
