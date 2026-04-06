@@ -3,6 +3,35 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.29.1] - 2026-04-05
+
+### Security
+- **Content Security Policy** — restrict script/connect/img sources to known domains
+- **CSV formula injection** — prefix dangerous leading chars with tab in exports
+- **XSS link sanitization** — block `javascript:`/`data:`/`vbscript:` in AI markdown links
+
+### Fixed
+- **AI chat avatar overflow** — render profile photo as `<img>` instead of raw base64 text
+- **Gemini thinking tokens** — filter `thought: true` parts from streaming output
+- **Chat bubble overflow** — `overflow-wrap: break-word` for long strings
+- **Offline subtask cascade** — delete subtasks when parent task is soft-deleted
+- **Offline milestone finance** — auto-create finance_transaction on milestone creation
+- **Import atomicity** — wrap importAllData in SQL transaction with ROLLBACK on failure
+- **Finance categories** — expanded to match all AI-generated categories (Chinese + English)
+- **Agent seed dedup** — check existing template_id before creating, prevent duplicates
+- **Null fallback** — offline PUT tasks uses `|| null` for client_id/parent_id
+- **Tax formula** — use `calcTaxOffline()` consistently, fix floating-point divergence
+- **Error boundary** — top-level ErrorBoundary catches render crashes with reload button
+- **Settings cache** — invalidate useAppSettings after SettingsPage saves
+- **Error handling** — add `.catch()` to fire-and-forget API calls in memo components
+- **z-index** — replace magic numbers with CSS variables
+- **safe-area** — add `env()` fallback `0px` parameter
+- **HomePage re-renders** — add Zustand selector to useSettingsStore
+- **Soft delete filter** — offline dashboard manual focus query
+- **Streaming cleanup** — abort controller on AIChatPanel unmount
+
+---
+
 ## [2.29.0] - 2026-04-05
 
 ### Added
