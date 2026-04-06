@@ -3,6 +3,12 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.30.1] - 2026-04-06
+
+### Fixed
+- **AI Chat scope selector** — task/memo creation now shows business/personal toggle (was only on transactions)
+- **Greeting card theme styles** — use `.card` class so it inherits neo-brutalism shadows, glassmorphism blur, HUD scanlines, material elevation; accent tint via overlay layer
+
 ## [2.30.0] - 2026-04-06
 
 ### Added
