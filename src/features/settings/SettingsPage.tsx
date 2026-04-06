@@ -202,13 +202,18 @@ export default function SettingsPage() {
           </div>
           <button
             onClick={async () => {
-              if ('serviceWorker' in navigator) {
-                const reg = await navigator.serviceWorker.getRegistration();
-                if (reg) {
-                  await reg.update();
-                  if (reg.waiting) { reg.waiting.postMessage({ type: 'SKIP_WAITING' }); }
+              try {
+                // Unregister all service workers
+                if ('serviceWorker' in navigator) {
+                  const regs = await navigator.serviceWorker.getRegistrations();
+                  await Promise.all(regs.map(r => r.unregister()));
                 }
-              }
+                // Clear all caches
+                if ('caches' in window) {
+                  const keys = await caches.keys();
+                  await Promise.all(keys.map(k => caches.delete(k)));
+                }
+              } catch { /* best-effort */ }
               window.location.reload();
             }}
             className="btn-ghost compact text-[13px] px-3 rounded-[var(--radius-4)] mx-auto"
