@@ -27,6 +27,11 @@ type DbRow = Record<string, any>;
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
+function safeJsonParse<T>(val: unknown, fallback: T): T {
+  if (typeof val !== 'string') return fallback;
+  try { return JSON.parse(val) as T; } catch { return fallback; }
+}
+
 function logActivity(
   db: Database,
   entityType: string,
@@ -57,7 +62,7 @@ function syncClientSubscriptionLedger(db: Database) {
             subscription_start_date, paused_at, resumed_at,
             cancelled_at, mrr_effective_from, subscription_timeline,
             tax_mode, tax_rate, payment_method
-     FROM clients WHERE COALESCE(mrr, 0) > 0`
+     FROM clients WHERE COALESCE(mrr, 0) > 0 AND soft_deleted=0`
   );
 
   const now = new Date();
@@ -125,7 +130,7 @@ function syncClientSubscriptionLedger(db: Database) {
   }
 
   // Fetch existing subscription transactions
-  const existing = all(db, `SELECT id, source_id, date, status FROM finance_transactions WHERE source='subscription'`);
+  const existing = all(db, `SELECT id, source_id, date, status FROM finance_transactions WHERE source='subscription' AND soft_deleted=0`);
   const existingMap = new Map<string, { id: number; status: string }>();
   for (const row of existing) {
     const m = String(row.date || '').substring(0, 7);
@@ -136,9 +141,10 @@ function syncClientSubscriptionLedger(db: Database) {
   for (const [key, row] of shouldExist) {
     const exist = existingMap.get(key);
     if (exist) {
-      // IMPORTANT: preserve status if user already confirmed receipt (已完成)
-      const preservedStatus = exist.status === '已完成' ? '已完成' : row.status;
-      run(db, `UPDATE finance_transactions SET amount=?, description=?, date=?, status=?, tax_mode=?, tax_rate=?, tax_amount=?, client_name=? WHERE id=?`,
+      // Preserve "已完成" only for past/today billing — future dates can't be paid yet
+      const isFutureBilling = row.date > todayDateKey();
+      const preservedStatus = (!isFutureBilling && exist.status === '已完成') ? '已完成' : row.status;
+      run(db, `UPDATE finance_transactions SET amount=?, description=?, date=?, status=?, tax_mode=?, tax_rate=?, tax_amount=?, client_name=?, soft_deleted=0 WHERE id=?`,
         [row.amount, row.description, row.date, preservedStatus, row.tax_mode, row.tax_rate, row.tax_amount, row.client_name, exist.id]);
       existingMap.delete(key);
     } else {
@@ -385,6 +391,35 @@ function initSchema(db: Database) {
     )`,
     `ALTER TABLE payment_milestones ADD COLUMN project_id INTEGER`,
     `ALTER TABLE finance_transactions ADD COLUMN project_id INTEGER`,
+    // Migration 004: AI Agents
+    `CREATE TABLE IF NOT EXISTS ai_agents (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL DEFAULT '',
+      avatar TEXT DEFAULT '',
+      role TEXT DEFAULT '',
+      personality TEXT DEFAULT '',
+      rules TEXT DEFAULT '',
+      tools TEXT DEFAULT '[]',
+      conversation_starters TEXT DEFAULT '[]',
+      template_id TEXT DEFAULT '',
+      is_default INTEGER DEFAULT 0,
+      sort_order INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      soft_deleted INTEGER DEFAULT 0
+    )`,
+    // Migration 005: AI Conversations
+    `CREATE TABLE IF NOT EXISTS ai_conversations (
+      id TEXT PRIMARY KEY,
+      user_id TEXT DEFAULT '',
+      title TEXT NOT NULL DEFAULT '',
+      agent_id INTEGER,
+      agent_ids TEXT DEFAULT '[]',
+      messages TEXT DEFAULT '[]',
+      soft_deleted INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
     // app_settings KV store
     `CREATE TABLE IF NOT EXISTS app_settings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -439,125 +474,176 @@ function seedData(db: Database) {
   const yesterday = fmt(addDays(now, -1));
   const twoDaysAgo = fmt(addDays(now, -2));
   const threeDaysAgo = fmt(addDays(now, -3));
+  const fiveDaysAgo = fmt(addDays(now, -5));
   const tomorrow = fmt(addDays(now, 1));
+  const dayAfterTomorrow = fmt(addDays(now, 2));
   const nextWeek = fmt(addDays(now, 7));
+  const tenDaysLater = fmt(addDays(now, 10));
+  const twoWeeksLater = fmt(addDays(now, 14));
   const m = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
   const lastMonth = now.getMonth() === 0
     ? `${now.getFullYear() - 1}-12`
     : `${now.getFullYear()}-${pad(now.getMonth())}`;
 
-  // ── Leads (5 — cover all pipeline stages) ──
-  db.run(`INSERT INTO leads (name, industry, needs, website, column, aiDraft, source) VALUES (?,?,?,?,?,?,?)`,
-    ['绿野咖啡', '餐饮连锁', '品牌升级, VI 设计, 门店空间视觉', 'greenfield.coffee', 'new', '', '小红书私信']);
-  db.run(`INSERT INTO leads (name, industry, needs, website, column, aiDraft, source) VALUES (?,?,?,?,?,?,?)`,
-    ['星途教育', '在线教育', '官网改版, 课程详情页', 'starpath.edu', 'contacted', '', '朋友介绍']);
-  db.run(`INSERT INTO leads (name, industry, needs, website, column, aiDraft, source) VALUES (?,?,?,?,?,?,?)`,
-    ['海蓝科技', 'SaaS', 'Logo 设计, 品牌手册, 官网', 'oceanblu.io', 'proposal', '', '展会认识']);
-  db.run(`INSERT INTO leads (name, industry, needs, website, column, aiDraft, source) VALUES (?,?,?,?,?,?,?)`,
-    ['原木工坊', '家居家具', '产品画册, 电商详情页', '', 'won', '', '客户转介绍']);
-  db.run(`INSERT INTO leads (name, industry, needs, website, column, aiDraft, source) VALUES (?,?,?,?,?,?,?)`,
-    ['鼎盛地产', '房地产', '楼盘宣传单页', '', 'lost', '', '陌生拜访']);
+  // ═══════════════════════════════════════════════════════════════
+  // 人设：李明（Ming），加拿大华人独立品牌设计师，经营一人设计工作室「Ming Design Studio」
+  // 主营：品牌视觉设计（Logo / VI / 官网 / 社交媒体素材）
+  // 模式：订阅制月费 + 项目制，同时服务 3-5 个北美客户
+  // 目标：月收入稳定在 $8,000+，逐步从接单转向标准化产品
+  // ═══════════════════════════════════════════════════════════════
 
-  // ── Clients (3 — subscription auto + subscription manual + project) ──
-  db.run(`INSERT INTO clients (name, industry, plan_tier, status, brand_context, mrr, payment_method, billing_type) VALUES (?,?,?,?,?,?,?,?)`,
-    ['锐视传媒', '数字媒体', '企业版', 'Active', '潮流、年轻、视觉冲击力', 4500, 'auto', 'subscription']);
-  db.run(`INSERT INTO clients (name, industry, plan_tier, status, brand_context, mrr, payment_method, billing_type) VALUES (?,?,?,?,?,?,?,?)`,
-    ['万象设计', '建筑设计', '专业版', 'Active', '极简、高端、黑白灰', 2500, 'manual', 'subscription']);
+  // ── Monthly revenue goal ──
+  db.run(`INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)`, ['MONTHLY_REVENUE_GOAL', '8000']);
+
+  // ── Leads (6 — realistic North American pipeline) ──
+  db.run(`INSERT INTO leads (name, industry, needs, website, column, aiDraft, source) VALUES (?,?,?,?,?,?,?)`,
+    ['Greenfield Coffee', '餐饮连锁', '品牌升级：新Logo + VI手册 + 门店空间视觉', 'greenfieldcoffee.ca', 'new', '', 'Instagram DM']);
+  db.run(`INSERT INTO leads (name, industry, needs, website, column, aiDraft, source) VALUES (?,?,?,?,?,?,?)`,
+    ['Bright Path Academy', '在线教育', '官网改版 + 课程详情页模板设计', 'brightpathacademy.com', 'contacted', '', '朋友介绍']);
+  db.run(`INSERT INTO leads (name, industry, needs, website, column, aiDraft, source) VALUES (?,?,?,?,?,?,?)`,
+    ['OceanBlu Tech', 'SaaS', 'Logo设计 + 品牌手册 + 产品官网', 'oceanblu.io', 'proposal', '', 'LinkedIn']);
+  db.run(`INSERT INTO leads (name, industry, needs, website, column, aiDraft, source) VALUES (?,?,?,?,?,?,?)`,
+    ['Timber & Co', '家居家具', '产品画册 + 电商详情页', 'timberandco.ca', 'won', '', '老客户转介绍']);
+  db.run(`INSERT INTO leads (name, industry, needs, website, column, aiDraft, source) VALUES (?,?,?,?,?,?,?)`,
+    ['Harvest Organics', '农业食品', '品牌包装设计 + 电商主图', '', 'new', '', 'Google搜索']);
+  db.run(`INSERT INTO leads (name, industry, needs, website, column, aiDraft, source) VALUES (?,?,?,?,?,?,?)`,
+    ['Apex Realty Group', '房地产', '楼盘宣传单页', '', 'lost', '', 'Networking活动']);
+
+  // ── Clients (4 — subscription + project, interconnected with tasks/finance) ──
+  // Subscription start dates — 2 months ago so ledger sync generates current + last month
+  const twoMonthsAgo = (() => {
+    const d = new Date(now);
+    d.setMonth(d.getMonth() - 2);
+    return fmt(d);
+  })();
+  const sixWeeksAgo = (() => {
+    const d = new Date(now);
+    d.setDate(d.getDate() - 42);
+    return fmt(d);
+  })();
+  // id=1
+  db.run(`INSERT INTO clients (name, industry, plan_tier, status, brand_context, mrr, payment_method, billing_type, subscription_start_date, subscription_timeline) VALUES (?,?,?,?,?,?,?,?,?,?)`,
+    ['Nova Media', '数字媒体', 'Enterprise', 'Active', 'Trendy, youthful, high visual impact', 2500, 'auto', 'subscription', twoMonthsAgo, JSON.stringify([{ type: 'start', date: twoMonthsAgo }])]);
+  // id=2
+  db.run(`INSERT INTO clients (name, industry, plan_tier, status, brand_context, mrr, payment_method, billing_type, subscription_start_date, subscription_timeline) VALUES (?,?,?,?,?,?,?,?,?,?)`,
+    ['Atlas Architecture', '建筑设计', 'Professional', 'Active', 'Minimal, premium, monochrome palette', 1500, 'manual', 'subscription', sixWeeksAgo, JSON.stringify([{ type: 'start', date: sixWeeksAgo }])]);
+  // id=3
   db.run(`INSERT INTO clients (name, industry, plan_tier, status, brand_context, mrr, payment_method, billing_type, project_fee) VALUES (?,?,?,?,?,?,?,?,?)`,
-    ['青柠工作室', '摄影工作室', '基础版', 'Active', '清新、自然、文艺', 0, 'manual', 'project', 9600]);
+    ['Limelight Studios', '摄影工作室', '', 'Active', 'Fresh, natural, artistic aesthetic', 0, 'manual', 'project', 4800]);
+  // id=4 — won from lead "Timber & Co", recently onboarded
+  db.run(`INSERT INTO clients (name, industry, plan_tier, status, brand_context, mrr, payment_method, billing_type, project_fee) VALUES (?,?,?,?,?,?,?,?,?)`,
+    ['Timber & Co', '家居家具', '', 'Active', 'Natural, handcrafted, warm aesthetic', 0, 'manual', 'project', 6000]);
 
-  // ── Tasks — work scope (7 — cover all columns + overdue/today/future) ──
+  // ── Tasks — work scope (8 — cover all kanban columns, tied to real clients) ──
   db.run(`INSERT INTO tasks (title, client, priority, due, column, scope) VALUES (?,?,?,?,?,?)`,
-    ['锐视传媒 4月社交媒体套图', '锐视传媒', 'High', today, 'inProgress', 'work']);
+    ['设计Nova Media 4月社交媒体套图', 'Nova Media', 'High', today, 'inProgress', 'work']);
   db.run(`INSERT INTO tasks (title, client, priority, due, column, scope) VALUES (?,?,?,?,?,?)`,
-    ['万象设计 品牌指南更新', '万象设计', 'High', yesterday, 'inProgress', 'work']);
+    ['更新Atlas Architecture品牌指南V2.0', 'Atlas Architecture', 'High', yesterday, 'inProgress', 'work']);
   db.run(`INSERT INTO tasks (title, client, priority, due, column, scope) VALUES (?,?,?,?,?,?)`,
-    ['青柠工作室 官网设计', '青柠工作室', 'High', today, 'review', 'work']);
+    ['交付Limelight Studios官网设计终稿', 'Limelight Studios', 'High', today, 'review', 'work']);
   db.run(`INSERT INTO tasks (title, client, priority, due, column, scope) VALUES (?,?,?,?,?,?)`,
-    ['海蓝科技 Logo 提案', '海蓝科技', 'Medium', tomorrow, 'todo', 'work']);
+    ['制作OceanBlu Tech Logo提案（3套方案）', '', 'Medium', dayAfterTomorrow, 'todo', 'work']);
   db.run(`INSERT INTO tasks (title, client, priority, due, column, scope) VALUES (?,?,?,?,?,?)`,
-    ['锐视传媒 短视频封面模板', '锐视传媒', 'Medium', nextWeek, 'todo', 'work']);
+    ['设计Nova Media短视频封面模板', 'Nova Media', 'Medium', nextWeek, 'todo', 'work']);
   db.run(`INSERT INTO tasks (title, client, priority, due, column, scope) VALUES (?,?,?,?,?,?)`,
-    ['万象设计 季度汇报 PPT', '万象设计', 'Low', nextWeek, 'todo', 'work']);
+    ['Timber & Co产品画册排版', 'Timber & Co', 'Medium', tenDaysLater, 'todo', 'work']);
   db.run(`INSERT INTO tasks (title, client, priority, due, column, scope) VALUES (?,?,?,?,?,?)`,
-    ['锐视传媒 3月交付物归档', '锐视传媒', 'Low', '', 'done', 'work']);
+    ['制作Atlas Architecture季度汇报PPT', 'Atlas Architecture', 'Low', twoWeeksLater, 'todo', 'work']);
+  db.run(`INSERT INTO tasks (title, client, priority, due, column, scope) VALUES (?,?,?,?,?,?)`,
+    ['归档Nova Media 3月交付物', 'Nova Media', 'Low', '', 'done', 'work']);
 
   // ── Tasks — personal scope (4) ──
   db.run(`INSERT INTO tasks (title, priority, due, column, scope) VALUES (?,?,?,?,?)`,
     ['预约牙医复查', 'High', twoDaysAgo, 'todo', 'personal']);
   db.run(`INSERT INTO tasks (title, priority, due, column, scope) VALUES (?,?,?,?,?)`,
-    ['整理本季度发票给会计', 'Medium', today, 'todo', 'personal']);
+    ['整理本季度发票发给会计', 'Medium', tomorrow, 'todo', 'personal']);
   db.run(`INSERT INTO tasks (title, priority, due, column, scope) VALUES (?,?,?,?,?)`,
-    ['续费域名和服务器', 'Medium', nextWeek, 'todo', 'personal']);
+    ['续费域名和云服务器', 'Medium', nextWeek, 'todo', 'personal']);
   db.run(`INSERT INTO tasks (title, priority, due, column, scope) VALUES (?,?,?,?,?)`,
-    ['读完《定位》这本书', 'Low', '', 'inProgress', 'personal']);
+    ['读完《Positioning》笔记整理', 'Low', '', 'inProgress', 'personal']);
 
-  // ── Tasks — work-memo scope (5 — show due today, overdue, future, no date) ──
+  // ── Tasks — work-memo scope (5 — quick notes, some with deadlines) ──
   db.run(`INSERT INTO tasks (title, due, column, scope) VALUES (?,?,?,?)`,
-    ['给海蓝科技发报价单，下午前发出', today, 'todo', 'work-memo']);
+    ['给OceanBlu Tech发报价单，下午前发出', today, 'todo', 'work-memo']);
   db.run(`INSERT INTO tasks (title, due, column, scope) VALUES (?,?,?,?)`,
-    ['和青柠工作室确认首页定稿', yesterday, 'todo', 'work-memo']);
+    ['和Limelight Studios确认首页定稿细节', yesterday, 'todo', 'work-memo']);
   db.run(`INSERT INTO tasks (title, due, column, scope) VALUES (?,?,?,?)`,
-    ['联系原木工坊签正式合同', tomorrow, 'todo', 'work-memo']);
+    ['联系Timber & Co确认画册尺寸和纸张', tomorrow, 'todo', 'work-memo']);
   db.run(`INSERT INTO tasks (title, due, column, scope) VALUES (?,?,?,?)`,
-    ['研究 Framer 做作品集的可行性', '', 'todo', 'work-memo']);
+    ['研究Framer做作品集网站的可行性', '', 'todo', 'work-memo']);
   db.run(`INSERT INTO tasks (title, due, column, scope) VALUES (?,?,?,?)`,
-    ['整理近半年的作品集案例', '', 'todo', 'work-memo']);
+    ['整理近半年作品集案例，选10个代表作', '', 'todo', 'work-memo']);
 
-  // ── Plans (3 tiers) ──
+  // ── Plans (3 tiers — design subscription service, USD pricing) ──
   db.run(`INSERT INTO plans (name, price, deliverySpeed, features, clients) VALUES (?,?,?,?,?)`,
-    ['基础版', 1200, '平均 48 小时', JSON.stringify(['每月 1 个活跃设计请求', '无限次修改', '基础品牌资产']), 6]);
+    ['Starter', 499, '48小时内', JSON.stringify(['每月1个活跃设计请求', '无限次修改', '源文件交付']), 6]);
   db.run(`INSERT INTO plans (name, price, deliverySpeed, features, clients) VALUES (?,?,?,?,?)`,
-    ['专业版', 2500, '平均 24-48 小时', JSON.stringify(['每月 2 个活跃设计请求', '无限次修改', '全套品牌视觉系统']), 4]);
+    ['Professional', 1500, '24-48小时', JSON.stringify(['每月2个活跃设计请求', '无限次修改', '全套品牌视觉系统', '专属Slack沟通频道']), 4]);
   db.run(`INSERT INTO plans (name, price, deliverySpeed, features, clients) VALUES (?,?,?,?,?)`,
-    ['企业版', 4500, '优先 24 小时内', JSON.stringify(['每月 3 个活跃设计请求', '无限次修改', '定制插画与动效', '专属设计经理']), 2]);
+    ['Enterprise', 2500, '24小时内优先', JSON.stringify(['每月3个活跃设计请求', '无限次修改', '定制插画与动效', '专属设计经理']), 2]);
 
-  // ── Finance Transactions (8 — income/expense/receivable, various sources) ──
-  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date, status, source, source_id) VALUES (?,?,?,?,?,?,?,?)`,
-    ['income', 4500, '订阅收入', '锐视传媒 企业版订阅', `${m}-01`, '已完成', 'subscription', 1]);
-  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date, status, source, source_id) VALUES (?,?,?,?,?,?,?,?)`,
-    ['income', 2500, '订阅收入', '万象设计 专业版订阅', `${m}-05`, '已完成', 'subscription', 2]);
+  // ── Finance Transactions — income sources tied to actual clients ──
+  // NOTE: Subscription income is NOT seeded here — syncClientSubscriptionLedger()
+  // auto-generates subscription transactions from client MRR + timeline data.
+  // Project milestone income (tied to Limelight Studios)
   db.run(`INSERT INTO finance_transactions (type, amount, category, description, date, status, source) VALUES (?,?,?,?,?,?,?)`,
-    ['income', 3840, '项目收入', '青柠工作室 官网设计 · 首付款 40%', `${lastMonth}-18`, '已完成', 'milestone']);
+    ['income', 1920, '项目收入', 'Limelight Studios官网设计 · 首付款40%', `${lastMonth}-18`, '已完成', 'milestone']);
   db.run(`INSERT INTO finance_transactions (type, amount, category, description, date, status, source) VALUES (?,?,?,?,?,?,?)`,
-    ['income', 1500, '咨询收入', '原木工坊 品牌诊断咨询', threeDaysAgo, '已完成', 'manual']);
+    ['income', 2880, '项目收入', 'Limelight Studios官网设计 · 尾款60%', nextWeek, '待收款 (应收)', 'milestone']);
+  // Manual income (consultancy from won lead)
   db.run(`INSERT INTO finance_transactions (type, amount, category, description, date, status, source) VALUES (?,?,?,?,?,?,?)`,
-    ['income', 5760, '项目收入', '青柠工作室 官网设计 · 尾款 60%', nextWeek, '待收款 (应收)', 'milestone']);
+    ['income', 800, '咨询收入', 'Timber & Co品牌诊断咨询', threeDaysAgo, '已完成', 'manual']);
+  // Project fee (Timber & Co new project deposit)
+  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date, status, source) VALUES (?,?,?,?,?,?,?)`,
+    ['income', 2400, '项目收入', 'Timber & Co产品画册 · 首付款40%', fiveDaysAgo, '已完成', 'milestone']);
+  // Expenses (realistic North American freelancer costs in USD)
   db.run(`INSERT INTO finance_transactions (type, amount, category, description, date) VALUES (?,?,?,?,?)`,
-    ['expense', 156, '软件订阅', 'Figma Professional', `${m}-02`]);
+    ['expense', 15, '软件订阅', 'Figma Professional 月费', `${m}-02`]);
   db.run(`INSERT INTO finance_transactions (type, amount, category, description, date) VALUES (?,?,?,?,?)`,
-    ['expense', 388, '软件订阅', 'Adobe CC 全家桶', `${m}-03`]);
+    ['expense', 55, '软件订阅', 'Adobe CC 全家桶', `${m}-03`]);
   db.run(`INSERT INTO finance_transactions (type, amount, category, description, date) VALUES (?,?,?,?,?)`,
-    ['expense', 85, '办公支出', '快递 + 打样费', yesterday]);
+    ['expense', 45, '办公支出', '打印 + 快递费', yesterday]);
+  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date) VALUES (?,?,?,?,?)`,
+    ['expense', 32, '软件订阅', 'Notion + 域名续费', threeDaysAgo]);
 
-  // ── Payment Milestones (青柠工作室 project — 1 paid + 1 pending) ──
+  // ── Payment Milestones (2 projects with milestone tracking) ──
+  // Limelight Studios project — 1 paid + 1 pending
   db.run(`INSERT INTO payment_milestones (client_id, label, amount, percentage, due_date, status, sort_order) VALUES (?,?,?,?,?,?,?)`,
-    [3, '首付款 40%', 3840, 40, `${lastMonth}-18`, 'paid', 1]);
+    [3, '首付款 40%', 1920, 40, `${lastMonth}-18`, 'paid', 1]);
   db.run(`INSERT INTO payment_milestones (client_id, label, amount, percentage, due_date, status, sort_order) VALUES (?,?,?,?,?,?,?)`,
-    [3, '尾款 60%', 5760, 60, nextWeek, 'pending', 2]);
+    [3, '尾款 60%', 2880, 60, nextWeek, 'pending', 2]);
+  // Timber & Co project — deposit paid, final pending
+  db.run(`INSERT INTO payment_milestones (client_id, label, amount, percentage, due_date, status, sort_order) VALUES (?,?,?,?,?,?,?)`,
+    [4, '首付款 40%', 2400, 40, fiveDaysAgo, 'paid', 1]);
+  db.run(`INSERT INTO payment_milestones (client_id, label, amount, percentage, due_date, status, sort_order) VALUES (?,?,?,?,?,?,?)`,
+    [4, '尾款 60%', 3600, 60, twoWeeksLater, 'pending', 2]);
 
-  // ── Client Subscription Ledger (MRR history) ──
+  // ── Client Subscription Ledger (MRR history — 2 months) ──
   db.run(`INSERT OR IGNORE INTO client_subscription_ledger (client_id, client_name, plan_tier, amount, ledger_month) VALUES (?,?,?,?,?)`,
-    [1, '锐视传媒', '企业版', 4500, lastMonth]);
+    [1, 'Nova Media', 'Enterprise', 2500, lastMonth]);
   db.run(`INSERT OR IGNORE INTO client_subscription_ledger (client_id, client_name, plan_tier, amount, ledger_month) VALUES (?,?,?,?,?)`,
-    [2, '万象设计', '专业版', 2500, lastMonth]);
+    [2, 'Atlas Architecture', 'Professional', 1500, lastMonth]);
   db.run(`INSERT OR IGNORE INTO client_subscription_ledger (client_id, client_name, plan_tier, amount, ledger_month) VALUES (?,?,?,?,?)`,
-    [1, '锐视传媒', '企业版', 4500, m]);
+    [1, 'Nova Media', 'Enterprise', 2500, m]);
   db.run(`INSERT OR IGNORE INTO client_subscription_ledger (client_id, client_name, plan_tier, amount, ledger_month) VALUES (?,?,?,?,?)`,
-    [2, '万象设计', '专业版', 2500, m]);
+    [2, 'Atlas Architecture', 'Professional', 1500, m]);
 
-  // ── Activity Log (recent actions — show timeline) ──
+  // ── Activity Log (tell a story of recent work) ──
   const mins = (n: number) => new Date(now.getTime() - n * 60000).toISOString();
   db.run(`INSERT INTO activity_log (entity_type, action, title, detail, created_at) VALUES (?,?,?,?,?)`,
-    ['task', 'completed', '完成任务：锐视传媒 3月交付物归档', '', mins(30)]);
+    ['task', 'completed', '完成任务：归档Nova Media 3月交付物', '', mins(30)]);
   db.run(`INSERT INTO activity_log (entity_type, action, title, detail, created_at) VALUES (?,?,?,?,?)`,
-    ['lead', 'updated', '更新线索：海蓝科技', '阶段变更：contacted → proposal', mins(120)]);
+    ['lead', 'updated', '线索推进：OceanBlu Tech', '阶段变更：contacted → proposal', mins(90)]);
   db.run(`INSERT INTO activity_log (entity_type, action, title, detail, created_at) VALUES (?,?,?,?,?)`,
-    ['finance', 'created', '记录收入：原木工坊品牌诊断 $1,500', '', mins(240)]);
+    ['finance', 'created', '收到付款：Timber & Co产品画册首付款 $2,400', '', mins(180)]);
   db.run(`INSERT INTO activity_log (entity_type, action, title, detail, created_at) VALUES (?,?,?,?,?)`,
-    ['client', 'created', '新增客户：青柠工作室', '项目制客户 · 官网设计', mins(1440)]);
+    ['client', 'created', '新增客户：Timber & Co', '项目制 · 产品画册 $6,000', mins(300)]);
   db.run(`INSERT INTO activity_log (entity_type, action, title, detail, created_at) VALUES (?,?,?,?,?)`,
-    ['lead', 'created', '新增线索：绿野咖啡', '来源：小红书私信', mins(2880)]);
+    ['finance', 'created', '收到付款：Timber & Co品牌诊断咨询 $800', '', mins(600)]);
+  db.run(`INSERT INTO activity_log (entity_type, action, title, detail, created_at) VALUES (?,?,?,?,?)`,
+    ['lead', 'created', '新增线索：Harvest Organics', '来源：Google搜索', mins(1440)]);
+  db.run(`INSERT INTO activity_log (entity_type, action, title, detail, created_at) VALUES (?,?,?,?,?)`,
+    ['lead', 'created', '新增线索：Greenfield Coffee', '来源：Instagram DM', mins(2880)]);
 }
 
 // ── Bulk sync helpers ──────────────────────────────────────────────────────
@@ -649,7 +735,7 @@ export async function initDb(): Promise<void> {
 
 function getFinanceRows(db: Database): DbRow[] {
   // Single table query — matches online supabase-api.ts behavior
-  return all(db, 'SELECT * FROM finance_transactions ORDER BY date DESC, id DESC');
+  return all(db, 'SELECT * FROM finance_transactions WHERE soft_deleted=0 ORDER BY date DESC, id DESC');
 }
 
 // ── Route handler ──────────────────────────────────────────────────────────
@@ -669,14 +755,14 @@ export async function handleApiRequest(
 
   // ── LEADS ──────────────────────────────────────────────────────────────
   if (path === '/api/leads' && method === 'GET') {
-    return ok(all(db, 'SELECT * FROM leads ORDER BY created_at DESC'));
+    return ok(all(db, 'SELECT * FROM leads WHERE soft_deleted=0 ORDER BY created_at DESC'));
   }
 
   if (path === '/api/leads' && method === 'POST') {
     const { name, industry, needs, website, column, aiDraft, source } = body;
     const res = run(db, `INSERT INTO leads (name, industry, needs, website, column, aiDraft, source)
       VALUES (?,?,?,?,?,?,?)`,
-      [name||'', industry||'', needs||'', website||'', column||'new', aiDraft||'', source||'']);
+      [str(name, 255), str(industry, 100), str(needs, 2000), str(website, 2048), enumVal(column, VALID_LEAD_COLUMNS, 'new'), str(aiDraft, 5000), str(source, 100)]);
     logActivity(db, 'lead', 'created', `新增线索：${name||'未命名线索'}`, source ? `来源：${source}` : '', res.lastInsertRowid);
     dirty = true;
     await saveDb();
@@ -690,10 +776,13 @@ export async function handleApiRequest(
       const prev = get(db, 'SELECT name, column FROM leads WHERE id=?', [id]) as DbRow;
       const sets: string[] = [];
       const vals: unknown[] = [];
-      const fieldMap: Record<string, string> = { name: 'name', industry: 'industry', needs: 'needs', website: 'website', column: 'column', aiDraft: 'aiDraft', source: 'source' };
-      for (const [key, col] of Object.entries(fieldMap)) {
-        if (body[key] !== undefined) { sets.push(`${col}=?`); vals.push(body[key]); }
-      }
+      if (body.name !== undefined) { sets.push('name=?'); vals.push(str(body.name, 255)); }
+      if (body.industry !== undefined) { sets.push('industry=?'); vals.push(str(body.industry, 100)); }
+      if (body.needs !== undefined) { sets.push('needs=?'); vals.push(str(body.needs, 2000)); }
+      if (body.website !== undefined) { sets.push('website=?'); vals.push(str(body.website, 2048)); }
+      if (body.column !== undefined) { sets.push('"column"=?'); vals.push(enumVal(body.column, VALID_LEAD_COLUMNS, 'new')); }
+      if (body.aiDraft !== undefined) { sets.push('aiDraft=?'); vals.push(str(body.aiDraft, 5000)); }
+      if (body.source !== undefined) { sets.push('source=?'); vals.push(str(body.source, 100)); }
       if (sets.length > 0) {
         vals.push(id);
         run(db, `UPDATE leads SET ${sets.join(',')} WHERE id=?`, vals);
@@ -741,7 +830,7 @@ export async function handleApiRequest(
   if (path === '/api/clients' && method === 'GET') {
     syncClientSubscriptionLedger(db);
     const currentYear = new Date().getFullYear();
-    const clients = all(db, 'SELECT * FROM clients ORDER BY joined_at DESC');
+    const clients = all(db, 'SELECT * FROM clients WHERE soft_deleted=0 ORDER BY joined_at DESC');
     const ledger = all(db, 'SELECT client_id, amount, ledger_month FROM client_subscription_ledger');
     const rows = clients.map((client) => {
       const cl = ledger.filter((r) => Number(r.client_id) === Number(client.id));
@@ -903,7 +992,7 @@ export async function handleApiRequest(
     const clientId = milestoneListMatch[1];
     if (method === 'GET') {
       const today = todayDateKey();
-      const rows = all(db, 'SELECT * FROM payment_milestones WHERE client_id=? ORDER BY sort_order ASC, created_at ASC', [clientId]);
+      const rows = all(db, 'SELECT * FROM payment_milestones WHERE client_id=? AND soft_deleted=0 ORDER BY sort_order ASC, created_at ASC', [clientId]);
       const result = rows.map((m) => ({
         ...m,
         status: m.status === 'pending' && m.due_date && String(m.due_date) < today ? 'overdue' : m.status,
@@ -1054,7 +1143,7 @@ export async function handleApiRequest(
 
   // ── TASKS ──────────────────────────────────────────────────────────────
   if (path === '/api/tasks' && method === 'GET') {
-    return ok(all(db, 'SELECT * FROM tasks ORDER BY created_at DESC'));
+    return ok(all(db, 'SELECT * FROM tasks WHERE soft_deleted=0 ORDER BY created_at DESC'));
   }
 
   if (path === '/api/tasks' && method === 'POST') {
@@ -1111,7 +1200,7 @@ export async function handleApiRequest(
   // ── PLANS ──────────────────────────────────────────────────────────────
   if (path === '/api/plans' && method === 'GET') {
     const planClientCounts = all(db,
-      `SELECT plan_tier, COUNT(*) as count FROM clients WHERE status='Active' GROUP BY plan_tier`);
+      `SELECT plan_tier, COUNT(*) as count FROM clients WHERE status='Active' AND soft_deleted=0 GROUP BY plan_tier`);
     const countMap = new Map<string, number>();
     for (const r of planClientCounts) countMap.set(r.plan_tier||'', Number(r.count||0));
 
@@ -1120,7 +1209,7 @@ export async function handleApiRequest(
       '专业版': ['专业版','Pro','pro','Professional','professional'],
       '企业版': ['企业版','Enterprise','enterprise'],
     };
-    const plans = all(db, 'SELECT * FROM plans').map((p) => {
+    const plans = all(db, 'SELECT * FROM plans WHERE soft_deleted=0').map((p) => {
       const al = aliases[p.name as string] || [p.name];
       const clients = al.reduce((s, a) => s + (countMap.get(a) || 0), 0);
       return { ...p, features: JSON.parse(p.features as string), clients };
@@ -1193,6 +1282,33 @@ export async function handleApiRequest(
       `${type==='income'?'+':'-'}$${Number(amount||0).toLocaleString()} · ${category||'未分类'}`, res.lastInsertRowid);
     await saveDb();
     return ok({ id: res.lastInsertRowid });
+  }
+
+  // ── Confirm / Undo receipt for subscription transactions ──
+  const confirmReceiptMatch = path.match(/^\/api\/finance\/(\d+)\/confirm-receipt$/);
+  if (confirmReceiptMatch && method === 'POST') {
+    const id = Number(confirmReceiptMatch[1]);
+    const txRow = get(db, 'SELECT source, status, description FROM finance_transactions WHERE id=?', [id]) as DbRow;
+    if (!txRow) return err(404, 'Transaction not found');
+    if (txRow.source !== 'subscription') return err(400, 'Only subscription transactions can use confirm-receipt');
+    if (txRow.status === '已完成') return err(400, 'Already confirmed');
+    run(db, `UPDATE finance_transactions SET status='已完成' WHERE id=?`, [id]);
+    logActivity(db, 'finance', 'updated', `确认收款：${txRow.description || '未命名交易'}`, '', id);
+    await saveDb();
+    return ok({ success: true });
+  }
+
+  const undoReceiptMatch = path.match(/^\/api\/finance\/(\d+)\/undo-receipt$/);
+  if (undoReceiptMatch && method === 'POST') {
+    const id = Number(undoReceiptMatch[1]);
+    const txRow = get(db, 'SELECT source, status, description FROM finance_transactions WHERE id=?', [id]) as DbRow;
+    if (!txRow) return err(404, 'Transaction not found');
+    if (txRow.source !== 'subscription') return err(400, 'Only subscription transactions can use undo-receipt');
+    if (txRow.status !== '已完成') return err(400, 'Not confirmed yet');
+    run(db, `UPDATE finance_transactions SET status='待收款 (应收)' WHERE id=?`, [id]);
+    logActivity(db, 'finance', 'updated', `撤销确认：${txRow.description || '未命名交易'}`, '', id);
+    await saveDb();
+    return ok({ success: true });
   }
 
   const financeMatch = path.match(/^\/api\/finance\/(\d+)$/);
@@ -1318,15 +1434,15 @@ export async function handleApiRequest(
   // ── DASHBOARD ──────────────────────────────────────────────────────────
   if (path === '/api/dashboard' && method === 'GET') {
     syncClientSubscriptionLedger(db);
-    const clientsCount = Number(get(db, `SELECT COUNT(*) as c FROM clients WHERE status='Active'`)?.c || 0);
+    const clientsCount = Number(get(db, `SELECT COUNT(*) as c FROM clients WHERE status='Active' AND soft_deleted=0`)?.c || 0);
     // Derive MRR from ledger for current month (accurate with proration), fallback to static field
     const cm = currentMonth();
     const ledgerMrr = get(db, `SELECT SUM(amount) as s FROM client_subscription_ledger WHERE ledger_month=?`, [cm]);
-    const mrr = Number(ledgerMrr?.s || 0) || Number(get(db, `SELECT SUM(mrr) as s FROM clients WHERE status='Active'`)?.s || 0);
-    const activeTasks = Number(get(db, `SELECT COUNT(*) as c FROM tasks WHERE column != 'done'`)?.c || 0);
-    const workTasks = Number(get(db, `SELECT COUNT(*) as c FROM tasks WHERE column != 'done' AND (scope IS NULL OR scope != 'personal') AND (priority IS NULL OR priority IN ('High','Medium'))`)?.c || 0);
-    const personalTasks = Number(get(db, `SELECT COUNT(*) as c FROM tasks WHERE column != 'done' AND scope = 'personal'`)?.c || 0);
-    const leadsCount = Number(get(db, `SELECT COUNT(*) as c FROM leads`)?.c || 0);
+    const mrr = Number(ledgerMrr?.s || 0) || Number(get(db, `SELECT SUM(mrr) as s FROM clients WHERE status='Active' AND soft_deleted=0`)?.s || 0);
+    const activeTasks = Number(get(db, `SELECT COUNT(*) as c FROM tasks WHERE "column" != 'done' AND soft_deleted=0`)?.c || 0);
+    const workTasks = Number(get(db, `SELECT COUNT(*) as c FROM tasks WHERE "column" != 'done' AND soft_deleted=0 AND (scope IS NULL OR scope != 'personal') AND (priority IS NULL OR priority IN ('High','Medium'))`)?.c || 0);
+    const personalTasks = Number(get(db, `SELECT COUNT(*) as c FROM tasks WHERE "column" != 'done' AND soft_deleted=0 AND scope = 'personal'`)?.c || 0);
+    const leadsCount = Number(get(db, `SELECT COUNT(*) as c FROM leads WHERE soft_deleted=0`)?.c || 0);
 
     const ledgerSeries = all(db,
       `SELECT ledger_month, SUM(amount) as total FROM client_subscription_ledger GROUP BY ledger_month ORDER BY ledger_month ASC`);
@@ -1342,7 +1458,7 @@ export async function handleApiRequest(
     // Current month's income from finance_transactions
     const currentMonthStr = `${currentYear}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
     const monthlyIncomeRow = get(db,
-      `SELECT COALESCE(SUM(amount), 0) as total FROM finance_transactions WHERE type='income' AND status='已完成' AND date LIKE ?`,
+      `SELECT COALESCE(SUM(amount), 0) as total FROM finance_transactions WHERE type='income' AND status='已完成' AND soft_deleted=0 AND date LIKE ?`,
       [`${currentMonthStr}%`]);
     const monthlyIncome = Number((monthlyIncomeRow as Record<string, unknown>)?.total || 0);
 
@@ -1356,10 +1472,10 @@ export async function handleApiRequest(
 
     const allReceivables = getFinanceRows(db).filter((t: DbRow) => String(t.status||'').includes('应收'));
     const bestLead = get(db,
-      `SELECT id, name, industry, needs, column FROM leads WHERE column IN ('proposal','contacted','new')
+      `SELECT id, name, industry, needs, column FROM leads WHERE soft_deleted=0 AND column IN ('proposal','contacted','new')
        ORDER BY CASE column WHEN 'proposal' THEN 1 WHEN 'contacted' THEN 2 ELSE 3 END, id DESC LIMIT 1`) as DbRow;
     const urgentTask = get(db,
-      `SELECT id, title, client, priority, due, column, scope FROM tasks WHERE column != 'done' AND (scope IS NULL OR (scope != 'personal' AND scope != 'work-memo'))
+      `SELECT id, title, client, priority, due, column, scope FROM tasks WHERE soft_deleted=0 AND "column" != 'done' AND (scope IS NULL OR (scope != 'personal' AND scope != 'work-memo'))
        ORDER BY CASE WHEN due != '' AND due <= ? THEN 0 ELSE 1 END,
        CASE priority WHEN 'High' THEN 1 WHEN 'Medium' THEN 2 ELSE 3 END,
        COALESCE(NULLIF(due,''),'9999-12-31') ASC, id DESC LIMIT 1`, [todayDateKey()]) as DbRow;
@@ -1392,14 +1508,14 @@ export async function handleApiRequest(
     }
     const dueWorkTaskRows = all(db,
       `SELECT id, title, client, priority, due, scope FROM tasks
-       WHERE column != 'done' AND (scope IS NULL OR (scope != 'personal' AND scope != 'work-memo'))
+       WHERE soft_deleted=0 AND "column" != 'done' AND (scope IS NULL OR (scope != 'personal' AND scope != 'work-memo'))
        AND due != '' AND SUBSTR(due, 1, 10) <= ?
        ORDER BY SUBSTR(due, 1, 10) ASC,
        CASE priority WHEN 'High' THEN 1 WHEN 'Medium' THEN 2 ELSE 3 END
        LIMIT 5`, [todayKey]);
     const dueMemoRows = all(db,
       `SELECT id, title, due, scope FROM tasks
-       WHERE column != 'done' AND scope IN ('work-memo', 'personal')
+       WHERE soft_deleted=0 AND "column" != 'done' AND scope IN ('work-memo', 'personal')
        AND due != '' AND SUBSTR(due, 1, 10) <= ?
        ORDER BY SUBSTR(due, 1, 10) ASC LIMIT 3`, [todayKey]);
     const dueTodayItems = [
@@ -1475,9 +1591,9 @@ export async function handleApiRequest(
     const income = weekTx.filter((t: DbRow) => t.type === 'income').reduce((s: number, t: DbRow) => s + Number(t.amount || 0), 0);
     const expenses = Math.abs(weekTx.filter((t: DbRow) => t.type === 'expense').reduce((s: number, t: DbRow) => s + Number(t.amount || 0), 0));
 
-    const tasksCompleted = Number(get(db, `SELECT COUNT(*) as c FROM tasks WHERE column='done'`)?.c || 0);
-    const newClients = Number(get(db, `SELECT COUNT(*) as c FROM clients WHERE created_at >= ? AND created_at <= ?`, [`${weekStart}T00:00:00`, `${weekEnd}T23:59:59`])?.c || 0);
-    const newLeads = Number(get(db, `SELECT COUNT(*) as c FROM leads WHERE created_at >= ? AND created_at <= ?`, [`${weekStart}T00:00:00`, `${weekEnd}T23:59:59`])?.c || 0);
+    const tasksCompleted = Number(get(db, `SELECT COUNT(*) as c FROM tasks WHERE "column"='done' AND soft_deleted=0`)?.c || 0);
+    const newClients = Number(get(db, `SELECT COUNT(*) as c FROM clients WHERE soft_deleted=0 AND created_at >= ? AND created_at <= ?`, [`${weekStart}T00:00:00`, `${weekEnd}T23:59:59`])?.c || 0);
+    const newLeads = Number(get(db, `SELECT COUNT(*) as c FROM leads WHERE soft_deleted=0 AND created_at >= ? AND created_at <= ?`, [`${weekStart}T00:00:00`, `${weekEnd}T23:59:59`])?.c || 0);
 
     const activities = all(db,
       `SELECT title, detail, created_at as time, entity_type as type, action
@@ -1496,6 +1612,134 @@ export async function handleApiRequest(
       newLeads,
       activities,
     });
+  }
+
+  // ── AI AGENTS ─────────────────────────────────────────────────────
+  if (path === '/api/agents' && method === 'GET') {
+    const rows = all(db, `SELECT * FROM ai_agents WHERE soft_deleted=0 ORDER BY sort_order ASC, created_at ASC`);
+    // Parse JSON fields
+    return ok(rows.map((r: DbRow) => ({
+      ...r,
+      is_default: !!r.is_default,
+      tools: safeJsonParse(r.tools, []),
+      conversation_starters: safeJsonParse(r.conversation_starters, []),
+    })));
+  }
+
+  if (path === '/api/agents' && method === 'POST') {
+    const { name, avatar, role, personality, rules, tools, conversation_starters, template_id, is_default, sort_order } = body;
+    if (!name || !String(name).trim()) return err(400, 'name is required');
+    const res = run(db,
+      `INSERT INTO ai_agents (name, avatar, role, personality, rules, tools, conversation_starters, template_id, is_default, sort_order)
+       VALUES (?,?,?,?,?,?,?,?,?,?)`,
+      [
+        str(name, 100), str(avatar || '', 10), str(role || '', 2000),
+        str(personality || '', 2000), str(rules || '', 2000),
+        JSON.stringify(Array.isArray(tools) ? tools : []),
+        JSON.stringify(Array.isArray(conversation_starters) ? conversation_starters : []),
+        str(template_id || '', 50), is_default ? 1 : 0, Number(sort_order) || 0,
+      ]);
+    logActivity(db, 'ai_agent', 'created', `创建 Agent：${String(name).trim()}`, '', res.lastInsertRowid);
+    dirty = true;
+    await saveDb();
+    return ok({ id: res.lastInsertRowid, success: true });
+  }
+
+  const agentMatch = path.match(/^\/api\/agents\/(\d+)$/);
+  if (agentMatch && method === 'PUT') {
+    const id = agentMatch[1];
+    const patch: string[] = [];
+    const vals: unknown[] = [];
+    if (body.name !== undefined) { patch.push('name=?'); vals.push(str(body.name, 100)); }
+    if (body.avatar !== undefined) { patch.push('avatar=?'); vals.push(str(body.avatar, 10)); }
+    if (body.role !== undefined) { patch.push('role=?'); vals.push(str(body.role, 2000)); }
+    if (body.personality !== undefined) { patch.push('personality=?'); vals.push(str(body.personality, 2000)); }
+    if (body.rules !== undefined) { patch.push('rules=?'); vals.push(str(body.rules, 2000)); }
+    if (body.tools !== undefined) { patch.push('tools=?'); vals.push(JSON.stringify(Array.isArray(body.tools) ? body.tools : [])); }
+    if (body.conversation_starters !== undefined) { patch.push('conversation_starters=?'); vals.push(JSON.stringify(Array.isArray(body.conversation_starters) ? body.conversation_starters : [])); }
+    if (body.template_id !== undefined) { patch.push('template_id=?'); vals.push(str(body.template_id, 50)); }
+    if (body.is_default !== undefined) { patch.push('is_default=?'); vals.push(body.is_default ? 1 : 0); }
+    if (body.sort_order !== undefined) { patch.push('sort_order=?'); vals.push(Number(body.sort_order) || 0); }
+    if (patch.length === 0) return ok({ success: true });
+    patch.push('updated_at=CURRENT_TIMESTAMP');
+    vals.push(id);
+    run(db, `UPDATE ai_agents SET ${patch.join(',')} WHERE id=?`, vals);
+    logActivity(db, 'ai_agent', 'updated', `更新 Agent：${body.name || ''}`, '', id);
+    dirty = true;
+    await saveDb();
+    return ok({ success: true });
+  }
+
+  if (agentMatch && method === 'DELETE') {
+    const id = agentMatch[1];
+    const prev = get(db, 'SELECT name FROM ai_agents WHERE id=?', [id]) as DbRow;
+    run(db, 'UPDATE ai_agents SET soft_deleted=1, updated_at=CURRENT_TIMESTAMP WHERE id=?', [id]);
+    logActivity(db, 'ai_agent', 'deleted', `删除 Agent：${prev?.name || ''}`, '', id);
+    dirty = true;
+    await saveDb();
+    return ok({ success: true });
+  }
+
+  // ── AI CONVERSATIONS ──────────────────────────────────────────────
+  if (path === '/api/conversations' && method === 'GET') {
+    const rows = all(db, `SELECT * FROM ai_conversations WHERE soft_deleted=0 ORDER BY updated_at DESC`);
+    return ok(rows.map((r: DbRow) => ({
+      ...r,
+      agent_ids: safeJsonParse(r.agent_ids, []),
+      messages: safeJsonParse(r.messages, []),
+    })));
+  }
+
+  if (path === '/api/conversations' && method === 'POST') {
+    const { id, title, agent_id, agent_ids, messages } = body;
+    if (!id) return err(400, 'id is required');
+    run(db,
+      `INSERT OR IGNORE INTO ai_conversations (id, title, agent_id, agent_ids, messages)
+       VALUES (?,?,?,?,?)`,
+      [
+        String(id),
+        str(title || '', 200),
+        agent_id != null ? Number(agent_id) : null,
+        JSON.stringify(Array.isArray(agent_ids) ? agent_ids : []),
+        JSON.stringify(Array.isArray(messages) ? messages : []),
+      ]);
+    dirty = true;
+    await saveDb();
+    return ok({ id, success: true });
+  }
+
+  const convMatch = path.match(/^\/api\/conversations\/(.+)$/);
+  if (convMatch && method === 'PUT') {
+    const id = convMatch[1];
+    const patch: string[] = [];
+    const vals: unknown[] = [];
+    if (body.title !== undefined) { patch.push('title=?'); vals.push(str(body.title, 200)); }
+    if (body.agent_id !== undefined) { patch.push('agent_id=?'); vals.push(body.agent_id != null ? Number(body.agent_id) : null); }
+    if (body.agent_ids !== undefined) { patch.push('agent_ids=?'); vals.push(JSON.stringify(Array.isArray(body.agent_ids) ? body.agent_ids : [])); }
+    if (body.messages !== undefined) {
+      const msgs = Array.isArray(body.messages) ? body.messages.slice(-100) : [];
+      const sanitized = msgs.map((m: Record<string, unknown>) => ({
+        role: m.role, content: String(m.content || '').slice(0, 50_000),
+        ...(m.agentId != null ? { agentId: m.agentId } : {}),
+        ...(m.timestamp ? { timestamp: m.timestamp } : {}),
+      }));
+      patch.push('messages=?'); vals.push(JSON.stringify(sanitized));
+    }
+    if (patch.length === 0) return ok({ success: true });
+    patch.push('updated_at=CURRENT_TIMESTAMP');
+    vals.push(id);
+    run(db, `UPDATE ai_conversations SET ${patch.join(',')} WHERE id=?`, vals);
+    dirty = true;
+    await saveDb();
+    return ok({ success: true });
+  }
+
+  if (convMatch && method === 'DELETE') {
+    const id = convMatch[1];
+    run(db, 'UPDATE ai_conversations SET soft_deleted=1, updated_at=CURRENT_TIMESTAMP WHERE id=?', [id]);
+    dirty = true;
+    await saveDb();
+    return ok({ success: true });
   }
 
   // ── SETTINGS ────────────────────────────────────────────────────────

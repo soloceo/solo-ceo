@@ -76,4 +76,12 @@ export const common = {
   "ai.chat.welcome": "你好，有什么可以帮你的？\n可以问我业务数据、任务进展、客户情况等。",
   "ai.chat.noProvider": "请先在设置中链接一个 AI 服务。",
   "ai.chat.error": "请求失败，请稍后重试。",
+  "ai.chat.conversations": "对话记录",
+  "ai.chat.newChat": "新对话",
+  "ai.chat.noConversations": "还没有对话",
+  "ai.chat.defaultAssistant": "默认助手",
+  "ai.chat.members": "成员",
+  "ai.chat.isTyping": "正在输入",
+  "ai.chat.msgs": "条消息",
+  "ai.chat.yesterday": "昨天",
 };

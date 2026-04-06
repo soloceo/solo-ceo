@@ -18,6 +18,8 @@ const TABLE_API_PATH: Record<string, string> = {
   today_focus_state: '/api/today-focus',
   today_focus_manual: '/api/today-focus',
   client_projects: '/api/clients',
+  ai_agents: '/api/agents',
+  ai_conversations: '/api/conversations',
 };
 
 const REALTIME_TABLES = [
@@ -25,6 +27,8 @@ const REALTIME_TABLES = [
   'finance_transactions', 'payment_milestones',
   'today_focus_state', 'today_focus_manual',
   'client_projects',
+  'ai_agents',
+  'ai_conversations',
 ] as const;
 
 let channel: RealtimeChannel | null = null;

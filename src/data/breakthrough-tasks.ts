@@ -55,7 +55,7 @@ export const PHASES: Phase[] = [
       { id: "p2-clinic", title: { zh: "品牌急诊室系列：每周免费诊断1个品牌", en: "Brand Clinic series: free brand diagnosis 1x per week" }, freq: "weekly" },
       { id: "p2-community", title: { zh: "加入本地商业社群（BNI/Chamber of Commerce）", en: "Join local business communities (BNI/Chamber of Commerce)" }, freq: "once" },
       { id: "p2-network", title: { zh: "参加networking活动（每周至少1次）", en: "Attend networking events (at least 1x per week)" }, freq: "weekly" },
-      { id: "p2-xiaohongshu", title: { zh: "小红书/微信发内容（华人市场触达）", en: "Post on Xiaohongshu/WeChat (Chinese market reach)" }, freq: "daily" },
+      { id: "p2-xiaohongshu", title: { zh: "Instagram/LinkedIn发内容（北美市场触达）", en: "Post on Instagram/LinkedIn (North American market reach)" }, freq: "daily" },
       { id: "p2-position", title: { zh: "确定个人定位：订阅制设计合作伙伴", en: "Establish positioning: subscription design partner" }, freq: "once" },
       { id: "p2-partner", title: { zh: "联系互补服务商（开发/营销/摄影）", en: "Connect with complementary service providers (dev/marketing/photo)" }, freq: "weekly" },
       { id: "p2-pitch", title: { zh: "练习30秒订阅制服务pitch", en: "Practice 30-second subscription service pitch" }, freq: "daily" },

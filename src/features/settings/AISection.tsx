@@ -94,7 +94,7 @@ export default function AISection({ settings, save }: AISectionProps) {
   };
 
   return (
-    <section>
+    <section id="settings-ai">
       <h3 className="section-label mb-3">{t("settings.ai")}</h3>
       <div className="card overflow-hidden divide-y divide-[var(--color-line-secondary)]">
         {/* ── Cloud providers ── */}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Upload, Trash2, Save, User } from 'lucide-react';
+import { Camera, Trash2, Save, User, Upload } from 'lucide-react';
 import { useT } from '../../i18n/context';
 
 interface ProfileSectionProps {
@@ -26,7 +26,8 @@ export default function ProfileSection({
 
         {/* Row 1: Avatar + Name */}
         <div className="flex items-center gap-4">
-          <div className="relative shrink-0">
+          {/* Avatar with camera overlay */}
+          <label className="relative shrink-0 cursor-pointer group" title={t("settings.uploadAvatar")}>
             <div
               className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full text-base"
               style={{
@@ -40,7 +41,14 @@ export default function ProfileSection({
                 : <User size={20} />
               }
             </div>
-          </div>
+            <div
+              className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full"
+              style={{ background: 'var(--color-accent)', color: 'var(--color-brand-text)' }}
+            >
+              <Camera size={10} />
+            </div>
+            <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+          </label>
           <input
             type="text"
             value={operatorName}
@@ -49,18 +57,11 @@ export default function ProfileSection({
             className="input-base flex-1 px-3 py-2 text-[15px]"
             style={{ fontWeight: 'var(--font-weight-semibold)' } as React.CSSProperties}
           />
-          <div className="flex items-center gap-1 shrink-0">
-            <label className="btn-ghost compact cursor-pointer" style={{ color: 'var(--color-accent)' }} title={t("settings.uploadAvatar")}>
-              <Upload size={16} />
-              <span className="max-lg:hidden">{t("settings.uploadAvatar")}</span>
-              <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
-            </label>
-            {operatorAvatar && (
-              <button type="button" onClick={clearAvatar} className="btn-ghost compact" style={{ color: 'var(--color-danger)' }} title={t("settings.deleteAvatar") || "Delete"}>
-                <Trash2 size={16} />
-              </button>
-            )}
-          </div>
+          {operatorAvatar && (
+            <button type="button" onClick={clearAvatar} className="btn-ghost compact shrink-0" style={{ color: 'var(--color-danger)' }} title={t("settings.deleteAvatar") || "Delete"}>
+              <Trash2 size={14} />
+            </button>
+          )}
         </div>
 
         {/* Title & Company */}

@@ -9,11 +9,11 @@ import { useSettingsStore } from '../store/useSettingsStore';
 /** Get the configured timezone (safe to call outside React) */
 function tz(): string {
   try {
-    return useSettingsStore.getState().timezone || 'Asia/Shanghai';
+    return useSettingsStore.getState().timezone || 'America/Toronto';
   } catch {
     return typeof Intl !== 'undefined'
       ? Intl.DateTimeFormat().resolvedOptions().timeZone
-      : 'Asia/Shanghai';
+      : 'America/Toronto';
   }
 }
 

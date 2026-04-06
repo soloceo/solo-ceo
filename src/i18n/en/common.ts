@@ -76,4 +76,12 @@ export const common = {
   "ai.chat.welcome": "Hi, how can I help?\nAsk me about your business data, tasks, clients, and more.",
   "ai.chat.noProvider": "Please connect an AI provider in Settings first.",
   "ai.chat.error": "Request failed. Please try again.",
+  "ai.chat.conversations": "Conversations",
+  "ai.chat.newChat": "New chat",
+  "ai.chat.noConversations": "No conversations yet",
+  "ai.chat.defaultAssistant": "Default",
+  "ai.chat.members": "Members",
+  "ai.chat.isTyping": "is typing",
+  "ai.chat.msgs": "msgs",
+  "ai.chat.yesterday": "Yesterday",
 };

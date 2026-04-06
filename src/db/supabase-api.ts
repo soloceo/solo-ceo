@@ -153,6 +153,12 @@ function normalizePlanTier(t: string): string {
   return t;
 }
 
+function safeJson<T>(val: unknown, fallback: T): T {
+  if (Array.isArray(val)) return val as T;
+  if (typeof val !== 'string') return fallback;
+  try { return JSON.parse(val) as T; } catch { return fallback; }
+}
+
 async function logActivity(
   userId: string,
   entityType: string,
@@ -1508,6 +1514,139 @@ export async function handleSupabaseRequest(
         );
       if (ue) return err(500, ue.message);
     }
+    return ok({ success: true });
+  }
+
+  // ── AI AGENTS ───────────────────────────────────────────────────
+  if (path === '/api/agents' && method === 'GET') {
+    const { data } = await supabase
+      .from('ai_agents')
+      .select('id, name, avatar, role, personality, rules, tools, conversation_starters, template_id, is_default, sort_order, created_at, updated_at')
+      .eq('user_id', userId)
+      .eq('soft_deleted', false)
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: true });
+    // Parse JSON text fields
+    const parsed = (data || []).map((r) => ({
+      ...r,
+      tools: safeJson(r.tools, []),
+      conversation_starters: safeJson(r.conversation_starters, []),
+    }));
+    return ok(parsed);
+  }
+
+  if (path === '/api/agents' && method === 'POST') {
+    const { name, avatar, role, personality, rules, tools, conversation_starters, template_id, is_default, sort_order } = body;
+    if (!name || !String(name).trim()) return err(400, 'name is required');
+    const { data, error: e } = await supabase
+      .from('ai_agents')
+      .insert({
+        user_id: userId,
+        name: str(name, 100),
+        avatar: str(avatar || '', 10),
+        role: str(role || '', 2000),
+        personality: str(personality || '', 2000),
+        rules: str(rules || '', 2000),
+        tools: JSON.stringify(Array.isArray(tools) ? tools : []),
+        conversation_starters: JSON.stringify(Array.isArray(conversation_starters) ? conversation_starters : []),
+        template_id: str(template_id || '', 50),
+        is_default: !!is_default,
+        sort_order: Number(sort_order) || 0,
+      })
+      .select('id')
+      .single();
+    if (e) return err(500, e.message);
+    await logActivity(userId, 'ai_agent', 'created', `创建 Agent：${String(name).trim()}`, '', data!.id);
+    return ok({ id: data!.id, success: true });
+  }
+
+  const agentMatch = path.match(/^\/api\/agents\/(\d+)$/);
+  if (agentMatch && method === 'PUT') {
+    const id = Number(agentMatch[1]);
+    const patch: Record<string, unknown> = {};
+    if (body.name !== undefined) patch.name = str(body.name, 100);
+    if (body.avatar !== undefined) patch.avatar = str(body.avatar, 10);
+    if (body.role !== undefined) patch.role = str(body.role, 2000);
+    if (body.personality !== undefined) patch.personality = str(body.personality, 2000);
+    if (body.rules !== undefined) patch.rules = str(body.rules, 2000);
+    if (body.tools !== undefined) patch.tools = JSON.stringify(Array.isArray(body.tools) ? body.tools : []);
+    if (body.conversation_starters !== undefined) patch.conversation_starters = JSON.stringify(Array.isArray(body.conversation_starters) ? body.conversation_starters : []);
+    if (body.template_id !== undefined) patch.template_id = str(body.template_id, 50);
+    if (body.is_default !== undefined) patch.is_default = !!body.is_default;
+    if (body.sort_order !== undefined) patch.sort_order = Number(body.sort_order) || 0;
+    if (Object.keys(patch).length === 0) return ok({ success: true });
+    const { error: e } = await supabase.from('ai_agents').update(patch).eq('id', id).eq('user_id', userId);
+    if (e) return err(500, e.message);
+    await logActivity(userId, 'ai_agent', 'updated', `更新 Agent：${body.name || ''}`, '', id);
+    return ok({ success: true });
+  }
+
+  if (agentMatch && method === 'DELETE') {
+    const id = Number(agentMatch[1]);
+    const { data: prev } = await supabase.from('ai_agents').select('name').eq('id', id).eq('user_id', userId).single();
+    await supabase.from('ai_agents').update({ soft_deleted: true }).eq('id', id).eq('user_id', userId);
+    await logActivity(userId, 'ai_agent', 'deleted', `删除 Agent：${prev?.name || ''}`, '', id);
+    return ok({ success: true });
+  }
+
+  // ── AI CONVERSATIONS ──────────────────────────────────────────────
+  if (path === '/api/conversations' && method === 'GET') {
+    const { data } = await supabase
+      .from('ai_conversations')
+      .select('id, title, agent_id, agent_ids, messages, created_at, updated_at')
+      .eq('user_id', userId)
+      .eq('soft_deleted', false)
+      .order('updated_at', { ascending: false });
+    const parsed = (data || []).map((r) => ({
+      ...r,
+      agent_ids: safeJson(r.agent_ids, []),
+      messages: safeJson(r.messages, []),
+    }));
+    return ok(parsed);
+  }
+
+  if (path === '/api/conversations' && method === 'POST') {
+    const { id, title, agent_id, agent_ids, messages } = body;
+    if (!id) return err(400, 'id is required');
+    const { error: e } = await supabase
+      .from('ai_conversations')
+      .insert({
+        id: String(id),
+        user_id: userId,
+        title: str(String(title || ''), 200),
+        agent_id: agent_id != null ? Number(agent_id) : null,
+        agent_ids: Array.isArray(agent_ids) ? agent_ids : [],
+        messages: Array.isArray(messages) ? messages : [],
+      });
+    if (e) return err(500, e.message);
+    return ok({ id, success: true });
+  }
+
+  const convMatch = path.match(/^\/api\/conversations\/(.+)$/);
+  if (convMatch && method === 'PUT') {
+    const id = convMatch[1];
+    const patch: Record<string, unknown> = {};
+    if (body.title !== undefined) patch.title = str(String(body.title), 200);
+    if (body.agent_id !== undefined) patch.agent_id = body.agent_id != null ? Number(body.agent_id) : null;
+    if (body.agent_ids !== undefined) patch.agent_ids = Array.isArray(body.agent_ids) ? body.agent_ids : [];
+    if (body.messages !== undefined) {
+      const msgs = Array.isArray(body.messages) ? body.messages.slice(-100) : [];
+      patch.messages = msgs.map((m: Record<string, unknown>) => ({
+        role: m.role, content: String(m.content || '').slice(0, 50_000),
+        ...(m.agentId != null ? { agentId: m.agentId } : {}),
+        ...(m.timestamp ? { timestamp: m.timestamp } : {}),
+      }));
+    }
+    patch.updated_at = new Date().toISOString();
+    if (Object.keys(patch).length <= 1) return ok({ success: true }); // only updated_at
+    const { error: e } = await supabase.from('ai_conversations').update(patch).eq('id', id).eq('user_id', userId);
+    if (e) return err(500, e.message);
+    return ok({ success: true });
+  }
+
+  if (convMatch && method === 'DELETE') {
+    const id = convMatch[1];
+    await supabase.from('ai_conversations').update({ soft_deleted: true }).eq('id', id).eq('user_id', userId);
     return ok({ success: true });
   }
 

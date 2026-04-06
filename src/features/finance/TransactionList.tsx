@@ -57,16 +57,18 @@ export const TxRow = React.memo(function TxRow({ tx, t, lang, fmtAmt, fmtAmtColo
 }) {
   const rawAmt = Number(tx.amount || 0);
   const tax = Math.abs(Number(tx.tax_amount || 0));
-  const isIncome = tx.type === "income" || rawAmt > 0;
+  const isIncome = tx.type === "income";
   const taxMode = tx.tax_mode || 'none';
   // Display logic:
   // - Income: always show pre-tax (amount), tax is collected for gov
   // - Expense exclusive: show amount + tax (total cash out)
   // - Expense inclusive: show amount as-is (tax already included)
   // - Expense none: show amount as-is
-  const amt = isIncome ? rawAmt
+  const absAmt = isIncome ? rawAmt
     : taxMode === 'exclusive' ? (rawAmt < 0 ? rawAmt - tax : rawAmt + tax)
     : rawAmt;
+  // Expenses display as negative so fmtAmt/fmtAmtColor show -$ in red
+  const amt = isIncome ? absAmt : -Math.abs(absAmt);
   const src = tx.source || 'manual';
   // Orphan: system tx whose client was deleted (client_id null but client_name present)
   const isOrphan = src !== 'manual' && !tx.client_id && !!tx.client_name;

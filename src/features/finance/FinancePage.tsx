@@ -209,7 +209,7 @@ export default function FinancePage() {
     for (const tx of tabTxs) {
       const amt = Math.abs(Number(tx.amount || 0));
       const tax = Math.abs(Number(tx.tax_amount || 0));
-      const isIncome = tx.type === "income" || Number(tx.amount || 0) > 0;
+      const isIncome = tx.type === "income";
       const txMode = tx.tax_mode || 'none';
 
       const expenseTotal = txMode === 'exclusive' ? amt + tax : amt;
@@ -271,7 +271,7 @@ export default function FinancePage() {
       if (tx.status === "待收款 (应收)" || tx.status === "待支付 (应付)") continue;
       const amt = Math.abs(Number(tx.amount || 0));
       const tax = Math.abs(Number(tx.tax_amount || 0));
-      const isIncome = tx.type === "income" || Number(tx.amount) > 0;
+      const isIncome = tx.type === "income";
       const txMode = tx.tax_mode || 'none';
       const expenseTotal = txMode === 'exclusive' ? amt + tax : amt;
       if (isIncome) months[m].income += amt;
@@ -290,7 +290,7 @@ export default function FinancePage() {
     return tabTxs
       .filter(tx => {
         if (filterType !== "all") {
-          const isIncome = tx.type === "income" || Number(tx.amount) > 0;
+          const isIncome = tx.type === "income";
           if (filterType === "income" && !isIncome) return false;
           if (filterType === "expense" && isIncome) return false;
         }

@@ -59,13 +59,42 @@ export const PROFILE_SYNC_KEYS: Record<keyof ProfileFields, string> = {
   businessLocation: "BUSINESS_LOCATION",
 };
 
+// ── Pre-seed demo profile for first-time visitors ──
+// Must run BEFORE Zustand persist reads localStorage, so the store picks up demo data on first load.
+// Only writes if no settings exist yet (first visit). seedData() in db/api.ts handles business data.
+(() => {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    const existing = localStorage.getItem('solo-ceo-settings');
+    if (existing) return; // Already has settings — don't overwrite
+    const demoProfile = {
+      state: {
+        operatorName: '李明',
+        operatorAvatar: '',
+        businessTitle: '品牌设计师',
+        businessName: 'Ming Design Studio',
+        businessDescription: '北美独立品牌设计工作室，服务中小企业品牌视觉——Logo、VI系统、官网、社交媒体设计。订阅制+项目制双模式。',
+        businessEmail: '',
+        businessPhone: '',
+        businessWebsite: '',
+        businessLocation: 'Toronto, ON, Canada',
+        language: 'zh',
+        currency: 'USD',
+        timezone: typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'America/Toronto',
+      },
+      version: 0,
+    };
+    localStorage.setItem('solo-ceo-settings', JSON.stringify(demoProfile));
+  } catch { /* SSR or restricted env */ }
+})();
+
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
       ...PROFILE_DEFAULTS,
       language: "zh",
       currency: "USD",
-      timezone: typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "America/New_York",
+      timezone: typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "America/Toronto",
       isOnline: typeof navigator !== "undefined" ? navigator.onLine : true,
       syncStatus: "idle",
       pendingOps: 0,

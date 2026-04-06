@@ -177,3 +177,46 @@
   opacity: 1;
   pointer-events: auto;
 }
+
+/* ── AI Chat typing indicator ────────────────────────────── */
+
+.ai-typing-indicator {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+  padding-left: 2px;
+}
+
+.ai-typing-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--color-text-quaternary);
+  animation: ai-typing-bounce 1.4s infinite both;
+}
+
+.ai-typing-dot:nth-child(2) { animation-delay: 0.16s; }
+.ai-typing-dot:nth-child(3) { animation-delay: 0.32s; }
+
+@keyframes ai-typing-bounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.3; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* ── AI streaming pulse (bubble glow) ────────────────────── */
+
+.ai-chat-bubble-assistant .animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-typing-dot { animation: none; opacity: 0.5; }
+}
+
+/* ── AI Chat conversation item hover (CSS-only, avoids stuck hover on touch) */
+@media (hover: hover) {
+  .ai-chat-conv-inactive:hover {
+    border-color: var(--color-accent) !important;
+    background: var(--color-bg-tertiary) !important;
+  }
+}

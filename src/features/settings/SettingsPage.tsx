@@ -14,6 +14,7 @@ import PlanSection from './PlanSection';
 import AccountSection from './AccountSection';
 import SecuritySection from './SecuritySection';
 import AISection from './AISection';
+import AgentSection from './AgentSection';
 
 export default function SettingsPage() {
   const { t, lang, setLang } = useT();
@@ -186,6 +187,9 @@ export default function SettingsPage() {
 
         {/* 5. AI Assistant */}
         <AISection settings={appSettings} save={saveAppSetting} />
+
+        {/* 5.5 Custom AI Agents */}
+        <AgentSection />
 
         {/* 6. Account Security — rarely used, at bottom */}
         <SecuritySection showToast={showToast} />

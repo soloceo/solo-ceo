@@ -3,6 +3,33 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.29.0] - 2026-04-05
+
+### Added
+- **AI Agent system** — custom AI agents with persona, rules, tools, and starter prompts; full CRUD via Settings
+- **Agent templates** — 4 built-in agents (默认助手, 任务管家, 销售助手, 财务管家) with specialized tool access
+- **AI multi-conversation management** — create, switch, rename, delete conversations; per-agent conversation history
+- **AI conversation cloud sync** — conversations persist to Supabase with realtime sync across devices
+- **Transaction scope selector** — business/personal toggle on AI record_transaction confirmation card
+- **Web search tool** — AI can search the internet via Gemini Search Grounding
+- **Agent test panel** — test agent prompts directly from Settings before deploying
+
+### Fixed
+- **AI one-turn lag** — AI was answering the previous question due to React 18 batching; fixed ref synchronization
+- **Copy button in AI chat** — added `document.execCommand` fallback for non-HTTPS environments
+- **Currency showing ¥** — demo defaults corrected to USD; existing installs fixed
+- **AI system prompt context** — now includes businessLocation so AI understands user's market
+- **English AI reinforcement prompt** — removed misleading "don't analyze data" instruction
+
+### Changed
+- **North American defaults** — all seed data, demo profile, placeholders, and lead sources target Chinese-Canadian designers in North America (Toronto) instead of mainland China
+- **USD pricing** — plans at $499/$1,500/$2,500; realistic North American freelancer expense amounts
+- **North American lead sources** — Instagram DM, LinkedIn, Google, Networking instead of 小红书/即刻
+- **Breakthrough tasks** — social media tasks reference Instagram/LinkedIn instead of 小红书/微信
+- **Default agent selection** — 默认助手 is now the default when opening AI Chat; conversation icons show 🤖
+
+---
+
 ## [2.28.1] - 2026-04-05
 
 ### Fixed

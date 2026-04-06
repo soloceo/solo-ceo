@@ -74,19 +74,21 @@ function extractJSON(text: string): any {
 async function callJSON(provider: AIProvider, apiKey: string, systemPrompt: string, userText: string): Promise<any> {
   if (provider === "ollama") {
     const { url, model } = getOllamaConfig();
-    const res = await fetch(`${url}/v1/chat/completions`, {
+    const res = await fetch(`${url}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model,
         messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userText }],
-        response_format: { type: "json_object" },
+        format: "json",
         stream: false,
+        think: false,
+        options: { temperature: 0 },
       }),
     });
     if (!res.ok) throw new Error(`Ollama error: ${res.status}`);
     const data = await res.json();
-    const text = data.choices?.[0]?.message?.content;
+    const text = data.message?.content;
     if (!text) throw new Error("Empty Ollama response");
     return extractJSON(text);
   }
@@ -122,7 +124,7 @@ async function callJSON(provider: AIProvider, apiKey: string, systemPrompt: stri
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6-20250514",
-        max_tokens: 512,
+        max_tokens: 1024,
         system: systemPrompt,
         messages: [{ role: "user", content: userText }],
       }),
@@ -156,18 +158,19 @@ async function callJSON(provider: AIProvider, apiKey: string, systemPrompt: stri
 async function callText(provider: AIProvider, apiKey: string, systemPrompt: string, userText: string): Promise<string> {
   if (provider === "ollama") {
     const { url, model } = getOllamaConfig();
-    const res = await fetch(`${url}/v1/chat/completions`, {
+    const res = await fetch(`${url}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model,
         messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userText }],
         stream: false,
+        think: false,
       }),
     });
     if (!res.ok) throw new Error(`Ollama error: ${res.status}`);
     const data = await res.json();
-    return data.choices?.[0]?.message?.content || "";
+    return data.message?.content || "";
   }
 
   if (provider === "gemini") {
@@ -231,14 +234,32 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface NativeToolCall {
+  name: string;
+  args: Record<string, unknown>;
+}
+
 export interface StreamResult {
   text: string;
   truncated: boolean;
+  toolCalls?: NativeToolCall[];
+}
+
+/** Tool definition for native function calling (Ollama OpenAI-compatible format) */
+export interface NativeToolDef {
+  name: string;
+  description: string;
+  parameters: {
+    type: "object";
+    properties: Record<string, unknown>;
+    required: string[];
+  };
 }
 
 /**
  * Stream a chat completion. Calls `onChunk` with each text delta.
  * Returns the full accumulated text and whether it was truncated.
+ * Optionally passes native tool definitions for models that support function calling.
  */
 export async function streamChat(
   provider: AIProvider,
@@ -246,6 +267,7 @@ export async function streamChat(
   messages: ChatMessage[],
   onChunk: (text: string) => void,
   signal?: AbortSignal,
+  nativeTools?: NativeToolDef[],
 ): Promise<StreamResult> {
   // Build request based on provider
   let url: string;
@@ -254,9 +276,24 @@ export async function streamChat(
 
   if (provider === "ollama") {
     const cfg = getOllamaConfig();
-    url = `${cfg.url}/v1/chat/completions`;
+    url = `${cfg.url}/api/chat`;
     headers = { "Content-Type": "application/json" };
-    body = JSON.stringify({ model: cfg.model, messages, stream: true });
+    const reqBody: Record<string, unknown> = {
+      model: cfg.model,
+      messages,
+      stream: true,
+      think: false,  // Disable extended thinking (prevents hallucinations in reasoning mode)
+      options: { temperature: 0.2 },
+    };
+    // Pass native tools for function calling (supported by gemma4, qwen, llama3.1, etc.)
+    if (nativeTools && nativeTools.length > 0) {
+      (reqBody.options as Record<string, unknown>).temperature = 0;
+      reqBody.tools = nativeTools.map(t => ({
+        type: "function",
+        function: { name: t.name, description: t.description, parameters: t.parameters },
+      }));
+    }
+    body = JSON.stringify(reqBody);
   } else if (provider === "openai") {
     url = "https://api.openai.com/v1/chat/completions";
     headers = { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` };
@@ -298,52 +335,120 @@ export async function streamChat(
   let full = "";
   let buffer = "";
   let truncated = false;
+  const parsedToolCalls: NativeToolCall[] = [];
 
-  const parseLine = (trimmed: string) => {
-    if (!trimmed || trimmed === "data: [DONE]") return;
-    if (trimmed.startsWith("event:")) return;
-    if (!trimmed.startsWith("data: ")) return;
-    try {
-      const json = JSON.parse(trimmed.slice(6));
-      // OpenAI / Ollama format
-      const finish = json.choices?.[0]?.finish_reason;
-      if (finish === "length") truncated = true;
-      const delta = json.choices?.[0]?.delta?.content;
-      if (delta) { full += delta; onChunk(delta); return; }
-      // Claude format
-      if (json.type === "content_block_delta") {
-        const text = json.delta?.text;
-        if (text) { full += text; onChunk(text); return; }
+  // Helper to parse native tool calls from Ollama response
+  const parseOllamaToolCalls = (toolCalls: unknown[]) => {
+    for (const tc of toolCalls as Array<{ function?: { name?: string; arguments?: unknown } }>) {
+      if (tc.function?.name) {
+        const args = tc.function.arguments;
+        parsedToolCalls.push({
+          name: tc.function.name,
+          args: typeof args === "string" ? JSON.parse(args) : (args as Record<string, unknown> || {}),
+        });
       }
-      if (json.type === "message_delta" && json.delta?.stop_reason === "max_tokens") {
-        truncated = true;
-      }
-      // Gemini format
-      const geminiFinish = json.candidates?.[0]?.finishReason;
-      if (geminiFinish === "MAX_TOKENS") truncated = true;
-      const geminiText = json.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (geminiText) { full += geminiText; onChunk(geminiText); return; }
-    } catch { /* skip unparseable lines */ }
+    }
   };
 
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-      for (const line of lines) parseLine(line.trim());
+  if (provider === "ollama") {
+    // ── Ollama native format: JSON lines (not SSE) ──
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+          try {
+            const json = JSON.parse(trimmed);
+            // Text content (skip thinking tokens — they appear in json.message.thinking)
+            if (json.message?.content) { full += json.message.content; onChunk(json.message.content); }
+            // Native tool calls (arguments already parsed as object in native API)
+            if (Array.isArray(json.message?.tool_calls)) parseOllamaToolCalls(json.message.tool_calls);
+          } catch { /* skip unparseable */ }
+        }
+      }
+      // Flush remaining buffer
+      if (buffer.trim()) {
+        try {
+          const json = JSON.parse(buffer.trim());
+          if (json.message?.content) { full += json.message.content; onChunk(json.message.content); }
+          if (Array.isArray(json.message?.tool_calls)) parseOllamaToolCalls(json.message.tool_calls);
+        } catch { /* skip */ }
+      }
+    } catch (err) {
+      if ((err as Error).name === "AbortError") return { text: full, truncated: true };
+      throw err;
     }
-    // Flush remaining buffer
-    if (buffer.trim()) parseLine(buffer.trim());
-  } catch (err) {
-    if ((err as Error).name === "AbortError") return { text: full, truncated: true };
-    throw err;
+  } else {
+    // ── SSE format (OpenAI, Claude, Gemini) ──
+    const toolCallsAccum: Array<{ name: string; args: string }> = [];
+
+    const parseLine = (trimmed: string) => {
+      if (!trimmed || trimmed === "data: [DONE]") return;
+      if (trimmed.startsWith("event:")) return;
+      if (!trimmed.startsWith("data: ")) return;
+      try {
+        const json = JSON.parse(trimmed.slice(6));
+        // OpenAI format
+        const finish = json.choices?.[0]?.finish_reason;
+        if (finish === "length") truncated = true;
+        const delta = json.choices?.[0]?.delta;
+        if (delta?.content) { full += delta.content; onChunk(delta.content); return; }
+        // OpenAI native tool calls (streamed in delta.tool_calls)
+        if (Array.isArray(delta?.tool_calls)) {
+          for (const tc of delta.tool_calls) {
+            const idx = tc.index ?? 0;
+            if (!toolCallsAccum[idx]) toolCallsAccum[idx] = { name: '', args: '' };
+            if (tc.function?.name) toolCallsAccum[idx].name = tc.function.name;
+            if (tc.function?.arguments) toolCallsAccum[idx].args += tc.function.arguments;
+          }
+          return;
+        }
+        // Claude format
+        if (json.type === "content_block_delta") {
+          const text = json.delta?.text;
+          if (text) { full += text; onChunk(text); return; }
+        }
+        if (json.type === "message_delta" && json.delta?.stop_reason === "max_tokens") truncated = true;
+        // Gemini format
+        const geminiFinish = json.candidates?.[0]?.finishReason;
+        if (geminiFinish === "MAX_TOKENS") truncated = true;
+        const geminiText = json.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (geminiText) { full += geminiText; onChunk(geminiText); return; }
+      } catch { /* skip unparseable lines */ }
+    };
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        for (const line of lines) parseLine(line.trim());
+      }
+      if (buffer.trim()) parseLine(buffer.trim());
+    } catch (err) {
+      if ((err as Error).name === "AbortError") return { text: full, truncated: true };
+      throw err;
+    }
+
+    // Parse accumulated SSE tool calls
+    for (const tc of toolCallsAccum) {
+      if (!tc.name) continue;
+      try {
+        parsedToolCalls.push({ name: tc.name, args: tc.args ? JSON.parse(tc.args) : {} });
+      } catch {
+        parsedToolCalls.push({ name: tc.name, args: {} });
+      }
+    }
   }
 
-  return { text: full, truncated };
+  return { text: full, truncated, toolCalls: parsedToolCalls.length > 0 ? parsedToolCalls : undefined };
 }
 
 /* ── Expense Parsing ──────────────────────────────── */
