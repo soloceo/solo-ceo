@@ -243,41 +243,55 @@ export function useAgents() {
     notifyAgentsChanged();
   }, [fetch]);
 
-  /** Reset ALL template agents to defaults + restore deleted ones */
+  /** Reset ALL template agents to defaults + restore deleted ones.
+   *  Uses UPDATE-in-place instead of delete+create to avoid silent-delete duplication bugs. */
   const resetAll = useCallback(async (lang: 'zh' | 'en') => {
     clearDismissed();
     const { AGENT_TEMPLATES } = await import('../data/agent-templates');
-    // Force-clear cache to ensure we see ALL agents (including duplicates)
+
+    // Force fresh fetch — bypass SWR cache entirely
     invalidateForMutation('/api/agents');
     agentsCache = null;
     cacheTs = 0;
     let existing: AgentConfig[] = [];
     try { existing = await api.get<AgentConfig[]>('/api/agents'); } catch { /* empty */ }
-    const templateIds = new Set(AGENT_TEMPLATES.map(t => t.id));
 
-    // Step 1: Delete ALL template-based agents (including duplicates)
-    for (const agent of existing) {
-      if (agent.template_id && templateIds.has(agent.template_id)) {
-        try { await api.del(`/api/agents/${agent.id}`); } catch { /* skip */ }
+    // Group existing agents by template_id
+    const byTemplate = new Map<string, AgentConfig[]>();
+    for (const a of existing) {
+      if (a.template_id) {
+        const list = byTemplate.get(a.template_id) || [];
+        list.push(a);
+        byTemplate.set(a.template_id, list);
       }
     }
 
-    // Step 2: Recreate exactly one of each template
     for (const tmpl of AGENT_TEMPLATES) {
-      try {
-        await api.post('/api/agents', {
-          name: tmpl.name[lang],
-          avatar: tmpl.avatar,
-          role: tmpl.role[lang],
-          personality: tmpl.personality[lang],
-          rules: tmpl.rules[lang],
-          tools: tmpl.tools,
-          conversation_starters: tmpl.starters[lang],
-          template_id: tmpl.id,
-          is_default: true,
-          sort_order: AGENT_TEMPLATES.indexOf(tmpl),
-        });
-      } catch { /* skip */ }
+      const defaults = {
+        name: tmpl.name[lang],
+        avatar: tmpl.avatar,
+        role: tmpl.role[lang],
+        personality: tmpl.personality[lang],
+        rules: tmpl.rules[lang],
+        tools: tmpl.tools,
+        conversation_starters: tmpl.starters[lang],
+        template_id: tmpl.id,
+        is_default: true,
+        sort_order: AGENT_TEMPLATES.indexOf(tmpl),
+      };
+
+      const group = byTemplate.get(tmpl.id) || [];
+      if (group.length > 0) {
+        // UPDATE the first agent to template defaults
+        try { await api.put(`/api/agents/${group[0].id}`, defaults); } catch { /* skip */ }
+        // DELETE any duplicates
+        for (let i = 1; i < group.length; i++) {
+          try { await api.del(`/api/agents/${group[i].id}`); } catch { /* skip */ }
+        }
+      } else {
+        // No agent for this template — create one
+        try { await api.post('/api/agents', defaults); } catch { /* skip */ }
+      }
     }
 
     // Force clear all caches before refetch
