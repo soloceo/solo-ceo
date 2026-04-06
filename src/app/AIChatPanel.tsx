@@ -1679,8 +1679,8 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
           <div
             className="flex items-center justify-between px-3 shrink-0"
             style={{
-              height: 52,
-              paddingTop: "max(0px, env(safe-area-inset-top, 0px))",
+              minHeight: 52,
+              paddingTop: "env(safe-area-inset-top, 0px)",
               borderBottom: "1px solid var(--color-line-secondary)",
             }}
           >
