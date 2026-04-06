@@ -201,7 +201,11 @@ function calcTax(amount: number, mode: string, rate: number): number {
 }
 
 // ── Subscription sync → writes real finance_transactions ──────────
+let syncLedgerRunning = false;
 async function syncClientSubscriptionLedger(userId: string) {
+  if (syncLedgerRunning) return;
+  syncLedgerRunning = true;
+  try {
   const { data: clients } = await supabase
     .from('clients')
     .select('id, name, plan_tier, mrr, status, joined_at, subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from, subscription_timeline, tax_mode, tax_rate, payment_method')
@@ -340,6 +344,9 @@ async function syncClientSubscriptionLedger(userId: string) {
   }
   if (toDelete.length > 0) {
     await supabase.from('finance_transactions').update({ soft_deleted: true }).in('id', toDelete);
+  }
+  } finally {
+    syncLedgerRunning = false;
   }
 }
 

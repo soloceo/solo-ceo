@@ -38,6 +38,13 @@ export function Modal({ open, onClose, onSubmit, title, children, className, siz
     return () => document.removeEventListener("keydown", handler);
   }, [open, onClose, onSubmit]);
 
+  // Body scroll lock
+  useEffect(() => {
+    if (!open) return;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, [open]);
+
   // Focus trap
   const trapFocus = useCallback((e: KeyboardEvent) => {
     if (e.key !== "Tab" || !dialogRef.current) return;

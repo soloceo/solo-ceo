@@ -24,6 +24,13 @@ export function BottomSheet({ open, onClose, title, children, className }: Botto
     return () => document.removeEventListener("keydown", handler);
   }, [open, onClose]);
 
+  // Body scroll lock
+  useEffect(() => {
+    if (!open) return;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, [open]);
+
   // Focus trap
   const trapFocus = useCallback((e: KeyboardEvent) => {
     if (e.key !== "Tab" || !sheetRef.current) return;

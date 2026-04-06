@@ -346,6 +346,7 @@ function buildSystemPrompt(
       if (d.mrr != null) lines.push(`- MRR: ${sym}${Number(d.mrr).toLocaleString()}`);
       if (d.ytdRevenue != null) lines.push(`- YTD Revenue: ${sym}${Number(d.ytdRevenue).toLocaleString()}`);
       if (d.monthlyIncome != null) lines.push(`- This month: ${sym}${Number(d.monthlyIncome).toLocaleString()}`);
+      if (d.todayIncome != null && Number(d.todayIncome) > 0) lines.push(`- Today's income: ${sym}${Number(d.todayIncome).toLocaleString()}`);
       if (d.clientsCount != null) lines.push(`- Active clients: ${d.clientsCount}`);
       if (d.activeTasks != null) lines.push(`- Active tasks: ${d.activeTasks} (todo ${d.todoCount || 0}, in progress ${d.inProgressCount || 0}, review ${d.reviewCount || 0})`);
       if (d.leadsCount != null) lines.push(`- Leads: ${d.leadsCount} total (new ${d.leadsNew || 0} / contacted ${d.leadsContacted || 0} / proposal ${d.leadsProposal || 0} / won ${d.leadsWon || 0})`);
