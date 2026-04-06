@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Bot, Plus, Pencil, Trash2, Wrench, Play, RotateCcw } from 'lucide-react';
 import { useT } from '../../i18n/context';
+import PeepIllustration from '../../components/ui/PeepIllustration';
 import { useAgents } from '../../hooks/useAgents';
 import { useUIStore } from '../../store/useUIStore';
 import { AGENT_TEMPLATES } from '../../data/agent-templates';
@@ -130,12 +131,7 @@ export default function AgentSection() {
         ) : agents.length === 0 ? (
           /* Empty state */
           <div className="py-8 flex flex-col items-center gap-3 text-center">
-            <div
-              className="flex h-12 w-12 items-center justify-center rounded-full text-2xl"
-              style={{ background: 'var(--color-accent-tint)' }}
-            >
-              🤖
-            </div>
+            <PeepIllustration name="mechanical-love" size={100} />
             <div>
               <p className="text-[15px]" style={{ fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>
                 {t('settings.agents.empty')}

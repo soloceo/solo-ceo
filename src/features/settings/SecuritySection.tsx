@@ -134,6 +134,7 @@ export default function SecuritySection({ showToast }: SecuritySectionProps) {
                 {t("auth.changeEmail")}
               </button>
             </div>
+
           </div>
         )}
       </div>

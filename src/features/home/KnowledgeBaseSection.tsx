@@ -6,7 +6,6 @@ import { useAppSettings, invalidateSettingsCache } from "../../hooks/useAppSetti
 import { useUIStore } from "../../store/useUIStore";
 import { BookOpen, ChevronDown, ChevronRight, X, CheckCircle2 } from "lucide-react";
 import type { Principle, KnowledgeCategory } from "../../data/evolution-knowledge";
-
 /* Lazy-load the 53KB knowledge data — only fetched when this component mounts */
 const knowledgePromise = import("../../data/evolution-knowledge").then(m => m.KNOWLEDGE_CATEGORIES);
 

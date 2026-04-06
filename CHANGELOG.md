@@ -3,6 +3,25 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.30.0] - 2026-04-06
+
+### Added
+- **PeepIllustration component** — dynamic SVG import system with URL caching, dark mode filter, and lazy loading
+- **38 Open Peeps SVG illustrations** — hand-drawn illustration library for empty states, greetings, and brand personality
+
+### Changed
+- **SVG optimization** — all 38 SVG files compressed with SVGO p2 multipass (2.6MB → 2.0MB, -23%)
+- **Login page redesign** — asymmetric 45/55 hero+form layout with responsive illustration (160px mobile / 280px desktop)
+- **Illustration audit** — semantic matching across all pages: greeting card (5 time-based peeps), sidebar (`growth` 130px), empty states per context
+- **Removed 8 decorative fillers** — Protocol, KnowledgeBase, Breakthrough sections and 5 Settings bottom-of-form illustrations that failed purpose test
+- **Zero duplicate illustrations** — every page uses unique peep selections matched to context
+- **Finance empty states** — differentiated 3 contexts: business (`pacheco`), personal (`groceries`), desktop (`cube-leg`)
+- **AI Chat illustrations** — sidebar empty (`chillin`), no-provider (`roboto`), multi-agent welcome (`experiments`), single agent (`pondering`)
+- **KnowledgeBase card** — removed leftover `maxWidth: 85%` constraint after illustration removal, fixing chevron arrow position
+
+### Removed
+- Decorative-only illustrations from ProfileSection, AppearanceSection, AccountSection, SecuritySection, AISection
+
 ## [2.29.7] - 2026-04-06
 
 ### Changed

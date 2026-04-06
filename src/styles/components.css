@@ -5,6 +5,9 @@
 
 @layer utilities {
 
+  /* ── Illustrations — dark mode: invert + slight brightness boost ── */
+  .dark .peep-illustration { filter: invert(1) brightness(0.88); }
+
   /* ── Safe-area helpers ─────────────────────────────────────── */
   .pb-safe { padding-bottom: max(18px, env(safe-area-inset-bottom, 18px)); }
   .pb-safe-half { padding-bottom: 20px; }

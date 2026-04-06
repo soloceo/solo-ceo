@@ -11,6 +11,7 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { api } from "../../lib/api";
 import { useT } from "../../i18n/context";
+import PeepIllustration from "../../components/ui/PeepIllustration";
 import { useRealtimeRefresh } from "../../hooks/useRealtimeRefresh";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import { useUIStore } from "../../store/useUIStore";
@@ -353,7 +354,7 @@ export function ClientsView() {
 
           {/* Mobile cards */}
           <div className="md:hidden space-y-2 pb-4">
-            {!filtered.length && <div className="py-10 text-center text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{clients.length === 0 ? t("pipeline.clients.empty") : t("pipeline.clients.noMatch")}</div>}
+            {!filtered.length && <div className="py-10 text-center text-[15px]" style={{ color: "var(--color-text-secondary)" }}><div className="flex justify-center mb-2"><PeepIllustration name="consumer" size={100} /></div>{clients.length === 0 ? t("pipeline.clients.empty") : t("pipeline.clients.noMatch")}</div>}
             {filtered.map(c => {
               const plan = c.plan_tier === "Basic" ? t("pipeline.convert.planBasic") : c.plan_tier === "Pro" ? t("pipeline.convert.planPro") : c.plan_tier === "Enterprise" ? t("pipeline.convert.planEnterprise") : (c.plan_tier || c.plan);
               return (
@@ -416,7 +417,7 @@ export function ClientsView() {
                 {padBot > 0 && <tr><td style={{ height: padBot, padding: 0 }} colSpan={9} /></tr>}
               </tbody>
             </table>
-            {!filtered.length && <div className="p-8 text-center text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{clients.length === 0 ? t("pipeline.clients.empty") : t("pipeline.clients.noMatch")}</div>}
+            {!filtered.length && <div className="p-8 text-center text-[15px]" style={{ color: "var(--color-text-secondary)" }}><div className="flex justify-center mb-2"><PeepIllustration name="consumer" size={100} /></div>{clients.length === 0 ? t("pipeline.clients.empty") : t("pipeline.clients.noMatch")}</div>}
           </div>
         </>
       )}

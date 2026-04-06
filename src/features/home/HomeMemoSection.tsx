@@ -2,11 +2,13 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Plus, Check, ChevronDown, ChevronRight, Trash2, X, Calendar, Bot, Send, Loader2, StickyNote, Briefcase, User } from "lucide-react";
 import { api } from "../../lib/api";
 import { useT } from "../../i18n/context";
+import PeepIllustration from "../../components/ui/PeepIllustration";
 import { useAppSettings } from "../../hooks/useAppSettings";
 import { useUIStore } from "../../store/useUIStore";
 import { getAIConfig, getOllamaConfig } from "../../lib/ai-client";
 import { useRealtimeRefresh } from "../../hooks/useRealtimeRefresh";
 import type { Task } from "../work/TaskCard";
+
 
 /* ── Helpers ── */
 function toDateStr(d: Date) {
@@ -495,12 +497,7 @@ export function HomeMemoSection() {
             ) : !addingSimple ? (
               /* ── Empty state — guided template ── */
               <div className="flex flex-col items-center py-8 gap-3">
-                <div className="flex items-center justify-center rounded-full" style={{
-                  width: 44, height: 44,
-                  background: "var(--color-bg-tertiary)",
-                }}>
-                  <StickyNote size={20} style={{ color: "var(--color-text-tertiary)" }} />
-                </div>
+                <PeepIllustration name="entertainment" size={80} />
                 <div className="text-center">
                   <div className="text-[14px]" style={{ color: "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
                     {t("home.memo.empty")}

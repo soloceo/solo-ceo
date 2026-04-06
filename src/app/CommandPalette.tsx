@@ -22,6 +22,7 @@ import {
 import { useUIStore, type TabId } from "../store/useUIStore";
 import { useT } from "../i18n/context";
 import { api } from "../lib/api";
+import PeepIllustration from "../components/ui/PeepIllustration";
 
 const NAV_ITEMS = [
   { id: "home" as const, icon: Home, labelKey: "nav.home" },
@@ -175,6 +176,9 @@ export function CommandPalette() {
               {/* Results */}
               <Command.List className="max-h-[360px] overflow-y-auto p-2">
                 <Command.Empty className="py-6 text-center text-[15px]" style={{ color: "var(--color-text-tertiary)" }}>
+                  <div className="flex justify-center mb-2">
+                    <PeepIllustration name="chaotic-good" size={80} />
+                  </div>
                   {t("app.noResults") || "No results found."}
                 </Command.Empty>
 

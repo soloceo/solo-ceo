@@ -43,6 +43,7 @@ import { QuickCreateMenu } from "./QuickCreateMenu";
 const AIChatPanel = lazy(() => import("./AIChatPanel").then(m => ({ default: m.AIChatPanel })));
 import { UserMenu } from "./UserMenu";
 import { SyncIndicator } from "./SyncIndicator";
+import PeepIllustration from "../components/ui/PeepIllustration";
 import { useClickOutside } from "./useClickOutside";
 import { motion } from "motion/react";
 
@@ -444,8 +445,15 @@ function App() {
           ))}
         </nav>
 
+        {/* Sidebar illustration — expanded only */}
+        {isExpanded && (
+          <div className="flex justify-center mt-auto px-4 pb-2">
+            <PeepIllustration name="growth" size={130} />
+          </div>
+        )}
+
         {/* Bottom — compact Linear-style */}
-        <div className={`mt-auto flex flex-col px-3 pb-3 pt-2 ${isExpanded ? "" : "items-center gap-2"}`}>
+        <div className={`flex flex-col px-3 pb-3 pt-2 ${isExpanded ? "" : "mt-auto items-center gap-2"}`}>
           {/* Collapsed: utility icons stacked */}
           {!isExpanded && (
             <div className="flex flex-col items-center gap-0.5 py-1" style={{ borderTop: "1px solid var(--color-line-tertiary)", paddingTop: 8 }}>

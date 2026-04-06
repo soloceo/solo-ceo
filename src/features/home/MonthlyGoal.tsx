@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Target, Check, Edit2, TrendingUp } from "lucide-react";
 import { useT } from "../../i18n/context";
 import { useAppSettings } from "../../hooks/useAppSettings";
+import PeepIllustration from "../../components/ui/PeepIllustration";
 
 interface MonthlyGoalProps {
   monthlyIncome: number;
@@ -40,7 +41,7 @@ export function MonthlyGoal({ monthlyIncome, loading }: MonthlyGoalProps) {
 
   if (!loaded || loading) return null;
 
-  // No goal set — clear CTA with description
+  // No goal set — CTA with illustration
   if (!goal) {
     return (
       <div className="card px-4 py-4">
@@ -80,6 +81,7 @@ export function MonthlyGoal({ monthlyIncome, loading }: MonthlyGoalProps) {
               </button>
             )}
           </div>
+          <PeepIllustration name="runner" size={64} />
         </div>
       </div>
     );
@@ -180,6 +182,13 @@ export function MonthlyGoal({ monthlyIncome, loading }: MonthlyGoalProps) {
           </span>
         </div>
       </div>
+
+      {/* Celebration illustration when goal achieved */}
+      {achieved && (
+        <div className="flex justify-center pt-2">
+          <PeepIllustration name="jumping" size={80} />
+        </div>
+      )}
     </div>
   );
 }

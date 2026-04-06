@@ -4,6 +4,7 @@ import { BarChart3, TrendingUp, TrendingDown, Users, UserPlus, CheckCircle2, X, 
 import { useT } from "../../i18n/context";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { api } from "../../lib/api";
+import PeepIllustration from "../../components/ui/PeepIllustration";
 
 interface ReportData {
   weekStart: string;
@@ -94,17 +95,27 @@ export function WeeklyReport({ open, onClose }: WeeklyReportProps) {
           <div className="w-8 h-1 rounded-full" style={{ background: "var(--color-bg-quaternary)" }} />
         </div>
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: "var(--color-border-primary)" }}>
-          <div className="flex items-center gap-2">
-            <BarChart3 size={16} style={{ color: "var(--color-accent)" }} />
-            <h2 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
-              {t("home.report.title")}
-            </h2>
+        {/* Header — hero banner with illustration */}
+        <div style={{ background: "var(--color-accent-tint)" }}>
+          <div className="flex items-center justify-between px-5 pt-3 pb-2">
+            <div className="flex items-center gap-2">
+              <BarChart3 size={16} style={{ color: "var(--color-accent)" }} />
+              <h2 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
+                {t("home.report.title")}
+              </h2>
+            </div>
+            <button onClick={onClose} className="btn-icon" aria-label="Close report">
+              <X size={16} />
+            </button>
           </div>
-          <button onClick={onClose} className="btn-icon" aria-label="Close report">
-            <X size={16} />
-          </button>
+          {data && (
+            <div className="px-5 pb-2">
+              <span className="badge text-[14px]">{period}</span>
+            </div>
+          )}
+          <div className="flex justify-center pb-2">
+            <PeepIllustration name="wont-stop" size={100} />
+          </div>
         </div>
 
         {/* Content */}
@@ -116,14 +127,12 @@ export function WeeklyReport({ open, onClose }: WeeklyReportProps) {
               ))}
             </div>
           ) : !data ? (
-            <EmptyState title={t("home.report.noData")} />
+            <div className="flex flex-col items-center py-4 gap-2">
+              <PeepIllustration name="consumer" size={100} />
+              <p className="text-[15px]" style={{ color: "var(--color-text-tertiary)" }}>{t("home.report.noData")}</p>
+            </div>
           ) : (
             <>
-              {/* Period badge */}
-              <div className="mb-4 text-center">
-                <span className="badge text-[14px]">{period}</span>
-              </div>
-
               {/* Stats grid */}
               <div className="grid grid-cols-2 gap-3 mb-4">
                 {stats.map((s) => (

@@ -136,6 +136,7 @@ export default function AccountSection({ user, isOnline, pendingOps, signOut }: 
           </label>
         </div>
 
+
         {/* Login (offline mode) or Logout */}
         {user ? (
           <button

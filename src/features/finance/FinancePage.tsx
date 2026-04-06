@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 
 import { api } from "../../lib/api";
+import PeepIllustration from "../../components/ui/PeepIllustration";
 import { calcTaxAmount, catLabel, STATUS_I18N } from "../../lib/tax";
 import { todayDateKey } from "../../lib/date-utils";
 import { parseExpense, getAIConfig, type AIProvider } from "../../lib/ai-client";
@@ -640,7 +641,7 @@ export default function FinancePage() {
               </AnimatePresence>
               {recentTxs.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-12 gap-2">
-                  <Receipt size={32} style={{ color: "var(--color-text-secondary)" }} />
+                  <PeepIllustration name="pacheco" size={100} />
                   <p className="text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{t("money.noData")}</p>
                 </div>
               )}
@@ -716,7 +717,7 @@ export default function FinancePage() {
               </AnimatePresence>
               {recentTxs.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-12 gap-2">
-                  <Receipt size={32} style={{ color: "var(--color-text-secondary)" }} />
+                  <PeepIllustration name="groceries" size={100} />
                   <p className="text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{t("money.noData")}</p>
                 </div>
               )}
@@ -812,7 +813,7 @@ export default function FinancePage() {
             />
             {filteredTxs.length === 0 && (
               <div className="flex flex-col items-center justify-center py-20 gap-2">
-                <Receipt size={32} style={{ color: "var(--color-text-secondary)" }} />
+                <PeepIllustration name="cube-leg" size={100} />
                 <p className="text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{t("money.noData")}</p>
               </div>
             )}

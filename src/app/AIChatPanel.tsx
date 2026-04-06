@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { X, Send, Loader2, Trash2, Copy, Check, Settings, Plus, ChevronLeft, MessagesSquare, Zap, CheckCircle2, XCircle, Square } from "lucide-react";
+import PeepIllustration from "../components/ui/PeepIllustration";
 import { motion, AnimatePresence } from "motion/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -607,6 +608,7 @@ function ConversationList({
   lang: string;
   agents: AgentConfig[];
 }) {
+  const { t } = useT();
   const agentMap = React.useMemo(() => {
     const m = new Map<number, AgentConfig>();
     agents.forEach(a => m.set(a.id, a));
@@ -641,9 +643,9 @@ function ConversationList({
 
       <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-2">
         {conversations.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-32 gap-2 opacity-40">
-            <MessagesSquare size={24} style={{ color: "var(--color-text-quaternary)" }} />
-            <p className="text-[13px]" style={{ color: "var(--color-text-tertiary)" }}>
+          <div className="flex flex-col items-center justify-center h-32 gap-2">
+            <PeepIllustration name="chillin" size={72} />
+            <p className="text-[13px] opacity-40" style={{ color: "var(--color-text-tertiary)" }}>
               {t("ai.chat.noConversations")}
             </p>
           </div>
@@ -1973,6 +1975,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                         {/* Agent team intro (group) or single agent welcome */}
                         {activeAgents.length > 1 ? (
                           <div className="flex flex-col items-center gap-3">
+                            <PeepIllustration name="experiments" size={120} />
                             <div className="flex -space-x-2">
                               {activeAgents.map(a => (
                                 <div
@@ -2011,14 +2014,9 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                             </p>
                           </div>
                         ) : (
-                          <div className="flex flex-col items-center gap-2">
-                            <div
-                              className="flex items-center justify-center rounded-full text-2xl"
-                              style={{ width: 48, height: 48, background: 'var(--color-bg-tertiary)' }}
-                            >
-                              🤖
-                            </div>
-                            <p className="text-[14px]" style={{ color: 'var(--color-text-secondary)', fontWeight: 600 }}>
+                          <div className="flex flex-col items-center gap-3">
+                            <PeepIllustration name="pondering" size={180} />
+                            <p className="text-[15px]" style={{ color: 'var(--color-text-secondary)', fontWeight: 600 }}>
                               {t("ai.chat.defaultAssistant")}
                             </p>
                             <p className="text-[12px] text-center max-w-[260px]" style={{ color: 'var(--color-text-tertiary)' }}>
@@ -2046,8 +2044,8 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                         </div>
                       </>
                     ) : (
-                      <div className="flex flex-col items-center gap-3 opacity-60">
-                        <Settings size={32} style={{ color: "var(--color-text-quaternary)" }} />
+                      <div className="flex flex-col items-center gap-3">
+                        <PeepIllustration name="roboto" size={160} />
                         <p className="text-[13px] text-center" style={{ color: "var(--color-text-tertiary)" }}>
                           {t("ai.chat.noProvider")}
                         </p>

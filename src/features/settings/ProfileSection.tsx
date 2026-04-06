@@ -41,7 +41,6 @@ export default function ProfileSection({
   return (
     <section>
       <div className="card p-5 space-y-5">
-
         {/* Row 1: Avatar + Name */}
         <div className="flex items-center gap-4">
           {/* Avatar with camera overlay */}
@@ -170,6 +169,7 @@ export default function ProfileSection({
 
         {/* Save */}
         <SaveButton handleSave={handleSave} label={t("settings.saveBtn")} />
+
       </div>
     </section>
   );

@@ -5,6 +5,8 @@ import {
 } from "lucide-react";
 import { useT } from "../../i18n/context";
 import { EmptyState } from "../../components/ui/EmptyState";
+import PeepIllustration from "../../components/ui/PeepIllustration";
+
 
 export interface ActivityItem {
   activity: string;
@@ -67,6 +69,9 @@ export function ActivityTimeline({ items, loading }: ActivityTimelineProps) {
         </div>
         <div className="card">
           <EmptyState title={t("home.activity.empty")} />
+          <div className="flex justify-center pb-4">
+            <PeepIllustration name="waiting" size={80} />
+          </div>
         </div>
       </section>
     );

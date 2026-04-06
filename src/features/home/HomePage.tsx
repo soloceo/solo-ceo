@@ -17,6 +17,8 @@ import { HomeMemoSection } from "./HomeMemoSection";
 import { BarChart3 } from "lucide-react";
 import { PROTOCOL_STEPS } from "../../data/evolution-protocol";
 import { api } from "../../lib/api";
+import PeepIllustration from "../../components/ui/PeepIllustration";
+import type { PeepName } from "../../components/ui/PeepIllustration";
 
 const WidgetGrid = lazy(() => import("./widgets/WidgetGrid"));
 
@@ -46,6 +48,16 @@ function greeting(t: (k: string) => string) {
   if (h < 14) return t("home.greeting.noon");
   if (h < 18) return t("home.greeting.afternoon");
   return t("home.greeting.evening");
+}
+
+/** Pick a peep illustration based on time of day */
+function greetingPeep(): PeepName {
+  const h = new Date().getHours();
+  if (h < 6) return "reflecting";        // late night — contemplative
+  if (h < 12) return "coffee";           // morning — coffee run
+  if (h < 14) return "astro";              // noon — space explorer
+  if (h < 18) return "looking-ahead";    // afternoon — planning ahead
+  return "new-beginnings";               // evening — relax with a book
 }
 
 function todayStr(lang: string) {
@@ -107,27 +119,36 @@ export default function HomePage() {
   return (
     <div ref={scrollRef} className="mobile-page max-w-[1680px] mx-auto min-h-full p-4 md:p-6 lg:p-8 relative">
       <div className="page-stack">
-        {/* ── Header: Greeting + Name + Date ── */}
-        <div className="flex items-center justify-between">
-          <div className="flex-1 min-w-0">
+        {/* ── Header: Greeting card with peep bust ── */}
+        <div
+          className="relative overflow-hidden rounded-2xl px-5 py-5"
+          style={{ background: "var(--color-bg-secondary)", border: "1px solid var(--color-line-tertiary)", minHeight: 120 }}
+        >
+          {/* Left: greeting text */}
+          <div className="relative z-[1] flex-1 min-w-0" style={{ maxWidth: "60%" }}>
             <div className="flex items-center gap-2">
-              <p className="text-[13px]" style={{ color: "var(--color-text-tertiary)" }}>{greeting(t)}</p>
-              <span className="text-[12px]" style={{ color: "var(--color-text-quaternary)" }}>{todayStr(lang)}</span>
+              <p className="text-[14px]" style={{ color: "var(--color-text-tertiary)" }}>{greeting(t)}</p>
             </div>
-            <h1 className="text-[22px] tracking-tight truncate mt-0.5" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
+            <h1 className="text-[24px] tracking-tight truncate mt-1" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
               {displayName}
             </h1>
+            <p className="text-[12px] mt-1" style={{ color: "var(--color-text-quaternary)" }}>{todayStr(lang)}</p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => setReportOpen(true)}
-              className="flex items-center justify-center rounded-[var(--radius-8)] transition-colors hover:bg-[var(--color-bg-quaternary)]"
-              style={{ width: 36, height: 36, color: "var(--color-text-tertiary)" }}
-              title={t("home.report.generate")}
-            >
-              <BarChart3 size={16} />
-            </button>
+
+          {/* Right: peep illustration — clear, not overlapping report btn */}
+          <div className="absolute right-8 bottom-0 z-0">
+            <PeepIllustration name={greetingPeep()} size={120} />
           </div>
+
+          {/* Report button — floated top-right */}
+          <button
+            onClick={() => setReportOpen(true)}
+            className="absolute top-3 right-3 z-[2] flex items-center justify-center rounded-[var(--radius-8)] transition-colors hover:bg-[var(--color-bg-tertiary)]"
+            style={{ width: 32, height: 32, color: "var(--color-text-tertiary)" }}
+            title={t("home.report.generate")}
+          >
+            <BarChart3 size={15} />
+          </button>
         </div>
 
         {/* ── Panel Tabs ── */}

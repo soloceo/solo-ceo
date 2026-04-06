@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Trash2, Plus, Edit2, Package, X } from 'lucide-react';
 import { useT } from '../../i18n/context';
 import { api } from '../../lib/api';
+import PeepIllustration from '../../components/ui/PeepIllustration';
 
 interface PlanSectionProps {
   showToast: (msg: string) => void;
@@ -67,8 +68,8 @@ export default function PlanSection({ showToast }: PlanSectionProps) {
       <div className="card overflow-hidden divide-y divide-[var(--color-line-secondary)]">
         {plans.length === 0 && (
           <div className="p-6 text-center">
-            <Package size={24} className="mx-auto mb-2" style={{ color: "var(--color-text-quaternary)", opacity: 0.5 }} />
-            <div className="text-[15px]" style={{ color: "var(--color-text-tertiary)" }}>{t("settings.noPlans")}</div>
+            <PeepIllustration name="plants" size={100} />
+            <div className="text-[15px] mt-2" style={{ color: "var(--color-text-tertiary)" }}>{t("settings.noPlans")}</div>
           </div>
         )}
         {plans.map(p => {

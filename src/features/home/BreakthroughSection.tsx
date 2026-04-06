@@ -4,7 +4,6 @@ import { useT } from "../../i18n/context";
 import { useAppSettings, invalidateSettingsCache } from "../../hooks/useAppSettings";
 import { ChevronDown, ChevronRight, CheckCircle2 } from "lucide-react";
 import { PHASES } from "../../data/breakthrough-tasks";
-
 export function BreakthroughSection() {
   const { t, lang } = useT();
   const { settings, save } = useAppSettings();
