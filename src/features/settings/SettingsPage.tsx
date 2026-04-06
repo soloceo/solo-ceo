@@ -17,38 +17,54 @@ import AgentSection from './AgentSection';
 
 function UpdateButton({ t, showToast }: { t: (k: string) => string; showToast: (msg: string) => void }) {
   const [status, setStatus] = useState<'idle' | 'checking' | 'updating'>('idle');
+  const [progress, setProgress] = useState(0);
 
   const handleCheck = useCallback(async () => {
     if (status !== 'idle') return;
     setStatus('checking');
+    setProgress(0);
+
+    // Animate progress: fast to 60%, then slow crawl
+    let p = 0;
+    const timer = setInterval(() => {
+      if (p < 60) p += 8;
+      else if (p < 90) p += 1.5;
+      else if (p < 95) p += 0.3;
+      setProgress(Math.min(p, 95));
+    }, 100);
 
     try {
-      // Get the current SW registration
       const reg = await navigator.serviceWorker?.getRegistration();
       if (!reg) {
-        // No SW registered — just reload to pick up fresh resources
+        setProgress(100);
+        clearInterval(timer);
+        await new Promise(r => setTimeout(r, 300));
         window.location.reload();
         return;
       }
 
-      // Ask the SW to check for a new version
       await reg.update();
-
-      // Wait briefly for the browser to detect a new SW
       await new Promise(r => setTimeout(r, 1500));
 
       if (reg.waiting || reg.installing) {
-        // New version found — activate it
+        clearInterval(timer);
         setStatus('updating');
+        setProgress(100);
+        await new Promise(r => setTimeout(r, 400));
         reg.waiting?.postMessage({ type: 'SKIP_WAITING' });
         window.location.reload();
       } else {
-        // Already up to date
+        clearInterval(timer);
+        setProgress(100);
+        await new Promise(r => setTimeout(r, 400));
         showToast(t("settings.version.upToDate"));
         setStatus('idle');
+        setProgress(0);
       }
     } catch {
-      // Fallback: reload the page
+      clearInterval(timer);
+      setProgress(100);
+      await new Promise(r => setTimeout(r, 300));
       window.location.reload();
     }
   }, [status, t, showToast]);
@@ -57,15 +73,35 @@ function UpdateButton({ t, showToast }: { t: (k: string) => string; showToast: (
     : status === 'updating' ? t("settings.version.updating")
     : t("settings.version.forceUpdate");
 
+  const isActive = status !== 'idle';
+
   return (
-    <button
-      onClick={handleCheck}
-      disabled={status !== 'idle'}
-      className="btn-ghost compact text-[13px] px-3 rounded-[var(--radius-4)] mx-auto"
-      style={{ color: status === 'idle' ? 'var(--color-accent)' : 'var(--color-text-tertiary)' }}
-    >
-      {label}
-    </button>
+    <div className="flex flex-col items-center gap-2">
+      <button
+        onClick={handleCheck}
+        disabled={isActive}
+        className="btn-ghost compact text-[13px] px-3 rounded-[var(--radius-4)] mx-auto"
+        style={{ color: isActive ? 'var(--color-text-tertiary)' : 'var(--color-accent)' }}
+      >
+        {label}
+      </button>
+      {isActive && (
+        <div
+          className="overflow-hidden rounded-full"
+          style={{ width: 180, height: 3, background: 'var(--color-border-primary)' }}
+        >
+          <div
+            style={{
+              width: `${progress}%`,
+              height: '100%',
+              background: 'var(--color-accent)',
+              borderRadius: 'inherit',
+              transition: progress === 0 ? 'none' : 'width 0.15s ease-out',
+            }}
+          />
+        </div>
+      )}
+    </div>
   );
 }
 
