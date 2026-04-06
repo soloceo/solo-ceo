@@ -121,9 +121,12 @@ export default function HomePage() {
       <div className="page-stack">
         {/* ── Header: Greeting card with peep bust ── */}
         <div
-          className="relative overflow-hidden rounded-2xl px-5 py-5"
-          style={{ background: "var(--color-bg-secondary)", border: "1px solid var(--color-line-tertiary)", minHeight: 120 }}
+          className="card relative overflow-hidden px-5 py-5"
+          style={{ minHeight: 120 }}
         >
+          {/* Accent tint overlay — sits behind content, on top of card base */}
+          <div className="absolute inset-0 pointer-events-none" style={{ background: "var(--color-accent-tint)", opacity: 0.5 }} />
+
           {/* Left: greeting text */}
           <div className="relative z-[1] flex-1 min-w-0" style={{ maxWidth: "60%" }}>
             <div className="flex items-center gap-2">
