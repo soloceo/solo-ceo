@@ -417,8 +417,15 @@ export async function streamChat(
         // Gemini format
         const geminiFinish = json.candidates?.[0]?.finishReason;
         if (geminiFinish === "MAX_TOKENS") truncated = true;
-        const geminiText = json.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (geminiText) { full += geminiText; onChunk(geminiText); return; }
+        // Skip thinking parts (Gemini 2.5 Flash sends { thought: true, text: "..." })
+        const geminiParts = json.candidates?.[0]?.content?.parts as Array<{ text?: string; thought?: boolean }> | undefined;
+        if (geminiParts) {
+          for (const part of geminiParts) {
+            if (part.thought) continue; // skip thinking/reasoning tokens
+            if (part.text) { full += part.text; onChunk(part.text); }
+          }
+          return;
+        }
       } catch { /* skip unparseable lines */ }
     };
 
