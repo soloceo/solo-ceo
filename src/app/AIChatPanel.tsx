@@ -792,6 +792,7 @@ function ToolConfirmCard({
 }) {
   const { t } = useT();
   const isTransaction = confirm.toolName === "record_transaction";
+  const isTask = confirm.toolName === "create_task";
   const scope = (confirm.args.scope as string) || "business";
 
   return (
@@ -825,36 +826,46 @@ function ToolConfirmCard({
         ))}
       </div>
 
-      {/* Scope selector for transactions */}
-      {isTransaction && !result && onUpdateArgs && (
+      {/* Scope selector for transactions and tasks */}
+      {(isTransaction || isTask) && !result && onUpdateArgs && (
         <div className="px-3 pb-2 flex items-center gap-2">
           <span className="text-[12px]" style={{ color: "var(--color-text-tertiary)" }}>
             {t("ai.chat.scope")}
           </span>
           <div className="page-tabs" style={{ fontSize: 12 }}>
-            {(["business", "personal"] as const).map(s => (
-              <button
-                key={s}
-                data-active={scope === s}
-                onClick={() => {
-                  const personalCats = new Set(["餐饮", "交通", "房租", "娱乐", "个人其他"]);
-                  const curCat = confirm.args.category as string || "";
-                  const isPersonal = s === "personal";
-                  // Auto-fix category if it doesn't match the new scope
-                  let newCat = curCat;
-                  if (isPersonal && !personalCats.has(curCat)) {
-                    newCat = confirm.args.type === "income" ? "个人其他" : "餐饮";
-                  } else if (!isPersonal && personalCats.has(curCat)) {
-                    newCat = confirm.args.type === "income" ? "收入" : "其他支出";
-                  }
-                  onUpdateArgs({ ...confirm.args, scope: s, category: newCat });
-                }}
-                className="px-2 py-1"
-                style={{ fontSize: 12 }}
-              >
-                {s === "business" ? t("ai.chat.scopeBusiness") : t("ai.chat.scopePersonal")}
-              </button>
-            ))}
+            {(["business", "personal"] as const).map(s => {
+              const isMemo = confirm.args.scope === "work-memo";
+              const isActive = isTask
+                ? (s === "business" ? scope === "work" || scope === "work-memo" : scope === "personal")
+                : scope === s;
+              return (
+                <button
+                  key={s}
+                  data-active={isActive}
+                  onClick={() => {
+                    if (isTask) {
+                      const newScope = s === "personal" ? "personal" : (isMemo ? "work-memo" : "work");
+                      onUpdateArgs({ ...confirm.args, scope: newScope });
+                    } else {
+                      const personalCats = new Set(["餐饮", "交通", "房租", "娱乐", "个人其他"]);
+                      const curCat = confirm.args.category as string || "";
+                      const isPersonal = s === "personal";
+                      let newCat = curCat;
+                      if (isPersonal && !personalCats.has(curCat)) {
+                        newCat = confirm.args.type === "income" ? "个人其他" : "餐饮";
+                      } else if (!isPersonal && personalCats.has(curCat)) {
+                        newCat = confirm.args.type === "income" ? "收入" : "其他支出";
+                      }
+                      onUpdateArgs({ ...confirm.args, scope: s, category: newCat });
+                    }
+                  }}
+                  className="px-2 py-1"
+                  style={{ fontSize: 12 }}
+                >
+                  {s === "business" ? t("ai.chat.scopeBusiness") : t("ai.chat.scopePersonal")}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
