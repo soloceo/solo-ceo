@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bot, Plus, Pencil, Trash2, Wrench, Play } from 'lucide-react';
+import { Bot, Plus, Pencil, Trash2, Wrench, Play, RotateCcw } from 'lucide-react';
 import { useT } from '../../i18n/context';
 import { useAgents } from '../../hooks/useAgents';
 import { useUIStore } from '../../store/useUIStore';
@@ -11,11 +11,13 @@ import type { AgentConfig } from '../../lib/agent-types';
 export default function AgentSection() {
   const { t, lang } = useT();
   const showToast = useUIStore((s) => s.showToast);
-  const { agents, loading, create, update, remove } = useAgents();
+  const { agents, loading, create, update, remove, resetOne, resetAll } = useAgents();
   const [modalOpen, setModalOpen] = useState(false);
   const [editAgent, setEditAgent] = useState<AgentConfig | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [testAgent, setTestAgent] = useState<AgentConfig | null>(null);
+  const [resetOneId, setResetOneId] = useState<number | null>(null);
+  const [showResetAll, setShowResetAll] = useState(false);
 
   const handleCreate = () => {
     setEditAgent(null);
@@ -52,6 +54,22 @@ export default function AgentSection() {
     }
   };
 
+  const handleResetOne = async (id: number) => {
+    try {
+      await resetOne(id, lang as 'zh' | 'en');
+      setResetOneId(null);
+      showToast(t('settings.agents.resetOneDone'));
+    } catch (e) { showToast(String(e)); }
+  };
+
+  const handleResetAll = async () => {
+    try {
+      await resetAll(lang as 'zh' | 'en');
+      setShowResetAll(false);
+      showToast(t('settings.agents.resetAllDone'));
+    } catch (e) { showToast(String(e)); }
+  };
+
   const getTemplateName = (templateId: string) => {
     const tmpl = AGENT_TEMPLATES.find(t => t.id === templateId);
     if (!tmpl) return t('settings.agents.custom');
@@ -68,14 +86,38 @@ export default function AgentSection() {
             {t('settings.agents.title')}
           </h2>
         </div>
-        <button
-          onClick={handleCreate}
-          className="btn-ghost compact flex items-center gap-1 text-[13px]"
-          style={{ color: 'var(--color-accent)' }}
-        >
-          <Plus size={14} />
-          {t('settings.agents.create')}
-        </button>
+        <div className="flex items-center gap-1">
+          {showResetAll ? (
+            <div className="flex items-center gap-1">
+              <span className="text-[12px]" style={{ color: 'var(--color-text-tertiary)' }}>
+                {t('settings.agents.resetAllConfirm').slice(0, 30)}...
+              </span>
+              <button onClick={handleResetAll} className="btn-ghost compact text-[12px]" style={{ color: 'var(--color-danger)' }}>
+                {lang === 'en' ? 'Confirm' : '确认'}
+              </button>
+              <button onClick={() => setShowResetAll(false)} className="btn-ghost compact text-[12px]" style={{ color: 'var(--color-text-tertiary)' }}>
+                {lang === 'en' ? 'Cancel' : '取消'}
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowResetAll(true)}
+              className="btn-ghost compact flex items-center gap-1 text-[13px]"
+              style={{ color: 'var(--color-text-tertiary)' }}
+            >
+              <RotateCcw size={13} />
+              {t('settings.agents.resetAll')}
+            </button>
+          )}
+          <button
+            onClick={handleCreate}
+            className="btn-ghost compact flex items-center gap-1 text-[13px]"
+            style={{ color: 'var(--color-accent)' }}
+          >
+            <Plus size={14} />
+            {t('settings.agents.create')}
+          </button>
+        </div>
       </div>
 
       <div className="card p-4 space-y-3">
@@ -158,6 +200,27 @@ export default function AgentSection() {
                 >
                   <Play size={14} />
                 </button>
+                {agent.template_id && (
+                  resetOneId === agent.id ? (
+                    <div className="flex items-center gap-0.5 shrink-0">
+                      <button onClick={() => handleResetOne(agent.id)} className="btn-ghost compact text-[12px]" style={{ color: 'var(--color-warning)' }}>
+                        {lang === 'en' ? 'Yes' : '确认'}
+                      </button>
+                      <button onClick={() => setResetOneId(null)} className="btn-ghost compact text-[12px]" style={{ color: 'var(--color-text-tertiary)' }}>
+                        {lang === 'en' ? 'No' : '取消'}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setResetOneId(agent.id)}
+                      className="btn-ghost compact"
+                      style={{ color: 'var(--color-text-quaternary)' }}
+                      title={t('settings.agents.resetOne')}
+                    >
+                      <RotateCcw size={13} />
+                    </button>
+                  )
+                )}
                 <button
                   onClick={() => handleEdit(agent)}
                   className="btn-ghost compact"
@@ -165,12 +228,7 @@ export default function AgentSection() {
                 >
                   <Pencil size={14} />
                 </button>
-                {agent.template_id === 'general' && agent.is_default ? (
-                  /* Default general agent cannot be deleted */
-                  <span className="btn-ghost compact" style={{ color: 'var(--color-text-quaternary)', opacity: 0.3, cursor: 'not-allowed' }} title={lang === 'en' ? 'Default agent cannot be deleted' : '默认助手不可删除'}>
-                    <Trash2 size={14} />
-                  </span>
-                ) : deleteId === agent.id ? (
+                {deleteId === agent.id ? (
                   <div className="flex items-center gap-1 shrink-0">
                     <button
                       onClick={() => handleDelete(agent.id)}

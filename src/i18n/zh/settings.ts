@@ -255,6 +255,12 @@ export const settings = {
   "settings.agents.deleteConfirm": "确定要删除这个 Agent 吗？",
   "settings.agents.deleted": "Agent 已删除",
   "settings.agents.saved": "Agent 已保存",
+  "settings.agents.resetOne": "恢复默认",
+  "settings.agents.resetOneConfirm": "将此 Agent 恢复为模板默认设置？你的自定义修改将丢失。",
+  "settings.agents.resetOneDone": "已恢复为默认设置",
+  "settings.agents.resetAll": "恢复全部默认",
+  "settings.agents.resetAllConfirm": "将所有模板 Agent 恢复为默认设置，并补回已删除的默认 Agent？自定义 Agent 不受影响。",
+  "settings.agents.resetAllDone": "已恢复全部默认 Agent",
   // Agent Modal
   "settings.agents.modal.create": "创建 Agent",
   "settings.agents.modal.edit": "编辑 Agent",

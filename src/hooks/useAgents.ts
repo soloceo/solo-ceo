@@ -180,5 +180,58 @@ export function useAgents() {
     return ids;
   }, [fetch]);
 
-  return { agents, loading, reload: fetch, create, update, remove, seedDefaults, seedMissing };
+  /** Reset a single template-based agent back to its template defaults */
+  const resetOne = useCallback(async (id: number, lang: 'zh' | 'en') => {
+    const agent = agentsCache?.find(a => a.id === id);
+    if (!agent?.template_id) return;
+    const { AGENT_TEMPLATES } = await import('../data/agent-templates');
+    const tmpl = AGENT_TEMPLATES.find(t => t.id === agent.template_id);
+    if (!tmpl) return;
+    await api.put(`/api/agents/${id}`, {
+      name: tmpl.name[lang],
+      avatar: tmpl.avatar,
+      role: tmpl.role[lang],
+      personality: tmpl.personality[lang],
+      rules: tmpl.rules[lang],
+      tools: tmpl.tools,
+      conversation_starters: tmpl.starters[lang],
+      sort_order: AGENT_TEMPLATES.indexOf(tmpl),
+      is_default: true,
+    });
+    await fetch();
+    notifyAgentsChanged();
+  }, [fetch]);
+
+  /** Reset ALL template agents to defaults + restore deleted ones */
+  const resetAll = useCallback(async (lang: 'zh' | 'en') => {
+    const { AGENT_TEMPLATES } = await import('../data/agent-templates');
+    let existing: AgentConfig[] = [];
+    try { existing = await api.get<AgentConfig[]>('/api/agents'); } catch { /* empty */ }
+    const byTemplate = new Map(existing.filter(a => a.template_id).map(a => [a.template_id, a]));
+
+    for (const tmpl of AGENT_TEMPLATES) {
+      const ex = byTemplate.get(tmpl.id);
+      const data = {
+        name: tmpl.name[lang],
+        avatar: tmpl.avatar,
+        role: tmpl.role[lang],
+        personality: tmpl.personality[lang],
+        rules: tmpl.rules[lang],
+        tools: tmpl.tools,
+        conversation_starters: tmpl.starters[lang],
+        template_id: tmpl.id,
+        is_default: true,
+        sort_order: AGENT_TEMPLATES.indexOf(tmpl),
+      };
+      if (ex) {
+        await api.put(`/api/agents/${ex.id}`, data);
+      } else {
+        await api.post('/api/agents', data);
+      }
+    }
+    await fetch();
+    notifyAgentsChanged();
+  }, [fetch]);
+
+  return { agents, loading, reload: fetch, create, update, remove, seedDefaults, seedMissing, resetOne, resetAll };
 }

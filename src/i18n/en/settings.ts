@@ -253,6 +253,12 @@ export const settings = {
   "settings.agents.deleteConfirm": "Are you sure you want to delete this agent?",
   "settings.agents.deleted": "Agent deleted",
   "settings.agents.saved": "Agent saved",
+  "settings.agents.resetOne": "Reset to Default",
+  "settings.agents.resetOneConfirm": "Reset this agent to template defaults? Your customizations will be lost.",
+  "settings.agents.resetOneDone": "Reset to defaults",
+  "settings.agents.resetAll": "Reset All Defaults",
+  "settings.agents.resetAllConfirm": "Reset all template agents to defaults and restore any deleted default agents? Custom agents are not affected.",
+  "settings.agents.resetAllDone": "All default agents restored",
   // Agent Modal
   "settings.agents.modal.create": "Create Agent",
   "settings.agents.modal.edit": "Edit Agent",
