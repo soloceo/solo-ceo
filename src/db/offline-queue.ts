@@ -169,10 +169,16 @@ export async function replayQueue(): Promise<{ replayed: number; failed: number 
       );
     }
 
-    // Replay in batches of 5 (parallel within batch, sequential across batches)
+    // POSTs run first and sequentially (they create entities referenced by later ops).
+    // Then PUTs/DELETEs run in parallel batches (safe since entities already exist).
+    const posts = validOps.filter(op => op.method === 'POST');
+    const rest = validOps.filter(op => op.method !== 'POST');
+    const ordered = [...posts, ...rest];
+
     const BATCH_SIZE = 5;
-    for (let i = 0; i < validOps.length; i += BATCH_SIZE) {
-      const batch = validOps.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < ordered.length; i += (ordered[i]?.method === 'POST' ? 1 : BATCH_SIZE)) {
+      const isPost = ordered[i]?.method === 'POST';
+      const batch = isPost ? [ordered[i]] : ordered.slice(i, i + BATCH_SIZE).filter(op => op.method !== 'POST');
       const results = await Promise.allSettled(
         batch.map(async (op) => {
           const result = await handleSupabaseRequest(op.method, op.path, op.body);

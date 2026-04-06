@@ -11,7 +11,7 @@ import { initDb, handleApiRequest } from './api';
 import { enqueue, startOfflineQueueListener } from './offline-queue';
 import { initSyncManager } from './sync-manager';
 import { supabase } from './supabase-client';
-import { cacheGet, cacheSet, cacheToResponse, isFresh, invalidateForMutation, notifyUpdate, clearCache } from './data-cache';
+import { cacheGet, cacheSet, cacheToResponse, isFresh, invalidateForMutation, notifyUpdate, clearCache, cacheVersion } from './data-cache';
 
 let installed = false;
 
@@ -171,15 +171,17 @@ export async function installSupabaseInterceptor(): Promise<void> {
     // ── GET: SWR cache layer ──
     const cached = cacheGet(path);
 
-    // Helper: fetch fresh data, cache it, and return/notify
+    // Helper: fetch fresh data, cache it, and return/notify.
+    // Captures version at fetch start so stale responses (from before a mutation) are rejected.
     const fetchFresh = async (source: 'supabase' | 'local'): Promise<Response> => {
+      const ver = cacheVersion(path); // snapshot version before fetch
       const resp = source === 'supabase'
         ? await handleViaSupabase(method, path, body)
         : await handleLocally(method, path, body);
       const ct = resp.headers.get('Content-Type') || 'application/json';
       const clone = resp.clone();
       clone.text().then((text) => {
-        cacheSet(path, text, ct, resp.status);
+        cacheSet(path, text, ct, resp.status, ver); // rejected if mutation bumped ver
       }).catch(() => {});
       return resp;
     };

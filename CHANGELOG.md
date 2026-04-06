@@ -3,6 +3,23 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.29.3] - 2026-04-06
+
+### Fixed
+- **RLS user_id filtering** — add missing `.eq('user_id')` to milestone cascade delete and subscription ledger batch operations in supabase-api.ts, preventing potential cross-user data access
+- **SWR stale write rejection** — version-based cache prevents background revalidation from overwriting fresh optimistic data in data-cache.ts
+- **Agent seed infinite loop** — remove `agents.length` from useEffect deps that mutates agents; add session-level + localStorage dedup guard
+- **Agent delete rollback** — restore previous agent list on failed API delete instead of leaving stale UI
+- **Offline queue ordering** — POSTs now run sequentially before PUT/DELETE batches, preventing "update before create" failures on replay
+- **Dashboard offline parity** — add 6 missing fields (todoCount, inProgressCount, leadsNew, leadsContacted, leadsProposal, todayIncome) and switch mrrSeries to finance_transactions source
+- **Finance source field** — POST /api/finance now persists `source` and `source_id`; added `client_name` to GET response
+- **Currency in AI prompts** — pass user's currency setting (CAD/USD/CNY) to AI chat and Agent test panel system prompts instead of hardcoded ¥
+- **useRealtimeRefresh stability** — replace useCallback with useRef pattern to prevent effect re-runs on callback identity change
+- **Cross-tab theme sync** — useUIStore now listens to localStorage `storage` events for multi-tab consistency
+- **CommandPalette i18n** — fix missing translation key for quick-create finance entry
+
+---
+
 ## [2.29.2] - 2026-04-05
 
 ### Fixed

@@ -216,7 +216,7 @@ export function CommandPalette() {
                   </Command.Item>
                   <Command.Item value="record transaction income" onSelect={() => quickCreate("transaction")} className={itemClass} style={{ color: "var(--color-text-primary)" }}>
                     <FileText size={16} style={{ color: "var(--color-text-tertiary)" }} />
-                    {t("app.quickCreate.transaction") || "New Transaction"}
+                    {t("app.quickCreate.bizFinance")}
                   </Command.Item>
                 </Command.Group>
 

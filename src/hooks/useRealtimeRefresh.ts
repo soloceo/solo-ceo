@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 // Map table names to their primary API path for SWR cache-updated matching
 const TABLE_TO_PATH: Record<string, string> = {
@@ -21,13 +21,15 @@ export function useRealtimeRefresh(
   tables: readonly string[],
   refetchFn: () => void,
 ) {
-  const stableRefetch = useCallback(refetchFn, [refetchFn]);
+  // Store latest refetchFn in a ref so the effect doesn't re-run when the callback changes
+  const refetchRef = useRef(refetchFn);
+  refetchRef.current = refetchFn;
   const timer = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     const scheduleRefetch = () => {
       clearTimeout(timer.current);
-      timer.current = setTimeout(() => stableRefetch(), 300);
+      timer.current = setTimeout(() => refetchRef.current(), 300);
     };
 
     const handleSingle = (e: Event) => {
@@ -65,5 +67,5 @@ export function useRealtimeRefresh(
       window.removeEventListener('api-cache-updated', handleCacheUpdate);
       clearTimeout(timer.current);
     };
-  }, [tables, stableRefetch]);
+  }, [tables]); // eslint-disable-line react-hooks/exhaustive-deps
 }

@@ -34,7 +34,7 @@ const REALTIME_TABLES = [
 let channel: RealtimeChannel | null = null;
 
 export function startRealtime() {
-  if (channel) return; // already running
+  if (channel) return; // already running — no leak possible
 
   const ch = supabase.channel('db-changes');
 

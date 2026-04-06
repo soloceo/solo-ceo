@@ -4,12 +4,25 @@
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '../lib/api';
+import { invalidateForMutation } from '../db/data-cache';
 import type { AgentConfig } from '../lib/agent-types';
 
 let agentsCache: AgentConfig[] | null = null;
 let cacheTs = 0;
 const CACHE_TTL = 10_000; // 10s
 const AGENTS_EVENT = 'agents-changed';
+const LS_DISMISSED_TEMPLATES = 'solo_dismissed_agent_templates';
+
+/** Get set of template IDs the user has intentionally deleted */
+function getDismissed(): Set<string> {
+  try { return new Set(JSON.parse(localStorage.getItem(LS_DISMISSED_TEMPLATES) || '[]')); } catch { return new Set(); }
+}
+function addDismissed(templateId: string) {
+  const s = getDismissed(); s.add(templateId); localStorage.setItem(LS_DISMISSED_TEMPLATES, JSON.stringify([...s]));
+}
+function clearDismissed() {
+  localStorage.removeItem(LS_DISMISSED_TEMPLATES);
+}
 
 /** Notify all hook instances that agents changed */
 function notifyAgentsChanged() {
@@ -70,10 +83,27 @@ export function useAgents() {
   }, [fetch]);
 
   const remove = useCallback(async (id: number) => {
-    await api.del(`/api/agents/${id}`);
-    await fetch();
+    // Record dismissed template so seedMissing won't recreate it
+    const agent = agentsCache?.find(a => a.id === id);
+    if (agent?.template_id) addDismissed(agent.template_id);
+    // Optimistic update — remove from UI immediately
+    const prev = agentsCache;
+    agentsCache = agentsCache ? agentsCache.filter(a => a.id !== id) : [];
+    cacheTs = 0;
+    if (mountedRef.current) setAgents(agentsCache);
     notifyAgentsChanged();
-  }, [fetch]);
+    try {
+      await api.del(`/api/agents/${id}`);
+      invalidateForMutation('/api/agents');
+    } catch {
+      // Rollback on failure
+      agentsCache = prev;
+      cacheTs = 0;
+      if (mountedRef.current) setAgents(prev || []);
+      notifyAgentsChanged();
+      throw new Error('Delete failed');
+    }
+  }, []);
 
   /** Seed default agents from templates (for first-time users) */
   const seedDefaults = useCallback(async (lang: 'zh' | 'en') => {
@@ -137,9 +167,12 @@ export function useAgents() {
       }
     }
 
+    const dismissed = getDismissed();
     for (const tmpl of AGENT_TEMPLATES) {
       const existing = existingByTemplate.get(tmpl.id);
       if (!existing) {
+        // Skip if user intentionally deleted this template
+        if (dismissed.has(tmpl.id)) continue;
         // New template — create it
         try {
           const res = await api.post<{ id: number; success: boolean }>('/api/agents', {
@@ -198,37 +231,50 @@ export function useAgents() {
       sort_order: AGENT_TEMPLATES.indexOf(tmpl),
       is_default: true,
     });
+    invalidateForMutation('/api/agents');
+    agentsCache = null;
+    cacheTs = 0;
     await fetch();
     notifyAgentsChanged();
   }, [fetch]);
 
   /** Reset ALL template agents to defaults + restore deleted ones */
   const resetAll = useCallback(async (lang: 'zh' | 'en') => {
+    clearDismissed();
     const { AGENT_TEMPLATES } = await import('../data/agent-templates');
     let existing: AgentConfig[] = [];
     try { existing = await api.get<AgentConfig[]>('/api/agents'); } catch { /* empty */ }
-    const byTemplate = new Map(existing.filter(a => a.template_id).map(a => [a.template_id, a]));
+    const templateIds = new Set(AGENT_TEMPLATES.map(t => t.id));
 
-    for (const tmpl of AGENT_TEMPLATES) {
-      const ex = byTemplate.get(tmpl.id);
-      const data = {
-        name: tmpl.name[lang],
-        avatar: tmpl.avatar,
-        role: tmpl.role[lang],
-        personality: tmpl.personality[lang],
-        rules: tmpl.rules[lang],
-        tools: tmpl.tools,
-        conversation_starters: tmpl.starters[lang],
-        template_id: tmpl.id,
-        is_default: true,
-        sort_order: AGENT_TEMPLATES.indexOf(tmpl),
-      };
-      if (ex) {
-        await api.put(`/api/agents/${ex.id}`, data);
-      } else {
-        await api.post('/api/agents', data);
+    // Step 1: Delete ALL template-based agents (including duplicates)
+    for (const agent of existing) {
+      if (agent.template_id && templateIds.has(agent.template_id)) {
+        try { await api.del(`/api/agents/${agent.id}`); } catch { /* skip */ }
       }
     }
+
+    // Step 2: Recreate exactly one of each template
+    for (const tmpl of AGENT_TEMPLATES) {
+      try {
+        await api.post('/api/agents', {
+          name: tmpl.name[lang],
+          avatar: tmpl.avatar,
+          role: tmpl.role[lang],
+          personality: tmpl.personality[lang],
+          rules: tmpl.rules[lang],
+          tools: tmpl.tools,
+          conversation_starters: tmpl.starters[lang],
+          template_id: tmpl.id,
+          is_default: true,
+          sort_order: AGENT_TEMPLATES.indexOf(tmpl),
+        });
+      } catch { /* skip */ }
+    }
+
+    // Force clear all caches before refetch
+    invalidateForMutation('/api/agents');
+    agentsCache = null;
+    cacheTs = 0;
     await fetch();
     notifyAgentsChanged();
   }, [fetch]);

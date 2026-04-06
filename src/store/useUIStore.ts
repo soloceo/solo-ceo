@@ -173,6 +173,20 @@ export const useUIStore = create<UIState>()(
   ),
 );
 
+// Cross-tab sync: when another tab changes localStorage, rehydrate and apply theme
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key !== 'solo-ceo-ui' || !e.newValue) return;
+    try {
+      const { state } = JSON.parse(e.newValue);
+      if (state) {
+        useUIStore.setState(state);
+        applyFullTheme(state.styleId || 'default', state.paletteId || 'default', state.themeMode || 'auto');
+      }
+    } catch { /* malformed — ignore */ }
+  });
+}
+
 /** Set up or tear down the system preference change listener */
 function setupSystemListener(mode: ThemeMode) {
   mediaQueryCleanup?.();

@@ -55,6 +55,7 @@ interface FinanceTransactionRow {
   description: string;
   category?: string;
   tax_amount?: number;
+  source?: string;
 }
 
 interface MilestoneRow {
@@ -338,12 +339,12 @@ async function syncClientSubscriptionLedger(userId: string) {
   for (let i = 0; i < toUpdate.length; i += BATCH) {
     await Promise.all(
       toUpdate.slice(i, i + BATCH).map(u =>
-        supabase.from('finance_transactions').update(u.data).eq('id', u.id)
+        supabase.from('finance_transactions').update(u.data).eq('id', u.id).eq('user_id', userId)
       )
     );
   }
   if (toDelete.length > 0) {
-    await supabase.from('finance_transactions').update({ soft_deleted: true }).in('id', toDelete);
+    await supabase.from('finance_transactions').update({ soft_deleted: true }).in('id', toDelete).eq('user_id', userId);
   }
   } finally {
     syncLedgerRunning = false;
@@ -724,7 +725,7 @@ export async function handleSupabaseRequest(
           return err(500, `创建财务记录失败: ${txErr.message}`);
         }
         // Link milestone to finance transaction
-        if (tx) await supabase.from('payment_milestones').update({ finance_tx_id: tx.id }).eq('id', data!.id);
+        if (tx) await supabase.from('payment_milestones').update({ finance_tx_id: tx.id }).eq('id', data!.id).eq('user_id', userId);
       }
       await logActivity(userId, 'milestone', 'created',
         `新增付款节点：${cName} · ${label || ''}`,
@@ -782,7 +783,7 @@ export async function handleSupabaseRequest(
       await supabase.from('payment_milestones').update({ soft_deleted: true }).eq('id', id).eq('user_id', userId);
       // Also soft-delete linked finance transaction if exists
       if (prev?.finance_tx_id) {
-        await supabase.from('finance_transactions').update({ soft_deleted: true }).eq('id', Number(prev.finance_tx_id));
+        await supabase.from('finance_transactions').update({ soft_deleted: true }).eq('id', Number(prev.finance_tx_id)).eq('user_id', userId);
       }
       await logActivity(userId, 'milestone', 'deleted', `删除付款节点：${prev?.label || ''}`, '', id);
       return ok({ success: true });
@@ -1022,7 +1023,7 @@ export async function handleSupabaseRequest(
     // Single table query — no more virtual rows!
     const { data, error: e } = await supabase
       .from('finance_transactions')
-      .select('id, type, amount, category, description, date, status, source, source_id, tax_mode, tax_rate, tax_amount, client_id, created_at, updated_at')
+      .select('id, type, amount, category, description, date, status, source, source_id, tax_mode, tax_rate, tax_amount, client_id, client_name, created_at, updated_at')
       .eq('user_id', userId)
       .eq('soft_deleted', false)
       .order('date', { ascending: false });
@@ -1067,6 +1068,7 @@ export async function handleSupabaseRequest(
         description: str(description, 500), date: str(date, 10), status: enumVal(status, VALID_TX_STATUSES, '已完成'),
         tax_mode: enumVal(tax_mode, VALID_TAX_MODES, 'none'), tax_rate: tax_rate || 0, tax_amount: tax_amount || 0,
         client_id: client_id || null, client_name: str(client_name, 255),
+        source: body.source || 'manual', source_id: body.source_id || null,
       })
       .select('id')
       .single();

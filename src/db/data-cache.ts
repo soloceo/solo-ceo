@@ -12,18 +12,32 @@ interface CacheEntry {
   contentType: string;
   status: number;
   ts: number;              // Date.now() when cached
+  ver: number;             // monotonic version — prevents stale overwrites
 }
 
 const cache = new Map<string, CacheEntry>();
+
+/** Monotonic version per path — incremented on every mutation invalidation */
+const pathVersion = new Map<string, number>();
+function nextVer(path: string): number {
+  const v = (pathVersion.get(path) || 0) + 1;
+  pathVersion.set(path, v);
+  return v;
+}
+function curVer(path: string): number {
+  return pathVersion.get(path) || 0;
+}
 
 /** How long cached data is considered "fresh" (no revalidation needed) */
 const FRESH_MS = 10_000;  // 10 seconds
 
 // ── Public API ───────────────────────────────────────────────────────
 
-/** Store a GET response in cache */
-export function cacheSet(path: string, body: string, contentType: string, status: number): void {
-  cache.set(path, { body, contentType, status, ts: Date.now() });
+/** Store a GET response in cache. ver must match current pathVersion or write is rejected (stale). */
+export function cacheSet(path: string, body: string, contentType: string, status: number, ver?: number): void {
+  // If a version is provided, reject stale writes (a mutation happened after this fetch started)
+  if (ver !== undefined && ver < curVer(path)) return;
+  cache.set(path, { body, contentType, status, ts: Date.now(), ver: ver ?? curVer(path) });
 }
 
 /** Get cached entry if it exists. Returns null if no cache. */
@@ -57,6 +71,7 @@ export function invalidateForMutation(path: string): void {
   for (const key of cache.keys()) {
     if (key === path || key === basePath || key.startsWith(basePath + '/') || key.startsWith(basePath + '?')) {
       cache.delete(key);
+      nextVer(key); // bump version so in-flight background fetches become stale
     }
   }
 
@@ -76,7 +91,13 @@ export function notifyUpdate(path: string): void {
   window.dispatchEvent(new CustomEvent('api-cache-updated', { detail: { path } }));
 }
 
+/** Get current version for a path (used by interceptor to tag fetches) */
+export function cacheVersion(path: string): number {
+  return curVer(path);
+}
+
 /** Clear all cache (e.g. on sign-out) */
 export function clearCache(): void {
   cache.clear();
+  pathVersion.clear();
 }

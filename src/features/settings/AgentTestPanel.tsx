@@ -34,6 +34,8 @@ export default function AgentTestPanel({ open, onClose, agent }: Props) {
   const { t, lang } = useT();
   const { settings } = useAppSettings();
   const operatorName = useSettingsStore((s) => s.operatorName) || 'Andy';
+  const currency = useSettingsStore((s) => s.currency) || 'USD';
+  const sym = currency === 'CNY' ? '¥' : '$';
 
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
@@ -58,12 +60,14 @@ export default function AgentTestPanel({ open, onClose, agent }: Props) {
     const parts: string[] = [];
     if (lang === 'zh') {
       parts.push(`你是 ${agent.name}，${operatorName} 的 AI 助手。`);
+      parts.push(`货币单位：${currency}（金额前使用 ${sym} 符号，禁止使用其他货币符号）`);
       if (agent.role) parts.push(`\n## 角色\n${agent.role}`);
       if (agent.personality) parts.push(`\n## 性格\n${agent.personality}`);
       if (agent.rules) parts.push(`\n## 规则\n${agent.rules}`);
       parts.push('\n⚠️ 这是测试模式 — 不要真正执行工具，只展示你会如何回复。');
     } else {
       parts.push(`You are ${agent.name}, ${operatorName}'s AI assistant.`);
+      parts.push(`Currency: ${currency} (use ${sym} symbol before amounts, never use other currency symbols)`);
       if (agent.role) parts.push(`\n## Role\n${agent.role}`);
       if (agent.personality) parts.push(`\n## Personality\n${agent.personality}`);
       if (agent.rules) parts.push(`\n## Rules\n${agent.rules}`);

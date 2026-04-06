@@ -763,7 +763,7 @@ export async function handleApiRequest(
 
   // ── LEADS ──────────────────────────────────────────────────────────────
   if (path === '/api/leads' && method === 'GET') {
-    return ok(all(db, 'SELECT * FROM leads WHERE soft_deleted=0 ORDER BY created_at DESC'));
+    return ok(all(db, 'SELECT id, name, industry, needs, website, "column", aiDraft, source, created_at, updated_at FROM leads WHERE soft_deleted=0 ORDER BY created_at DESC'));
   }
 
   if (path === '/api/leads' && method === 'POST') {
@@ -840,12 +840,19 @@ export async function handleApiRequest(
     syncClientSubscriptionLedger(db);
     const currentYear = new Date().getFullYear();
     const clients = all(db, 'SELECT * FROM clients WHERE soft_deleted=0 ORDER BY joined_at DESC');
-    const ledger = all(db, 'SELECT client_id, amount, ledger_month FROM client_subscription_ledger');
+    // Calculate lifetime/YTD revenue from finance_transactions (completed income per client) — matches online handler
+    const revRows = all(db, `SELECT client_id, amount, date FROM finance_transactions WHERE type='income' AND status='已完成' AND soft_deleted=0 AND client_id IS NOT NULL`);
+    const revMap = new Map<number, Array<{ amount: number; date: string }>>();
+    for (const r of revRows) {
+      const cid = Number(r.client_id);
+      if (!revMap.has(cid)) revMap.set(cid, []);
+      revMap.get(cid)!.push(r as { amount: number; date: string });
+    }
     const rows = clients.map((client) => {
-      const cl = ledger.filter((r) => Number(r.client_id) === Number(client.id));
+      const cl = revMap.get(Number(client.id)) || [];
       const lifetimeRevenue = cl.reduce((s, r) => s + Number(r.amount || 0), 0);
       const ytdRevenue = cl
-        .filter((r) => String(r.ledger_month || '').startsWith(`${currentYear}-`))
+        .filter((r) => String(r.date || '').startsWith(`${currentYear}-`))
         .reduce((s, r) => s + Number(r.amount || 0), 0);
       return { ...client, lifetimeRevenue, ytdRevenue };
     });
@@ -1460,27 +1467,44 @@ export async function handleApiRequest(
     const ledgerMrr = get(db, `SELECT SUM(amount) as s FROM client_subscription_ledger WHERE ledger_month=?`, [cm]);
     const mrr = Number(ledgerMrr?.s || 0) || Number(get(db, `SELECT SUM(mrr) as s FROM clients WHERE status='Active' AND soft_deleted=0`)?.s || 0);
     const activeTasks = Number(get(db, `SELECT COUNT(*) as c FROM tasks WHERE "column" != 'done' AND soft_deleted=0`)?.c || 0);
+    const todoCount = Number(get(db, `SELECT COUNT(*) as c FROM tasks WHERE "column"='todo' AND soft_deleted=0`)?.c || 0);
+    const inProgressCount = Number(get(db, `SELECT COUNT(*) as c FROM tasks WHERE "column"='inProgress' AND soft_deleted=0`)?.c || 0);
     const workTasks = Number(get(db, `SELECT COUNT(*) as c FROM tasks WHERE "column" != 'done' AND soft_deleted=0 AND (scope IS NULL OR scope != 'personal') AND (priority IS NULL OR priority IN ('High','Medium'))`)?.c || 0);
     const personalTasks = Number(get(db, `SELECT COUNT(*) as c FROM tasks WHERE "column" != 'done' AND soft_deleted=0 AND scope = 'personal'`)?.c || 0);
     const leadsCount = Number(get(db, `SELECT COUNT(*) as c FROM leads WHERE soft_deleted=0`)?.c || 0);
+    const leadsNew = Number(get(db, `SELECT COUNT(*) as c FROM leads WHERE soft_deleted=0 AND "column"='new'`)?.c || 0);
+    const leadsContacted = Number(get(db, `SELECT COUNT(*) as c FROM leads WHERE soft_deleted=0 AND "column"='contacted'`)?.c || 0);
+    const leadsProposal = Number(get(db, `SELECT COUNT(*) as c FROM leads WHERE soft_deleted=0 AND "column"='proposal'`)?.c || 0);
 
-    const ledgerSeries = all(db,
-      `SELECT ledger_month, SUM(amount) as total FROM client_subscription_ledger GROUP BY ledger_month ORDER BY ledger_month ASC`);
+    // Use finance_transactions for mrrSeries (same source as online handler)
+    const completedIncomeRows = all(db,
+      `SELECT date, amount FROM finance_transactions WHERE type='income' AND status='已完成' AND soft_deleted=0`);
     const currentYear = new Date().getFullYear();
-    const mrrSeries = ledgerSeries.slice(-12).map((r) => {
-      const [year, month] = String(r.ledger_month).split('-');
-      return { name: `${year.slice(2)}-${month}`, mrr: Number(r.total||0) };
+    const monthTotals = new Map<string, number>();
+    for (const r of completedIncomeRows) {
+      const m = String(r.date || '').substring(0, 7);
+      if (m) monthTotals.set(m, (monthTotals.get(m) || 0) + Number(r.amount || 0));
+    }
+    const sortedMonths = [...monthTotals.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+    const mrrSeries = sortedMonths.slice(-12).map(([m, total]) => {
+      const [year, month] = m.split('-');
+      return { name: `${year.slice(2)}-${month}`, mrr: total };
     });
-    const ytdRevenue = ledgerSeries
-      .filter((r) => String(r.ledger_month).startsWith(`${currentYear}-`))
-      .reduce((s, r) => s + Number(r.total||0), 0);
+    const ytdRevenue = sortedMonths
+      .filter(([m]) => m.startsWith(`${currentYear}-`))
+      .reduce((s, [, total]) => s + total, 0);
+
+    // Today's income
+    const todayIncomeVal = completedIncomeRows
+      .filter((r: DbRow) => String(r.date || '').startsWith(todayDateKey()))
+      .reduce((s: number, r: DbRow) => s + Number(r.amount || 0), 0);
+    const todayIncome = todayIncomeVal;
 
     // Current month's income from finance_transactions
     const currentMonthStr = `${currentYear}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-    const monthlyIncomeRow = get(db,
-      `SELECT COALESCE(SUM(amount), 0) as total FROM finance_transactions WHERE type='income' AND status='已完成' AND soft_deleted=0 AND date LIKE ?`,
-      [`${currentMonthStr}%`]);
-    const monthlyIncome = Number((monthlyIncomeRow as Record<string, unknown>)?.total || 0);
+    const monthlyIncome = completedIncomeRows
+      .filter((r: DbRow) => String(r.date || '').startsWith(currentMonthStr))
+      .reduce((s: number, r: DbRow) => s + Number(r.amount || 0), 0);
 
     const recentActivityRows = all(db,
       `SELECT title as activity, detail, created_at as time, entity_type as type, action
@@ -1591,7 +1615,7 @@ export async function handleApiRequest(
     const todayFocus = autoFocus.map((item) => ({ ...item, status: focusStateMap[item.key] || 'pending' }));
     const dueTodayWithStatus = dueTodayItems.map((item) => ({ ...item, status: focusStateMap[item.key] || 'pending' }));
 
-    return ok({ clientsCount, mrr, activeTasks, workTasks, personalTasks, leadsCount, mrrSeries, recentActivity, ytdRevenue, monthlyIncome, todayFocus, dueTodayItems: dueTodayWithStatus, manualTodayEvents });
+    return ok({ clientsCount, mrr, activeTasks, todoCount, inProgressCount, leadsCount, leadsNew, leadsContacted, leadsProposal, mrrSeries, recentActivity, ytdRevenue, todayIncome, monthlyIncome, todayFocus, dueTodayItems: dueTodayWithStatus, manualTodayEvents, workTasks, personalTasks });
   }
 
   // ── WEEKLY REPORT ──────────────────────────────────────────────
