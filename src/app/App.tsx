@@ -520,7 +520,7 @@ function App() {
       >
         {/* Mobile header — floating capsules */}
         <div
-          className="lg:hidden fixed left-0 right-0 z-[var(--layer-header)] flex items-center justify-between pointer-events-none"
+          className="lg:hidden fixed left-0 right-0 z-[var(--layer-header)] flex items-center justify-between pointer-events-none mobile-top-bar"
           style={{
             top: 0,
             paddingTop: "calc(var(--mobile-header-pt, env(safe-area-inset-top, 0px)) + 8px)",
@@ -664,7 +664,7 @@ function App() {
         {/* Mobile bottom row — nav + FAB side by side, independent */}
         {!hideMobileNav && (
           <div
-            className="lg:hidden fixed left-0 right-0 z-30 flex items-center gap-2"
+            className="lg:hidden fixed left-0 right-0 z-30 flex items-center gap-2 mobile-bottom-bar"
             style={{
               bottom: 0,
               padding: "0 20px",

@@ -551,7 +551,17 @@ export async function handleSupabaseRequest(
       if (body.contact_name !== undefined) patch.contact_name = str(body.contact_name, 255);
       if (body.contact_email !== undefined) patch.contact_email = str(body.contact_email, 320);
       if (body.contact_phone !== undefined) patch.contact_phone = str(body.contact_phone, 30);
-      if (body.billing_type !== undefined) patch.billing_type = enumVal(body.billing_type, VALID_BILLING_TYPES, 'subscription');
+      if (body.billing_type !== undefined) {
+        patch.billing_type = enumVal(body.billing_type, VALID_BILLING_TYPES, 'subscription');
+        // Clear incompatible fields when switching billing type
+        if (patch.billing_type === 'subscription') {
+          patch.project_fee = 0;
+          patch.project_end_date = null;
+        } else if (patch.billing_type === 'project') {
+          patch.mrr = 0;
+          patch.plan_tier = '';
+        }
+      }
       if (body.project_fee !== undefined) patch.project_fee = body.project_fee || 0;
       if (body.project_end_date !== undefined) patch.project_end_date = str(body.project_end_date, 10);
       if (body.tax_mode !== undefined) patch.tax_mode = enumVal(body.tax_mode, VALID_TAX_MODES, 'none');
@@ -798,7 +808,7 @@ export async function handleSupabaseRequest(
     const { payment_method, paid_date } = body || {};
     const actualDate = paid_date || todayDateKey();
 
-    const { data: milestone } = await supabase.from('payment_milestones').select('id, client_id, label, amount, percentage, due_date, status, finance_tx_id, sort_order, paid_date, payment_method').eq('id', id).eq('user_id', userId).single();
+    const { data: milestone } = await supabase.from('payment_milestones').select('id, client_id, project_id, label, amount, percentage, due_date, status, finance_tx_id, sort_order, paid_date, payment_method').eq('id', id).eq('user_id', userId).single();
     if (!milestone) return err(404, 'Milestone not found');
 
     // Fix Bug 2: Check idempotency - if milestone is already marked as paid, return early
@@ -1165,10 +1175,11 @@ export async function handleSupabaseRequest(
   if (path === '/api/content-drafts' && method === 'POST') {
     const { id, topic, platform, language, content } = body;
     if (id) {
-      await supabase
+      const { error: e } = await supabase
         .from('content_drafts')
-        .update({ topic: topic || '', platform: platform || '', language: language || 'zh', content: content || '' })
-        .eq('id', Number(id)).eq('user_id', userId);
+        .update({ topic: str(topic, 255) || '', platform: str(platform, 50) || '', language: str(language, 10) || 'zh', content: content || '' })
+        .eq('id', Number(id)).eq('user_id', userId).eq('soft_deleted', false);
+      if (e) return err(500, e.message);
       await logActivity(userId, 'content', 'updated', `更新草稿：${topic || '未命名草稿'}`, platform ? `平台：${platform}` : '', id);
       return ok({ id, success: true });
     }
@@ -1176,7 +1187,7 @@ export async function handleSupabaseRequest(
       .from('content_drafts')
       .insert({
         user_id: userId,
-        topic: topic || '', platform: platform || '', language: language || 'zh', content: content || '',
+        topic: str(topic, 255) || '', platform: str(platform, 50) || '', language: str(language, 10) || 'zh', content: content || '',
       })
       .select('id')
       .single();
@@ -1245,7 +1256,7 @@ export async function handleSupabaseRequest(
       const { error: e } = await supabase
         .from('today_focus_manual')
         .update({ type: type || '系统', title: String(title).trim(), note: String(note || '').trim() })
-        .eq('id', id).eq('user_id', userId);
+        .eq('id', id).eq('user_id', userId).eq('soft_deleted', false);
       if (e) return err(500, e.message);
       await logActivity(userId, 'today_focus', 'manual_updated', `更新今日事件：${String(title).trim()}`, '', id);
       return ok({ success: true, id });

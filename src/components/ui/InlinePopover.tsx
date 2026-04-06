@@ -93,10 +93,11 @@ export function InlinePopover({ trigger, children, align = "start", className = 
         <div
           ref={panelRef}
           role="listbox"
-          className={`fixed z-[var(--layer-popover)] rounded-[var(--radius-8)] shadow-lg overflow-hidden ${className}`}
+          className={`fixed rounded-[var(--radius-8)] shadow-lg overflow-hidden ${className}`}
           style={{
             top: pos.top,
             left: pos.left,
+            zIndex: "var(--layer-popover)",
             background: "var(--color-bg-panel)",
             border: "1px solid var(--color-border-primary)",
             minWidth: 120,

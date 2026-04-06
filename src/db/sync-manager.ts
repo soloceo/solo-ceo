@@ -112,8 +112,8 @@ export function initSyncManager(): void {
   initialized = true;
 
   // 1. Sync when auth becomes ready (covers cold start)
-  const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-    if (session && navigator.onLine) {
+  const { data } = supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN' && session && navigator.onLine) {
       // Small delay to let other init complete
       setTimeout(() => triggerFullSync(), 500);
     }
@@ -152,4 +152,5 @@ export function destroySyncManager(): void {
   }
   initialized = false;
   syncing = false;
+  lastSyncAt = 0;
 }

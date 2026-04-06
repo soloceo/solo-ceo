@@ -180,8 +180,18 @@ if (typeof window !== 'undefined') {
     try {
       const { state } = JSON.parse(e.newValue);
       if (state) {
-        useUIStore.setState(state);
-        applyFullTheme(state.styleId || 'default', state.paletteId || 'default', state.themeMode || 'auto');
+        // Only merge persisted data keys — never overwrite action functions
+        const { themeMode, styleId, paletteId, sidebarExpanded, tasksViewMode, salesViewMode, darkMode } = state;
+        const safeState: Record<string, unknown> = {};
+        if (themeMode !== undefined) safeState.themeMode = themeMode;
+        if (styleId !== undefined) safeState.styleId = styleId;
+        if (paletteId !== undefined) safeState.paletteId = paletteId;
+        if (sidebarExpanded !== undefined) safeState.sidebarExpanded = sidebarExpanded;
+        if (tasksViewMode !== undefined) safeState.tasksViewMode = tasksViewMode;
+        if (salesViewMode !== undefined) safeState.salesViewMode = salesViewMode;
+        if (darkMode !== undefined) safeState.darkMode = darkMode;
+        useUIStore.setState(safeState);
+        applyFullTheme(styleId || 'default', paletteId || 'default', themeMode || 'auto');
       }
     } catch { /* malformed — ignore */ }
   });

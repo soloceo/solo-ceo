@@ -911,7 +911,12 @@ export async function handleApiRequest(
       if (body.plan_tier !== undefined) { sets.push('plan_tier=?'); vals.push(normalizePlanTier(body.plan_tier||'')); }
       if (body.status !== undefined) { sets.push('status=?'); vals.push(enumVal(body.status, VALID_CLIENT_STATUSES, 'Active')); }
       if (body.mrr !== undefined) { sets.push('mrr=?'); vals.push(body.mrr || 0); }
-      if (body.billing_type !== undefined) { sets.push('billing_type=?'); vals.push(enumVal(body.billing_type, VALID_BILLING_TYPES, 'subscription')); }
+      if (body.billing_type !== undefined) {
+        const bt = enumVal(body.billing_type, VALID_BILLING_TYPES, 'subscription');
+        sets.push('billing_type=?'); vals.push(bt);
+        if (bt === 'subscription') { sets.push('project_fee=?', 'project_end_date=?'); vals.push(0, null); }
+        else if (bt === 'project') { sets.push('mrr=?', 'plan_tier=?'); vals.push(0, ''); }
+      }
       if (body.project_fee !== undefined) { sets.push('project_fee=?'); vals.push(body.project_fee || 0); }
       if (body.tax_mode !== undefined) { sets.push('tax_mode=?'); vals.push(enumVal(body.tax_mode, VALID_TAX_MODES, 'none')); }
       if (body.tax_rate !== undefined) { sets.push('tax_rate=?'); vals.push(body.tax_rate || 0); }
@@ -1444,7 +1449,7 @@ export async function handleApiRequest(
     if (method === 'PUT') {
       const { type, title, note } = body || {};
       if (!title || !String(title).trim()) return err(400, 'title is required');
-      const prev = get(db, 'SELECT title, type FROM today_focus_manual WHERE id=?', [id]) as DbRow;
+      const prev = get(db, 'SELECT title, type FROM today_focus_manual WHERE id=? AND soft_deleted=0', [id]) as DbRow;
       if (!prev) return err(404, 'manual event not found');
       run(db, `UPDATE today_focus_manual SET type=?,title=?,note=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`,
         [type||'系统', String(title).trim(), String(note||'').trim(), id]);

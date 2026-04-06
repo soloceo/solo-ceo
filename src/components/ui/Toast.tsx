@@ -26,7 +26,7 @@ export function GlobalToast() {
       <span>{toastMessage}</span>
       {toastAction && toastActionLabel && (
         <button
-          onClick={() => { toastAction(); clearToast(); }}
+          onClick={() => { useUIStore.getState().toastAction?.(); clearToast(); }}
           aria-label={toastActionLabel}
           className="ml-1 px-2 py-0.5 rounded-[var(--radius-4)] text-[14px] transition-colors"
           style={{ color: "var(--color-accent)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}

@@ -1023,6 +1023,53 @@
     padding-top: calc(var(--mobile-header-pt, env(safe-area-inset-top, 0px)) + 58px);
   }
 }
+
+/* ── Mobile top bar — color gradient + light frost ────────────── */
+.mobile-top-bar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: calc(100% + 48px);
+  background: linear-gradient(
+    to top,
+    transparent 0%,
+    color-mix(in srgb, var(--color-bg-primary) 50%, transparent) 35%,
+    color-mix(in srgb, var(--color-bg-primary) 80%, transparent) 60%,
+    var(--color-bg-primary) 100%
+  );
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  mask: linear-gradient(to top, transparent 0%, black 50%);
+  -webkit-mask: linear-gradient(to top, transparent 0%, black 50%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* ── Mobile bottom bar — color gradient + light frost ────────── */
+.mobile-bottom-bar::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(100% + 48px);
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    color-mix(in srgb, var(--color-bg-primary) 50%, transparent) 35%,
+    color-mix(in srgb, var(--color-bg-primary) 80%, transparent) 60%,
+    var(--color-bg-primary) 100%
+  );
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  mask: linear-gradient(to bottom, transparent 0%, black 50%);
+  -webkit-mask: linear-gradient(to bottom, transparent 0%, black 50%);
+  pointer-events: none;
+  z-index: -1;
+}
+
 .mobile-nav-pill {
   padding: 6px;
   background: var(--color-bg-primary);

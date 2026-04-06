@@ -48,12 +48,12 @@ export function CommandPalette() {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
-        setCommandPaletteOpen(!commandPaletteOpen);
+        setCommandPaletteOpen((prev: boolean) => !prev);
       }
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [commandPaletteOpen, setCommandPaletteOpen]);
+  }, [setCommandPaletteOpen]);
 
   // Search tasks + clients when query changes
   useEffect(() => {
@@ -74,22 +74,26 @@ export function CommandPalette() {
         const matched: SearchResult[] = [];
 
         for (const task of (Array.isArray(tasks) ? tasks : [])) {
+          if (task.soft_deleted) continue;
           if (task.title?.toLowerCase().includes(q) || task.client?.toLowerCase().includes(q)) {
             matched.push({ type: "task", id: task.id, title: task.title, sub: task.client });
           }
         }
         for (const client of (Array.isArray(clients) ? clients : [])) {
+          if (client.soft_deleted) continue;
           const name = client.company_name || client.name || "";
-          if (name.toLowerCase().includes(q) && !client.soft_deleted) {
+          if (name.toLowerCase().includes(q)) {
             matched.push({ type: "client", id: client.id, title: name, sub: client.contact_name });
           }
         }
         for (const lead of (Array.isArray(leads) ? leads : [])) {
+          if (lead.soft_deleted) continue;
           if (lead.name?.toLowerCase().includes(q) || lead.industry?.toLowerCase().includes(q) || lead.needs?.toLowerCase().includes(q)) {
             matched.push({ type: "lead", id: lead.id, title: lead.name, sub: lead.industry });
           }
         }
         for (const tx of (Array.isArray(finance) ? finance : [])) {
+          if (tx.soft_deleted) continue;
           const desc = tx.description || tx.desc || tx.client_name || "";
           if (desc.toLowerCase().includes(q) || tx.category?.toLowerCase().includes(q)) {
             matched.push({ type: "finance", id: tx.id, title: desc || tx.category, sub: tx.category });

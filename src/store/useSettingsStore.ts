@@ -113,6 +113,7 @@ export const useSettingsStore = create<SettingsState>()(
       setPendingOps: (count) => set({ pendingOps: count }),
       resetForSignOut: () => set({
         ...PROFILE_DEFAULTS,
+        language: 'zh',
         currency: 'USD',
         timezone: typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'America/New_York',
         pendingOps: 0,

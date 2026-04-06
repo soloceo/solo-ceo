@@ -3,6 +3,27 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.29.5] - 2026-04-06
+
+### Added
+- **Mobile frosted edge fade** — top and bottom navigation areas now have gradient + light blur (`blur(4px)`) overlay, content fades smoothly into nav zones instead of hard cutoff
+
+### Fixed
+- **Cross-tab store crash** — cross-tab localStorage sync no longer overwrites Zustand action functions with `undefined`
+- **IndexedDB save corruption** — `saveDb` now stores `new Uint8Array(data)` instead of `data.buffer` to prevent oversized ArrayBuffer corruption
+- **Cross-user settings leak** — `invalidateSettingsCache` now clears in-flight promise to prevent stale data after sign-out
+- **Language not reset on sign-out** — `resetForSignOut` now resets `language` to default
+- **Cmd+K stale closure** — command palette toggle uses functional updater, deps reduced
+- **Search shows deleted items** — added `soft_deleted` filter for tasks, leads, and finance in command palette search
+- **Sync on token refresh** — auth handler now only triggers full sync on `SIGNED_IN`, not every token refresh
+- **Sync throttle after re-init** — `destroySyncManager` now resets `lastSyncAt` so first sync isn't skipped
+- **InlinePopover z-index** — replaced invalid `z-[var(--layer-popover)]` Tailwind class with inline style
+- **Toast stale action** — reads `toastAction` from store at click time instead of stale closure
+- **Milestone mark-paid** — added missing `project_id` to SELECT query
+- **Content drafts validation** — added `str()` length validation and error check on update, `soft_deleted=false` guard
+- **Focus manual PUT** — added `soft_deleted=false` guard to prevent resurrecting deleted items (both online and offline)
+- **Billing type switch** — switching between subscription/project now clears incompatible fields (both online and offline)
+
 ## [2.29.4] - 2026-04-06
 
 ### Fixed

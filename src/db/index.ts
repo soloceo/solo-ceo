@@ -35,7 +35,7 @@ export async function saveDb(): Promise<void> {
     const idb = await openIdb();
     await new Promise<void>((resolve, reject) => {
       const tx = idb.transaction('data', 'readwrite');
-      tx.objectStore('data').put(data.buffer, 'db');
+      tx.objectStore('data').put(new Uint8Array(data), 'db');
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });

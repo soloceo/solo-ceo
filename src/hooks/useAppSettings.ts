@@ -31,6 +31,7 @@ async function fetchSettings(): Promise<Record<string, string>> {
 export function invalidateSettingsCache() {
   cache = null;
   cacheTime = 0;
+  inflight = null;
 }
 
 export function useAppSettings() {
