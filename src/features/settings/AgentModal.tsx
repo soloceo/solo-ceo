@@ -254,9 +254,11 @@ export default function AgentModal({ open, onClose, onSave, editAgent }: AgentMo
                           {avatar}
                         </button>
                         <div
-                          className="absolute top-full left-0 mt-1 grid-cols-5 gap-1 p-2 rounded-[var(--radius-8)]"
+                          className="absolute top-full left-0 mt-1 p-2 rounded-[var(--radius-8)]"
                           style={{
                             display: 'none',
+                            gridTemplateColumns: 'repeat(5, 1fr)',
+                            gap: 4,
                             background: 'var(--color-bg-secondary)',
                             border: '1px solid var(--color-border-translucent)',
                             boxShadow: 'var(--shadow-high)',
