@@ -684,19 +684,26 @@ export async function exportAllData(): Promise<Record<string, any>> {
 
 export async function importAllData(data: Record<string, unknown>): Promise<void> {
   const db = await getDb();
-  for (const table of SYNC_TABLES) {
-    const rows: DbRow[] = (data[table] as DbRow[]) ?? [];
-    db.run(`DELETE FROM ${table}`);
-    for (const row of rows) {
-      const keys = Object.keys(row);
-      if (!keys.length) continue;
-      const cols = keys.join(', ');
-      const vals = keys.map(() => '?').join(', ');
-      db.run(
-        `INSERT OR REPLACE INTO ${table} (${cols}) VALUES (${vals})`,
-        Object.values(row)
-      );
+  try {
+    db.run('BEGIN TRANSACTION');
+    for (const table of SYNC_TABLES) {
+      const rows: DbRow[] = (data[table] as DbRow[]) ?? [];
+      db.run(`DELETE FROM ${table}`);
+      for (const row of rows) {
+        const keys = Object.keys(row);
+        if (!keys.length) continue;
+        const cols = keys.join(', ');
+        const vals = keys.map(() => '?').join(', ');
+        db.run(
+          `INSERT OR REPLACE INTO ${table} (${cols}) VALUES (${vals})`,
+          Object.values(row)
+        );
+      }
     }
+    db.run('COMMIT');
+  } catch (e) {
+    db.run('ROLLBACK');
+    throw e;
   }
   // Restore settings (profile fields) — write to Zustand persisted storage
   const settings = data.settings as Record<string, string> | undefined;
@@ -1007,11 +1014,22 @@ export async function handleApiRequest(
         `INSERT INTO payment_milestones (client_id, label, amount, percentage, due_date, payment_method, invoice_number, note, sort_order, status, project_id)
          VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
         [clientId, str(label, 255), amount||0, percentage||0, str(due_date, 10), str(payment_method, 50), str(invoice_number, 100), str(note, 1000), sort_order??0, 'pending', project_id||null]);
+      const msId = res.lastInsertRowid;
       const client = get(db, 'SELECT name FROM clients WHERE id=?', [clientId]) as DbRow;
-      logActivity(db, 'milestone', 'created', `新增付款节点：${client?.name||''} · ${label||''}`,
-        amount ? `$${Number(amount).toLocaleString()}` : '', res.lastInsertRowid);
+      const cName = (client?.name as string) || '';
+      const txAmt = Number(amount || 0);
+      if (txAmt > 0) {
+        const txRes = run(db,
+          `INSERT INTO finance_transactions (type, amount, category, description, date, status, source, source_id, client_id, client_name)
+           VALUES (?,?,?,?,?,?,?,?,?,?)`,
+          ['income', txAmt, '项目收入', `${cName} · ${label || '项目付款'}`, due_date || todayDateKey(), '待收款 (应收)', 'milestone', msId, clientId, cName]);
+        const txId = txRes.lastInsertRowid;
+        if (txId) run(db, `UPDATE payment_milestones SET finance_tx_id=? WHERE id=?`, [txId, msId]);
+      }
+      logActivity(db, 'milestone', 'created', `新增付款节点：${cName} · ${label||''}`,
+        amount ? `$${Number(amount).toLocaleString()}` : '', msId);
       await saveDb();
-      return ok({ id: res.lastInsertRowid });
+      return ok({ id: msId });
     }
   }
 
@@ -1178,8 +1196,8 @@ export async function handleApiRequest(
       if (body.aiStory !== undefined) { sets.push('aiStory=?'); vals.push(str(body.aiStory, 5000)); }
       if (body.scope !== undefined) { sets.push('scope=?'); vals.push(enumVal(body.scope, VALID_TASK_SCOPES, 'work')); }
       if (body.column !== undefined) { sets.push('"column"=?'); vals.push(enumVal(body.column, VALID_TASK_COLUMNS, 'todo')); }
-      if (body.client_id !== undefined) { sets.push('client_id=?'); vals.push(body.client_id); }
-      if (body.parent_id !== undefined) { sets.push('parent_id=?'); vals.push(body.parent_id); }
+      if (body.client_id !== undefined) { sets.push('client_id=?'); vals.push(body.client_id || null); }
+      if (body.parent_id !== undefined) { sets.push('parent_id=?'); vals.push(body.parent_id || null); }
       if (sets.length > 0) {
         vals.push(id);
         run(db, `UPDATE tasks SET ${sets.join(',')} WHERE id=?`, vals);
@@ -1192,6 +1210,7 @@ export async function handleApiRequest(
     }
     if (method === 'DELETE') {
       const prev = get(db, 'SELECT title FROM tasks WHERE id=?', [id]) as DbRow;
+      run(db, `UPDATE tasks SET soft_deleted=1, updated_at=CURRENT_TIMESTAMP WHERE parent_id=?`, [id]);
       run(db, 'UPDATE tasks SET soft_deleted=1 WHERE id=?', [id]);
       logActivity(db, 'task', 'deleted', `删除任务：${prev?.title||'未命名任务'}`, '', id);
       await saveDb();
@@ -1558,7 +1577,7 @@ export async function handleApiRequest(
     ];
 
     const manualFocusRows = all(db,
-      `SELECT id, type, title, note FROM today_focus_manual WHERE focus_date=? ORDER BY id DESC`,
+      `SELECT id, type, title, note FROM today_focus_manual WHERE focus_date=? AND soft_deleted=0 ORDER BY id DESC`,
       [todayDateKey()]);
     const manualTodayEvents = manualFocusRows.map((row) => ({
       key: `manual-${row.id}`,

@@ -70,13 +70,23 @@ function FL({ children }: { children: React.ReactNode }) {
 }
 
 const FINANCE_TABLES = ["finance_transactions", "clients", "payment_milestones"] as const;
-const BIZ_CATEGORIES = ["收入", "软件支出", "外包支出", "其他支出"];
-const PERSONAL_CATEGORIES_LIST = ["餐饮", "交通", "房租", "娱乐", "个人其他"];
+const BIZ_CATEGORIES = [
+  // Chinese
+  "收入", "软件支出", "硬件支出", "外包支出", "营销推广", "办公费用", "差旅费", "其他支出", "订阅收入", "项目收入", "咨询收入",
+  // English
+  "Income", "Software", "Hardware", "Outsourcing", "Marketing", "Office", "Travel", "Other Expense",
+];
+const PERSONAL_CATEGORIES_LIST = [
+  // Chinese
+  "餐饮", "交通", "房租", "购物", "娱乐", "医疗", "学习", "个人其他",
+  // English
+  "Food", "Transport", "Rent", "Shopping", "Entertainment", "Health", "Education", "Other",
+];
 const TX_CATEGORIES = [...BIZ_CATEGORIES, ...PERSONAL_CATEGORIES_LIST];
 const PERSONAL_CATEGORIES = new Set(PERSONAL_CATEGORIES_LIST);
 const TX_STATUSES = ["已完成", "待收款 (应收)", "待支付 (应付)"];
 // Categories that are treated as income (for amount sign and type determination)
-const INCOME_CATEGORIES = ["收入", "应收", "项目收入"];
+const INCOME_CATEGORIES = ["收入", "应收", "项目收入", "订阅收入", "咨询收入", "Income"];
 
 const createEmptyForm = () => ({
   date: todayDateKey(),

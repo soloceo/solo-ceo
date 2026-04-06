@@ -78,8 +78,14 @@ export function useAgents() {
   /** Seed default agents from templates (for first-time users) */
   const seedDefaults = useCallback(async (lang: 'zh' | 'en') => {
     const { AGENT_TEMPLATES } = await import('../data/agent-templates');
+    // Check existing agents first to avoid duplicates
+    let existing: AgentConfig[] = [];
+    try { existing = await api.get<AgentConfig[]>('/api/agents'); } catch { /* empty */ }
+    const existingTemplateIds = new Set(existing.filter(a => a.template_id).map(a => a.template_id));
+
     const ids: number[] = [];
     for (const tmpl of AGENT_TEMPLATES) {
+      if (existingTemplateIds.has(tmpl.id)) continue; // already exists
       try {
         const res = await api.post<{ id: number; success: boolean }>('/api/agents', {
           name: tmpl.name[lang],
