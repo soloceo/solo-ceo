@@ -2131,10 +2131,12 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                             color: "var(--color-brand-text)",
                             borderBottomRightRadius: 6,
                             whiteSpace: "pre-wrap",
+                            overflowWrap: "break-word" as const,
                           } : {
                             background: "var(--color-bg-secondary)",
                             color: "var(--color-text-primary)",
                             borderBottomLeftRadius: 6,
+                            overflowWrap: "break-word" as const,
                             ...(isGroupConv && msg.agentId ? { borderLeft: `3px solid ${AGENT_COLORS[activeConvAgentIds.indexOf(msg.agentId) % AGENT_COLORS.length]}` } : {}),
                           }}
                         >
