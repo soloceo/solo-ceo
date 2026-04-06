@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useT } from '../../i18n/context';
 import { useAuth } from '../../auth/AuthProvider';
 import { getQueueLength } from '../../db/offline-queue';
@@ -14,6 +14,60 @@ import AccountSection from './AccountSection';
 import SecuritySection from './SecuritySection';
 import AISection from './AISection';
 import AgentSection from './AgentSection';
+
+function UpdateButton({ t, showToast }: { t: (k: string) => string; showToast: (msg: string) => void }) {
+  const [status, setStatus] = useState<'idle' | 'checking' | 'updating'>('idle');
+
+  const handleCheck = useCallback(async () => {
+    if (status !== 'idle') return;
+    setStatus('checking');
+
+    try {
+      // Get the current SW registration
+      const reg = await navigator.serviceWorker?.getRegistration();
+      if (!reg) {
+        // No SW registered — just reload to pick up fresh resources
+        window.location.reload();
+        return;
+      }
+
+      // Ask the SW to check for a new version
+      await reg.update();
+
+      // Wait briefly for the browser to detect a new SW
+      await new Promise(r => setTimeout(r, 1500));
+
+      if (reg.waiting || reg.installing) {
+        // New version found — activate it
+        setStatus('updating');
+        reg.waiting?.postMessage({ type: 'SKIP_WAITING' });
+        window.location.reload();
+      } else {
+        // Already up to date
+        showToast(t("settings.version.upToDate"));
+        setStatus('idle');
+      }
+    } catch {
+      // Fallback: reload the page
+      window.location.reload();
+    }
+  }, [status, t, showToast]);
+
+  const label = status === 'checking' ? t("settings.version.checking")
+    : status === 'updating' ? t("settings.version.updating")
+    : t("settings.version.forceUpdate");
+
+  return (
+    <button
+      onClick={handleCheck}
+      disabled={status !== 'idle'}
+      className="btn-ghost compact text-[13px] px-3 rounded-[var(--radius-4)] mx-auto"
+      style={{ color: status === 'idle' ? 'var(--color-accent)' : 'var(--color-text-tertiary)' }}
+    >
+      {label}
+    </button>
+  );
+}
 
 export default function SettingsPage() {
   const { t, lang, setLang } = useT();
@@ -202,27 +256,7 @@ export default function SettingsPage() {
           <div className="text-[15px]" style={{ color: 'var(--color-text-tertiary)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>
             {t("auth.title")} v{__APP_VERSION__}
           </div>
-          <button
-            onClick={async () => {
-              try {
-                // Unregister all service workers
-                if ('serviceWorker' in navigator) {
-                  const regs = await navigator.serviceWorker.getRegistrations();
-                  await Promise.all(regs.map(r => r.unregister()));
-                }
-                // Clear all caches
-                if ('caches' in window) {
-                  const keys = await caches.keys();
-                  await Promise.all(keys.map(k => caches.delete(k)));
-                }
-              } catch { /* best-effort */ }
-              window.location.reload();
-            }}
-            className="btn-ghost compact text-[13px] px-3 rounded-[var(--radius-4)] mx-auto"
-            style={{ color: 'var(--color-accent)' }}
-          >
-            {t("settings.version.forceUpdate")}
-          </button>
+          <UpdateButton t={t} showToast={showToast} />
         </div>
 
         {/* Bottom spacer for mobile */}
