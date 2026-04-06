@@ -122,6 +122,7 @@ function App() {
   const setThemeMode = useUIStore((s) => s.setThemeMode);
   const toggleDarkMode = useUIStore((s) => s.toggleDarkMode);
   const hideMobileNav = useUIStore((s) => s.hideMobileNav);
+  const showToast = useUIStore((s) => s.showToast);
 
   // Cycle: light → auto → dark → light
   const cycleTheme = () => {
@@ -261,8 +262,8 @@ function App() {
 
   // Connection listeners
   useEffect(() => {
-    const goOnline = () => setOnline(true);
-    const goOffline = () => setOnline(false);
+    const goOnline = () => { setOnline(true); showToast(t("app.network.online")); };
+    const goOffline = () => { setOnline(false); showToast(t("app.network.offline")); };
     const onSync = (e: Event) => {
       const { status, pending } = (e as CustomEvent).detail || {};
       if (status) setSyncStatus(status);
@@ -276,7 +277,7 @@ function App() {
       window.removeEventListener("offline", goOffline);
       window.removeEventListener("sync-status", onSync);
     };
-  }, [setOnline, setSyncStatus, setPendingOps]);
+  }, [setOnline, setSyncStatus, setPendingOps, showToast, t]);
 
   // Programmatic nav
   useEffect(() => {

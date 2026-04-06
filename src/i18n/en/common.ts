@@ -84,4 +84,6 @@ export const common = {
   "ai.chat.isTyping": "is typing",
   "ai.chat.msgs": "msgs",
   "ai.chat.yesterday": "Yesterday",
+  "app.network.online": "Back online",
+  "app.network.offline": "You are offline",
 };

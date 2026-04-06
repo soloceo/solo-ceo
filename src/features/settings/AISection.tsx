@@ -248,7 +248,7 @@ export default function AISection({ settings, save }: AISectionProps) {
           </div>
 
           {/* Model selector + test */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mb-1">
             <label className="text-[12px] shrink-0" style={{ color: "var(--color-text-tertiary)", width: 64 }}>
               {t("settings.ai.ollamaModel")}
             </label>
@@ -277,6 +277,8 @@ export default function AISection({ settings, save }: AISectionProps) {
                 />
               )}
             </div>
+          </div>
+          <div className="flex items-center gap-2" style={{ paddingLeft: 64 }}>
             <button
               onClick={() => {
                 setOllamaLoading(true);

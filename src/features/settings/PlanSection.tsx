@@ -39,7 +39,7 @@ export default function PlanSection({ showToast }: PlanSectionProps) {
       else { await api.put(`/api/plans/${(editing as Plan).id}`, data); }
       showToast(t("common.saved"));
       setEditing(null); fetchPlans();
-    } catch { showToast("Error"); }
+    } catch { showToast(t("common.saveFailed")); }
     finally { setSaving(false); }
   };
 

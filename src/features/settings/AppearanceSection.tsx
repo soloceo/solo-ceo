@@ -239,7 +239,7 @@ export default function AppearanceSection({ themeMode, setThemeMode, styleId, se
             </div>
             <div className="text-[15px]" style={{ color: 'var(--color-text-primary)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>{t("settings.palette")}</div>
           </div>
-          <div className="grid grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
             {palettes.map((p) => {
               const isActive = paletteId === p.id;
               return (
@@ -309,21 +309,21 @@ export default function AppearanceSection({ themeMode, setThemeMode, styleId, se
         {/* Timezone + Live Clock */}
         <div className="px-4 py-3">
           {/* Row 1: icon + label + live time + sync button */}
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 shrink-0">
-              <div className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-8)]" style={{ background: 'color-mix(in srgb, var(--color-orange) 10%, transparent)', color: 'var(--color-orange)' }}>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-8)] shrink-0" style={{ background: 'color-mix(in srgb, var(--color-orange) 10%, transparent)', color: 'var(--color-orange)' }}>
                 <Clock size={20} />
               </div>
-              <div>
+              <div className="min-w-0">
                 <div className="text-[15px]" style={{ color: 'var(--color-text-primary)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>
                   {t("settings.timezone")}
                 </div>
-                <div className="text-[13px] mt-0.5" style={{ color: 'var(--color-text-tertiary)' }}>
+                <div className="text-[13px] mt-0.5 truncate" style={{ color: 'var(--color-text-tertiary)' }}>
                   {timezone.replace(/_/g, ' ')}{isAutoDetected ? (lang === 'zh' ? '（自动）' : ' (auto)') : ''}
                 </div>
               </div>
             </div>
-            <div className="text-right">
+            <div className="text-right shrink-0">
               <div className="text-[15px] tabular-nums" style={{ color: 'var(--color-text-primary)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>
                 {formattedTime}
               </div>

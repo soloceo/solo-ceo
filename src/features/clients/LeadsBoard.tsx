@@ -707,10 +707,16 @@ function LeadSwimlane({ leads, columns, onDragEnd, onAdd, onEdit, onDelete, onMo
                     </button>
                   ) : (
                     <div className="p-1.5 space-y-1">
+                      <AnimatePresence mode="popLayout">
                       {items.map((lead: Lead) => {
                         const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: lead.id.toString() });
                         return (
-                          <div key={lead.id} ref={setNodeRef} {...attributes} {...listeners}
+                          <motion.div key={lead.id} ref={setNodeRef} {...attributes} {...listeners}
+                            layout
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ type: "spring", stiffness: 320, damping: 30 }}
                             style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1, touchAction: "manipulation" }}
                             onClick={() => onEdit(lead, col.id)}
                             className="card-interactive cursor-grab active:cursor-grabbing p-3 press-feedback">
@@ -732,9 +738,10 @@ function LeadSwimlane({ leads, columns, onDragEnd, onAdd, onEdit, onDelete, onMo
                               {lead.source ? <span className="badge">{lead.source}</span> : <span />}
                               <button onClick={(e: React.MouseEvent) => { e.stopPropagation(); onDelete(lead.id); }} className="btn-icon-sm" aria-label="Delete lead"><Trash2 size={14} /></button>
                             </div>
-                          </div>
+                          </motion.div>
                         );
                       })}
+                      </AnimatePresence>
                     </div>
                   )}
                 </LeadDroppableColumn>

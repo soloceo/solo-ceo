@@ -1,7 +1,8 @@
-import React from 'react';
-import { Cloud, CloudOff, LogOut, LogIn, User, Download, Upload } from 'lucide-react';
+import React, { useState } from 'react';
+import { Cloud, CloudOff, LogOut, LogIn, User, Download, Upload, Loader2, Check } from 'lucide-react';
 import { useT } from '../../i18n/context';
 import { api } from '../../lib/api';
+import { useUIStore } from '../../store/useUIStore';
 import type { User as SupaUser } from '@supabase/supabase-js';
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -17,6 +18,8 @@ interface AccountSectionProps {
 
 export default function AccountSection({ user, isOnline, pendingOps, signOut }: AccountSectionProps) {
   const { t, lang } = useT();
+  const showToast = useUIStore((s) => s.showToast);
+  const [exporting, setExporting] = useState(false);
 
   return (
     <section>
@@ -75,7 +78,9 @@ export default function AccountSection({ user, isOnline, pendingOps, signOut }: 
         {/* Backup / Restore */}
         <div className="flex items-center gap-2 px-4 py-3">
           <button
+            disabled={exporting}
             onClick={async () => {
+              setExporting(true);
               try {
                 const [tasks, clients, leads, finance] = await Promise.all([
                   api.get("/api/tasks"),
@@ -91,12 +96,18 @@ export default function AccountSection({ user, isOnline, pendingOps, signOut }: 
                 a.download = `solo-ceo-backup-${new Date().toISOString().slice(0, 10)}.json`;
                 a.click();
                 URL.revokeObjectURL(url);
-              } catch (e) { console.warn('[AccountSection] backup', e); }
+                showToast(t("settings.backupSuccess"));
+              } catch (e) {
+                console.warn('[AccountSection] backup', e);
+                showToast(t("settings.backupFailed"));
+              } finally {
+                setExporting(false);
+              }
             }}
             className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-[var(--radius-6)] text-[14px] transition-colors hover:bg-[var(--color-bg-tertiary)]"
             style={{ color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-primary)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}
           >
-            <Download size={16} />
+            {exporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
             {t("settings.backup")}
           </button>
           <label
@@ -111,10 +122,15 @@ export default function AccountSection({ user, isOnline, pendingOps, signOut }: 
               try {
                 const text = await file.text();
                 const data = JSON.parse(text);
-                if (!data.version || !data.tasks) return;
-                // Restore is complex — for now just alert success
+                if (!data.version || !data.tasks) {
+                  showToast(t("settings.restoreInvalid"));
+                  return;
+                }
                 alert(lang === "zh" ? `备份文件包含 ${data.tasks?.length || 0} 个任务、${data.clients?.length || 0} 个客户。请联系支持恢复数据。` : `Backup contains ${data.tasks?.length || 0} tasks, ${data.clients?.length || 0} clients. Contact support to restore.`);
-              } catch (e2) { console.warn('[AccountSection] restore', e2); }
+              } catch (e2) {
+                console.warn('[AccountSection] restore', e2);
+                showToast(t("settings.restoreInvalid"));
+              }
               e.target.value = "";
             }} />
           </label>

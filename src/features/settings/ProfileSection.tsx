@@ -1,5 +1,5 @@
-import React from 'react';
-import { Camera, Trash2, Save, User, Upload } from 'lucide-react';
+import React, { useState } from 'react';
+import { Camera, Trash2, Save, User, Upload, Check } from 'lucide-react';
 import { useT } from '../../i18n/context';
 
 interface ProfileSectionProps {
@@ -11,6 +11,24 @@ interface ProfileSectionProps {
   handleSave: () => void;
   getField: (field: string) => string;
   setField: (field: string, value: string) => void;
+}
+
+function SaveButton({ handleSave, label }: { handleSave: () => void; label: string }) {
+  const [saved, setSaved] = useState(false);
+  return (
+    <button
+      onClick={() => {
+        handleSave();
+        setSaved(true);
+        setTimeout(() => setSaved(false), 1500);
+      }}
+      className="btn-primary text-[15px] w-full"
+      style={saved ? { background: 'var(--color-success)', transition: 'background 0.2s ease' } : { transition: 'background 0.2s ease' }}
+    >
+      {saved ? <Check size={16} /> : <Save size={16} />}
+      {' '}{saved ? '✓' : label}
+    </button>
+  );
 }
 
 export default function ProfileSection({
@@ -151,9 +169,7 @@ export default function ProfileSection({
         </label>
 
         {/* Save */}
-        <button onClick={handleSave} className="btn-primary text-[15px] w-full">
-          <Save size={16} /> {t("settings.saveBtn")}
-        </button>
+        <SaveButton handleSave={handleSave} label={t("settings.saveBtn")} />
       </div>
     </section>
   );

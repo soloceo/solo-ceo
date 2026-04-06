@@ -212,4 +212,7 @@ export const finance = {
   "money.stat.dailyAvg": "Daily Avg",
   "settings.backup": "Export Backup",
   "settings.restore": "Import Backup",
+  "settings.backupSuccess": "Backup exported successfully",
+  "settings.backupFailed": "Backup export failed",
+  "settings.restoreInvalid": "Invalid backup file",
 };

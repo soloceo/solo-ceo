@@ -174,7 +174,7 @@ export default function WorkPage() {
       fetchTasks();
     } catch (e) {
       console.warn('[WorkPage] handleAiTask', e);
-      showToast("AI failed");
+      showToast(t("work.ai.genFailed"));
     } finally {
       setAiParsing(false);
     }

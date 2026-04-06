@@ -212,4 +212,7 @@ export const finance = {
   "money.stat.dailyAvg": "日均支出",
   "settings.backup": "导出备份",
   "settings.restore": "导入恢复",
+  "settings.backupSuccess": "备份导出成功",
+  "settings.backupFailed": "备份导出失败",
+  "settings.restoreInvalid": "无效的备份文件",
 };

@@ -624,16 +624,20 @@ export default function FinancePage() {
               </button>
             </div>
             <div className="space-y-0">
+              <AnimatePresence mode="popLayout">
               {recentTxs.map(tx => {
                 const isSystem = tx.source && tx.source !== 'manual';
                 return (
-                  <TxRow key={tx.id} tx={tx} t={t} fmtAmt={fmtAmt} fmtAmtColor={fmtAmtColor}
+                  <motion.div key={tx.id} layout initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8, height: 0 }} transition={{ type: "spring", stiffness: 320, damping: 30 }}>
+                  <TxRow tx={tx} t={t} fmtAmt={fmtAmt} fmtAmtColor={fmtAmtColor}
                     onEdit={() => { if (!isSystem) openPanel(tx); }}
                     onDelete={() => { if (!isSystem) setDeleteId(tx.id); }}
                     isSystem={isSystem}
                   />
+                  </motion.div>
                 );
               })}
+              </AnimatePresence>
               {recentTxs.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-12 gap-2">
                   <Receipt size={32} style={{ color: "var(--color-text-secondary)" }} />
@@ -696,16 +700,20 @@ export default function FinancePage() {
               </button>
             </div>
             <div className="space-y-0">
+              <AnimatePresence mode="popLayout">
               {recentTxs.map(tx => {
                 const isSystem = tx.source && tx.source !== 'manual';
                 return (
-                  <TxRow key={tx.id} tx={tx} t={t} fmtAmt={fmtAmt} fmtAmtColor={fmtAmtColor}
+                  <motion.div key={tx.id} layout initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8, height: 0 }} transition={{ type: "spring", stiffness: 320, damping: 30 }}>
+                  <TxRow tx={tx} t={t} fmtAmt={fmtAmt} fmtAmtColor={fmtAmtColor}
                     onEdit={() => { if (!isSystem) openPanel(tx); }}
                     onDelete={() => { if (!isSystem) setDeleteId(tx.id); }}
                     isSystem={isSystem}
                   />
+                  </motion.div>
                 );
               })}
+              </AnimatePresence>
               {recentTxs.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-12 gap-2">
                   <Receipt size={32} style={{ color: "var(--color-text-secondary)" }} />

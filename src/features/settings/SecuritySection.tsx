@@ -107,8 +107,8 @@ export default function SecuritySection({ showToast }: SecuritySectionProps) {
                   {t("auth.changePassword")}
                 </span>
               </div>
-              <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder={t("auth.newPassword")} className="input-base w-full px-3 py-2 text-[15px]" autoComplete="new-password" />
-              <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder={t("auth.confirmNewPassword")} className="input-base w-full px-3 py-2 text-[15px]" autoComplete="new-password" />
+              <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder={t("auth.newPassword")} className="input-base w-full px-3 py-2.5 text-[15px]" autoComplete="new-password" />
+              <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder={t("auth.confirmNewPassword")} className="input-base w-full px-3 py-2.5 text-[15px]" autoComplete="new-password" />
               {pwMsg && <StatusMsg status={pwMsg.status} message={pwMsg.message} />}
               <button onClick={handleChangePassword} disabled={pwLoading} className="btn-primary text-[15px] w-full disabled:opacity-50">
                 {pwLoading ? <Loader2 size={14} className="animate-spin" /> : <Lock size={14} />}
@@ -126,7 +126,7 @@ export default function SecuritySection({ showToast }: SecuritySectionProps) {
                   {t("auth.changeEmail")}
                 </span>
               </div>
-              <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder={t("auth.newEmail")} className="input-base w-full px-3 py-2 text-[15px]" autoComplete="email" />
+              <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder={t("auth.newEmail")} className="input-base w-full px-3 py-2.5 text-[15px]" autoComplete="email" />
               <div className="text-[13px]" style={{ color: 'var(--color-text-tertiary)' }}>{t("auth.changeEmailHint")}</div>
               {emailMsg && <StatusMsg status={emailMsg.status} message={emailMsg.message} />}
               <button onClick={handleChangeEmail} disabled={emailLoading} className="btn-primary text-[15px] w-full disabled:opacity-50">

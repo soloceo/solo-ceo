@@ -84,4 +84,6 @@ export const common = {
   "ai.chat.isTyping": "正在输入",
   "ai.chat.msgs": "条消息",
   "ai.chat.yesterday": "昨天",
+  "app.network.online": "已恢复网络连接",
+  "app.network.offline": "网络已断开",
 };
