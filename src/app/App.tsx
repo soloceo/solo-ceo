@@ -664,11 +664,11 @@ function App() {
         {/* Mobile bottom row — nav + FAB side by side, independent */}
         {!hideMobileNav && (
           <div
-            className="lg:hidden fixed left-0 right-0 z-30 flex items-center gap-2 mobile-bottom-bar"
+            className="lg:hidden fixed left-0 right-0 z-30 flex items-center gap-2 mobile-bottom-bar pb-safe-half"
             style={{
               bottom: 0,
-              padding: "0 20px",
-              paddingBottom: "max(20px, env(safe-area-inset-bottom, 20px))",
+              paddingLeft: 20,
+              paddingRight: 20,
               pointerEvents: "none",
             }}
           >

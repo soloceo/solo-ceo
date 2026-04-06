@@ -7,6 +7,7 @@
 
   /* ── Safe-area helpers ─────────────────────────────────────── */
   .pb-safe { padding-bottom: max(18px, env(safe-area-inset-bottom, 18px)); }
+  .pb-safe-half { padding-bottom: 20px; }
   .ios-scroll {
     overscroll-behavior: contain;
     scrollbar-width: none;
