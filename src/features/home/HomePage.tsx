@@ -60,7 +60,7 @@ const DASHBOARD_TABLES = ["leads", "clients", "tasks", "finance_transactions", "
 export default function HomePage() {
   const { t, lang } = useT();
   useDueReminders(lang, t);
-  const { operatorName } = useSettingsStore();
+  const operatorName = useSettingsStore((s) => s.operatorName);
   const showToast = useUIStore((s) => s.showToast);
 
   const [data, setData] = useState<DashboardData>({

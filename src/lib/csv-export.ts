@@ -9,8 +9,10 @@ export function exportCSV(data: Record<string, any>[], filename: string, columns
   const header = cols.map(c => `"${c.label}"`).join(",");
   const rows = data.map(row =>
     cols.map(c => {
-      const val = row[c.key] ?? "";
-      return `"${String(val).replace(/"/g, '""')}"`;
+      let val = String(row[c.key] ?? "").replace(/"/g, '""');
+      // Prevent CSV formula injection: prefix dangerous chars with tab
+      if (/^[=+\-@\t\r]/.test(val)) val = "\t" + val;
+      return `"${val}"`;
     }).join(",")
   );
 

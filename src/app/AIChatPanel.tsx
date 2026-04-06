@@ -534,11 +534,14 @@ const MarkdownContent = React.memo(({ content }: { content: string }) => (
       h1: ({ children }) => <h3 className="font-semibold text-[15px] mb-1 mt-2">{children}</h3>,
       h2: ({ children }) => <h3 className="font-semibold text-[15px] mb-1 mt-2">{children}</h3>,
       h3: ({ children }) => <h3 className="font-semibold text-[14px] mb-1 mt-2">{children}</h3>,
-      a: ({ href, children }) => (
-        <a href={href} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: "var(--color-accent)" }}>
-          {children}
-        </a>
-      ),
+      a: ({ href, children }) => {
+        const safeHref = /^\s*(javascript|data|vbscript):/i.test(href ?? "") ? "#" : href;
+        return (
+          <a href={safeHref} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: "var(--color-accent)" }}>
+            {children}
+          </a>
+        );
+      },
       blockquote: ({ children }) => (
         <blockquote className="border-l-2 pl-3 my-2 opacity-80" style={{ borderColor: "var(--color-text-quaternary)" }}>
           {children}
@@ -2196,7 +2199,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                 className="shrink-0 px-3 pb-3 pt-1.5"
                 style={{
                   borderTop: "1px solid var(--color-line-secondary)",
-                  paddingBottom: "max(12px, env(safe-area-inset-bottom))",
+                  paddingBottom: "max(12px, env(safe-area-inset-bottom, 0px))",
                 }}
               >
                 <div className="flex items-center justify-between mb-1 px-1">

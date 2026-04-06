@@ -799,7 +799,7 @@ const SidebarItem = React.memo(function SidebarItem({
       {/* Collapsed tooltip — shows on hover */}
       {!expanded && (
         <span className="absolute left-full ml-2 px-2 py-1 text-[13px] whitespace-nowrap rounded-[var(--radius-4)] opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity"
-          style={{ background: "var(--color-text-primary)", color: "var(--color-bg-primary)", fontWeight: "var(--font-weight-medium)", boxShadow: "var(--shadow-medium)", zIndex: 50 } as React.CSSProperties}>
+          style={{ background: "var(--color-text-primary)", color: "var(--color-bg-primary)", fontWeight: "var(--font-weight-medium)", boxShadow: "var(--shadow-medium)", zIndex: "var(--layer-header)" } as React.CSSProperties}>
           {label}
         </span>
       )}

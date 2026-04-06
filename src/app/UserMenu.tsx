@@ -120,7 +120,7 @@ export function UserMenu({
           border: "1px solid var(--color-border-primary)",
           borderRadius: "var(--radius-8)",
           boxShadow: "var(--shadow-medium)",
-          zIndex: 10,
+          zIndex: "var(--layer-popover)",
           transform: userMenuOpen ? "scale(1) translateY(0)" : "scale(0.9) translateY(8px)",
         }}
       >

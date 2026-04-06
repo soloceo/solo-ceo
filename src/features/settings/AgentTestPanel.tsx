@@ -248,7 +248,7 @@ export default function AgentTestPanel({ open, onClose, agent }: Props) {
               className="shrink-0 px-3 pb-3 pt-2"
               style={{
                 borderTop: '1px solid var(--color-line-secondary)',
-                paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
+                paddingBottom: 'max(12px, env(safe-area-inset-bottom, 0px))',
               }}
             >
               <div className="flex items-end gap-2">

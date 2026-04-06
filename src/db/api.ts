@@ -652,7 +652,8 @@ const SYNC_TABLES = [
   'leads', 'clients', 'tasks', 'plans',
   'finance_transactions', 'content_drafts',
   'today_focus_state', 'today_focus_manual',
-  'payment_milestones',
+  'payment_milestones', 'client_projects',
+  'ai_agents', 'ai_conversations',
 ] as const;
 
 export async function exportAllData(): Promise<Record<string, any>> {
@@ -808,16 +809,17 @@ export async function handleApiRequest(
     if (!lead) return err(404, 'Lead not found');
     const { plan_tier, status, mrr, subscription_start_date, mrr_effective_from, billing_type, project_fee } = body || {};
     const np = normalizePlanTier(plan_tier || '');
-    const bt = billing_type || 'subscription';
+    const bt = enumVal(billing_type, VALID_BILLING_TYPES, 'subscription');
     const today = todayDateKey();
     const res = run(db, `INSERT INTO clients (name, industry, plan_tier, status, brand_context, mrr,
         subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from,
-        billing_type, project_fee)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [lead.name||'', lead.industry||'', np, status||'Active', lead.needs||'',
+        billing_type, project_fee, subscription_timeline)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [lead.name||'', lead.industry||'', np, enumVal(status, VALID_CLIENT_STATUSES, 'Active'), lead.needs||'',
        bt === 'subscription' ? Number(mrr||0) : 0, subscription_start_date||today, '', '', '',
        mrr_effective_from||subscription_start_date||today,
-       bt, bt === 'project' ? Number(project_fee||0) : 0]);
+       bt, bt === 'project' ? Number(project_fee||0) : 0,
+       JSON.stringify([{ type: 'start', date: subscription_start_date || today }])]);
     run(db, `UPDATE leads SET column='won' WHERE id=?`, [id]);
     syncClientSubscriptionLedger(db);
     logActivity(db, 'lead', 'converted', `线索转客户：${lead.name||'未命名线索'}`, np ? `方案：${np}` : '已转为客户', id);
@@ -1277,7 +1279,7 @@ export async function handleApiRequest(
   if (path === '/api/finance' && method === 'POST') {
     const { type, amount, category, description, date, status, tax_mode, tax_rate, tax_amount, client_id, client_name, source, source_id } = body;
     const res = run(db, `INSERT INTO finance_transactions (type, amount, category, description, date, status, tax_mode, tax_rate, tax_amount, client_id, client_name, source, source_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [type||'income', amount||0, category||'', description||'', date||'', status||'已完成', tax_mode||'none', tax_rate||0, tax_amount||0, client_id||null, client_name||'', source||'manual', source_id||null]);
+      [enumVal(type, VALID_TX_TYPES, 'income'), amount||0, str(category, 100), str(description, 500), str(date, 10), enumVal(status, VALID_TX_STATUSES, '已完成'), enumVal(tax_mode, VALID_TAX_MODES, 'none'), tax_rate||0, tax_amount||0, client_id||null, str(client_name, 255), source||'manual', source_id||null]);
     logActivity(db, 'finance', 'created', `新增交易：${description||'未命名交易'}`,
       `${type==='income'?'+':'-'}$${Number(amount||0).toLocaleString()} · ${category||'未分类'}`, res.lastInsertRowid);
     await saveDb();
