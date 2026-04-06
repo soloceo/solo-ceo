@@ -259,8 +259,8 @@ function buildSystemPrompt(
         const weekday = ["日", "一", "二", "三", "四", "五", "六"][new Date().getDay()];
         lines.push(`\n今天是 ${todayDateKey()}（周${weekday}）。你可以调用工具来执行操作。当用户要求你做某事时，直接调用对应的工具函数，不要用文字描述操作。`);
       } else {
-        const agentTools = agent?.tools?.length ? agent.tools : null;
-        lines.push(agentTools ? buildFilteredToolsPrompt(lang, agentTools) : buildToolsPrompt(lang));
+        const agentTools = agent?.tools ? agent.tools : null;
+        lines.push(buildFilteredToolsPrompt(lang, agentTools));
       }
       lines.push("");
       lines.push("## 回答原则");
@@ -333,8 +333,8 @@ function buildSystemPrompt(
         const weekdayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
         lines.push(`\nToday is ${todayDateKey()} (${weekdayNames[new Date().getDay()]}). You can call tools to perform actions. When the user asks you to do something, call the appropriate tool function directly — do not describe the action in text.`);
       } else {
-        const agentTools = agent?.tools?.length ? agent.tools : null;
-        lines.push(agentTools ? buildFilteredToolsPrompt(lang, agentTools) : buildToolsPrompt(lang));
+        const agentTools = agent?.tools ? agent.tools : null;
+        lines.push(buildFilteredToolsPrompt(lang, agentTools));
       }
       lines.push("");
       lines.push("## Response guidelines");
@@ -391,8 +391,8 @@ function buildSystemPrompt(
         : `\nToday is ${td} (${weekdayEn}). Calculate YYYY-MM-DD for relative dates like "tomorrow", "next Friday". You can call tools to perform actions. When asked, call the tool function directly.`;
       lines.push(hint);
     } else {
-      const agentTools = agent.tools?.length ? agent.tools : null;
-      lines.push(agentTools ? buildFilteredToolsPrompt(lang, agentTools) : buildToolsPrompt(lang));
+      const agentTools = agent.tools ?? null;
+      lines.push(buildFilteredToolsPrompt(lang, agentTools));
     }
   }
 
@@ -1284,11 +1284,11 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
       stepCount++;
 
       // For Ollama, pass native tool definitions for reliable function calling
-      const allowedToolNames = agent?.tools?.length ? agent.tools : null;
+      const allowedToolNames = agent?.tools ?? null;
       const nativeTools: NativeToolDef[] | undefined = aiConfig.provider === "ollama"
         ? (allowedToolNames
             ? AGENT_TOOLS.filter(t => allowedToolNames.includes(t.name))
-            : AGENT_TOOLS
+            : allowedToolNames === null ? AGENT_TOOLS : [] // null=all, []=none
           )
         : undefined;
 
@@ -1332,8 +1332,8 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
 
       // --- Tool call detected — execute it ---
       // Enforce agent tool permissions (prevent AI hallucinating unauthorized tools)
-      const allowedNames = agent?.tools?.length ? agent.tools : null;
-      if (allowedNames && !allowedNames.includes(toolCall.name)) {
+      const allowedNames = agent?.tools ?? null;
+      if (allowedNames !== null && !allowedNames.includes(toolCall.name)) {
         // Agent called a tool it doesn't have — feed error back and continue
         chatHistory.push({ role: "assistant" as const, content: result.text });
         chatHistory.push({ role: "user" as const, content: `[System: tool "${toolCall.name}" is not available to you. Your tools are: ${allowedNames.join(', ')}. Answer the user directly or use an available tool.]` });

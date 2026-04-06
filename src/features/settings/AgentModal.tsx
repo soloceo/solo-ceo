@@ -109,7 +109,7 @@ export default function AgentModal({ open, onClose, onSave, editAgent }: AgentMo
     });
   };
 
-  // Escape to close
+  // Escape to close, Cmd+Enter to save
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
@@ -118,7 +118,7 @@ export default function AgentModal({ open, onClose, onSave, editAgent }: AgentMo
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  });
+  }, [open, onClose, handleSubmit]);
 
   const l = lang === 'en' ? 'en' : 'zh';
 

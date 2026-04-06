@@ -611,7 +611,8 @@ async function executeWebSearch(query: string, lang: string): Promise<ToolResult
  * If allowedTools is null/undefined/empty, includes all tools (default behavior).
  */
 export function buildFilteredToolsPrompt(lang: string, allowedTools?: string[] | null): string {
-  if (!allowedTools || allowedTools.length === 0) return buildToolsPrompt(lang);
+  if (!allowedTools) return buildToolsPrompt(lang);
+  if (allowedTools.length === 0) return ''; // No tools — agent has no tool access
 
   const isZh = lang === "zh";
   const today = todayDateKey();

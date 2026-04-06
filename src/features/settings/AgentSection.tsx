@@ -50,6 +50,7 @@ export default function AgentSection() {
       setDeleteId(null);
       showToast(t('settings.agents.deleted'));
     } catch (e) {
+      setDeleteId(null);
       showToast(String(e));
     }
   };

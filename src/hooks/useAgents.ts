@@ -86,15 +86,17 @@ export function useAgents() {
     // Record dismissed template so seedMissing won't recreate it
     const agent = agentsCache?.find(a => a.id === id);
     if (agent?.template_id) addDismissed(agent.template_id);
-    // Optimistic update — remove from UI immediately
+    // Optimistic update — remove from UI immediately (local state only, no event yet)
     const prev = agentsCache;
     agentsCache = agentsCache ? agentsCache.filter(a => a.id !== id) : [];
     cacheTs = 0;
     if (mountedRef.current) setAgents(agentsCache);
-    notifyAgentsChanged();
+    // Do NOT notifyAgentsChanged() here — other instances would re-fetch stale data
     try {
       await api.del(`/api/agents/${id}`);
       invalidateForMutation('/api/agents');
+      // NOW notify — Supabase has committed the delete, re-fetch will see it
+      notifyAgentsChanged();
     } catch {
       // Rollback on failure
       agentsCache = prev;

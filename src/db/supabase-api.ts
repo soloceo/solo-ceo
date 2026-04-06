@@ -1593,7 +1593,8 @@ export async function handleSupabaseRequest(
   if (agentMatch && method === 'DELETE') {
     const id = Number(agentMatch[1]);
     const { data: prev } = await supabase.from('ai_agents').select('name').eq('id', id).eq('user_id', userId).single();
-    await supabase.from('ai_agents').update({ soft_deleted: true }).eq('id', id).eq('user_id', userId);
+    const { error: delErr } = await supabase.from('ai_agents').update({ soft_deleted: true }).eq('id', id).eq('user_id', userId);
+    if (delErr) return err(500, delErr.message);
     await logActivity(userId, 'ai_agent', 'deleted', `删除 Agent：${prev?.name || ''}`, '', id);
     return ok({ success: true });
   }
