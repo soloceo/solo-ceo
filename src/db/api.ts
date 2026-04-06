@@ -1068,8 +1068,7 @@ export async function handleApiRequest(
             if (ftx) {
               const tm = String(ftx.tax_mode || 'none');
               const tr = Number(ftx.tax_rate || 0);
-              const taxAmt = tm === 'exclusive' ? newAmt * tr / 100 : tm === 'inclusive' ? newAmt - newAmt / (1 + tr / 100) : 0;
-              updates.push('tax_amount=?'); uVals.push(Math.round(taxAmt * 100) / 100);
+              updates.push('tax_amount=?'); uVals.push(calcTaxOffline(newAmt, tm, tr));
             }
           }
           if (updates.length > 0) {

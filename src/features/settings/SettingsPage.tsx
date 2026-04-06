@@ -1,12 +1,11 @@
 import React, { useEffect } from 'react';
-import { Save } from 'lucide-react';
 import { useT } from '../../i18n/context';
 import { useAuth } from '../../auth/AuthProvider';
 import { getQueueLength } from '../../db/offline-queue';
 import { useUIStore } from '../../store/useUIStore';
 import { useSettingsStore, PROFILE_SYNC_KEYS } from '../../store/useSettingsStore';
 
-import { useAppSettings } from '../../hooks/useAppSettings';
+import { useAppSettings, invalidateSettingsCache } from '../../hooks/useAppSettings';
 import { api } from '../../lib/api';
 import ProfileSection from './ProfileSection';
 import AppearanceSection from './AppearanceSection';
@@ -92,7 +91,7 @@ export default function SettingsPage() {
     }
     payload.OPERATOR_NAME = cleanedName;
     payload.OPERATOR_AVATAR = operatorAvatar || '';
-    api.post('/api/settings', payload).catch(() => {});
+    api.post('/api/settings', payload).then(() => invalidateSettingsCache()).catch(() => {});
     showToast(t("settings.saved"));
   };
 
@@ -115,6 +114,7 @@ export default function SettingsPage() {
       setOperator(operatorName, compressed);
       window.dispatchEvent(new Event('operator-avatar-updated'));
       api.post('/api/settings', { OPERATOR_AVATAR: compressed })
+        .then(() => invalidateSettingsCache())
         .catch(() => { /* avatar save failed */ });
       showToast(t("settings.avatarUpdated"));
     };
@@ -139,6 +139,7 @@ export default function SettingsPage() {
     setOperator(operatorName, '');
     window.dispatchEvent(new Event('operator-avatar-updated'));
     api.post('/api/settings', { OPERATOR_AVATAR: '' })
+      .then(() => invalidateSettingsCache())
       .catch(() => { /* avatar remove failed */ });
     showToast(t("settings.avatarRemoved"));
   };

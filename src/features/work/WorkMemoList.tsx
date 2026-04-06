@@ -134,14 +134,14 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
 
   const toggleTask = (task: Task) => {
     const newColumn = task.column === "done" ? "todo" : "done";
-    api.put(`/api/tasks/${task.id}`, { column: newColumn }).then(() => onRefresh());
+    api.put(`/api/tasks/${task.id}`, { column: newColumn }).then(() => onRefresh()).catch(() => {});
   };
 
   const [removingId, setRemovingId] = useState<number | null>(null);
   const deleteTask = (id: number) => {
     setRemovingId(id);
     setTimeout(() => {
-      api.del(`/api/tasks/${id}`).then(() => { setRemovingId(null); onRefresh(); });
+      api.del(`/api/tasks/${id}`).then(() => { setRemovingId(null); onRefresh(); }).catch(() => {});
     }, 250);
   };
 
@@ -162,7 +162,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
     const task = memoTasks.find(t => t.id === editingId);
     if (!task) return;
     setEditingId(null);
-    api.put(`/api/tasks/${editingId}`, { title: editTitle.trim(), due: buildDue(editDate, editTime) }).then(() => onRefresh());
+    api.put(`/api/tasks/${editingId}`, { title: editTitle.trim(), due: buildDue(editDate, editTime) }).then(() => onRefresh()).catch(() => {});
   };
 
   const cancelEdit = () => {
@@ -186,7 +186,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
       column: "todo",
       priority: "Medium",
       ...(due ? { due } : {}),
-    }).then(() => onRefresh());
+    }).then(() => onRefresh()).catch(() => {});
   };
 
   const addMemoByAi = async () => {

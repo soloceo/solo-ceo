@@ -181,11 +181,11 @@ export function HomeMemoSection() {
 
   const toggleTask = (task: Task) => {
     const newColumn = task.column === "done" ? "todo" : "done";
-    api.put(`/api/tasks/${task.id}`, { column: newColumn }).then(() => fetchTasks());
+    api.put(`/api/tasks/${task.id}`, { column: newColumn }).then(() => fetchTasks()).catch(() => {});
   };
 
   const deleteTask = (id: number) => {
-    api.del(`/api/tasks/${id}`).then(() => fetchTasks());
+    api.del(`/api/tasks/${id}`).then(() => fetchTasks()).catch(() => {});
   };
 
   const startEdit = (task: Task) => {
@@ -203,7 +203,7 @@ export function HomeMemoSection() {
   const saveEdit = () => {
     if (!editingId || !editTitle.trim()) return;
     setEditingId(null);
-    api.put(`/api/tasks/${editingId}`, { title: editTitle.trim(), due: buildDue(editDate, editTime) }).then(() => fetchTasks());
+    api.put(`/api/tasks/${editingId}`, { title: editTitle.trim(), due: buildDue(editDate, editTime) }).then(() => fetchTasks()).catch(() => {});
   };
 
   const cancelEdit = () => { setEditingId(null); setEditTitle(""); setEditDate(""); setEditTime(""); };
@@ -213,7 +213,7 @@ export function HomeMemoSection() {
     if (!title) return;
     const due = buildDue(simpleDate, simpleTime);
     setSimpleTitle(""); setSimpleDate(""); setSimpleTime(""); setAddingSimple(false);
-    api.post("/api/tasks", { title, scope: memoScope, column: "todo", priority: "Medium", ...(due ? { due } : {}) }).then(() => fetchTasks());
+    api.post("/api/tasks", { title, scope: memoScope, column: "todo", priority: "Medium", ...(due ? { due } : {}) }).then(() => fetchTasks()).catch(() => {});
   };
 
   const addMemoByAi = async () => {

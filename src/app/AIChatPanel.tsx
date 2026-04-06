@@ -1034,6 +1034,11 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
   }, []);
   useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
 
+  // Abort any in-flight streaming request on unmount
+  useEffect(() => {
+    return () => { abortRef.current?.abort(); };
+  }, []);
+
   // Load conversations from API on mount (merge with localStorage cache)
   const apiLoadedRef = useRef(false);
   useEffect(() => {
