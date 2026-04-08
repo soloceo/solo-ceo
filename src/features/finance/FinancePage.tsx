@@ -382,7 +382,23 @@ export default function FinancePage() {
 
     try {
       if (editingTx && !String(editingTx.id).includes("-")) {
-        await api.put(`/api/finance/${editingTx.id}`, txData);
+        // Rule 13: only send changed fields to avoid stale-data overwrites
+        const orig = editingTx;
+        const patch: Record<string, unknown> = {};
+        if (txData.date !== (orig.date || '')) patch.date = txData.date;
+        if (txData.description !== (orig.description || orig.desc || '')) patch.description = txData.description;
+        if (txData.category !== (orig.category || '')) patch.category = txData.category;
+        if (txData.amount !== Number(orig.amount)) patch.amount = txData.amount;
+        if (txData.type !== orig.type) patch.type = txData.type;
+        if (txData.status !== (orig.status || '')) patch.status = txData.status;
+        if (txData.tax_mode !== (orig.tax_mode || 'none')) patch.tax_mode = txData.tax_mode;
+        if (txData.tax_rate !== (orig.tax_rate || 0)) patch.tax_rate = txData.tax_rate;
+        if (txData.tax_amount !== (orig.tax_amount || 0)) patch.tax_amount = txData.tax_amount;
+        if (String(txData.client_id || '') !== String(orig.client_id || '')) patch.client_id = txData.client_id;
+        if ((txData.client_name || '') !== (orig.client_name || '')) patch.client_name = txData.client_name;
+        if (Object.keys(patch).length > 0) {
+          await api.put(`/api/finance/${editingTx.id}`, patch);
+        }
         showToast(t("money.toast.updated"));
       } else {
         await api.post("/api/finance", txData);

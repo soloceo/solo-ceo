@@ -88,6 +88,7 @@ export function ClientsView() {
   const [loading, setLoading] = useState(true);
   const [showPanel, setShowPanel] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
+  const editClientRef = useRef<ClientRow | null>(null);
   const [deleteClientId, setDeleteClientId] = useState<number | null>(null);
   const showToast = useUIStore((s) => s.showToast);
   const [search, setSearch] = useState("");
@@ -162,6 +163,7 @@ export function ClientsView() {
     setDeleteProjectId(null);
     if (c) {
       setEditId(c.id);
+      editClientRef.current = c;
       // Parse timeline — fallback to legacy fields
       let tl: { type: string; date: string }[] = [];
       try { tl = JSON.parse(c.subscription_timeline || '[]'); } catch { tl = []; }
@@ -178,7 +180,7 @@ export function ClientsView() {
         ms.fetchMilestones(c.id);
       }
     }
-    else { setEditId(null); setForm(createEmptyClient()); }
+    else { setEditId(null); editClientRef.current = null; setForm(createEmptyClient()); }
     setShowPanel(true);
   };
 
@@ -226,7 +228,20 @@ export function ClientsView() {
     };
     try {
       if (editId) {
-        await api.put(`/api/clients/${editId}`, d);
+        // Rule 13: only send changed fields to avoid stale-data overwrites
+        const orig = editClientRef.current;
+        if (orig) {
+          const patch: Record<string, unknown> = {};
+          for (const [k, v] of Object.entries(d)) {
+            const ov = (orig as Record<string, unknown>)[k];
+            if (JSON.stringify(v ?? '') !== JSON.stringify(ov ?? '')) patch[k] = v;
+          }
+          if (Object.keys(patch).length > 0) {
+            await api.put(`/api/clients/${editId}`, patch);
+          }
+        } else {
+          await api.put(`/api/clients/${editId}`, d);
+        }
         showToast(t("pipeline.toast.clientUpdated"));
       } else {
         const newClient = await api.post<{ id: number }>("/api/clients", d);

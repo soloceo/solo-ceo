@@ -403,8 +403,8 @@ export function HomeMemoSection() {
             {aiInput.trim() && (
               <button onClick={addMemoByAi} disabled={aiLoading}
                 className="flex items-center justify-center shrink-0 rounded-full transition-colors"
-                style={{ width: 28, height: 28, background: "var(--color-accent)", color: "var(--color-text-on-color)" }}>
-                {aiLoading ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                style={{ width: 44, height: 44, marginRight: -8, background: "var(--color-accent)", color: "var(--color-text-on-color)" }}>
+                {aiLoading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
               </button>
             )}
           </div>

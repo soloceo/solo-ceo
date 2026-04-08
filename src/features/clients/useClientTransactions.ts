@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { api } from "../../lib/api";
 import { useUIStore } from "../../store/useUIStore";
 import { useT } from "../../i18n/context";
@@ -52,6 +52,7 @@ export function useClientTransactions(clientId: number | null) {
   const [finTxs, setFinTxs] = useState<FinanceTransaction[]>([]);
   const [showTxForm, setShowTxForm] = useState(false);
   const [editTxId, setEditTxId] = useState<number | null>(null);
+  const editTxRef = useRef<FinanceTransaction | null>(null);
   const [deleteTxId, setDeleteTxId] = useState<number | null>(null);
   const [txForm, setTxForm] = useState(createEmptyTx);
 
@@ -94,7 +95,25 @@ export function useClientTransactions(clientId: number | null) {
     };
     try {
       if (editTxId) {
-        await api.put(`/api/finance/${editTxId}`, txData);
+        // Rule 13: only send changed fields to avoid stale-data overwrites
+        const orig = editTxRef.current;
+        if (orig) {
+          const patch: Record<string, unknown> = {};
+          if (txData.date !== (orig.date || '')) patch.date = txData.date;
+          if (txData.description !== (orig.description || orig.desc || '')) patch.description = txData.description;
+          if (txData.category !== (orig.category || '')) patch.category = txData.category;
+          if (txData.amount !== Math.abs(Number(orig.amount))) patch.amount = txData.amount;
+          if (txData.type !== orig.type) patch.type = txData.type;
+          if (txData.status !== (orig.status || '')) patch.status = txData.status;
+          if (txData.tax_mode !== (orig.tax_mode || 'none')) patch.tax_mode = txData.tax_mode;
+          if (txData.tax_rate !== (orig.tax_rate || 0)) patch.tax_rate = txData.tax_rate;
+          if (txData.tax_amount !== (orig.tax_amount || 0)) patch.tax_amount = txData.tax_amount;
+          if (String(txData.client_id || '') !== String(orig.client_id || '')) patch.client_id = txData.client_id;
+          if ((txData.client_name || '') !== (orig.client_name || '')) patch.client_name = txData.client_name;
+          if (Object.keys(patch).length > 0) await api.put(`/api/finance/${editTxId}`, patch);
+        } else {
+          await api.put(`/api/finance/${editTxId}`, txData);
+        }
       } else {
         await api.post("/api/finance", txData);
       }
@@ -132,6 +151,7 @@ export function useClientTransactions(clientId: number | null) {
 
   const openEditTx = useCallback((tx: FinanceTransaction) => {
     setEditTxId(tx.id);
+    editTxRef.current = tx;
     setTxForm({
       date: tx.date,
       desc: tx.description || tx.desc || "",
@@ -147,6 +167,7 @@ export function useClientTransactions(clientId: number | null) {
   const closeTxForm = useCallback(() => {
     setShowTxForm(false);
     setEditTxId(null);
+    editTxRef.current = null;
     setTxForm(createEmptyTx());
   }, []);
 
@@ -177,6 +198,7 @@ export function useClientTransactions(clientId: number | null) {
   const resetState = useCallback(() => {
     setShowTxForm(false);
     setEditTxId(null);
+    editTxRef.current = null;
     setTxForm(createEmptyTx());
   }, []);
 

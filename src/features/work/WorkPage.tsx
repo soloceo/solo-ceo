@@ -202,7 +202,21 @@ export default function WorkPage() {
 
   const handleSave = async (form: TaskForm, editId: number | null) => {
     try {
-      if (editId) {
+      if (editId && editTask) {
+        // Rule 13: only send changed fields to avoid stale-data overwrites
+        const diff: Record<string, unknown> = {};
+        if (form.title !== (editTask.title || '')) diff.title = form.title;
+        if (form.client !== (editTask.client || '')) diff.client = form.client;
+        if ((form.client_id ?? null) !== (editTask.client_id ?? null)) diff.client_id = form.client_id;
+        if (form.priority !== (editTask.priority || '')) diff.priority = form.priority;
+        if ((form.due || '') !== (editTask.due || '')) diff.due = form.due;
+        if (form.column !== (editTask.column || '')) diff.column = form.column;
+        if (form.originalRequest !== (editTask.originalRequest || '')) diff.originalRequest = form.originalRequest;
+        if (Object.keys(diff).length > 0) {
+          await api.put(`/api/tasks/${editId}`, diff);
+        }
+        showToast(t("work.taskUpdated"));
+      } else if (editId) {
         await api.put(`/api/tasks/${editId}`, form);
         showToast(t("work.taskUpdated"));
       } else {

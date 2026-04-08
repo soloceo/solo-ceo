@@ -3,7 +3,7 @@
  * replays them against Supabase when connectivity is restored.
  *
  * Features:
- *   - Retry up to 3 times per operation (with exponential backoff)
+ *   - Retry up to 3 times per operation (on next reconnect or visibility change)
  *   - 409 Conflict / 429 Rate-limited: retried (transient)
  *   - Other 4xx errors: permanent failure (kept for user review)
  *   - 5xx errors: retried

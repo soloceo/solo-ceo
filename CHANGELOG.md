@@ -3,6 +3,14 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.30.2] - 2026-04-08
+
+### Fixed
+- **Offline data loss** — cloud data now syncs to local sql.js on every sync cycle (login, reconnect, tab focus); previously local DB only had seed data, causing personal data to vanish when offline
+- **Frontend partial updates (Rule #13)** — 5 forms now send only changed fields instead of full objects: ClientList, WorkPage task edit, PlanSection, FinancePage, useClientTransactions
+- **Touch targets** — HomeMemoSection AI send button enlarged from 28×28 to 44×44px; `.btn-icon-sm` mobile size 32→40px
+- **Offline queue docs** — removed false "exponential backoff" claim from comment (retries happen on next reconnect)
+
 ## [2.30.1] - 2026-04-06
 
 ### Fixed

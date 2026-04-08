@@ -37,7 +37,16 @@ export default function PlanSection({ showToast }: PlanSectionProps) {
     const data = { name: form.name, price: Number(form.price) || 0, deliverySpeed: form.deliverySpeed, features: JSON.stringify(form.features.split("\n").filter(Boolean)) };
     try {
       if (editing === "new") { await api.post("/api/plans", data); }
-      else { await api.put(`/api/plans/${(editing as Plan).id}`, data); }
+      else {
+        // Rule 13: only send changed fields
+        const orig = editing as Plan;
+        const diff: Record<string, unknown> = {};
+        if (data.name !== (orig.name || '')) diff.name = data.name;
+        if (data.price !== (orig.price || 0)) diff.price = data.price;
+        if (data.deliverySpeed !== (orig.deliverySpeed || '')) diff.deliverySpeed = data.deliverySpeed;
+        if (data.features !== (orig.features || '[]')) diff.features = data.features;
+        if (Object.keys(diff).length > 0) await api.put(`/api/plans/${orig.id}`, diff);
+      }
       showToast(t("common.saved"));
       setEditing(null); fetchPlans();
     } catch { showToast(t("common.saveFailed")); }

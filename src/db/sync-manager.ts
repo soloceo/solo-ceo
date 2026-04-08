@@ -8,6 +8,7 @@
  */
 import { supabase } from './supabase-client';
 import { replayQueue, getQueueLength } from './offline-queue';
+import { getDb, saveDb, all, run, exec } from './index';
 
 // ── Sync tables — all mutable tables to pull from cloud ──────────
 const SYNC_TABLES = [
@@ -15,6 +16,14 @@ const SYNC_TABLES = [
   'finance_transactions', 'payment_milestones', 'client_projects',
   'content_drafts', 'today_focus_state', 'today_focus_manual',
   'ai_agents', 'ai_conversations',
+] as const;
+
+// Tables to pull from cloud → local sql.js (includes SYNC_TABLES + derived tables)
+const PULL_TABLES = [
+  ...SYNC_TABLES,
+  'client_subscription_ledger',
+  'activity_log',
+  'app_settings',
 ] as const;
 
 let syncing = false;
@@ -33,6 +42,56 @@ function dispatchSyncToast(message: string, type: 'info' | 'success' | 'warning'
   window.dispatchEvent(new CustomEvent('sync-toast', {
     detail: { message, type },
   }));
+}
+
+// ── Pull cloud data into local sql.js for offline use ───────────
+
+async function pullCloudToLocal(): Promise<void> {
+  const db = await getDb();
+
+  for (const table of PULL_TABLES) {
+    try {
+      // Fetch all rows from Supabase (RLS filters by user_id)
+      const { data: rows, error } = await supabase.from(table).select('*');
+      if (error || !rows) continue;
+
+      // Get local column names via PRAGMA
+      const colInfo = all(db, `PRAGMA table_info("${table}")`);
+      const localCols = new Set(colInfo.map((c: Record<string, unknown>) => String(c.name)));
+      if (localCols.size === 0) continue;
+
+      // Atomic: delete old + insert new in a transaction
+      exec(db, 'BEGIN TRANSACTION');
+      try {
+        exec(db, `DELETE FROM "${table}"`);
+
+        for (const row of rows) {
+          // Only insert columns that exist in local schema
+          const cols: string[] = [];
+          const vals: unknown[] = [];
+          for (const [k, v] of Object.entries(row)) {
+            if (!localCols.has(k)) continue;
+            cols.push(`"${k}"`);
+            // Convert boolean → integer for SQLite
+            vals.push(typeof v === 'boolean' ? (v ? 1 : 0) : v);
+          }
+          if (cols.length === 0) continue;
+          const placeholders = cols.map(() => '?').join(',');
+          run(db, `INSERT INTO "${table}" (${cols.join(',')}) VALUES (${placeholders})`, vals);
+        }
+
+        exec(db, 'COMMIT');
+      } catch (insertErr) {
+        try { exec(db, 'ROLLBACK'); } catch { /* already rolled back */ }
+        console.warn(`[SyncManager] Failed to write ${table} locally:`, insertErr);
+      }
+    } catch (e) {
+      console.warn(`[SyncManager] Failed to pull ${table}:`, e);
+    }
+  }
+
+  // Persist to IndexedDB
+  await saveDb();
 }
 
 // ── Pull cloud state into components ─────────────────────────────
@@ -84,7 +143,10 @@ export async function triggerFullSync(): Promise<void> {
       }
     }
 
-    // Step 2: Pull fresh data from cloud → trigger component refresh
+    // Step 2: Pull cloud data into local sql.js for offline use
+    await pullCloudToLocal();
+
+    // Step 3: Trigger component refresh
     const remaining = await getQueueLength();
     dispatchSyncStatus('syncing', { pending: remaining });
     await pullCloudState();
