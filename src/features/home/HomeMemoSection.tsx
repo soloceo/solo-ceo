@@ -250,15 +250,9 @@ export function HomeMemoSection() {
           body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 200, system: sysPrompt, messages: [{ role: "user", content: text }] }),
         });
         result = JSON.parse((await r.json()).content[0].text);
-      } else if (provider === "deepseek") {
-        const r = await fetch("https://api.deepseek.com/chat/completions", {
-          method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-          body: JSON.stringify({ model: "deepseek-chat", messages: [{ role: "system", content: sysPrompt }, { role: "user", content: text }], temperature: 0 }),
-        });
-        result = JSON.parse((await r.json()).choices[0].message.content);
       } else if (provider === "gemini") {
-        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-          method: "POST", headers: { "Content-Type": "application/json" },
+        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`, {
+          method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
           body: JSON.stringify({ contents: [{ parts: [{ text: `${sysPrompt}\n\nUser: ${text}` }] }] }),
         });
         const raw = (await r.json()).candidates[0].content.parts[0].text.replace(/```json\n?|\n?```/g, "").trim();

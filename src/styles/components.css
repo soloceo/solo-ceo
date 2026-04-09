@@ -10,7 +10,7 @@
 
   /* ── Safe-area helpers ─────────────────────────────────────── */
   .pb-safe { padding-bottom: max(18px, env(safe-area-inset-bottom, 18px)); }
-  .pb-safe-half { padding-bottom: 20px; }
+  .pb-safe-half { padding-bottom: max(20px, env(safe-area-inset-bottom, 20px)); }
   .ios-scroll {
     overscroll-behavior: contain;
     scrollbar-width: none;
@@ -81,14 +81,6 @@
     .kpi-value { font-size: 24px; }
   }
 
-  /* ── Visual hierarchy spacing ───────────────────────────── */
-  .section-gap {
-    margin-top: 8px;
-  }
-  @media (min-width: 768px) {
-    .section-gap { margin-top: 12px; }
-  }
-
   /* ── Page tabs ──────────────────────────────────────────────── */
 
   .page-tabs {
@@ -110,32 +102,6 @@
     color: var(--color-text-primary);
     font-weight: var(--font-weight-semibold);
     background: var(--color-bg-tertiary);
-  }
-
-  /* ── Segment switcher ───────────────────────────────────────── */
-
-  .segment-switcher {
-    @apply inline-flex items-center;
-    gap: 0;
-    border-bottom: 1px solid var(--color-line-secondary);
-  }
-  .segment-switcher > button {
-    @apply text-[13px] transition-all;
-    font-weight: var(--font-weight-medium);
-    padding: 4px 12px;
-    height: 28px;
-    color: var(--color-text-tertiary);
-    border-bottom: 2px solid transparent;
-    margin-bottom: -1px;
-  }
-  .segment-switcher > button:hover {
-    color: var(--color-text-secondary);
-  }
-  .segment-switcher > button[data-active="true"],
-  .segment-switcher > button.active {
-    color: var(--color-text-primary);
-    font-weight: var(--font-weight-medium);
-    border-bottom-color: var(--color-text-primary);
   }
 
   /* ── Inline button group ──────────────────────────────────── */
@@ -369,7 +335,6 @@
     .btn-primary.compact,
     .btn-secondary.compact,
     .btn-ghost.compact { height: 40px; padding-top: 8px; padding-bottom: 8px; }
-    .segment-switcher > button { height: 36px; padding: 8px 16px; }
     .btn-icon { width: 48px; height: 48px; }
     .btn-icon-sm { width: 40px; height: 40px; }
   }
@@ -522,11 +487,6 @@
     background: color-mix(in srgb, var(--color-orange) 12%, transparent);
     color: var(--color-orange);
   }
-  .badge-purple {
-    background: color-mix(in srgb, var(--color-purple) 12%, transparent);
-    color: var(--color-purple);
-  }
-
   /* ── Semantic icon circles ───────────────────────────────── */
 
   .icon-circle-success {
@@ -586,21 +546,6 @@
   background: var(--color-accent-tint);
 }
 
-/* ── Segment switcher — same bold treatment ─────────────────── */
-[data-theme="neobrutalism"] .segment-switcher {
-  border-bottom: 2px solid var(--color-border-primary);
-}
-[data-theme="neobrutalism"] .segment-switcher > button {
-  border-bottom-width: 3px;
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: 0.02em;
-}
-[data-theme="neobrutalism"] .segment-switcher > button[data-active="true"],
-[data-theme="neobrutalism"] .segment-switcher > button.active {
-  font-weight: var(--font-weight-bold);
-  border-bottom-color: var(--color-accent);
-}
-
 /* ── Badges — solid borders, punchy ─────────────────────────── */
 [data-theme="neobrutalism"] .badge {
   border: 2px solid currentColor;
@@ -615,8 +560,7 @@
 [data-theme="neobrutalism"] .badge-danger,
 [data-theme="neobrutalism"] .badge-accent,
 [data-theme="neobrutalism"] .badge-blue,
-[data-theme="neobrutalism"] .badge-orange,
-[data-theme="neobrutalism"] .badge-purple {
+[data-theme="neobrutalism"] .badge-orange {
   border: 2px solid currentColor;
 }
 
@@ -1266,21 +1210,6 @@
   }
 }
 
-/* ── Segment switcher — MD3 Primary tabs: accent underline ─────── */
-[data-theme="material"] .segment-switcher {
-  border-bottom: 1px solid var(--color-line-secondary);
-}
-[data-theme="material"] .segment-switcher > button {
-  font-weight: 500;
-  letter-spacing: 0.1px;
-}
-[data-theme="material"] .segment-switcher > button[data-active="true"],
-[data-theme="material"] .segment-switcher > button.active {
-  color: var(--color-accent);
-  border-bottom-color: var(--color-accent);
-  border-bottom-width: 3px;
-  font-weight: 500;
-}
 
 /* ── Badges — MD3 Assist chip: Small radius (8dp) ──────────────── */
 [data-theme="material"] .badge {
@@ -1490,12 +1419,6 @@
   letter-spacing: 0;
 }
 
-/* ── Header glass (desktop) — MD3 Top app bar: flat, no shadow ─── */
-[data-theme="material"] .header-glass {
-  border: none;
-  box-shadow: none;
-}
-
 /* ── MD3 state layer tokens (used across components) ───────────── */
 [data-theme="material"] .btn-primary:active,
 [data-theme="material"] .btn-secondary:active,
@@ -1665,7 +1588,6 @@
 [data-theme="glassmorphism"].dark .card,
 [data-theme="glassmorphism"].dark .stat-card,
 [data-theme="glassmorphism"].dark .widget-card,
-[data-theme="glassmorphism"].dark .header-glass,
 [data-theme="glassmorphism"].dark .mobile-header-pill,
 [data-theme="glassmorphism"].dark .mobile-nav-pill,
 [data-theme="glassmorphism"].dark .fab-glass-menu,
@@ -1692,7 +1614,6 @@
 }
 
 /* ── Mobile header — frosted glass capsules ──────────────────── */
-[data-theme="glassmorphism"] .header-glass,
 [data-theme="glassmorphism"] .mobile-header-pill {
   background: var(--header-bg) !important;
   backdrop-filter: blur(16px) saturate(180%) brightness(1.05);
@@ -1930,11 +1851,6 @@
 [data-theme="glassmorphism"] .page-tabs > button[data-active="true"] {
   background: var(--glass-bg-content);
   box-shadow: var(--shadow-tiny), var(--glass-inset-soft);
-}
-
-/* ── Segment switcher — glass border ──────────────────────────── */
-[data-theme="glassmorphism"] .segment-switcher {
-  border-bottom-color: var(--glass-border);
 }
 
 /* ── Badges — subtle glass look ──────────────────────────────── */
@@ -2331,11 +2247,6 @@
 }
 
 /* ── Header — accent glow line with subtle pulse ─────────────── */
-[data-theme="hud"] .header-glass {
-  border-radius: 0;
-  border-bottom-color: var(--hud-corner-color) !important;
-  box-shadow: 0 1px 6px var(--hud-glow-soft);
-}
 [data-theme="hud"] .mobile-header-pill {
   border-radius: 2px;
   border-color: var(--hud-corner-color);
@@ -2423,22 +2334,6 @@
   background: var(--color-accent-tint);
   box-shadow: 0 0 10px var(--hud-glow-soft);
   border: 1px solid var(--hud-corner-color);
-}
-
-/* ── Segment switcher — thin accent line ─────────────────────── */
-[data-theme="hud"] .segment-switcher {
-  border-bottom: 1px solid var(--color-border-primary);
-}
-[data-theme="hud"] .segment-switcher > button {
-  font-family: 'JetBrains Mono', 'SF Mono', 'Menlo', monospace;
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-[data-theme="hud"] .segment-switcher > button[data-active="true"],
-[data-theme="hud"] .segment-switcher > button.active {
-  border-bottom-color: var(--color-accent);
-  text-shadow: 0 0 8px var(--hud-glow-medium);
 }
 
 /* ── Badges — sharp, thin border, monospace ──────────────────── */

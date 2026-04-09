@@ -262,7 +262,7 @@ export default function AgentModal({ open, onClose, onSave, editAgent }: AgentMo
                             background: 'var(--color-bg-secondary)',
                             border: '1px solid var(--color-border-translucent)',
                             boxShadow: 'var(--shadow-high)',
-                            zIndex: 10,
+                            zIndex: 'var(--layer-float)',
                           }}
                         >
                           {AVATAR_OPTIONS.map(em => (

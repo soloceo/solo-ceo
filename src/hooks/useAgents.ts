@@ -18,7 +18,7 @@ function getDismissed(): Set<string> {
   try { return new Set(JSON.parse(localStorage.getItem(LS_DISMISSED_TEMPLATES) || '[]')); } catch { return new Set(); }
 }
 function addDismissed(templateId: string) {
-  const s = getDismissed(); s.add(templateId); localStorage.setItem(LS_DISMISSED_TEMPLATES, JSON.stringify([...s]));
+  const s = getDismissed(); s.add(templateId); try { localStorage.setItem(LS_DISMISSED_TEMPLATES, JSON.stringify([...s])); } catch { /* quota exceeded */ }
 }
 function clearDismissed() {
   localStorage.removeItem(LS_DISMISSED_TEMPLATES);

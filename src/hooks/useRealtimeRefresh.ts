@@ -29,7 +29,7 @@ export function useRealtimeRefresh(
   // Store latest refetchFn in a ref so the effect doesn't re-run when the callback changes
   const refetchRef = useRef(refetchFn);
   refetchRef.current = refetchFn;
-  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     const scheduleRefetch = () => {

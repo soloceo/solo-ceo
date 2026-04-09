@@ -5,7 +5,7 @@ import { useT } from "../i18n/context";
 
 export default function PWAUpdatePrompt() {
   const { t } = useT();
-  const intervalRef = useRef<ReturnType<typeof setInterval>>();
+  const intervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
 
   const {
     needRefresh: [needRefresh],

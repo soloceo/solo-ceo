@@ -78,7 +78,7 @@ function calcProgress(createdAt: string, dateStr: string): number {
   const created = new Date(createdAt).getTime();
   const target = new Date(dateStr + "T00:00:00").getTime();
   const total = target - created;
-  if (total <= 0) return 1;
+  if (total <= 0 || isNaN(total)) return 1;
   return Math.min(1, Math.max(0, (Date.now() - created) / total));
 }
 

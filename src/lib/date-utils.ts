@@ -22,17 +22,25 @@ function tz(): string {
  * This replaces the old `new Date().toISOString().split('T')[0]` pattern
  * which incorrectly used UTC.
  */
-export function dateToKey(d: Date, timezone?: string): string {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: timezone || tz(),
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(d);
-  const y = parts.find(p => p.type === 'year')!.value;
-  const m = parts.find(p => p.type === 'month')!.value;
-  const dd = parts.find(p => p.type === 'day')!.value;
-  return `${y}-${m}-${dd}`;
+export function dateToKey(d: Date = new Date(), timezone?: string): string {
+  try {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: timezone || tz(),
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(d);
+    const y = parts.find(p => p.type === 'year')!.value;
+    const m = parts.find(p => p.type === 'month')!.value;
+    const dd = parts.find(p => p.type === 'day')!.value;
+    return `${y}-${m}-${dd}`;
+  } catch {
+    // Fallback: use local date if timezone is invalid
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
 }
 
 /** Today's date key (YYYY-MM-DD) in the user's timezone */

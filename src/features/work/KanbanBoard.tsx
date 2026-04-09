@@ -136,7 +136,7 @@ export function KanbanBoard({ columns, tasks, onDragEnd, onAdd, onEdit, onDelete
   );
 }
 
-function KanbanColumn({ col, items, onAdd, onEdit, onDelete, onClientClick, emptyText, onPriorityChange, onDueChange, columns, onColumnChange }: {
+const KanbanColumn = React.memo(function KanbanColumn({ col, items, onAdd, onEdit, onDelete, onClientClick, emptyText, onPriorityChange, onDueChange, columns, onColumnChange }: {
   col: ColDef;
   items: Task[];
   onAdd: () => void;
@@ -218,7 +218,7 @@ function KanbanColumn({ col, items, onAdd, onEdit, onDelete, onClientClick, empt
       </SortableContext>
     </div>
   );
-}
+});
 
 /* ── Swimlane View ── */
 interface SwimlaneProps {

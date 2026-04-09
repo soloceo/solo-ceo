@@ -17,11 +17,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   return <h3 className="section-label mb-3">{children}</h3>;
 }
 
-interface SecuritySectionProps {
-  showToast: (msg: string) => void;
-}
-
-export default function SecuritySection({ showToast }: SecuritySectionProps) {
+export default function SecuritySection() {
   const { t } = useT();
   const [expanded, setExpanded] = useState(false);
   const [newPassword, setNewPassword] = useState('');

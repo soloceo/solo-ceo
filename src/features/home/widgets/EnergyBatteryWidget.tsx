@@ -93,7 +93,7 @@ function loadData(): StorageData {
 
 function saveData(data: StorageData) {
   const json = JSON.stringify(data);
-  localStorage.setItem(STORAGE_KEY, json);
+  try { localStorage.setItem(STORAGE_KEY, json); } catch { /* quota exceeded */ }
   syncPref("ENERGY_DATA", json);
 }
 
@@ -145,7 +145,7 @@ function EnergyBatteryWidget() {
   const [rechargeFlash, setRechargeFlash] = useState("");
   const [currentEnergy, setCurrentEnergy] = useState(0);
   const [now, setNow] = useState(() => Date.now());
-  const tickRef = useRef<ReturnType<typeof setInterval>>();
+  const tickRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   const rootRef = useRef<HTMLDivElement>(null);
   const { s } = useWidgetScale(rootRef);
 

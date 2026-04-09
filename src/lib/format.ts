@@ -19,7 +19,7 @@ export function fmtDate(iso: string, lang: string): string {
 }
 
 /** Full date: "2026年3月26日" / "Mar 26, 2026" */
-export function fmtDateFull(iso: string, lang: string): string {
+function fmtDateFull(iso: string, lang: string): string {
   if (!iso) return "—";
   try {
     const d = new Date(iso + "T00:00:00");
@@ -35,6 +35,6 @@ export function fmtDateFull(iso: string, lang: string): string {
 }
 
 /** Relative date badge text for task cards: overdue / today / date */
-export function fmtDueDate(iso: string, lang: string): string {
+function fmtDueDate(iso: string, lang: string): string {
   return fmtDate(iso, lang);
 }

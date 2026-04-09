@@ -225,7 +225,7 @@ function MiniCalendarWidget() {
           style={{
             bottom: s(8), padding: `${s(8)}px ${s(10)}px`, borderRadius: s(12),
             background: "var(--color-bg-secondary)", border: "1px solid var(--color-border-primary)",
-            boxShadow: "var(--shadow-high)", zIndex: 10,
+            boxShadow: "var(--shadow-high)", zIndex: "var(--layer-float)",
           }}
         >
           <div style={{ fontSize: s(10), fontWeight: 600, color: "var(--color-text-tertiary)", marginBottom: s(4) }}>

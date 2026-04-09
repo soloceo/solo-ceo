@@ -123,8 +123,8 @@ export function ClientsView() {
   /* ── Form validation ── */
   const [formErrors, setFormErrors] = useState<Record<string, boolean>>({});
 
-  const fetchPlans = async () => { try { const d = await api.get<unknown[]>("/api/plans"); setPlans(Array.isArray(d) ? d : []); } catch { showToast(t("common.loadFailed") || "Load failed"); } };
-  const fetchClients = async () => { try { const data = await api.get<unknown[]>("/api/clients"); setClients(Array.isArray(data) ? data : []); } catch { showToast(t("pipeline.toast.clientLoadFailed")); } finally { setLoading(false); } };
+  const fetchPlans = async () => { try { const d = await api.get<PlanRow[]>("/api/plans"); setPlans(Array.isArray(d) ? d : []); } catch { showToast(t("common.loadFailed") || "Load failed"); } };
+  const fetchClients = async () => { try { const data = await api.get<ClientRow[]>("/api/clients"); setClients(Array.isArray(data) ? data : []); } catch { showToast(t("pipeline.toast.clientLoadFailed")); } finally { setLoading(false); } };
 
   useEffect(() => { void Promise.all([fetchClients(), fetchPlans(), tx.fetchFinance()]); }, []);
   useRealtimeRefresh(CLIENTS_TABLES, () => { fetchClients(); tx.fetchFinance(); if (editId) { if (form.billing_type === "project") { ms.fetchMilestones(editId); proj.fetchProjects(editId); } } });
@@ -174,7 +174,7 @@ export function ClientsView() {
         if (c.resumed_at) tl.push({ type: "resume", date: c.resumed_at });
         if (c.cancelled_at) tl.push({ type: "cancel", date: c.cancelled_at });
       }
-      setForm({ name: c.name, company_name: c.company_name || "", contact_name: c.contact_name || "", contact_email: c.contact_email || "", contact_phone: c.contact_phone || "", billing_type: c.billing_type || "subscription", plan: c.plan_tier || c.plan, status: c.status, mrr: String(c.mrr).replace(/[^0-9.-]+/g, ""), project_fee: String(c.project_fee || "").replace(/[^0-9.-]+/g, ""), subscription_start_date: tl[0]?.date || "", project_end_date: c.project_end_date || "", paused_at: c.paused_at || "", resumed_at: c.resumed_at || "", cancelled_at: c.cancelled_at || "", mrr_effective_from: tl[0]?.date || c.mrr_effective_from || "", tax_mode: (c.tax_mode || "none") as "none" | "exclusive" | "inclusive", tax_rate: String(c.tax_rate || ""), drive_folder_url: c.drive_folder_url || "", payment_method: (c.payment_method || "auto") as "auto" | "manual", timeline: tl });
+      setForm({ name: c.name, company_name: c.company_name || "", contact_name: c.contact_name || "", contact_email: c.contact_email || "", contact_phone: c.contact_phone || "", billing_type: c.billing_type || "subscription", plan: c.plan_tier || c.plan, status: c.status, mrr: String(c.mrr).replace(/[^0-9.-]+/g, ""), project_fee: String(c.project_fee || "").replace(/[^0-9.-]+/g, ""), project_name: String(c.project_name || ""), subscription_start_date: tl[0]?.date || "", project_end_date: c.project_end_date || "", paused_at: c.paused_at || "", resumed_at: c.resumed_at || "", cancelled_at: c.cancelled_at || "", mrr_effective_from: tl[0]?.date || c.mrr_effective_from || "", tax_mode: (c.tax_mode || "none") as "none" | "exclusive" | "inclusive", tax_rate: String(c.tax_rate || ""), drive_folder_url: c.drive_folder_url || "", payment_method: (c.payment_method || "auto") as "auto" | "manual", timeline: tl });
       if ((c.billing_type || "subscription") === "project") {
         proj.fetchProjects(c.id);
         ms.fetchMilestones(c.id);
@@ -423,7 +423,7 @@ export function ClientsView() {
                         {(() => { const cReceived = tx.finTxs.filter((r: FinanceTransaction) => r.type === "income" && (r.status || "已完成") === "已完成" && r.client_id === c.id).reduce((s: number, r: FinanceTransaction) => s + Number(r.amount || 0), 0); return cReceived > 0 ? <div className="text-[13px]" style={{ color: "var(--color-success)" }}>{t("pipeline.clients.received")} ${cReceived.toLocaleString()}</div> : null; })()}
                         {c.billing_type === "subscription" && <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>${Number(c.mrr || 0).toLocaleString()}{t("pipeline.clients.perMonth")}</div>}
                       </td>
-                      <td className="px-4 py-3 text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{c.subscription_start_date || c.joined_at?.split("T")[0] || "—"}</td>
+                      <td className="px-4 py-3 text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{c.subscription_start_date || String(c.joined_at || "").split("T")[0] || "—"}</td>
                       <td className="px-4 py-3">{c.tax_mode && c.tax_mode !== "none" ? <span className="badge badge-accent">{c.tax_mode === "exclusive" ? t("money.form.taxExclBtn") : t("money.form.taxIncl")} {c.tax_rate}%</span> : <span style={{ color: "var(--color-text-secondary)" }}>—</span>}</td>
                       <td className="px-4 py-3 text-right"><button onClick={e => { e.stopPropagation(); openPanel(c); }} className="btn-ghost text-[13px]"><Edit2 size={16} /> {t("common.edit")}</button></td>
                     </tr>
@@ -539,7 +539,7 @@ export function ClientsView() {
                       <input value={form.drive_folder_url} onChange={e => setForm(p => ({ ...p, drive_folder_url: e.target.value }))} placeholder={t("pipeline.clients.drivePlaceholder")} className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]" />
                     </div>
                     {form.drive_folder_url && (
-                      <button type="button" onClick={() => window.open(form.drive_folder_url, '_blank')} className="btn-ghost flex items-center gap-1 px-3 shrink-0 text-[13px]" style={{ color: "var(--color-accent)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
+                      <button type="button" onClick={() => { const url = form.drive_folder_url; if (url && /^https?:\/\//i.test(url)) window.open(url, '_blank', 'noopener'); }} className="btn-ghost flex items-center gap-1 px-3 shrink-0 text-[13px]" style={{ color: "var(--color-accent)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
                         <ExternalLink size={14} /> {t("pipeline.clients.openDrive")}
                       </button>
                     )}
@@ -627,7 +627,7 @@ export function ClientsView() {
                         ]).map(pm => {
                           const active = form.payment_method === pm.value;
                           return (
-                            <button key={pm.value} type="button" onClick={() => setForm(p => ({ ...p, payment_method: pm.value }))}
+                            <button key={pm.value} type="button" onClick={() => setForm(p => ({ ...p, payment_method: pm.value as "auto" | "manual" }))}
                               className="flex flex-col items-start gap-1 p-3 rounded-[var(--radius-12)] text-left transition-all"
                               style={{
                                 background: active ? "var(--color-accent-tint)" : "var(--color-bg-tertiary)",
@@ -646,7 +646,7 @@ export function ClientsView() {
                     {/* Tax settings — after amount */}
                     <FL label={t("pipeline.clients.taxSetting")}>
                       <div className="flex flex-wrap gap-2 mb-2">
-                        {([["none", t("money.form.taxNone")], ["exclusive", t("money.form.taxExclBtn")], ["inclusive", t("money.form.taxIncl")]] as [string, string][]).map(([mode, label]) => (
+                        {([["none", t("money.form.taxNone")], ["exclusive", t("money.form.taxExclBtn")], ["inclusive", t("money.form.taxIncl")]] as ["none" | "exclusive" | "inclusive", string][]).map(([mode, label]) => (
                           <button key={mode} type="button" onClick={() => setForm(p => ({ ...p, tax_mode: mode }))}
                             className="flex-1 py-2 rounded-full text-[15px] transition-all"
                             style={form.tax_mode === mode ? { background: "var(--color-accent)", color: "var(--color-brand-text)", fontWeight: "var(--font-weight-medium)" } : { background: "var(--color-bg-tertiary)", color: "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
@@ -1229,7 +1229,7 @@ export function ClientsView() {
                             {/* Tax */}
                             <FL label={t("pipeline.clients.taxSetting")}>
                               <div className="flex gap-2 mb-2">
-                                {([["none", t("money.form.taxNone")], ["exclusive", t("money.form.taxExclBtn")], ["inclusive", t("money.form.taxIncl")]] as [string, string][]).map(([mode, label]) => (
+                                {([["none", t("money.form.taxNone")], ["exclusive", t("money.form.taxExclBtn")], ["inclusive", t("money.form.taxIncl")]] as ["none" | "exclusive" | "inclusive", string][]).map(([mode, label]) => (
                                   <button key={mode} type="button" onClick={() => tx.setTxForm(p => ({ ...p, taxMode: mode }))}
                                     className="flex-1 py-2 rounded-full text-[15px] transition-all"
                                     style={tx.txForm.taxMode === mode ? { background: "var(--color-accent)", color: "var(--color-brand-text)", fontWeight: "var(--font-weight-medium)" } : { background: "var(--color-bg-tertiary)", color: "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>

@@ -32,7 +32,10 @@ let replaying = false;
 
 // ── IndexedDB helpers ─────────────────────────────────────────────
 
+let cachedDb: IDBDatabase | null = null;
+
 function openQueueDb(): Promise<IDBDatabase> {
+  if (cachedDb) return Promise.resolve(cachedDb);
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, 1);
     req.onupgradeneeded = () => {
@@ -41,7 +44,12 @@ function openQueueDb(): Promise<IDBDatabase> {
         db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
       }
     };
-    req.onsuccess = () => resolve(req.result);
+    req.onsuccess = () => {
+      cachedDb = req.result;
+      // Invalidate cache if browser closes the connection (e.g. storage pressure)
+      cachedDb.onclose = () => { cachedDb = null; };
+      resolve(cachedDb);
+    };
     req.onerror = () => reject(req.error);
   });
 }
@@ -113,8 +121,12 @@ export async function clearQueue(): Promise<void> {
       tx.oncomplete = () => resolve();
       tx.onerror = () => resolve();
     });
+    // Close and invalidate cached connection (prevents cross-user replay)
+    db.close();
+    cachedDb = null;
   } catch {
     // Best-effort: if IndexedDB fails, queue is in-memory only
+    cachedDb = null;
   }
 }
 

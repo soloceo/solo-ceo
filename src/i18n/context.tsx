@@ -58,7 +58,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   const setLang = useCallback((l: Lang) => {
     setLangState(l);
-    localStorage.setItem(STORAGE_KEY, l);
+    try { localStorage.setItem(STORAGE_KEY, l); } catch { /* quota exceeded */ }
     window.dispatchEvent(new CustomEvent("language-changed", { detail: l }));
     if (l === "en" && !enLoaded) {
       loadEn().then(() => forceUpdate((n) => n + 1));

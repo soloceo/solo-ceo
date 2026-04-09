@@ -285,7 +285,7 @@ export default function SettingsPage() {
         <AgentSection />
 
         {/* 6. Account Security — rarely used, at bottom */}
-        <SecuritySection showToast={showToast} />
+        <SecuritySection />
 
         {/* Version info */}
         <div className="text-center py-4 space-y-2">

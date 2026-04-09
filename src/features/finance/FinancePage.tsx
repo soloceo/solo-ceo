@@ -43,6 +43,7 @@ interface FinanceTransaction {
   amount: number;
   category: string;
   description: string;
+  desc?: string;
   date: string;
   status: string;
   client_id?: number | null;
@@ -188,7 +189,7 @@ export default function FinancePage() {
   useEffect(() => {
     const anyOpen = isMobile && (showPanel || showAll);
     window.dispatchEvent(new CustomEvent("mobile-nav-visibility", { detail: { hidden: anyOpen } }));
-    return () => window.dispatchEvent(new CustomEvent("mobile-nav-visibility", { detail: { hidden: false } }));
+    return () => { window.dispatchEvent(new CustomEvent("mobile-nav-visibility", { detail: { hidden: false } })); };
   }, [showPanel, showAll, isMobile]);
 
   /* ── Quick Create listener ── */

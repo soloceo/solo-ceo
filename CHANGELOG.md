@@ -3,6 +3,37 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.31.0] - 2026-04-09
+
+### Security
+- **Gemini API key exposure** — moved from URL query string to `x-goog-api-key` header in 3 locations (ai-client.ts streaming, HomeMemoSection, WorkMemoList)
+- **SQL injection risk** — deleted unused `importAllData` function that interpolated user-supplied column names into SQL
+- **URL validation** — `window.open` for drive folder URL now validates `https?://` protocol before opening
+- **Supabase null guard** — 16 `data!.id` non-null assertions replaced with proper `if (e || !data)` checks
+
+### Fixed
+- **18 TypeScript errors → 0** — fixed all pre-existing type errors across 7 files (CommandPalette, supabase-api, ClientList, LeadsBoard, ai-client, HomeMemoSection, WorkMemoList)
+- **localStorage crash prevention** — 11 `localStorage.setItem` calls wrapped in try/catch to prevent QuotaExceededError crash
+- **Timezone crash** — `dateToKey()` now catches invalid timezone RangeError with local-date fallback instead of crashing the entire app
+- **CountdownWidget NaN** — `calcProgress` now guards against NaN from invalid date strings
+- **PlanSection JSON.parse** — `features` field parse wrapped in try/catch
+- **Business Rule #3** — `today_focus_manual` PUT handler changed to partial update in both supabase-api.ts and api.ts
+- **Business Rule #13** — `useMilestones` and `useClientProjects` now diff against original data before PUT
+- **Business Rule #15** — `env(safe-area-inset-*)` in main.tsx now includes `0px` fallback values
+- **Business Rule #16** — replaced z-index magic numbers with CSS variables in App.tsx, MiniCalendarWidget, AgentModal
+- **UTC date bug** — WorkMemoList and AIChatPanel now use timezone-aware `todayDateKey()` instead of UTC `toISOString().slice(0,10)`
+- **DeepSeek removal** — removed unused deepseek code paths from HomeMemoSection and WorkMemoList
+
+### Changed
+- **KanbanColumn React.memo** — wrapped with `React.memo` to prevent unnecessary re-renders of 4 kanban columns
+- **IndexedDB connection pooling** — offline-queue now caches the IDBDatabase connection instead of opening new ones on every operation
+
+### Removed
+- Dead code files: `MonthlyGoal.tsx`, `BottomSheet.tsx` (never imported)
+- Unused exports: `fmtDueDate`, `fmtDateFull`, `syncPrefs`, `loadCloudPrefs`, `api.patch`
+- Unused CSS classes: `.badge-purple`, `.header-glass`, `.section-gap`, `.segment-switcher`
+- Unused `showToast` prop from SecuritySection
+
 ## [2.30.2] - 2026-04-08
 
 ### Fixed

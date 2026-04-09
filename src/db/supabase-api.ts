@@ -433,7 +433,7 @@ export async function handleSupabaseRequest(
     const { data: lead } = await supabase.from('leads').select('id, name, industry, needs').eq('id', id).eq('user_id', userId).single();
     if (!lead) return err(404, 'Lead not found');
     const { plan_tier, status, mrr, subscription_start_date, mrr_effective_from, billing_type, project_fee } = body || {};
-    const np = normalizePlanTier(plan_tier || '');
+    const np = normalizePlanTier(String(plan_tier || ''));
     const bt = enumVal(billing_type, VALID_BILLING_TYPES, 'subscription');
     const today = todayDateKey();
     const { data: newClient, error: e } = await supabase
@@ -499,7 +499,7 @@ export async function handleSupabaseRequest(
     const { name, industry, plan_tier, status, brand_context, mrr,
             subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from, subscription_timeline,
             company_name, contact_name, contact_email, contact_phone, billing_type, project_fee, project_end_date, tax_mode, tax_rate, drive_folder_url, payment_method } = body;
-    const np = normalizePlanTier(plan_tier || '');
+    const np = normalizePlanTier(String(plan_tier || ''));
     const bt = enumVal(billing_type, VALID_BILLING_TYPES, 'subscription');
     const { data, error: e } = await supabase
       .from('clients')
@@ -522,10 +522,10 @@ export async function handleSupabaseRequest(
       })
       .select('id')
       .single();
-    if (e) return err(500, e.message);
+    if (e || !data) return err(500, e?.message || 'Insert failed');
     syncClientSubscriptionLedger(userId).catch((err) => console.error('[SyncLedger]', err));
-    await logActivity(userId, 'client', 'created', `新增客户：${name || '未命名客户'}`, np ? `方案：${np}` : '', data!.id);
-    return ok({ id: data!.id });
+    await logActivity(userId, 'client', 'created', `新增客户：${name || '未命名客户'}`, np ? `方案：${np}` : '', data.id);
+    return ok({ id: data.id });
   }
 
   const clientMatch = path.match(/^\/api\/clients\/(\d+)$/);
@@ -537,7 +537,7 @@ export async function handleSupabaseRequest(
       const patch: Record<string, unknown> = {};
       if (body.name !== undefined) patch.name = str(body.name, 255);
       if (body.industry !== undefined) patch.industry = str(body.industry, 100);
-      if (body.plan_tier !== undefined) patch.plan_tier = normalizePlanTier(body.plan_tier || '');
+      if (body.plan_tier !== undefined) patch.plan_tier = normalizePlanTier(String(body.plan_tier || ''));
       if (body.status !== undefined) patch.status = enumVal(body.status, VALID_CLIENT_STATUSES, 'Active');
       if (body.brand_context !== undefined) patch.brand_context = str(body.brand_context, 2000);
       if (body.mrr !== undefined) patch.mrr = body.mrr || 0;
@@ -637,9 +637,9 @@ export async function handleSupabaseRequest(
         })
         .select('id')
         .single();
-      if (e) return err(500, e.message);
-      await logActivity(userId, 'project', 'created', `New project: ${body.name || 'New Project'}`, '', data!.id);
-      return ok({ id: data!.id });
+      if (e || !data) return err(500, e?.message || 'Insert failed');
+      await logActivity(userId, 'project', 'created', `New project: ${body.name || 'New Project'}`, '', data.id);
+      return ok({ id: data.id });
     }
   }
 
@@ -707,7 +707,7 @@ export async function handleSupabaseRequest(
         .insert(insertData)
         .select('id')
         .single();
-      if (e) return err(500, e.message);
+      if (e || !data) return err(500, e?.message || 'Insert failed');
       // Get client info for finance transaction
       const { data: client } = await supabase.from('clients').select('name, company_name, tax_mode, tax_rate').eq('id', clientId).single();
       const cName = client?.company_name || client?.name || '';
@@ -722,7 +722,7 @@ export async function handleSupabaseRequest(
       // Auto-create receivable finance transaction (with rollback on failure)
       if (txAmt > 0) {
         const { data: tx, error: txErr } = await supabase.from('finance_transactions').insert({
-          user_id: userId, type: 'income', source: 'milestone', source_id: data!.id,
+          user_id: userId, type: 'income', source: 'milestone', source_id: data.id,
           amount: txAmt, category: '项目收入',
           description: `${cName} · ${label || '项目付款'}`,
           date: due_date || '', status: '待收款 (应收)',
@@ -733,16 +733,16 @@ export async function handleSupabaseRequest(
         if (txErr) {
           // Rollback: delete the milestone we just created
           console.warn('[supabase-api] Finance tx failed, rolling back milestone', txErr);
-          await supabase.from('payment_milestones').update({ soft_deleted: true }).eq('id', data!.id).eq('user_id', userId);
+          await supabase.from('payment_milestones').update({ soft_deleted: true }).eq('id', data.id).eq('user_id', userId);
           return err(500, `创建财务记录失败: ${txErr.message}`);
         }
         // Link milestone to finance transaction
-        if (tx) await supabase.from('payment_milestones').update({ finance_tx_id: tx.id }).eq('id', data!.id).eq('user_id', userId);
+        if (tx) await supabase.from('payment_milestones').update({ finance_tx_id: tx.id }).eq('id', data.id).eq('user_id', userId);
       }
       await logActivity(userId, 'milestone', 'created',
         `新增付款节点：${cName} · ${label || ''}`,
-        amount ? `$${Number(amount).toLocaleString()}` : '', data!.id);
-      return ok({ id: data!.id });
+        amount ? `$${Number(amount).toLocaleString()}` : '', data.id);
+      return ok({ id: data.id });
     }
   }
 
@@ -911,9 +911,9 @@ export async function handleSupabaseRequest(
       })
       .select('id')
       .single();
-    if (e) return err(500, e.message);
-    await logActivity(userId, 'task', 'created', `新增任务：${title || '未命名任务'}`, client ? `客户：${client}` : '', data!.id);
-    return ok({ id: data!.id });
+    if (e || !data) return err(500, e?.message || 'Insert failed');
+    await logActivity(userId, 'task', 'created', `新增任务：${title || '未命名任务'}`, client ? `客户：${client}` : '', data.id);
+    return ok({ id: data.id });
   }
 
   const taskMatch = path.match(/^\/api\/tasks\/(\d+)$/);
@@ -999,9 +999,9 @@ export async function handleSupabaseRequest(
       })
       .select('id')
       .single();
-    if (e) return err(500, e.message);
-    await logActivity(userId, 'plan', 'created', `新增方案：${name || '未命名方案'}`, price ? `价格：$${price}/月` : '', data!.id);
-    return ok({ id: data!.id });
+    if (e || !data) return err(500, e?.message || 'Insert failed');
+    await logActivity(userId, 'plan', 'created', `新增方案：${name || '未命名方案'}`, price ? `价格：$${price}/月` : '', data.id);
+    return ok({ id: data.id });
   }
 
   const planMatch = path.match(/^\/api\/plans\/(\d+)$/);
@@ -1085,10 +1085,10 @@ export async function handleSupabaseRequest(
       })
       .select('id')
       .single();
-    if (e) return err(500, e.message);
+    if (e || !data) return err(500, e?.message || 'Insert failed');
     await logActivity(userId, 'finance', 'created', `新增交易：${str(description, 500) || '未命名交易'}`,
-      `${type === 'income' ? '+' : '-'}$${Number(amount || 0).toLocaleString()} · ${category || '未分类'}`, data!.id);
-    return ok({ id: data!.id });
+      `${type === 'income' ? '+' : '-'}$${Number(amount || 0).toLocaleString()} · ${category || '未分类'}`, data.id);
+    return ok({ id: data.id });
   }
 
   // ── Confirm receipt for subscription transactions ──
@@ -1180,7 +1180,7 @@ export async function handleSupabaseRequest(
         .update({ topic: str(topic, 255) || '', platform: str(platform, 50) || '', language: str(language, 10) || 'zh', content: content || '' })
         .eq('id', Number(id)).eq('user_id', userId).eq('soft_deleted', false);
       if (e) return err(500, e.message);
-      await logActivity(userId, 'content', 'updated', `更新草稿：${topic || '未命名草稿'}`, platform ? `平台：${platform}` : '', id);
+      await logActivity(userId, 'content', 'updated', `更新草稿：${topic || '未命名草稿'}`, platform ? `平台：${platform}` : '', String(id));
       return ok({ id, success: true });
     }
     const { data, error: e } = await supabase
@@ -1191,9 +1191,9 @@ export async function handleSupabaseRequest(
       })
       .select('id')
       .single();
-    if (e) return err(500, e.message);
-    await logActivity(userId, 'content', 'created', `保存草稿：${topic || '未命名草稿'}`, platform ? `平台：${platform}` : '', data!.id);
-    return ok({ id: data!.id, success: true });
+    if (e || !data) return err(500, e?.message || 'Insert failed');
+    await logActivity(userId, 'content', 'created', `保存草稿：${topic || '未命名草稿'}`, platform ? `平台：${platform}` : '', data.id);
+    return ok({ id: data.id, success: true });
   }
 
   const contentMatch = path.match(/^\/api\/content-drafts\/(\d+)$/);
@@ -1234,8 +1234,8 @@ export async function handleSupabaseRequest(
       })
       .select('id')
       .single();
-    if (e) return err(500, e.message);
-    const focusKey = `manual-${data!.id}`;
+    if (e || !data) return err(500, e?.message || 'Insert failed');
+    const focusKey = `manual-${data.id}`;
     const { error: ue2 } = await supabase
       .from('today_focus_state')
       .upsert(
@@ -1243,22 +1243,25 @@ export async function handleSupabaseRequest(
         { onConflict: 'user_id,focus_date,focus_key' },
       );
     if (ue2) return err(500, ue2.message);
-    await logActivity(userId, 'today_focus', 'manual_created', `记录今日事件：${String(title).trim()}`, type ? `类型：${type}` : '', data!.id);
-    return ok({ success: true, id: data!.id, focusKey });
+    await logActivity(userId, 'today_focus', 'manual_created', `记录今日事件：${String(title).trim()}`, type ? `类型：${type}` : '', data.id);
+    return ok({ success: true, id: data.id, focusKey });
   }
 
   const manualMatch = path.match(/^\/api\/today-focus\/manual\/(\d+)$/);
   if (manualMatch) {
     const id = Number(manualMatch[1]);
     if (method === 'PUT') {
-      const { type, title, note } = body || {};
-      if (!title || !String(title).trim()) return err(400, 'title is required');
+      const patch: Record<string, unknown> = {};
+      if (body.type !== undefined) patch.type = body.type;
+      if (body.title !== undefined) patch.title = String(body.title).trim();
+      if (body.note !== undefined) patch.note = String(body.note || '').trim();
+      if (Object.keys(patch).length === 0) return ok({ success: true });
       const { error: e } = await supabase
         .from('today_focus_manual')
-        .update({ type: type || '系统', title: String(title).trim(), note: String(note || '').trim() })
+        .update(patch)
         .eq('id', id).eq('user_id', userId).eq('soft_deleted', false);
       if (e) return err(500, e.message);
-      await logActivity(userId, 'today_focus', 'manual_updated', `更新今日事件：${String(title).trim()}`, '', id);
+      await logActivity(userId, 'today_focus', 'manual_updated', `更新今日事件：${patch.title || ''}`, '', id);
       return ok({ success: true, id });
     }
     if (method === 'DELETE') {
@@ -1416,7 +1419,12 @@ export async function handleSupabaseRequest(
     const receivables = receivablesData || [];
     const leads = bestLeadArr || [];
     const tasks = urgentTaskArr || [];
-    const overdueMs: OverdueMilestoneRow | undefined = overdueMsArr?.[0] ?? undefined;
+    const rawMs = overdueMsArr?.[0];
+    const overdueMs: OverdueMilestoneRow | undefined = rawMs ? {
+      id: rawMs.id, label: rawMs.label, amount: rawMs.amount,
+      due_date: rawMs.due_date, client_id: rawMs.client_id,
+      clients: Array.isArray(rawMs.clients) ? (rawMs.clients[0] ?? null) : (rawMs.clients ?? null),
+    } : undefined;
 
     // Build multiple candidates per category so "swap" has replacements
     const revenueCandidates: FocusCandidate[] = leads.map((l: LeadRow) => ({
@@ -1579,9 +1587,9 @@ export async function handleSupabaseRequest(
       })
       .select('id')
       .single();
-    if (e) return err(500, e.message);
-    await logActivity(userId, 'ai_agent', 'created', `创建 Agent：${String(name).trim()}`, '', data!.id);
-    return ok({ id: data!.id, success: true });
+    if (e || !data) return err(500, e?.message || 'Insert failed');
+    await logActivity(userId, 'ai_agent', 'created', `创建 Agent：${String(name).trim()}`, '', data.id);
+    return ok({ id: data.id, success: true });
   }
 
   const agentMatch = path.match(/^\/api\/agents\/(\d+)$/);

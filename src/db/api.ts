@@ -682,58 +682,6 @@ export async function exportAllData(): Promise<Record<string, any>> {
   return snapshot;
 }
 
-export async function importAllData(data: Record<string, unknown>): Promise<void> {
-  const db = await getDb();
-  try {
-    db.run('BEGIN TRANSACTION');
-    for (const table of SYNC_TABLES) {
-      const rows: DbRow[] = (data[table] as DbRow[]) ?? [];
-      db.run(`DELETE FROM ${table}`);
-      for (const row of rows) {
-        const keys = Object.keys(row);
-        if (!keys.length) continue;
-        const cols = keys.join(', ');
-        const vals = keys.map(() => '?').join(', ');
-        db.run(
-          `INSERT OR REPLACE INTO ${table} (${cols}) VALUES (${vals})`,
-          Object.values(row)
-        );
-      }
-    }
-    db.run('COMMIT');
-  } catch (e) {
-    db.run('ROLLBACK');
-    throw e;
-  }
-  // Restore settings (profile fields) — write to Zustand persisted storage
-  const settings = data.settings as Record<string, string> | undefined;
-  if (settings && typeof settings === 'object' && !Array.isArray(settings)) {
-    try {
-      const stored = JSON.parse(localStorage.getItem('solo-ceo-settings') || '{}');
-      const state = stored?.state || {};
-      const REVERSE_MAP: Record<string, string> = {
-        OPERATOR_NAME: 'operatorName', OPERATOR_AVATAR: 'operatorAvatar',
-        BUSINESS_NAME: 'businessName', BUSINESS_DESCRIPTION: 'businessDescription',
-        BUSINESS_TITLE: 'businessTitle', BUSINESS_EMAIL: 'businessEmail',
-        BUSINESS_PHONE: 'businessPhone', BUSINESS_WEBSITE: 'businessWebsite',
-        BUSINESS_LOCATION: 'businessLocation',
-      };
-      for (const [remote, local] of Object.entries(REVERSE_MAP)) {
-        if (settings[remote]) state[local] = settings[remote];
-      }
-      stored.state = state;
-      localStorage.setItem('solo-ceo-settings', JSON.stringify(stored));
-      // Rehydrate Zustand in-memory store so UI updates immediately
-      try {
-        const { useSettingsStore } = await import('../store/useSettingsStore');
-        useSettingsStore.setState(state);
-      } catch { /* store not yet initialized */ }
-    } catch (e) { console.warn('[api] restoreSettings', e); }
-    window.dispatchEvent(new Event('operator-name-updated'));
-    window.dispatchEvent(new Event('operator-avatar-updated'));
-  }
-  await saveDb();
-}
 
 // ── Public init ────────────────────────────────────────────────────────────
 
@@ -1447,13 +1395,18 @@ export async function handleApiRequest(
   if (manualMatch) {
     const id = manualMatch[1];
     if (method === 'PUT') {
-      const { type, title, note } = body || {};
-      if (!title || !String(title).trim()) return err(400, 'title is required');
       const prev = get(db, 'SELECT title, type FROM today_focus_manual WHERE id=? AND soft_deleted=0', [id]) as DbRow;
       if (!prev) return err(404, 'manual event not found');
-      run(db, `UPDATE today_focus_manual SET type=?,title=?,note=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`,
-        [type||'系统', String(title).trim(), String(note||'').trim(), id]);
-      logActivity(db, 'today_focus', 'manual_updated', `更新今日事件：${String(title).trim()}`, `类型：${type||prev?.type||'系统'}`, id);
+      const sets: string[] = [];
+      const vals: unknown[] = [];
+      if (body.type !== undefined) { sets.push('type=?'); vals.push(body.type); }
+      if (body.title !== undefined) { sets.push('title=?'); vals.push(String(body.title).trim()); }
+      if (body.note !== undefined) { sets.push('note=?'); vals.push(String(body.note || '').trim()); }
+      if (sets.length === 0) return ok({ success: true });
+      sets.push('updated_at=CURRENT_TIMESTAMP');
+      vals.push(id);
+      run(db, `UPDATE today_focus_manual SET ${sets.join(',')} WHERE id=?`, vals);
+      logActivity(db, 'today_focus', 'manual_updated', `更新今日事件：${body.title ? String(body.title).trim() : prev?.title}`, `类型：${body.type||prev?.type||'系统'}`, id);
       await saveDb();
       return ok({ success: true, id: Number(id) });
     }

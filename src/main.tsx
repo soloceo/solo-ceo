@@ -13,8 +13,8 @@ async function bootstrap() {
   document.documentElement.style.setProperty(
     '--mobile-header-pl',
     isNative
-      ? 'max(env(safe-area-inset-left), 16px)'   // iOS / Android
-      : 'max(env(safe-area-inset-left), 16px)'    // macOS Electron (native title bar)
+      ? 'max(env(safe-area-inset-left, 0px), 16px)'   // iOS / Android
+      : 'max(env(safe-area-inset-left, 0px), 16px)'    // macOS Electron (native title bar)
   );
 
   // Top padding: on mobile use safe-area-inset-top for notch/status bar;
@@ -23,7 +23,7 @@ async function bootstrap() {
   document.documentElement.style.setProperty(
     '--mobile-header-pt',
     isNative
-      ? 'max(env(safe-area-inset-top), 44px)'    // iOS notch / Dynamic Island / Android status bar
+      ? 'max(env(safe-area-inset-top, 0px), 44px)'    // iOS notch / Dynamic Island / Android status bar
       : isMobileWeb
       ? 'env(safe-area-inset-top, 0px)'            // mobile browser — safe area handles notch/island natively
       : '0px'                                      // desktop browser

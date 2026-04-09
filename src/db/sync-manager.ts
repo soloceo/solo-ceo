@@ -9,6 +9,7 @@
 import { supabase } from './supabase-client';
 import { replayQueue, getQueueLength } from './offline-queue';
 import { getDb, saveDb, all, run, exec } from './index';
+import { clearCache } from './data-cache';
 
 // ── Sync tables — all mutable tables to pull from cloud ──────────
 const SYNC_TABLES = [
@@ -54,6 +55,8 @@ async function pullCloudToLocal(): Promise<void> {
       // Fetch all rows from Supabase (RLS filters by user_id)
       const { data: rows, error } = await supabase.from(table).select('*');
       if (error || !rows) continue;
+      // Skip DELETE+INSERT if cloud returned 0 rows — prevents accidental data wipe
+      if (rows.length === 0) continue;
 
       // Get local column names via PRAGMA
       const colInfo = all(db, `PRAGMA table_info("${table}")`);
@@ -61,8 +64,8 @@ async function pullCloudToLocal(): Promise<void> {
       if (localCols.size === 0) continue;
 
       // Atomic: delete old + insert new in a transaction
-      exec(db, 'BEGIN TRANSACTION');
       try {
+        exec(db, 'BEGIN TRANSACTION');
         exec(db, `DELETE FROM "${table}"`);
 
         for (const row of rows) {
@@ -92,6 +95,9 @@ async function pullCloudToLocal(): Promise<void> {
 
   // Persist to IndexedDB
   await saveDb();
+
+  // Invalidate SWR cache so components fetch fresh data
+  clearCache();
 }
 
 // ── Pull cloud state into components ─────────────────────────────

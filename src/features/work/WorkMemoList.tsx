@@ -207,7 +207,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
 
     setAiLoading(true);
     try {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = toDateStr(new Date());
       const dayOfWeek = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][new Date().getDay()];
       const sysPrompt = `You extract a memo/event from user input. Today is ${today} (${dayOfWeek}). Return JSON: {"title":"short title","due":"YYYY-MM-DD" or "YYYY-MM-DDThh:mm" or null}. Only JSON, no markdown.`;
 
@@ -227,16 +227,9 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
         });
         const d = await r.json();
         result = JSON.parse(d.content[0].text);
-      } else if (provider === "deepseek") {
-        const r = await fetch("https://api.deepseek.com/chat/completions", {
-          method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-          body: JSON.stringify({ model: "deepseek-chat", messages: [{ role: "system", content: sysPrompt }, { role: "user", content: text }], temperature: 0 }),
-        });
-        const d = await r.json();
-        result = JSON.parse(d.choices[0].message.content);
       } else if (provider === "gemini") {
-        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-          method: "POST", headers: { "Content-Type": "application/json" },
+        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`, {
+          method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
           body: JSON.stringify({ contents: [{ parts: [{ text: `${sysPrompt}\n\nUser: ${text}` }] }] }),
         });
         const d = await r.json();

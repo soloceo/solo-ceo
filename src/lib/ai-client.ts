@@ -315,8 +315,8 @@ export async function streamChat(
       role: m.role === "assistant" ? "model" : "user",
       parts: [{ text: m.content }],
     }));
-    url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${apiKey}`;
-    headers = { "Content-Type": "application/json" };
+    url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse`;
+    headers = { "Content-Type": "application/json", "x-goog-api-key": apiKey };
     body = JSON.stringify({
       system_instruction: { parts: [{ text: sysMsg }] },
       contents: chatMsgs,

@@ -19,15 +19,6 @@ export function syncPref(key: string, value: string) {
   timer = setTimeout(flush, DEBOUNCE_MS);
 }
 
-/**
- * Queue multiple preferences at once.
- */
-export function syncPrefs(pairs: Record<string, string>) {
-  Object.assign(pending, pairs);
-  clearTimeout(timer);
-  timer = setTimeout(flush, DEBOUNCE_MS);
-}
-
 async function flush() {
   const batch = pending;
   pending = {};
@@ -39,14 +30,3 @@ async function flush() {
   }
 }
 
-/**
- * Load preferences from /api/settings and apply them to stores.
- * Called once on app init after auth is resolved.
- */
-export async function loadCloudPrefs(): Promise<Record<string, string> | null> {
-  try {
-    return await api.get<Record<string, string>>('/api/settings');
-  } catch {
-    return null;
-  }
-}

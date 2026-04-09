@@ -10,7 +10,7 @@ export const calcTaxAmount = (amount: number, mode: string, rate: number): numbe
   return 0;
 };
 
-export const CATEGORY_I18N: Record<string, string> = {
+const CATEGORY_I18N: Record<string, string> = {
   "收入": "money.cat.income",
   "软件支出": "money.cat.software",
   "外包支出": "money.cat.outsource",

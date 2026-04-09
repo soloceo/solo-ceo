@@ -28,7 +28,7 @@ export default function PlanSection({ showToast }: PlanSectionProps) {
   const fetchPlans = async () => { try { setPlans(await api.get<Plan[]>("/api/plans")); } catch (e) { /* API error, silent fallback */ } };
   useEffect(() => { fetchPlans(); }, []);
 
-  const openEdit = (p: Plan) => { setEditing(p); setForm({ name: p.name, price: String(p.price || 0), deliverySpeed: p.deliverySpeed || "", features: (JSON.parse(p.features || "[]") as string[]).join("\n") }); };
+  const openEdit = (p: Plan) => { let parsed: string[] = []; try { parsed = JSON.parse(p.features || "[]"); } catch { parsed = []; } setEditing(p); setForm({ name: p.name, price: String(p.price || 0), deliverySpeed: p.deliverySpeed || "", features: parsed.join("\n") }); };
   const openNew = () => { setEditing("new"); setForm({ name: "", price: "", deliverySpeed: "", features: "" }); };
 
   const save = async () => {

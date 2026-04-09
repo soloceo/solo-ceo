@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { api } from "../../lib/api";
 import { useUIStore } from "../../store/useUIStore";
 import { useT } from "../../i18n/context";
@@ -48,6 +48,7 @@ export function useClientProjects() {
   const [editProjectId, setEditProjectId] = useState<number | null>(null);
   const [projectForm, setProjectForm] = useState(EMPTY_PROJECT);
   const [saving, setSaving] = useState(false);
+  const editProjectRef = useRef<ProjectRow | null>(null);
 
   const fetchProjects = useCallback(async (clientId: number) => {
     setLoading(true);
@@ -94,7 +95,22 @@ export function useClientProjects() {
     };
     try {
       if (editProjectId) {
-        await api.put(`/api/projects/${editProjectId}`, payload);
+        // Rule 13: only send changed fields to avoid stale-data overwrites
+        const orig = editProjectRef.current;
+        if (orig) {
+          const patch: Record<string, unknown> = {};
+          if (payload.name !== (orig.name || '')) patch.name = payload.name;
+          if (payload.project_fee !== (orig.project_fee ?? 0)) patch.project_fee = payload.project_fee;
+          if (payload.project_start_date !== (orig.project_start_date || '')) patch.project_start_date = payload.project_start_date;
+          if (payload.project_end_date !== (orig.project_end_date || '')) patch.project_end_date = payload.project_end_date;
+          if (payload.status !== (orig.status || 'active')) patch.status = payload.status;
+          if (payload.tax_mode !== (orig.tax_mode || 'none')) patch.tax_mode = payload.tax_mode;
+          if (payload.tax_rate !== (orig.tax_rate ?? 0)) patch.tax_rate = payload.tax_rate;
+          if (payload.note !== (orig.note || '')) patch.note = payload.note;
+          if (Object.keys(patch).length > 0) await api.put(`/api/projects/${editProjectId}`, patch);
+        } else {
+          await api.put(`/api/projects/${editProjectId}`, payload);
+        }
         showToast(t("pipeline.projects.updated"));
       } else {
         const data = await api.post<{ id: number }>(`/api/clients/${clientId}/projects`, payload);
@@ -103,6 +119,7 @@ export function useClientProjects() {
       }
       setShowAddForm(false);
       setEditProjectId(null);
+      editProjectRef.current = null;
       setProjectForm(EMPTY_PROJECT);
       const fresh = await api.get<ProjectRow[]>(`/api/clients/${clientId}/projects`);
       const list = Array.isArray(fresh) ? fresh : [];
@@ -150,6 +167,7 @@ export function useClientProjects() {
 
   const openEditForm = useCallback((p: ProjectRow) => {
     setEditProjectId(p.id);
+    editProjectRef.current = p;
     setProjectForm({
       name: p.name,
       project_fee: String(p.project_fee || ""),
@@ -166,6 +184,7 @@ export function useClientProjects() {
   const closeForm = useCallback(() => {
     setShowAddForm(false);
     setEditProjectId(null);
+    editProjectRef.current = null;
     setProjectForm(EMPTY_PROJECT);
   }, []);
 
@@ -174,6 +193,7 @@ export function useClientProjects() {
     setActiveProjectId(null);
     setShowAddForm(false);
     setEditProjectId(null);
+    editProjectRef.current = null;
     setProjectForm(EMPTY_PROJECT);
   }, []);
 

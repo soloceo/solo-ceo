@@ -96,7 +96,7 @@ function trimConv(c: Conversation) {
 
 function saveConversationsLocal(convs: Conversation[]) {
   const trimmed = convs.slice(0, 50).map(trimConv);
-  localStorage.setItem(LS_CONVERSATIONS, JSON.stringify(trimmed));
+  try { localStorage.setItem(LS_CONVERSATIONS, JSON.stringify(trimmed)); } catch { /* quota exceeded */ }
 }
 
 /** Sync a single conversation to the API (debounced per conversation) */
@@ -178,7 +178,7 @@ function buildAggregateStats(items: Record<string, unknown>[], activeTab: string
     const byCol: Record<string, number> = {};
     const byPriority: Record<string, number> = {};
     let overdue = 0;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayDateKey();
     for (const t of items) {
       const col = (t.column as string) || "unknown";
       byCol[col] = (byCol[col] || 0) + 1;
@@ -962,7 +962,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
     if (agents.length === 0 && !localStorage.getItem('solo_agents_seeded')) {
       // True first-time user — seed defaults
       seedDefaults(l).then(() => {
-        localStorage.setItem('solo_agents_seeded', '1');
+        try { localStorage.setItem('solo_agents_seeded', '1'); } catch { /* quota exceeded */ }
       }).catch(() => {});
     } else if (agents.length > 0) {
       // Existing user — seed any new templates added in updates
@@ -975,7 +975,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
     const saved = localStorage.getItem(LS_ACTIVE_AGENTS);
     if (saved === null && agents.length > 0) {
       // Explicitly save empty = default assistant chosen
-      localStorage.setItem(LS_ACTIVE_AGENTS, '[]');
+      try { localStorage.setItem(LS_ACTIVE_AGENTS, '[]'); } catch { /* quota exceeded */ }
     }
   }, [agents]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -992,9 +992,9 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
 
   // Persist active agents (empty array = explicit "default assistant" choice)
   useEffect(() => {
-    localStorage.setItem(LS_ACTIVE_AGENTS, JSON.stringify(activeAgentIds));
+    try { localStorage.setItem(LS_ACTIVE_AGENTS, JSON.stringify(activeAgentIds)); } catch { /* quota exceeded */ }
     if (activeAgentIds.length > 0) {
-      localStorage.setItem(LS_ACTIVE_AGENT, String(activeAgentIds[0]));
+      try { localStorage.setItem(LS_ACTIVE_AGENT, String(activeAgentIds[0])); } catch { /* quota exceeded */ }
     } else {
       localStorage.removeItem(LS_ACTIVE_AGENT);
     }
@@ -1102,7 +1102,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
   // Persist active conversation id
   useEffect(() => {
     if (activeConvId) {
-      localStorage.setItem(LS_ACTIVE_CONV, activeConvId);
+      try { localStorage.setItem(LS_ACTIVE_CONV, activeConvId); } catch { /* quota exceeded */ }
     } else {
       localStorage.removeItem(LS_ACTIVE_CONV);
     }

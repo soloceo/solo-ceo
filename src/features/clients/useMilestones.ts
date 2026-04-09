@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { api } from "../../lib/api";
 import { useUIStore } from "../../store/useUIStore";
 import { useT } from "../../i18n/context";
@@ -52,6 +52,7 @@ export function useMilestones(clientId: number | null, projectFee: number, proje
   const [editPaidAmount, setEditPaidAmount] = useState("");
   const [msForm, setMsForm] = useState(EMPTY_MS);
   const [savingMs, setSavingMs] = useState(false);
+  const editMsRef = useRef<MilestoneRow | null>(null);
 
   const fetchMilestones = useCallback(async (cid: number) => {
     setMsLoading(true);
@@ -82,7 +83,20 @@ export function useMilestones(clientId: number | null, projectFee: number, proje
     try {
       let newMsId = editMsId;
       if (editMsId) {
-        await api.put(`/api/milestones/${editMsId}`, body);
+        // Rule 13: only send changed fields to avoid stale-data overwrites
+        const orig = editMsRef.current;
+        if (orig) {
+          const patch: Record<string, unknown> = {};
+          if (body.label !== (orig.label || '')) patch.label = body.label;
+          if (body.amount !== (orig.amount ?? 0)) patch.amount = body.amount;
+          if (body.percentage !== (orig.percentage ?? 0)) patch.percentage = body.percentage;
+          if (body.due_date !== (orig.due_date || null)) patch.due_date = body.due_date;
+          if (body.note !== (orig.note || '')) patch.note = body.note;
+          if (body.project_id !== undefined) patch.project_id = body.project_id;
+          if (Object.keys(patch).length > 0) await api.put(`/api/milestones/${editMsId}`, patch);
+        } else {
+          await api.put(`/api/milestones/${editMsId}`, body);
+        }
       } else {
         const data = await api.post<{ id: number }>(`/api/clients/${clientId}/milestones`, body);
         newMsId = data?.id || null;
@@ -95,6 +109,7 @@ export function useMilestones(clientId: number | null, projectFee: number, proje
       }
       setShowAddMs(false);
       setEditMsId(null);
+      editMsRef.current = null;
       setMsForm(EMPTY_MS);
       fetchMilestones(clientId);
       onDone?.();
@@ -188,6 +203,7 @@ export function useMilestones(clientId: number | null, projectFee: number, proje
     setMilestones([]);
     setShowAddMs(false);
     setEditMsId(null);
+    editMsRef.current = null;
     setMarkPaidId(null);
     setMsForm(EMPTY_MS);
     const d = new Date();
@@ -202,6 +218,7 @@ export function useMilestones(clientId: number | null, projectFee: number, proje
 
   const openEditForm = useCallback((ms: MilestoneRow) => {
     setEditMsId(ms.id);
+    editMsRef.current = ms;
     setMsForm({
       label: ms.label,
       amount: String(ms.amount),
@@ -217,6 +234,7 @@ export function useMilestones(clientId: number | null, projectFee: number, proje
   const closeForm = useCallback(() => {
     setShowAddMs(false);
     setEditMsId(null);
+    editMsRef.current = null;
     setMsForm(EMPTY_MS);
   }, []);
 

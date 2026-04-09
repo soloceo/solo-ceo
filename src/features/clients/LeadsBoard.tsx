@@ -25,7 +25,7 @@ import { Skeleton } from "../../components/ui";
 
 const LEADS_TABLES = ['leads', 'plans'] as const;
 
-const EMPTY_LEAD = { name: "", industry: "", needs: "", website: "", column: "new", source: "" };
+const EMPTY_LEAD = { id: 0, name: "", industry: "", needs: "", website: "", column: "new", source: "" };
 
 /* ── Type definitions ── */
 interface Lead {
@@ -148,7 +148,7 @@ export function LeadsView() {
   const [form, setForm] = useState(EMPTY_LEAD);
   const ai = useLeadAI(lang);
 
-  const fetchPlans = async () => { try { const d = await api.get<unknown[]>("/api/plans"); setPlans(Array.isArray(d) ? d : []); } catch (e) { console.warn('[LeadsBoard] fetchPlans', e); } };
+  const fetchPlans = async () => { try { const d = await api.get<PlanRow[]>("/api/plans"); setPlans(Array.isArray(d) ? d : []); } catch (e) { console.warn('[LeadsBoard] fetchPlans', e); } };
 
   const fetchLeads = async () => {
     try {
@@ -205,7 +205,7 @@ export function LeadsView() {
   const openPanel = (lead: Lead | null = null, col: ColId = "new") => {
     if (lead) {
       setEditId(lead.id);
-      const loaded = { name: lead.name, industry: lead.industry, needs: lead.needs, website: lead.website || "", column: lead.column || col, source: lead.source || "" };
+      const loaded = { id: lead.id, name: lead.name, industry: lead.industry, needs: lead.needs, website: lead.website || "", column: lead.column || col, source: lead.source || "" };
       setForm(loaded);
       originalFormRef.current = loaded;
       ai.resetForPanel(lead.aiDraft || "");
@@ -346,9 +346,9 @@ export function LeadsView() {
           ))}
         </div>
       ) : viewMode === "vertical" ? (
-        <LeadKanban leads={leads} columns={LEAD_COLS} onDragEnd={onDragEnd} onAdd={openPanel} onEdit={openPanel} onDelete={(id: number) => setDeleteId(id)} emptyText={t("pipeline.emptyCol")} leadScores={ai.leadScores} />
+        <LeadKanban leads={leads as unknown as Record<string, Lead[]>} columns={LEAD_COLS} onDragEnd={onDragEnd} onAdd={openPanel} onEdit={openPanel} onDelete={(id: number) => setDeleteId(id)} emptyText={t("pipeline.emptyCol")} leadScores={ai.leadScores} />
       ) : (
-        <LeadSwimlane leads={leads} columns={LEAD_COLS} onDragEnd={onDragEnd} onAdd={openPanel} onEdit={openPanel} onDelete={(id: number) => setDeleteId(id)} emptyText={t("pipeline.emptyCol")} onMove={async (id: number, col: string) => {
+        <LeadSwimlane leads={leads as unknown as Record<string, Lead[]>} columns={LEAD_COLS} onDragEnd={onDragEnd} onAdd={openPanel} onEdit={openPanel} onDelete={(id: number) => setDeleteId(id)} emptyText={t("pipeline.emptyCol")} onMove={async (id: number, col: string) => {
           try {
             const allLeads = Object.values(leads).flat();
             const lead = allLeads.find((l: Lead) => l.id === id);
@@ -484,7 +484,7 @@ export function LeadsView() {
               <div className="flex items-center justify-between px-5 py-3 border-t pb-safe" style={{ borderColor: "var(--color-border-primary)" }}>
                 <div className="flex gap-2">
                   {editId && <button type="button" onClick={() => setDeleteId(editId)} className="btn-ghost text-[15px]" style={{ color: "var(--color-danger)" }}><Trash2 size={16} /> {t("common.delete")}</button>}
-                  {editId && <button type="button" onClick={() => { setConvertForm({ plan_tier: "", status: "Active", mrr: "", subscription_start_date: todayDateKey() }); setShowConvert(true); }} className="btn-ghost text-[15px]" style={{ color: "var(--color-success)" }}><UserPlus size={16} /> {t("pipeline.convert.btn")}</button>}
+                  {editId && <button type="button" onClick={() => { setConvertForm({ plan_tier: "", status: "Active", mrr: "", subscription_start_date: todayDateKey(), billing_type: "subscription", project_fee: "" }); setShowConvert(true); }} className="btn-ghost text-[15px]" style={{ color: "var(--color-success)" }}><UserPlus size={16} /> {t("pipeline.convert.btn")}</button>}
                 </div>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setShowPanel(false)} className="btn-secondary text-[15px]">{t("common.cancel")}</button>

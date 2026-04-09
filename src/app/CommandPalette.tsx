@@ -49,12 +49,12 @@ export function CommandPalette() {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
-        setCommandPaletteOpen((prev: boolean) => !prev);
+        setCommandPaletteOpen(!commandPaletteOpen);
       }
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [setCommandPaletteOpen]);
+  }, [commandPaletteOpen, setCommandPaletteOpen]);
 
   // Search tasks + clients when query changes
   useEffect(() => {
