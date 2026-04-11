@@ -18,6 +18,7 @@ const TABLE_API_PATH: Record<string, string> = {
   today_focus_state: '/api/today-focus',
   today_focus_manual: '/api/today-focus',
   client_projects: '/api/clients',
+  content_drafts: '/api/content-drafts',
   ai_agents: '/api/agents',
   ai_conversations: '/api/conversations',
 };
@@ -26,7 +27,7 @@ const REALTIME_TABLES = [
   'leads', 'clients', 'tasks', 'plans',
   'finance_transactions', 'payment_milestones',
   'today_focus_state', 'today_focus_manual',
-  'client_projects',
+  'client_projects', 'content_drafts',
   'ai_agents',
   'ai_conversations',
 ] as const;

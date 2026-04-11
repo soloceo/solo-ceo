@@ -126,13 +126,14 @@ export default function WorkPage() {
       const [moved] = src.splice(s.index, 1);
       moved.column = d.droppableId;
       dst.splice(d.index, 0, moved);
+      const prev = { ...tasks };
       setTasks({ ...tasks, [s.droppableId]: src, [d.droppableId]: dst });
       try {
         await api.put(`/api/tasks/${moved.id}`, { column: d.droppableId });
       } catch (e) {
         console.warn('[WorkPage] onDragEnd', e);
         showToast(t("common.updateFailed"));
-        fetchTasks();
+        setTasks(prev);
       }
     } else {
       const col = [...tasks[s.droppableId]];
@@ -271,25 +272,25 @@ export default function WorkPage() {
     }
   };
 
-  /** Inline priority change */
+  /** Inline priority change (immutable update — no in-place mutation) */
   const handlePriorityChange = async (id: number, priority: string) => {
-    const allTasks = (Object.values(tasks) as Task[][]).flat();
-    const task = allTasks.find(t => t.id === id);
-    if (!task) return;
-    task.priority = priority as Task["priority"];
-    setTasks({ ...tasks });
+    const newTasks: TaskMap = {};
+    for (const [col, list] of Object.entries(tasks)) {
+      newTasks[col] = list.map(t => t.id === id ? { ...t, priority: priority as Task["priority"] } : t);
+    }
+    setTasks(newTasks);
     try {
       await api.put(`/api/tasks/${id}`, { priority });
     } catch (e) { console.warn('[WorkPage] handlePriorityChange', e); showToast(t("common.updateFailed")); fetchTasks(); }
   };
 
-  /** Inline due date change */
+  /** Inline due date change (immutable update — no in-place mutation) */
   const handleDueChange = async (id: number, due: string) => {
-    const allTasks = (Object.values(tasks) as Task[][]).flat();
-    const task = allTasks.find(t => t.id === id);
-    if (!task) return;
-    task.due = due || undefined;
-    setTasks({ ...tasks });
+    const newTasks: TaskMap = {};
+    for (const [col, list] of Object.entries(tasks)) {
+      newTasks[col] = list.map(t => t.id === id ? { ...t, due: due || undefined } : t);
+    }
+    setTasks(newTasks);
     try {
       await api.put(`/api/tasks/${id}`, { due: due || null });
     } catch (e) { console.warn('[WorkPage] handleDueChange', e); showToast(t("common.updateFailed")); fetchTasks(); }
@@ -306,9 +307,9 @@ export default function WorkPage() {
 
   const filteredTasks = applyFilter(tasks);
 
-  /* ── Progress stats ── */
-  const totalTasks = (Object.values(tasks) as Task[][]).flat().length;
-  const counts = COLS.map((c) => ({ ...c, count: (tasks[c.id] || []).length }));
+  /* ── Progress stats (memoized) ── */
+  const totalTasks = useMemo(() => (Object.values(tasks) as Task[][]).flat().length, [tasks]);
+  const counts = useMemo(() => COLS.map((c) => ({ ...c, count: (tasks[c.id] || []).length })), [tasks]);
 
   /* ── Task toolbar + AI input + progress (task-related controls, above kanban) ── */
   const renderTaskControls = () => (
@@ -320,6 +321,7 @@ export default function WorkPage() {
           <select
             value={filterPriority}
             onChange={(e) => setFilterPriority(e.target.value)}
+            aria-label={t("work.filter.all")}
             className="input-base compact px-2 text-[14px]"
           >
             <option value="All">{t("work.filter.all")}</option>
@@ -328,7 +330,7 @@ export default function WorkPage() {
             <option value="Low">{t("work.filter.low")}</option>
           </select>
         </div>
-        <div className="page-tabs">
+        <div className="page-tabs" role="tablist">
           {([
             ["vertical", <LayoutGrid size={14} />, "Board view"],
             ["horizontal", <AlignJustify size={14} />, "List view"],
@@ -337,6 +339,8 @@ export default function WorkPage() {
               key={mode}
               onClick={() => setViewMode(mode as "vertical" | "horizontal")}
               data-active={viewMode === mode}
+              role="tab"
+              aria-selected={viewMode === mode}
               aria-label={label}
             >
               {icon}
@@ -349,7 +353,7 @@ export default function WorkPage() {
           exportCSV(all.map(t => ({ title: t.title, client: t.client, priority: t.priority, due: t.due, column: t.column })), "tasks", [
             { key: "title", label: "Title" }, { key: "client", label: "Client" }, { key: "priority", label: "Priority" }, { key: "due", label: "Due" }, { key: "column", label: "Status" },
           ]);
-        }} className="btn-ghost compact"><Download size={16} /></button>
+        }} className="btn-ghost compact" aria-label={t("common.export")}><Download size={16} /></button>
         <button onClick={() => openPanel(null, "todo")} className="btn-primary compact">
           <Plus size={16} /> <span className="hidden sm:inline">{t("work.new")}</span>
         </button>
@@ -366,6 +370,7 @@ export default function WorkPage() {
             onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAiTask(); }}
             placeholder={t("work.ai.placeholder")}
             disabled={aiParsing}
+            aria-label={t("work.ai.placeholder")}
             className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]"
           />
         </div>
@@ -408,6 +413,7 @@ export default function WorkPage() {
 
       <div className="flex-1 flex flex-col">
         {renderTaskControls()}
+        <h2 className="sr-only">{t("nav.work")}</h2>
 
         {isLoading ? (
           <div className="flex-1 flex gap-3 animate-skeleton-in">

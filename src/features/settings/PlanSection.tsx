@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2, Plus, Edit2, Package, X } from 'lucide-react';
 import { useT } from '../../i18n/context';
+import { useSettingsStore } from '../../store/useSettingsStore';
 import { api } from '../../lib/api';
 import PeepIllustration from '../../components/ui/PeepIllustration';
 
@@ -25,7 +26,7 @@ export default function PlanSection({ showToast }: PlanSectionProps) {
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [form, setForm] = useState({ name: "", price: "", deliverySpeed: "", features: "" });
 
-  const fetchPlans = async () => { try { setPlans(await api.get<Plan[]>("/api/plans")); } catch (e) { /* API error, silent fallback */ } };
+  const fetchPlans = async () => { try { const data = await api.get<Plan[]>("/api/plans"); if (Array.isArray(data)) setPlans(data); } catch (e) { /* API error, silent fallback */ } };
   useEffect(() => { fetchPlans(); }, []);
 
   const openEdit = (p: Plan) => { let parsed: string[] = []; try { parsed = JSON.parse(p.features || "[]"); } catch { parsed = []; } setEditing(p); setForm({ name: p.name, price: String(p.price || 0), deliverySpeed: p.deliverySpeed || "", features: parsed.join("\n") }); };
@@ -91,7 +92,7 @@ export default function PlanSection({ showToast }: PlanSectionProps) {
               <div className="flex-1 min-w-0">
                 <div className="text-[15px] truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{p.name}</div>
                 <div className="text-[13px] mt-0.5 truncate" style={{ color: "var(--color-text-tertiary)" }}>
-                  ${Number(p.price || 0).toLocaleString()}/mo
+                  {useSettingsStore.getState().currency || '$'}{Number(p.price || 0).toLocaleString()}/{t("settings.planPerMonth") || "mo"}
                   {p.deliverySpeed ? ` · ${p.deliverySpeed}` : ""}
                   {features.length > 0 ? ` · ${features.length} ${t("settings.planFeatures").split('\n')[0]}` : ""}
                 </div>

@@ -126,7 +126,7 @@ export default function AccountSection({ user, isOnline, pendingOps, signOut }: 
                   showToast(t("settings.restoreInvalid"));
                   return;
                 }
-                alert(lang === "zh" ? `备份文件包含 ${data.tasks?.length || 0} 个任务、${data.clients?.length || 0} 个客户。请联系支持恢复数据。` : `Backup contains ${data.tasks?.length || 0} tasks, ${data.clients?.length || 0} clients. Contact support to restore.`);
+                showToast(lang === "zh" ? `备份：${data.tasks?.length || 0} 个任务、${data.clients?.length || 0} 个客户。请联系支持恢复。` : `Backup: ${data.tasks?.length || 0} tasks, ${data.clients?.length || 0} clients. Contact support.`);
               } catch (e2) {
                 console.warn('[AccountSection] restore', e2);
                 showToast(t("settings.restoreInvalid"));

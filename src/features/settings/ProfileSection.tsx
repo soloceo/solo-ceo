@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Camera, Trash2, Save, User, Upload, Check } from 'lucide-react';
 import { useT } from '../../i18n/context';
 
@@ -15,12 +15,15 @@ interface ProfileSectionProps {
 
 function SaveButton({ handleSave, label }: { handleSave: () => void; label: string }) {
   const [saved, setSaved] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
   return (
     <button
       onClick={() => {
         handleSave();
         setSaved(true);
-        setTimeout(() => setSaved(false), 1500);
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => setSaved(false), 1500);
       }}
       className="btn-primary text-[15px] w-full"
       style={saved ? { background: 'var(--color-success)', transition: 'background 0.2s ease' } : { transition: 'background 0.2s ease' }}

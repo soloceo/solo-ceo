@@ -243,7 +243,7 @@ export default function FinancePage() {
     return {
       totalIncome, totalExpense,
       netProfit: totalIncome - totalExpense,
-      margin: totalIncome > 0 ? ((totalIncome - totalExpense) / totalIncome * 100).toFixed(1) : "0",
+      margin: totalIncome > 0 ? ((totalIncome - totalExpense) / totalIncome * 100).toFixed(1) : "0.0",
       receivable, payable, totalTax,
       monthIncome, monthExpense,
       monthNet: monthIncome - monthExpense,
@@ -546,12 +546,15 @@ export default function FinancePage() {
 
       {/* ── Tabs + Actions row ── */}
       <div className="flex items-center gap-2 mb-2">
-        <div className="page-tabs">
+        <div className="page-tabs" role="tablist">
           {(["business", "personal"] as const).map((tab) => (
             <button
               key={tab}
+              id={`tab-${tab}`}
               onClick={() => { setFinanceTab(tab); setFilters({ type: "all", category: "all", status: "all", dateFrom: "", dateTo: "", search: "" }); }}
               data-active={financeTab === tab}
+              role="tab"
+              aria-selected={financeTab === tab}
             >
               {tab === "business" ? <Building2 size={13} /> : <UserIcon size={13} />}
               {tab === "business" ? t("money.tab.business") : t("money.tab.personal")}
@@ -569,7 +572,8 @@ export default function FinancePage() {
 
       {/* ── Tab Content ── */}
       {financeTab === "business" && (
-        <div className="flex flex-col">
+        <div className="flex flex-col" role="tabpanel" aria-labelledby="tab-business">
+          <h2 className="sr-only">{t("money.tab.business")}</h2>
           {/* AI Chat Input */}
           <div className="flex items-center gap-2 mb-3">
             <div className="relative flex-1">
@@ -581,6 +585,7 @@ export default function FinancePage() {
                 onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAiRecord(); }}
                 placeholder={t("money.tab.bizPlaceholder")}
                 disabled={aiParsing || financeTab !== "business"}
+                aria-label={t("money.tab.bizPlaceholder")}
                 className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]"
               />
             </div>
@@ -668,7 +673,8 @@ export default function FinancePage() {
       )}
 
       {financeTab === "personal" && (
-        <div className="flex flex-col">
+        <div className="flex flex-col" role="tabpanel" aria-labelledby="tab-personal">
+          <h2 className="sr-only">{t("money.tab.personal")}</h2>
           {/* AI Chat Input */}
           <div className="flex items-center gap-2 mb-3">
             <div className="relative flex-1">
@@ -680,6 +686,7 @@ export default function FinancePage() {
                 onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAiRecord(); }}
                 placeholder={t("money.tab.personalPlaceholder")}
                 disabled={aiParsing || financeTab !== "personal"}
+                aria-label={t("money.tab.personalPlaceholder")}
                 className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]"
               />
             </div>
@@ -885,7 +892,7 @@ export default function FinancePage() {
               <form id="finance-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto overflow-x-hidden p-5 space-y-3 ios-scroll">
                 {/* Scope toggle — only for new records */}
                 {!editingTx && (
-                  <div className="page-tabs" style={{ marginBottom: 4 }}>
+                  <div className="page-tabs" role="tablist" style={{ marginBottom: 4 }}>
                     {(["business", "personal"] as const).map((tab) => (
                       <button
                         key={tab}
@@ -902,6 +909,8 @@ export default function FinancePage() {
                           }));
                         }}
                         data-active={financeTab === tab}
+                        role="tab"
+                        aria-selected={financeTab === tab}
                       >
                         {tab === "business" ? <Building2 size={13} /> : <UserIcon size={13} />}
                         {tab === "business" ? t("money.tab.business") : t("money.tab.personal")}
@@ -913,11 +922,11 @@ export default function FinancePage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <FL>{t("money.form.date")}</FL>
-                    <input type="date" required value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} className="input-base w-full px-3 py-2 text-[15px]" />
+                    <input type="date" required value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} aria-label={t("money.form.date")} className="input-base w-full px-3 py-2 text-[15px]" />
                   </div>
                   <div>
                     <FL>{t("money.form.category")}</FL>
-                    <select value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} className="input-base w-full px-3 py-2 text-[15px]">
+                    <select value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} aria-label={t("money.form.category")} className="input-base w-full px-3 py-2 text-[15px]">
                       {(financeTab === "business" ? BIZ_CATEGORIES : PERSONAL_CATEGORIES_LIST).map(c => <option key={c} value={c}>{catLabel(c, t)}</option>)}
                     </select>
                   </div>
@@ -925,7 +934,7 @@ export default function FinancePage() {
 
                 <div>
                   <FL>{t("money.form.description")}</FL>
-                  <input type="text" value={formData.desc} onChange={e => setFormData({ ...formData, desc: e.target.value })} placeholder={t("money.form.descPlaceholder")} className="input-base w-full px-3 py-2 text-[15px]" />
+                  <input type="text" value={formData.desc} onChange={e => setFormData({ ...formData, desc: e.target.value })} placeholder={t("money.form.descPlaceholder")} aria-label={t("money.form.description")} className="input-base w-full px-3 py-2 text-[15px]" />
                 </div>
 
                 <div className={financeTab === "business" ? "grid grid-cols-1 sm:grid-cols-2 gap-3" : ""}>
@@ -933,13 +942,13 @@ export default function FinancePage() {
                     <FL>{t("money.form.amount")}</FL>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[15px]" style={{ color: "var(--color-text-secondary)" }}>$</span>
-                      <input type="number" required min="0" step="0.01" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} placeholder="0.00" className="input-base w-full pl-7 pr-3 py-2 text-[15px]" />
+                      <input type="number" required min="0" step="0.01" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} placeholder="0.00" aria-label={t("money.form.amount")} className="input-base w-full pl-7 pr-3 py-2 text-[15px]" />
                     </div>
                   </div>
                   {financeTab === "business" && (
                     <div>
                       <FL>{t("money.form.status")}</FL>
-                      <select value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })} className="input-base w-full px-3 py-2 text-[15px]">
+                      <select value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })} aria-label={t("money.form.status")} className="input-base w-full px-3 py-2 text-[15px]">
                         {statuses.map(s => <option key={s} value={s}>{stLabel(s, t)}</option>)}
                       </select>
                     </div>
@@ -984,6 +993,7 @@ export default function FinancePage() {
                         value={formData.taxRate}
                         onChange={e => setFormData({ ...formData, taxRate: e.target.value })}
                         placeholder={t("money.form.customTaxPlaceholder")}
+                        aria-label={t("money.form.tax")}
                         className="input-base flex-1 px-2 py-1 text-[15px]"
                       />
                     </div>

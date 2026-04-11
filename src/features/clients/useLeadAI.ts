@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useAppSettings } from "../../hooks/useAppSettings";
 import { useUIStore } from "../../store/useUIStore";
 import { useSettingsStore } from "../../store/useSettingsStore";
@@ -35,6 +35,8 @@ export function useLeadAI(lang: string) {
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
   const [leadScores, setLeadScores] = useState<Record<number, LeadAnalysis>>({});
   const [batchAnalyzing, setBatchAnalyzing] = useState(false);
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
 
   const requireAiConfig = useCallback(() => {
     const config = getAIConfig(appSettings);
@@ -85,14 +87,17 @@ export function useLeadAI(lang: string) {
     setBatchAnalyzing(true);
     const results: Record<number, LeadAnalysis> = {};
     for (const lead of allLeads) {
+      if (!mountedRef.current) break; // stop if component unmounted
       try {
         const result = await analyzeLeadQuality(lead, lang, config.provider, config.apiKey, businessDescription);
         results[lead.id] = result;
       } catch { /* skip failed */ }
     }
-    setLeadScores(prev => ({ ...prev, ...results }));
-    setBatchAnalyzing(false);
-    showToast(t("pipeline.ai.analyzed").replace("{count}", String(Object.keys(results).length)));
+    if (mountedRef.current) {
+      setLeadScores(prev => ({ ...prev, ...results }));
+      setBatchAnalyzing(false);
+      showToast(t("pipeline.ai.analyzed").replace("{count}", String(Object.keys(results).length)));
+    }
   }, [requireAiConfig, lang, showToast, t, businessDescription]);
 
   const resetForPanel = useCallback((existingDraft?: string) => {

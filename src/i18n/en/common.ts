@@ -99,4 +99,10 @@ export const common = {
   "ai.chat.defaultDesc": "General AI assistant, no specific persona. Switch to a specialized Agent above.",
   "app.network.online": "Back online",
   "app.network.offline": "You are offline",
+  "common.validationFailed": "Please fill in all required fields",
+  "common.export": "Export",
+  "common.remove": "Remove",
+  "common.high": "High",
+  "common.medium": "Medium",
+  "common.low": "Low",
 };

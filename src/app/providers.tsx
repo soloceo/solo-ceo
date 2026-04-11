@@ -1,4 +1,5 @@
 import React, { lazy, Suspense } from "react";
+import { MotionConfig } from "motion/react";
 import { LanguageProvider } from "../i18n/context";
 import { AuthProvider } from "../auth/AuthProvider";
 
@@ -27,12 +28,14 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <ErrorBoundary>
-      <LanguageProvider>
-        <AuthProvider>
-          {children}
-          <Suspense fallback={null}><PWAUpdatePrompt /></Suspense>
-        </AuthProvider>
-      </LanguageProvider>
+      <MotionConfig reducedMotion="user">
+        <LanguageProvider>
+          <AuthProvider>
+            {children}
+            <Suspense fallback={null}><PWAUpdatePrompt /></Suspense>
+          </AuthProvider>
+        </LanguageProvider>
+      </MotionConfig>
     </ErrorBoundary>
   );
 }

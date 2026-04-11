@@ -244,6 +244,7 @@ export const settings = {
   "settings.planPrice": "月费 ($)",
   "settings.planSpeed": "交付速度",
   "settings.planFeatures": "功能列表（每行一条）",
+  "settings.planPerMonth": "月",
   "settings.planDeleted": "套餐已删除",
   // AI Agents
   "settings.agents": "AI Agent",
@@ -300,4 +301,5 @@ export const settings = {
   "settings.cloudSync.connected": "已连接 Supabase 云端",
   "settings.cloudSync.offline": "离线模式 — 恢复网络后自动同步",
   "settings.cloudSync.pending": "待同步操作：{count} 条",
+  "settings.deleteAvatar": "删除头像",
 };

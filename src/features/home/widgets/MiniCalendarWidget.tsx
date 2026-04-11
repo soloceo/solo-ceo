@@ -138,9 +138,9 @@ function MiniCalendarWidget() {
       {/* Header: month + nav */}
       <div className="shrink-0 flex items-center justify-between" style={{ marginBottom: s(4), paddingInline: s(4) }}>
         <div className="flex items-center gap-1.5">
-          <span style={{ fontSize: s(13), fontWeight: 700, color: "var(--color-accent)", lineHeight: 1, cursor: "pointer" }} onClick={goToday}>
+          <button type="button" style={{ fontSize: s(13), fontWeight: 700, color: "var(--color-accent)", lineHeight: 1, cursor: "pointer", background: "none", border: "none", padding: 0 }} onClick={goToday}>
             {monthName}
-          </span>
+          </button>
           {!isCurrentMonth && (
             <span style={{ fontSize: s(10), color: "var(--color-text-quaternary)" }}>
               {year}

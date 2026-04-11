@@ -3,6 +3,46 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.32.0] - 2026-04-10
+
+### Security
+- **XSS in finance report** — added `esc()` HTML escaping for all user-interpolated data in supabase-api.ts finance report template (online handler)
+- **Avatar URL validation** — AIChatPanel tightened `data:` prefix check to `data:image/` to prevent non-image data URIs
+
+### Fixed
+- **Online/offline data parity** — 5 dashboard discrepancies resolved:
+  - MRR calculation: online handler now uses ledger-first approach matching offline
+  - workTasks: removed extra priority filter that excluded Low-priority tasks online
+  - personalTasks: added `parent_id IS NULL` filter to match offline
+  - client_projects GET: fixed wrong column names (`total_fee`→`project_fee`, `description`→`note`)
+  - content_drafts: added to realtime subscription table list
+- **Duplicate finance transactions** — offline mark-paid now checks `finance_tx_id` before INSERT, updates existing TX if already linked (matching online behavior)
+- **Subscription ledger infinite loop** — added `isNaN` guard + 240-iteration max on date-advancing while loop in supabase-api.ts
+- **Stale closure in AuthProvider** — `handleOffline` now reads `userRef.current` instead of captured stale `user` value
+- **CommandPalette fetch storm** — restructured from 4 API calls per keystroke to fetch-once-on-open + client-side filtering
+- **Invalid date crash** — ActivityTimeline `timeAgo()` now guards against `NaN` from invalid date strings
+- **Avatar compression error** — SettingsPage added `img.onerror` handler for failed avatar image loads
+- **UpdateButton timer leak** — interval managed via `timerRef` + useEffect cleanup
+- **Hardcoded hex colors** — AIChatPanel agent colors changed from hex values to CSS custom properties
+- **Plan price currency** — PlanSection now displays user's configured currency instead of hardcoded "$"
+- **i18n hardcoded string** — AgentSection "Loading..." replaced with `t("common.loading")`
+
+### Improved
+- **Focus management** — Modal restores focus to trigger element on close via `prevFocusRef`; InlinePopover restores focus on Escape
+- **Keyboard accessibility** — added `onKeyDown` (Enter/Space) handlers to clickable non-button elements in ClientList (project rows, milestone rows), TransactionList (mobile rows), and MiniCalendarWidget ("Today" button)
+- **Skip-to-content link** — App.tsx now includes accessible skip-to-main-content `<a>` link
+- **ARIA tab panels** — FinancePage tab buttons have `id` attributes; tab panels have `role="tabpanel"` + `aria-labelledby`
+- **Immutable state updates** — WorkPage `handlePriorityChange` and `handleDueChange` create new objects instead of mutating in place
+- **useMemo optimizations** — derived values memoized in ClientList (`uniquePlanTiers`, `activeN`, `pausedN`, `contractTotal`, `filteredIds`) and WorkPage (`totalTasks`, `counts`)
+- **React.memo** — SortableLeadCard wrapped to prevent re-renders during drag
+- **AbortController + timeout** — WorkMemoList AI fetch calls now have 30s timeout with proper cleanup
+- **useLeadAI unmount safety** — added `mountedRef` guard to prevent state updates after unmount
+- **IDB connection caching** — db/index.ts reuses IndexedDB connection instead of opening new ones per operation
+- **LRU cache eviction** — data-cache.ts limits to 100 entries with oldest-entry eviction; dashboard cache explicitly invalidated
+- **Realtime refresh stability** — useRealtimeRefresh uses `tables.join(',')` as stable dependency key instead of array reference
+- **KnowledgeBaseSection lazy load** — moved dynamic import from module scope into useEffect for true lazy loading
+- **Sync-manager concurrency lock** — Promise-based lock prevents overlapping sync/replay operations
+
 ## [2.31.0] - 2026-04-09
 
 ### Security

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../db/supabase-client';
 import { useSettingsStore } from '../store/useSettingsStore';
@@ -40,6 +40,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [offlineMode, setOfflineMode] = useState(false);
+  const userRef = useRef<User | null>(null);
+  userRef.current = user;
 
   useEffect(() => {
     let subscriptionRef: { unsubscribe: () => void } | null = null;
@@ -120,7 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .finally(() => { refreshing = false; });
     };
     const handleOffline = () => {
-      if (!user) setOfflineMode(true);
+      if (!userRef.current) setOfflineMode(true);
     };
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);

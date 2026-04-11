@@ -91,7 +91,9 @@ function ActivityWidget() {
   const fetchActivity = useCallback(() => {
     api.get<any>("/api/dashboard")
       .then((d) => {
-        const items: ActivityItem[] = ((d.recentActivity as ActivityItem[]) || []).slice(0, 20);
+        if (!d || typeof d !== 'object') return;
+        const raw = Array.isArray(d.recentActivity) ? d.recentActivity : [];
+        const items: ActivityItem[] = raw.slice(0, 20);
         setRawItems(items);
         prevCountRef.current = items.length;
       })

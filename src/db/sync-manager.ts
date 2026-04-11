@@ -27,7 +27,7 @@ const PULL_TABLES = [
   'app_settings',
 ] as const;
 
-let syncing = false;
+let syncPromise: Promise<void> | null = null;
 let lastSyncAt = 0;
 const MIN_SYNC_INTERVAL = 10_000; // minimum 10s between syncs
 
@@ -117,12 +117,15 @@ async function pullCloudState(): Promise<void> {
 
 // ── Full sync cycle ──────────────────────────────────────────────
 
-export async function triggerFullSync(): Promise<void> {
-  // Guards: don't run concurrently, too frequently, or when offline/unauthed
-  if (syncing) return;
-  if (Date.now() - lastSyncAt < MIN_SYNC_INTERVAL) return;
-  if (!navigator.onLine) return;
+export function triggerFullSync(): Promise<void> {
+  if (syncPromise) return syncPromise;
+  if (Date.now() - lastSyncAt < MIN_SYNC_INTERVAL) return Promise.resolve();
+  if (!navigator.onLine) return Promise.resolve();
+  syncPromise = performFullSync();
+  return syncPromise;
+}
 
+async function performFullSync(): Promise<void> {
   // Check auth
   try {
     const { data } = await supabase.auth.getSession();
@@ -131,7 +134,6 @@ export async function triggerFullSync(): Promise<void> {
     return;
   }
 
-  syncing = true;
 
   try {
     const pending = await getQueueLength();
@@ -163,7 +165,7 @@ export async function triggerFullSync(): Promise<void> {
     const remaining = await getQueueLength().catch(() => 0);
     dispatchSyncStatus('idle', { pending: remaining });
   } finally {
-    syncing = false;
+    syncPromise = null;
     lastSyncAt = Date.now();
   }
 }
@@ -219,6 +221,6 @@ export function destroySyncManager(): void {
     visibilityHandler = null;
   }
   initialized = false;
-  syncing = false;
+  syncPromise = null;
   lastSyncAt = 0;
 }

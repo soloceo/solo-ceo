@@ -108,7 +108,7 @@ export const TxRow = React.memo(function TxRow({ tx, t, lang, fmtAmt, fmtAmtColo
           <div className="flex gap-1">{actionBtns}</div>
         </div>
         {/* Mobile */}
-        <div className="flex md:hidden items-center gap-3 px-4 py-3 border-b border-[var(--color-line-secondary)]" onClick={isSystem ? undefined : onEdit}>
+        <div className="flex md:hidden items-center gap-3 px-4 py-3 border-b border-[var(--color-line-secondary)]" role={isSystem ? undefined : "button"} tabIndex={isSystem ? undefined : 0} onClick={isSystem ? undefined : onEdit} onKeyDown={isSystem ? undefined : (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onEdit(); } }}>
           <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-6)] ${isIncome ? "icon-circle-success" : "icon-circle-danger"}`}>
             {isIncome ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
           </div>

@@ -164,6 +164,7 @@ function App() {
     const fetchBadges = async () => {
       try {
         const data = await api.get<any>("/api/dashboard");
+        if (!data || typeof data !== 'object') return;
         setBadges({
           tasks: data.activeTasks || 0,
           todoCount: data.todoCount || 0,
@@ -343,6 +344,14 @@ function App() {
       className="flex overflow-hidden"
       style={{ height: "100dvh", background: "var(--color-bg-primary)", color: "var(--color-text-primary)" }}
     >
+      {/* Skip to main content — visible on keyboard focus */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:rounded-[var(--radius-8)]"
+        style={{ zIndex: 9999, background: "var(--color-accent)", color: "var(--color-text-on-color)" } as React.CSSProperties}
+      >
+        Skip to main content
+      </a>
       {/* ═══════════ Desktop Sidebar ═══════════ */}
       <aside
         ref={sidebarRef}
@@ -561,6 +570,7 @@ function App() {
               style={{ width: 42, height: 42, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
               aria-expanded={mobileMenuOpen}
               aria-haspopup="true"
+              aria-label="Menu"
             >
               <Ellipsis size={20} />
             </button>
@@ -664,7 +674,7 @@ function App() {
         <OfflineBanner />
 
         {/* Page content — instant switch, no animation (Linear-style) */}
-        <main className="flex-1 overflow-hidden">
+        <main id="main-content" className="flex-1 overflow-hidden">
           <div ref={mainScrollRef} className="h-full overflow-y-auto mobile-header-spacer" style={{ overscrollBehavior: "contain" }}>
             <Content activeTab={activeTab} />
           </div>
@@ -683,6 +693,7 @@ function App() {
           >
             {/* Tab bar */}
             <nav
+              aria-label="Main navigation"
               className="flex-1 flex items-center rounded-full mobile-nav-pill"
               style={{
                 pointerEvents: "auto",
@@ -756,9 +767,11 @@ function App() {
       </div>
 
       <CommandPalette />
-      <Suspense fallback={null}>
-        <AIChatPanel open={aiChatOpen} onClose={() => setAIChatOpen(false)} />
-      </Suspense>
+      <PageErrorBoundary pageName="ai-chat">
+        <Suspense fallback={null}>
+          <AIChatPanel open={aiChatOpen} onClose={() => setAIChatOpen(false)} />
+        </Suspense>
+      </PageErrorBoundary>
       <GlobalToast />
       <SyncToast />
     </div>

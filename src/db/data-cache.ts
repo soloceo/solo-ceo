@@ -16,6 +16,7 @@ interface CacheEntry {
 }
 
 const cache = new Map<string, CacheEntry>();
+const MAX_CACHE_ENTRIES = 100;
 
 /** Monotonic version per path — incremented on every mutation invalidation */
 const pathVersion = new Map<string, number>();
@@ -39,6 +40,15 @@ export function cacheSet(path: string, body: string, contentType: string, status
   if (status >= 400) return;
   // If a version is provided, reject stale writes (a mutation happened after this fetch started)
   if (ver !== undefined && ver < curVer(path)) return;
+  // Evict oldest entry if cache exceeds size limit
+  if (cache.size >= MAX_CACHE_ENTRIES && !cache.has(path)) {
+    let oldestKey: string | null = null;
+    let oldestTs = Infinity;
+    for (const [key, entry] of cache) {
+      if (entry.ts < oldestTs) { oldestTs = entry.ts; oldestKey = key; }
+    }
+    if (oldestKey) cache.delete(oldestKey);
+  }
   cache.set(path, { body, contentType, status, ts: Date.now(), ver: ver ?? curVer(path) });
 }
 
@@ -86,6 +96,9 @@ export function invalidateForMutation(path: string): void {
     cache.delete('/api/finance');
     cache.delete('/api/finance/report');
   }
+
+  // Dashboard aggregates all data — always invalidate on any mutation
+  cache.delete('/api/dashboard');
 }
 
 /** Dispatch event so pages know to re-render with fresh data */

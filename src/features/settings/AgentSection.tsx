@@ -126,7 +126,7 @@ export default function AgentSection() {
 
         {loading && agents.length === 0 ? (
           <div className="py-6 text-center text-[14px]" style={{ color: 'var(--color-text-quaternary)' }}>
-            Loading...
+            {t("common.loading")}
           </div>
         ) : agents.length === 0 ? (
           /* Empty state */

@@ -84,7 +84,7 @@ export const PROFILE_SYNC_KEYS: Record<keyof ProfileFields, string> = {
       },
       version: 0,
     };
-    localStorage.setItem('solo-ceo-settings', JSON.stringify(demoProfile));
+    try { localStorage.setItem('solo-ceo-settings', JSON.stringify(demoProfile)); } catch { /* quota exceeded */ }
   } catch { /* SSR or restricted env */ }
 })();
 

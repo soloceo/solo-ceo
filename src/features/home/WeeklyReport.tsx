@@ -50,21 +50,21 @@ export function WeeklyReport({ open, onClose }: WeeklyReportProps) {
   const stats = data ? [
     {
       label: t("home.report.income"),
-      value: `$${data.income.toLocaleString()}`,
+      value: `$${(data.income ?? 0).toLocaleString()}`,
       icon: <TrendingUp size={14} />,
       color: "var(--color-success)",
     },
     {
       label: t("home.report.expenses"),
-      value: `$${data.expenses.toLocaleString()}`,
+      value: `$${(data.expenses ?? 0).toLocaleString()}`,
       icon: <TrendingDown size={14} />,
       color: "var(--color-danger)",
     },
     {
       label: t("home.report.netIncome"),
-      value: `${data.netIncome >= 0 ? "+" : ""}$${data.netIncome.toLocaleString()}`,
+      value: `${(data.netIncome ?? 0) >= 0 ? "+" : ""}$${(data.netIncome ?? 0).toLocaleString()}`,
       icon: <DollarSign size={14} />,
-      color: data.netIncome >= 0 ? "var(--color-success)" : "var(--color-danger)",
+      color: (data.netIncome ?? 0) >= 0 ? "var(--color-success)" : "var(--color-danger)",
       highlight: true,
     },
     {

@@ -29,6 +29,7 @@
 
   /* ── Brand / Accent — Solo CEO Yellow ─────────────────────────── */
   --color-accent:          #f5c518;
+  --color-accent-text:     #8a6d00;
   --color-accent-hover:    #e0ad00;
   --color-accent-tint:     rgba(245,197,24,0.08);
   --color-brand-text:      #1a1400;
@@ -178,6 +179,7 @@
   --color-text-quaternary: #666666;
 
   --color-accent:          #f5c518;
+  --color-accent-text:     #f5c518;
   --color-accent-hover:    #ffd43b;
   --color-accent-tint:     rgba(245,197,24,0.12);
 

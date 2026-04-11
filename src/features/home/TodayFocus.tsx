@@ -35,16 +35,21 @@ export function TodayFocus({
   const setActiveTab = useUIStore((s) => s.setActiveTab);
 
   /* ── Navigate to entity ── */
+  const navigateToEntity = (tab: string, type: string, id: number | string) => {
+    setActiveTab(tab as Parameters<typeof setActiveTab>[0]);
+    requestAnimationFrame(() => {
+      setTimeout(() => window.dispatchEvent(new CustomEvent("navigate-to-entity", { detail: { type, id } })), 150);
+    });
+  };
+
   const handleNavigate = (item: FocusItem) => {
     if (!item.entityType || !item.entityId) return;
     switch (item.entityType) {
       case "task":
-        setActiveTab("work");
-        setTimeout(() => window.dispatchEvent(new CustomEvent("navigate-to-entity", { detail: { type: "task", id: item.entityId } })), 200);
+        navigateToEntity("work", "task", item.entityId);
         break;
       case "lead":
-        setActiveTab("leads");
-        setTimeout(() => window.dispatchEvent(new CustomEvent("navigate-to-entity", { detail: { type: "lead", id: item.entityId } })), 200);
+        navigateToEntity("leads", "lead", item.entityId);
         break;
       case "memo": {
         const el = document.querySelector(`[data-memo-id="${item.entityId}"]`);
@@ -56,8 +61,7 @@ export function TodayFocus({
         break;
       }
       case "milestone":
-        setActiveTab("clients");
-        setTimeout(() => window.dispatchEvent(new CustomEvent("navigate-to-entity", { detail: { type: "milestone", id: item.entityId } })), 200);
+        navigateToEntity("clients", "milestone", item.entityId);
         break;
     }
   };

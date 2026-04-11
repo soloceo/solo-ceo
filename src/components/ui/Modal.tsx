@@ -23,6 +23,7 @@ const sizes = {
 
 export function Modal({ open, onClose, onSubmit, title, children, className, size = "md" }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const prevFocusRef = useRef<HTMLElement | null>(null);
 
   // Escape key + Cmd/Ctrl+Enter to submit
   useEffect(() => {
@@ -65,6 +66,8 @@ export function Modal({ open, onClose, onSubmit, title, children, className, siz
 
   useEffect(() => {
     if (!open) return;
+    // Capture the element that triggered the modal so we can restore focus on close
+    prevFocusRef.current = document.activeElement as HTMLElement;
     document.addEventListener("keydown", trapFocus);
     // Auto-focus first focusable element
     const timer = setTimeout(() => {
@@ -76,6 +79,9 @@ export function Modal({ open, onClose, onSubmit, title, children, className, siz
     return () => {
       clearTimeout(timer);
       document.removeEventListener("keydown", trapFocus);
+      // Restore focus to the element that opened the modal
+      prevFocusRef.current?.focus();
+      prevFocusRef.current = null;
     };
   }, [open, trapFocus]);
 

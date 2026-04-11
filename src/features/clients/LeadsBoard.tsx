@@ -222,9 +222,10 @@ export function LeadsView() {
 
   const originalFormRef = React.useRef(EMPTY_LEAD);
   const saveLead = async () => {
-    if (!form.name.trim()) { setNameError(true); return; }
-    setNameError(false);
+    if (savingLead) return;
     setSavingLead(true);
+    if (!form.name.trim()) { setNameError(true); setSavingLead(false); return; }
+    setNameError(false);
     try {
       if (editId) {
         // Rule 13: only send changed fields to avoid stale-data overwrites
@@ -254,8 +255,9 @@ export function LeadsView() {
     if (s.droppableId !== d.droppableId) {
       const src = [...leads[s.droppableId as ColId]], dst = [...leads[d.droppableId as ColId]];
       const [moved] = src.splice(s.index, 1); moved.column = d.droppableId as ColId; dst.splice(d.index, 0, moved);
+      const prev = { ...leads };
       setLeads({ ...leads, [s.droppableId]: src, [d.droppableId]: dst });
-      try { await api.put(`/api/leads/${moved.id}`, { column: d.droppableId }); } catch { showToast(t("common.updateFailed")); fetchLeads(); }
+      try { await api.put(`/api/leads/${moved.id}`, { column: d.droppableId }); } catch { showToast(t("common.updateFailed")); setLeads(prev); }
     } else { const col = [...leads[s.droppableId as ColId]]; const [moved] = col.splice(s.index, 1); col.splice(d.index, 0, moved); setLeads({ ...leads, [s.droppableId]: col }); }
   };
 
@@ -294,7 +296,7 @@ export function LeadsView() {
           exportCSV(all.map((l: Lead) => ({ name: l.name, industry: l.industry, source: l.source, needs: l.needs, stage: l.column })), "leads", [
             { key: "name", label: "Name" }, { key: "industry", label: "Industry" }, { key: "source", label: "Source" }, { key: "needs", label: "Needs" }, { key: "stage", label: "Stage" },
           ]);
-        }} className="btn-ghost compact"><Download size={16} /></button>
+        }} className="btn-ghost compact" aria-label={t("common.export")}><Download size={16} /></button>
         <button onClick={() => openPanel(null, "new")} className="btn-primary compact"><Plus size={16} /> <span className="hidden sm:inline">{t("pipeline.addLead")}</span></button>
       </div>
 
@@ -545,12 +547,13 @@ export function LeadsView() {
 }
 
 /* ── Sortable Lead Card ────────────────────────────────────────── */
-const SortableLeadCard: React.FC<SortableLeadCardProps> = ({ lead, onEdit, onDelete, score, isOverlay }) => {
+const SortableLeadCard: React.FC<SortableLeadCardProps> = React.memo(({ lead, onEdit, onDelete, score, isOverlay }) => {
+  const { t } = useT();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: lead.id.toString(), disabled: isOverlay });
   const scoreColors: Record<string, { bg: string; color: string; label: string }> = {
-    high: { bg: "var(--color-success-light)", color: "var(--color-success)", label: "高" },
-    medium: { bg: "var(--color-warning-light)", color: "var(--color-warning)", label: "中" },
-    low: { bg: "color-mix(in srgb, var(--color-danger) 10%, transparent)", color: "var(--color-danger)", label: "低" },
+    high: { bg: "var(--color-success-light)", color: "var(--color-success)", label: t("common.high") },
+    medium: { bg: "var(--color-warning-light)", color: "var(--color-warning)", label: t("common.medium") },
+    low: { bg: "color-mix(in srgb, var(--color-danger) 10%, transparent)", color: "var(--color-danger)", label: t("common.low") },
   };
   const s = score ? scoreColors[score.score] : null;
   const style: React.CSSProperties = isOverlay
@@ -579,7 +582,7 @@ const SortableLeadCard: React.FC<SortableLeadCardProps> = ({ lead, onEdit, onDel
       </div>
     </div>
   );
-};
+});
 
 /* ── DnD helpers ───────────────────────────────────────────────── */
 function findLeadColumn(leads: Record<string, Lead[]>, id: string): string | null {

@@ -20,6 +20,9 @@ interface QueuedOp {
   timestamp: number;
   retryCount?: number;
   failReason?: string;
+  /** Local ID returned by the offline handler for POST operations.
+   *  Used during replay to remap references after Supabase assigns real IDs. */
+  localId?: number;
 }
 
 const DB_NAME = 'soloceo-offline-queue';
@@ -28,7 +31,7 @@ const MAX_RETRIES = 3;
 const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 /** HTTP status codes that are transient despite being 4xx — eligible for retry */
 const RETRYABLE_4XX = new Set([408, 409, 429]);
-let replaying = false;
+let replayPromise: Promise<{ replayed: number; failed: number }> | null = null;
 
 // ── IndexedDB helpers ─────────────────────────────────────────────
 
@@ -54,11 +57,13 @@ function openQueueDb(): Promise<IDBDatabase> {
   });
 }
 
-export async function enqueue(method: string, path: string, body: Record<string, unknown>): Promise<void> {
+export async function enqueue(method: string, path: string, body: Record<string, unknown>, localId?: number): Promise<void> {
   const db = await openQueueDb();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).add({ method, path, body, timestamp: Date.now(), retryCount: 0 });
+    const entry: Record<string, unknown> = { method, path, body, timestamp: Date.now(), retryCount: 0 };
+    if (localId != null) entry.localId = localId;
+    tx.objectStore(STORE_NAME).add(entry);
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
@@ -139,11 +144,65 @@ function dispatchQueueWarning(message: string) {
   }));
 }
 
+// ── ID remapping helpers ─────────────────────────────────────────
+
+/** Body fields that may reference local IDs created during the same offline session */
+const REMAPPABLE_BODY_FIELDS = ['client_id', 'parent_id', 'source_id', 'project_id', 'finance_tx_id'];
+
+/**
+ * Replace entity IDs in URL path segments using the idMap.
+ * Matches patterns like `/api/clients/42/milestones` and remaps `42` → new ID.
+ * Only remaps the numeric segment immediately after an entity name segment.
+ */
+function remapPath(path: string, idMap: Map<number, number>): string {
+  if (idMap.size === 0) return path;
+  // Split path into segments: ['', 'api', 'clients', '42', 'milestones']
+  return path.replace(/\/(\d+)(\/|$)/g, (_match, numStr, trailing) => {
+    const num = Number(numStr);
+    const mapped = idMap.get(num);
+    return mapped != null ? `/${mapped}${trailing}` : `/${numStr}${trailing}`;
+  });
+}
+
+/**
+ * Replace local IDs in request body fields using the idMap.
+ * Returns a shallow copy if any field was remapped, otherwise the original body.
+ */
+function remapBody(body: Record<string, unknown>, idMap: Map<number, number>): Record<string, unknown> {
+  if (idMap.size === 0 || !body) return body;
+  let changed = false;
+  const result = { ...body };
+  for (const field of REMAPPABLE_BODY_FIELDS) {
+    const val = result[field];
+    if (typeof val === 'number' && idMap.has(val)) {
+      result[field] = idMap.get(val);
+      changed = true;
+    }
+  }
+  return changed ? result : body;
+}
+
+/**
+ * Try to extract the `id` field from a Supabase response.
+ * Returns the numeric id or undefined.
+ */
+function extractResponseId(data: unknown): number | undefined {
+  if (data && typeof data === 'object' && 'id' in data) {
+    const id = (data as Record<string, unknown>).id;
+    if (typeof id === 'number') return id;
+  }
+  return undefined;
+}
+
 // ── Replay queue ──────────────────────────────────────────────────
 
-export async function replayQueue(): Promise<{ replayed: number; failed: number }> {
-  if (replaying) return { replayed: 0, failed: 0 };
-  replaying = true;
+export function replayQueue(): Promise<{ replayed: number; failed: number }> {
+  if (replayPromise) return replayPromise;
+  replayPromise = performReplay();
+  return replayPromise;
+}
+
+async function performReplay(): Promise<{ replayed: number; failed: number }> {
 
   let replayed = 0;
   let failed = 0;
@@ -151,6 +210,10 @@ export async function replayQueue(): Promise<{ replayed: number; failed: number 
   try {
     const ops = await getAllOps();
     if (!ops.length) return { replayed: 0, failed: 0 };
+
+    // Map from local (offline) IDs → remote (Supabase) IDs.
+    // Built up as POSTs are replayed sequentially.
+    const idMap = new Map<number, number>();
 
     const now = Date.now();
     // Pre-filter: discard stale and over-retried ops
@@ -193,7 +256,10 @@ export async function replayQueue(): Promise<{ replayed: number; failed: number 
       const batch = isPost ? [ordered[i]] : ordered.slice(i, i + BATCH_SIZE).filter(op => op.method !== 'POST');
       const results = await Promise.allSettled(
         batch.map(async (op) => {
-          const result = await handleSupabaseRequest(op.method, op.path, op.body);
+          // Apply ID remapping before sending to Supabase
+          const mappedPath = remapPath(op.path, idMap);
+          const mappedBody = remapBody(op.body, idMap);
+          const result = await handleSupabaseRequest(op.method, mappedPath, mappedBody);
           return { op, result };
         })
       );
@@ -202,7 +268,13 @@ export async function replayQueue(): Promise<{ replayed: number; failed: number 
         if (r.status === "fulfilled") {
           const { op, result } = r.value;
           if (result.status < 400) {
-            // Success
+            // Success — if this was a POST with a localId, record the mapping
+            if (op.method === 'POST' && op.localId != null) {
+              const remoteId = extractResponseId(result.data);
+              if (remoteId != null) {
+                idMap.set(op.localId, remoteId);
+              }
+            }
             await removeOp(op.id);
             replayed++;
           } else if (RETRYABLE_4XX.has(result.status) || result.status >= 500) {
@@ -232,7 +304,7 @@ export async function replayQueue(): Promise<{ replayed: number; failed: number 
       }
     }
   } finally {
-    replaying = false;
+    replayPromise = null;
   }
 
   return { replayed, failed };

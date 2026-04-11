@@ -60,7 +60,7 @@ export function InlinePopover({ trigger, children, align = "start", className = 
       onOpenChange?.(false);
     };
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { setOpen(false); onOpenChange?.(false); }
+      if (e.key === "Escape") { setOpen(false); onOpenChange?.(false); triggerRef.current?.focus(); }
     };
     const timer = setTimeout(() => {
       if (!active) return; // unmounted during delay — skip adding listeners

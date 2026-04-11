@@ -99,4 +99,10 @@ export const common = {
   "ai.chat.defaultDesc": "通用 AI 助手，无特定人设。可在顶部切换到专业 Agent。",
   "app.network.online": "已恢复网络连接",
   "app.network.offline": "网络已断开",
+  "common.validationFailed": "请填写所有必填项",
+  "common.export": "导出",
+  "common.remove": "移除",
+  "common.high": "高",
+  "common.medium": "中",
+  "common.low": "低",
 };

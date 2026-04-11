@@ -3,12 +3,15 @@ import initSqlJs, { Database } from 'sql.js';
 let _db: Database | null = null;
 let _initPromise: Promise<Database> | null = null;
 
-// ── IndexedDB persistence ──────────────────────────────────────────────────
+// ── IndexedDB persistence (cached connection) ─────────────────────────────
+let _idb: IDBDatabase | null = null;
+
 function openIdb(): Promise<IDBDatabase> {
+  if (_idb) return Promise.resolve(_idb);
   return new Promise((resolve, reject) => {
     const req = indexedDB.open('soloceo-db', 1);
     req.onupgradeneeded = () => req.result.createObjectStore('data');
-    req.onsuccess = () => resolve(req.result);
+    req.onsuccess = () => { _idb = req.result; resolve(_idb); };
     req.onerror = () => reject(req.error);
   });
 }
@@ -70,6 +73,9 @@ export async function clearLocalDb(): Promise<void> {
     _db = null;
   }
   _initPromise = null;
+
+  // Close cached IDB connection so next access re-opens
+  _idb = null;
 
   // Delete IndexedDB store
   try {

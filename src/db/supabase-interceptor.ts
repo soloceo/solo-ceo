@@ -164,8 +164,20 @@ export async function installSupabaseInterceptor(): Promise<void> {
       if (isOnline() && isAuthenticated()) {
         return await handleViaSupabase(method, path, body);
       }
-      enqueue(method, path, body).catch((e) => console.warn("[Offline] Failed to enqueue:", e));
-      return handleLocally(method, path, body);
+      // Handle locally first, then enqueue with localId for POST operations
+      const localResponse = await handleLocally(method, path, body);
+      let localId: number | undefined;
+      if (method === 'POST') {
+        try {
+          const cloned = localResponse.clone();
+          const json = await cloned.json();
+          if (json && typeof json === 'object' && typeof json.id === 'number') {
+            localId = json.id;
+          }
+        } catch { /* response may not be JSON — skip localId extraction */ }
+      }
+      enqueue(method, path, body, localId).catch((e) => console.warn("[Offline] Failed to enqueue:", e));
+      return localResponse;
     }
 
     // ── GET: SWR cache layer ──

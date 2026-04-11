@@ -242,6 +242,7 @@ export const settings = {
   "settings.planPrice": "Monthly ($)",
   "settings.planSpeed": "Delivery speed",
   "settings.planFeatures": "Features (one per line)",
+  "settings.planPerMonth": "mo",
   "settings.planDeleted": "Plan deleted",
   // AI Agents
   "settings.agents": "AI Agent",
@@ -298,4 +299,5 @@ export const settings = {
   "settings.cloudSync.connected": "Connected to Supabase cloud",
   "settings.cloudSync.offline": "Offline mode — will sync when back online",
   "settings.cloudSync.pending": "Pending operations: {count}",
+  "settings.deleteAvatar": "Delete avatar",
 };

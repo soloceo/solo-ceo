@@ -242,7 +242,9 @@ async function syncClientSubscriptionLedger(userId: string) {
 
     // Build a map of month → active/paused based on timeline events
     let [year, month] = startM.split('-').map(Number);
-    while (`${year}-${String(month).padStart(2, '0')}` <= cm) {
+    if (isNaN(year) || isNaN(month)) continue; // guard against malformed dates
+    let _loopGuard = 0;
+    while (`${year}-${String(month).padStart(2, '0')}` <= cm && _loopGuard++ < 240) {
       const lm = `${year}-${String(month).padStart(2, '0')}`;
 
       // Determine billing state for this month by replaying timeline
@@ -318,7 +320,14 @@ async function syncClientSubscriptionLedger(userId: string) {
       // Future-dated transactions must revert to pending — billing hasn't happened yet.
       const isFutureTx = row.date > todayDateKey();
       const preservedStatus = (!isFutureTx && exist.status === '已完成') ? '已完成' : row.status;
-      toUpdate.push({ id: exist.id, data: { amount: row.amount, description: row.description, date: row.date, status: preservedStatus, tax_mode: row.tax_mode, tax_rate: row.tax_rate, tax_amount: row.tax_amount, client_name: row.client_name } });
+      // Respect mrr_effective_from: find the client for this row and skip amount updates for months before the effective date
+      const clientForRow = (clients || []).find(c => c.id === row.source_id);
+      const effectiveMonth = clientForRow?.mrr_effective_from ? String(clientForRow.mrr_effective_from).substring(0, 7) : '';
+      const rowMonth = String(row.date).substring(0, 7);
+      const isBeforeEffective = effectiveMonth && rowMonth < effectiveMonth;
+      if (!isBeforeEffective) {
+        toUpdate.push({ id: exist.id, data: { amount: row.amount, description: row.description, date: row.date, status: preservedStatus, tax_mode: row.tax_mode, tax_rate: row.tax_rate, tax_amount: row.tax_amount, client_name: row.client_name } });
+      }
       existingMap.delete(key);
     } else {
       toInsert.push(row);
@@ -430,8 +439,9 @@ export async function handleSupabaseRequest(
   const convertMatch = path.match(/^\/api\/leads\/(\d+)\/convert$/);
   if (convertMatch && method === 'POST') {
     const id = Number(convertMatch[1]);
-    const { data: lead } = await supabase.from('leads').select('id, name, industry, needs').eq('id', id).eq('user_id', userId).single();
+    const { data: lead } = await supabase.from('leads').select('id, name, industry, needs, column').eq('id', id).eq('user_id', userId).single();
     if (!lead) return err(404, 'Lead not found');
+    if (lead.column === 'won') return err(400, 'Lead already converted');
     const { plan_tier, status, mrr, subscription_start_date, mrr_effective_from, billing_type, project_fee } = body || {};
     const np = normalizePlanTier(String(plan_tier || ''));
     const bt = enumVal(billing_type, VALID_BILLING_TYPES, 'subscription');
@@ -591,6 +601,14 @@ export async function handleSupabaseRequest(
       // Unlink finance transactions - set client_id to null but preserve client_name for display
       await supabase.from('finance_transactions').update({ client_id: null, client_name: clientCompanyName || prev?.name || '' }).eq('client_id', id).eq('user_id', userId);
 
+      // Soft-delete finance transactions linked to milestones (before milestones are soft-deleted)
+      const { data: clientMilestones } = await supabase.from('payment_milestones')
+        .select('finance_tx_id').eq('client_id', id).eq('user_id', userId);
+      const msTxIds = (clientMilestones || []).map(m => m.finance_tx_id).filter(Boolean);
+      if (msTxIds.length > 0) {
+        await supabase.from('finance_transactions').update({ soft_deleted: true }).in('id', msTxIds).eq('user_id', userId);
+      }
+
       // Soft-delete payment milestones and projects
       await supabase.from('payment_milestones').update({ soft_deleted: true }).eq('client_id', id).eq('user_id', userId);
       await supabase.from('client_projects').update({ soft_deleted: true }).eq('client_id', id).eq('user_id', userId);
@@ -604,6 +622,26 @@ export async function handleSupabaseRequest(
     }
   }
 
+  // ── CLIENT RESTORE ────────────────────────────────────────────
+  const restoreMatch = path.match(/^\/api\/clients\/(\d+)\/restore$/);
+  if (restoreMatch && method === 'POST') {
+    const id = Number(restoreMatch[1]);
+    // Restore client
+    await supabase.from('clients').update({ soft_deleted: false, updated_at: new Date().toISOString() }).eq('id', id).eq('user_id', userId);
+    // Restore milestones
+    await supabase.from('payment_milestones').update({ soft_deleted: false }).eq('client_id', id).eq('user_id', userId);
+    // Restore projects
+    await supabase.from('client_projects').update({ soft_deleted: false }).eq('client_id', id).eq('user_id', userId);
+    // Restore milestone finance transactions
+    const { data: restoredMs } = await supabase.from('payment_milestones').select('finance_tx_id').eq('client_id', id).eq('user_id', userId);
+    const txIds = (restoredMs || []).map(m => m.finance_tx_id).filter(Boolean);
+    if (txIds.length > 0) {
+      await supabase.from('finance_transactions').update({ soft_deleted: false, client_id: id }).in('id', txIds).eq('user_id', userId);
+    }
+    await logActivity(userId, 'client', 'restored', `恢复客户`, '', String(id));
+    return ok({ success: true });
+  }
+
   // ── CLIENT PROJECTS ──────────────────────────────────────────
   const projectListMatch = path.match(/^\/api\/clients\/(\d+)\/projects$/);
   if (projectListMatch) {
@@ -611,7 +649,7 @@ export async function handleSupabaseRequest(
     if (method === 'GET') {
       const { data, error: e } = await supabase
         .from('client_projects')
-        .select('id, client_id, name, description, status, total_fee, sort_order, created_at, updated_at')
+        .select('id, client_id, name, note, status, project_fee, sort_order, created_at, updated_at')
         .eq('user_id', userId)
         .eq('client_id', clientId)
         .eq('soft_deleted', false)
@@ -662,7 +700,15 @@ export async function handleSupabaseRequest(
       return ok({ success: true });
     }
     if (method === 'DELETE') {
-      // Soft-delete project + its milestones + linked finance txs
+      // Soft-delete finance transactions linked to project milestones (before milestones are soft-deleted)
+      const { data: projMilestones } = await supabase.from('payment_milestones')
+        .select('finance_tx_id').eq('project_id', id).eq('user_id', userId);
+      const projTxIds = (projMilestones || []).map(m => m.finance_tx_id).filter(Boolean);
+      if (projTxIds.length > 0) {
+        await supabase.from('finance_transactions').update({ soft_deleted: true }).in('id', projTxIds).eq('user_id', userId);
+      }
+
+      // Soft-delete project + its milestones
       await supabase.from('payment_milestones').update({ soft_deleted: true }).eq('project_id', id).eq('user_id', userId);
       await supabase.from('client_projects').update({ soft_deleted: true }).eq('id', id).eq('user_id', userId);
       return ok({ success: true });
@@ -820,6 +866,7 @@ export async function handleSupabaseRequest(
     const clientName = client?.company_name || client?.name || '';
 
     // If milestone already has a linked finance transaction, UPDATE it
+    let resolvedFinanceId: number | null = milestone.finance_tx_id ? Number(milestone.finance_tx_id) : null;
     if (milestone.finance_tx_id) {
       await supabase.from('finance_transactions').update({
         status: '已完成', date: actualDate,
@@ -846,7 +893,10 @@ export async function handleSupabaseRequest(
         console.warn('[supabase-api] Mark-paid finance tx failed', txErr);
         return err(500, `创建收款记录失败: ${txErr.message}`);
       }
-      if (tx) await supabase.from('payment_milestones').update({ finance_tx_id: tx.id }).eq('id', id).eq('user_id', userId);
+      if (tx) {
+        resolvedFinanceId = tx.id;
+        await supabase.from('payment_milestones').update({ finance_tx_id: tx.id }).eq('id', id).eq('user_id', userId);
+      }
     }
 
     // Update milestone status
@@ -859,7 +909,7 @@ export async function handleSupabaseRequest(
       `确认收款：${clientName} · ${milestone.label || '项目付款'}`,
       `$${Number(milestone.amount || 0).toLocaleString()} · ${payment_method || ''}`, id);
 
-    return ok({ success: true, financeId: milestone.finance_tx_id });
+    return ok({ success: true, financeId: resolvedFinanceId });
   }
 
   // ── Undo mark-paid ──
@@ -945,10 +995,10 @@ export async function handleSupabaseRequest(
     }
     if (method === 'DELETE') {
       const { data: prev } = await supabase.from('tasks').select('title').eq('id', id).eq('user_id', userId).single();
+      // Delete subtasks first, then parent (consistent with offline handler)
+      await supabase.from('tasks').update({ soft_deleted: true, updated_at: new Date().toISOString() }).eq('parent_id', id).eq('user_id', userId);
       const { error: delErr } = await supabase.from('tasks').update({ soft_deleted: true }).eq('id', id).eq('user_id', userId);
       if (delErr) return err(500, delErr.message);
-      // Also delete subtasks if this is a parent task
-      await supabase.from('tasks').update({ soft_deleted: true }).eq('parent_id', id).eq('user_id', userId);
       await logActivity(userId, 'task', 'deleted', `删除任务：${prev?.title || '未命名任务'}`, '', id);
       return ok({ success: true });
     }
@@ -1066,7 +1116,8 @@ export async function handleSupabaseRequest(
     const receivables = (receivablesRows || []).reduce((s: number, r: AmountRow) => s + Number(r.amount || 0), 0);
     const payables = (payablesRows || []).reduce((s: number, r: AmountRow) => s + Number(r.amount || 0), 0);
     const totalTax = (taxableRows || []).reduce((s: number, r: TaxAmountRow) => s + Number(r.tax_amount || 0), 0);
-    const rows = (recentRows || []).map((t: FinanceTransactionRow) => { const taxInfo = Number(t.tax_amount || 0) > 0 ? ` (税$${Number(t.tax_amount).toLocaleString()})` : ''; return `<tr><td>${t.date || ''}</td><td>${t.description || ''}</td><td>${t.category || ''}</td><td>${t.type === 'income' ? '+' : '-'}$${Number(t.amount || 0).toLocaleString()}${taxInfo}</td><td>${t.status || '已完成'}</td></tr>`; }).join('');
+    const esc = (s: string) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const rows = (recentRows || []).map((t: FinanceTransactionRow) => { const taxInfo = Number(t.tax_amount || 0) > 0 ? ` (税$${Number(t.tax_amount).toLocaleString()})` : ''; return `<tr><td>${esc(t.date || '')}</td><td>${esc(t.description || '')}</td><td>${esc(t.category || '')}</td><td>${t.type === 'income' ? '+' : '-'}$${Number(t.amount || 0).toLocaleString()}${taxInfo}</td><td>${esc(t.status || '已完成')}</td></tr>`; }).join('');
     const html = `<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"/><title>一人CEO - 财务月度报表</title><style>body{font-family:-apple-system,sans-serif;padding:32px;color:#18181b}h1{font-size:28px;margin:0 0 8px}p{color:#71717a;margin:0 0 24px}.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}.card{border:1px solid #e4e4e7;border-radius:16px;padding:16px}.label{font-size:12px;color:#71717a;margin-bottom:8px}.value{font-size:24px;font-weight:700}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 12px;border-bottom:1px solid #e4e4e7;font-size:12px}th{background:#f4f4f5;color:#52525b}</style></head><body><h1>财务月度报表</h1><p>一人CEO · 导出时间 ${new Date().toLocaleString('zh-CN')}</p><div class="grid"><div class="card"><div class="label">已完成收入</div><div class="value">$${completedIncome.toLocaleString()}</div></div><div class="card"><div class="label">已完成支出</div><div class="value">$${completedExpense.toLocaleString()}</div></div><div class="card"><div class="label">净利润</div><div class="value">$${(completedIncome - completedExpense).toLocaleString()}</div></div><div class="card"><div class="label">应收 / 应付</div><div class="value">$${receivables.toLocaleString()} / $${payables.toLocaleString()}</div></div><div class="card"><div class="label">税费合计</div><div class="value">$${totalTax.toLocaleString()}</div></div></div><table><thead><tr><th>日期</th><th>描述</th><th>分类</th><th>金额</th><th>状态</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
     return { status: 200, data: html };
   }
@@ -1369,8 +1420,11 @@ export async function handleSupabaseRequest(
     const clientsCount = activeClients?.length || 0;
     // Derive MRR from current month's income transactions (more accurate than static client.mrr)
     const currentMonthStr = `${currentYear}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-    // MRR = sum of subscription clients' monthly fee (not one-time project income)
-    const mrr = (activeClients || []).reduce((s: number, r: ClientMrrRow) => s + Number(r.mrr || 0), 0);
+    // MRR = ledger first (accounts for proration), fallback to static sum
+    const ledgerMrrSum = (ledgerSeries || [])
+      .filter((r: any) => String(r.date || '').substring(0, 7) === currentMonthStr)
+      .reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+    const mrr = ledgerMrrSum || (activeClients || []).reduce((s: number, r: ClientMrrRow) => s + Number(r.mrr || 0), 0);
     const activeTasks = taskData?.length || 0;
     const todoCount = (taskData || []).filter((t: TaskRow) => t.column === 'todo').length;
     const inProgressCount = (taskData || []).filter((t: TaskRow) => t.column === 'inProgress').length;

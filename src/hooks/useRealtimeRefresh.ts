@@ -30,6 +30,8 @@ export function useRealtimeRefresh(
   const refetchRef = useRef(refetchFn);
   refetchRef.current = refetchFn;
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // Stable dep key — prevents re-subscribing when callers pass inline array literals
+  const tablesKey = tables.join(',');
 
   useEffect(() => {
     const scheduleRefetch = () => {
@@ -72,5 +74,5 @@ export function useRealtimeRefresh(
       window.removeEventListener('api-cache-updated', handleCacheUpdate);
       clearTimeout(timer.current);
     };
-  }, [tables]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tablesKey]); // eslint-disable-line react-hooks/exhaustive-deps
 }

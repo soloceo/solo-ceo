@@ -44,6 +44,7 @@ function relativeTime(isoTime: string, t: (k: string) => string): string {
   if (!isoTime) return "";
   const now = Date.now();
   const then = new Date(isoTime).getTime();
+  if (isNaN(then)) return "";
   const diffMs = now - then;
   const diffMin = Math.floor(diffMs / 60000);
   if (diffMin < 1) return t("home.activity.justNow");

@@ -61,6 +61,7 @@ export default function AppearanceSection({ themeMode, setThemeMode, styleId, se
       const json = await api.get<{ unixMs?: number; data?: { unixMs?: number } }>('/api/server-time');
       const after = Date.now();
       const serverUnix = json?.unixMs ?? json?.data?.unixMs;
+      if (typeof serverUnix !== 'number') { setSyncState('error'); return; }
       const roundTrip = after - before;
       const localNow = before + roundTrip / 2;
       const diff = Math.abs(localNow - serverUnix) / 1000;

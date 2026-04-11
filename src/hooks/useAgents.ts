@@ -37,10 +37,11 @@ export function useAgents() {
   const fetch = useCallback(async () => {
     try {
       const data = await api.get<AgentConfig[]>('/api/agents');
-      agentsCache = data;
+      const safe = Array.isArray(data) ? data : [];
+      agentsCache = safe;
       cacheTs = Date.now();
       if (mountedRef.current) {
-        setAgents(data);
+        setAgents(safe);
         setLoading(false);
       }
     } catch {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useT } from '../../i18n/context';
 import { useAuth } from '../../auth/AuthProvider';
 import { getQueueLength } from '../../db/offline-queue';
@@ -18,6 +18,10 @@ import AgentSection from './AgentSection';
 function UpdateButton({ t, showToast }: { t: (k: string) => string; showToast: (msg: string) => void }) {
   const [status, setStatus] = useState<'idle' | 'checking' | 'updating'>('idle');
   const [progress, setProgress] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
+
+  // Clean up interval on unmount
+  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
 
   const handleCheck = useCallback(async () => {
     if (status !== 'idle') return;
@@ -25,8 +29,9 @@ function UpdateButton({ t, showToast }: { t: (k: string) => string; showToast: (
     setProgress(0);
 
     // Animate progress: fast to 60%, then slow crawl
+    if (timerRef.current) clearInterval(timerRef.current);
     let p = 0;
-    const timer = setInterval(() => {
+    timerRef.current = setInterval(() => {
       if (p < 60) p += 8;
       else if (p < 90) p += 1.5;
       else if (p < 95) p += 0.3;
@@ -37,7 +42,7 @@ function UpdateButton({ t, showToast }: { t: (k: string) => string; showToast: (
       const reg = await navigator.serviceWorker?.getRegistration();
       if (!reg) {
         setProgress(100);
-        clearInterval(timer);
+        clearInterval(timerRef.current); timerRef.current = undefined;
         await new Promise(r => setTimeout(r, 300));
         window.location.reload();
         return;
@@ -47,14 +52,14 @@ function UpdateButton({ t, showToast }: { t: (k: string) => string; showToast: (
       await new Promise(r => setTimeout(r, 1500));
 
       if (reg.waiting || reg.installing) {
-        clearInterval(timer);
+        clearInterval(timerRef.current); timerRef.current = undefined;
         setStatus('updating');
         setProgress(100);
         await new Promise(r => setTimeout(r, 400));
         reg.waiting?.postMessage({ type: 'SKIP_WAITING' });
         window.location.reload();
       } else {
-        clearInterval(timer);
+        clearInterval(timerRef.current); timerRef.current = undefined;
         setProgress(100);
         await new Promise(r => setTimeout(r, 400));
         showToast(t("settings.version.upToDate"));
@@ -62,7 +67,7 @@ function UpdateButton({ t, showToast }: { t: (k: string) => string; showToast: (
         setProgress(0);
       }
     } catch {
-      clearInterval(timer);
+      clearInterval(timerRef.current); timerRef.current = undefined;
       setProgress(100);
       await new Promise(r => setTimeout(r, 300));
       window.location.reload();
@@ -208,6 +213,7 @@ export default function SettingsPage() {
         .catch(() => { /* avatar save failed */ });
       showToast(t("settings.avatarUpdated"));
     };
+    img.onerror = () => showToast(t("settings.avatarInvalid"));
     img.src = dataUrl;
     if (img.complete) onLoaded();
     else img.onload = onLoaded;

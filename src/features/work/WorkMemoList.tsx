@@ -194,6 +194,8 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
     if (!text) return;
 
     const aiConfig = getAIConfig(appSettings);
+    const abortCtrl = new AbortController();
+    const abortTimeout = setTimeout(() => abortCtrl.abort(), 30_000); // 30s safety timeout
 
     if (!aiConfig) {
       // No AI configured — just create directly with text as title
@@ -213,10 +215,12 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
 
       let result: { title: string; due?: string | null } | null = null;
 
+      const signal = abortCtrl.signal;
       if (provider === "openai") {
         const r = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
           body: JSON.stringify({ model: "gpt-4o-mini", messages: [{ role: "system", content: sysPrompt }, { role: "user", content: text }], temperature: 0 }),
+          signal,
         });
         const d = await r.json();
         result = JSON.parse(d.choices[0].message.content);
@@ -224,6 +228,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
         const r = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST", headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
           body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 200, system: sysPrompt, messages: [{ role: "user", content: text }] }),
+          signal,
         });
         const d = await r.json();
         result = JSON.parse(d.content[0].text);
@@ -231,6 +236,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
         const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`, {
           method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
           body: JSON.stringify({ contents: [{ parts: [{ text: `${sysPrompt}\n\nUser: ${text}` }] }] }),
+          signal,
         });
         const d = await r.json();
         const raw = d.candidates[0].content.parts[0].text.replace(/```json\n?|\n?```/g, "").trim();
@@ -240,6 +246,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
         const r = await fetch(`${url}/v1/chat/completions`, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ model, messages: [{ role: "system", content: sysPrompt }, { role: "user", content: text }], response_format: { type: "json_object" }, stream: false }),
+          signal,
         });
         const d = await r.json();
         const raw = d.choices?.[0]?.message?.content || "";
@@ -267,6 +274,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
       setAiInput("");
       onRefresh();
     } finally {
+      clearTimeout(abortTimeout);
       setAiLoading(false);
     }
   };

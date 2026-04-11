@@ -258,7 +258,7 @@
   }
   .input-base:focus {
     border-color: var(--color-accent);
-    box-shadow: 0 0 0 var(--focus-ring-width) rgba(245,197,24,0.15);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 40%, transparent);
   }
   select.input-base {
     appearance: none;
@@ -1051,6 +1051,12 @@
    ─ Typography: Google Sans (headings), Google Sans Text (body)
    ══════════════════════════════════════════════════════════════════ */
 
+/* ── MD3 Elevation tokens ─────────────────────────────────────────── */
+[data-theme="material"] {
+  --shadow-md3-1: 0 1px 2px rgba(0,0,0,0.3), 0 1px 3px 1px rgba(0,0,0,0.15);
+  --shadow-md3-3: 0 1px 3px rgba(0,0,0,0.3), 0 4px 8px 3px rgba(0,0,0,0.15);
+}
+
 /* ── Glass — kill blur, opaque surfaces (Google = no glassmorphism) ── */
 [data-theme="material"] .glass {
   backdrop-filter: none;
@@ -1567,7 +1573,7 @@
   height: 60vw;
   max-width: 700px;
   max-height: 700px;
-  background: radial-gradient(circle, #a78bfa 0%, transparent 70%);
+  background: radial-gradient(circle, var(--color-purple) 0%, transparent 70%);
   bottom: -10%;
   right: -8%;
   animation: glass-orb-drift 25s infinite alternate-reverse ease-in-out;
@@ -2078,6 +2084,8 @@
   );
   /* Glow tokens (palette-agnostic via color-mix) */
   --hud-glow-color: var(--color-accent);
+  --hud-glow-faint: color-mix(in srgb, var(--color-accent) 6%, transparent);
+  --hud-glow-subtle: color-mix(in srgb, var(--color-accent) 16%, transparent);
   --hud-glow-soft: color-mix(in srgb, var(--color-accent) 12%, transparent);
   --hud-glow-medium: color-mix(in srgb, var(--color-accent) 22%, transparent);
   --hud-glow-strong: color-mix(in srgb, var(--color-accent) 38%, transparent);
@@ -2100,6 +2108,8 @@
     rgba(255,255,255,0.025) 2px,
     rgba(255,255,255,0.025) 4px
   );
+  --hud-glow-faint: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  --hud-glow-subtle: color-mix(in srgb, var(--color-accent) 22%, transparent);
   --hud-glow-soft: color-mix(in srgb, var(--color-accent) 18%, transparent);
   --hud-glow-medium: color-mix(in srgb, var(--color-accent) 30%, transparent);
   --hud-glow-strong: color-mix(in srgb, var(--color-accent) 50%, transparent);
@@ -2577,8 +2587,8 @@
 /* ── AI Chat — cockpit terminal aesthetic ───────────────────── */
 [data-theme="hud"] .ai-chat-panel {
   background: var(--color-bg-primary) !important;
-  border: 1px solid var(--hud-glow-subtle, var(--color-accent)) !important;
-  box-shadow: 0 0 20px var(--hud-glow-faint, rgba(0,255,157,0.05)), inset 0 0 40px rgba(0,0,0,0.3) !important;
+  border: 1px solid var(--hud-glow-subtle) !important;
+  box-shadow: 0 0 20px var(--hud-glow-faint), inset 0 0 40px rgba(0,0,0,0.3) !important;
   border-radius: 2px !important;
 }
 [data-theme="hud"] .ai-chat-bubble-user {
@@ -2606,7 +2616,7 @@
 }
 [data-theme="hud"] .ai-chat-send {
   border-radius: 2px;
-  box-shadow: 0 0 8px var(--hud-glow-faint, rgba(0,255,157,0.1));
+  box-shadow: 0 0 8px var(--hud-glow-faint);
 }
 [data-theme="hud"] .ai-chat-new-btn {
   border-radius: 2px !important;
@@ -2617,7 +2627,7 @@
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  box-shadow: 0 0 8px var(--hud-glow-faint, rgba(0,255,157,0.1));
+  box-shadow: 0 0 8px var(--hud-glow-faint);
 }
 [data-theme="hud"] .ai-chat-conv-item {
   border-radius: 2px !important;
@@ -2629,9 +2639,9 @@
   background: rgba(0,0,0,0.3) !important;
 }
 [data-theme="hud"] .ai-chat-conv-item:hover {
-  border-color: var(--hud-glow-subtle, var(--color-accent)) !important;
-  box-shadow: 0 0 8px var(--hud-glow-faint, rgba(0,255,157,0.08)), inset 0 0 12px rgba(0,255,157,0.03);
-  background: rgba(0,255,157,0.04) !important;
+  border-color: var(--hud-glow-subtle) !important;
+  box-shadow: 0 0 8px var(--hud-glow-faint), inset 0 0 12px color-mix(in srgb, var(--color-accent) 3%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 4%, transparent) !important;
 }
 
 /* ── Accessibility: reduced motion ───────────────────────────── */

@@ -26,7 +26,7 @@ export function getDeviceAIProvider(): AIProvider | "" {
 }
 export function setDeviceAIProvider(p: AIProvider | ""): void {
   // Store "off" explicitly so getAIConfig won't fall back to cloud settings
-  localStorage.setItem(LS_PROVIDER, p || "off");
+  try { localStorage.setItem(LS_PROVIDER, p || "off"); } catch { /* quota exceeded */ }
 }
 export function getOllamaConfig(): { url: string; model: string } {
   return {
@@ -35,8 +35,8 @@ export function getOllamaConfig(): { url: string; model: string } {
   };
 }
 export function setOllamaConfig(url: string, model: string): void {
-  localStorage.setItem(LS_OLLAMA_URL, url);
-  localStorage.setItem(LS_OLLAMA_MODEL, model);
+  try { localStorage.setItem(LS_OLLAMA_URL, url); } catch { /* quota exceeded */ }
+  try { localStorage.setItem(LS_OLLAMA_MODEL, model); } catch { /* quota exceeded */ }
 }
 
 /**

@@ -6,8 +6,7 @@ import { useAppSettings, invalidateSettingsCache } from "../../hooks/useAppSetti
 import { useUIStore } from "../../store/useUIStore";
 import { BookOpen, ChevronDown, ChevronRight, X, CheckCircle2 } from "lucide-react";
 import type { Principle, KnowledgeCategory } from "../../data/evolution-knowledge";
-/* Lazy-load the 53KB knowledge data — only fetched when this component mounts */
-const knowledgePromise = import("../../data/evolution-knowledge").then(m => m.KNOWLEDGE_CATEGORIES);
+/* Lazy-load the 53KB knowledge data — only fetched when this component first renders */
 
 export function KnowledgeBaseSection() {
   const { t, lang } = useT();
@@ -20,7 +19,11 @@ export function KnowledgeBaseSection() {
   const [selectedPrinciple, setSelectedPrinciple] = useState<(Principle & { catEmoji: string }) | null>(null);
 
   useEffect(() => {
-    knowledgePromise.then(setCategories);
+    let cancelled = false;
+    import("../../data/evolution-knowledge").then(m => {
+      if (!cancelled) setCategories(m.KNOWLEDGE_CATEGORIES);
+    });
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {

@@ -47,7 +47,7 @@ interface Message {
 }
 
 /** Color palette for agent identity in group chats */
-const AGENT_COLORS = ['#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444', '#06b6d4'];
+const AGENT_COLORS = ['var(--color-warning)', 'var(--color-blue)', 'var(--color-success)', 'var(--color-purple)', 'var(--color-danger)', 'var(--color-info)'];
 
 interface Conversation {
   id: string;
@@ -568,10 +568,11 @@ const PROVIDER_LABELS: Record<string, string> = {
 };
 
 function AIConnectionStatus({ settings }: { settings: Record<string, string> | null }) {
+  const { lang } = useT();
   const config = getAIConfig(settings);
   const connected = !!config;
   const label = (() => {
-    if (!config) return '未连接';
+    if (!config) return lang === "zh" ? "未连接" : "Not connected";
     if (config.provider === 'ollama') {
       const { model } = getOllamaConfig();
       return model;
@@ -2094,7 +2095,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                     && !prevMsg.toolConfirm;
                   const senderName = isUser ? operatorName : (msgAgent?.name || t("ai.chat.defaultAssistant"));
                   const senderAvatarRaw = isUser ? (operatorAvatar || "👤") : (msgAgent?.avatar || "🤖");
-                  const senderIsImage = typeof senderAvatarRaw === "string" && (senderAvatarRaw.startsWith("data:") || senderAvatarRaw.startsWith("http"));
+                  const senderIsImage = typeof senderAvatarRaw === "string" && (senderAvatarRaw.startsWith("data:image/") || senderAvatarRaw.startsWith("http"));
 
                   return (
                   <div key={i} className={`flex gap-2.5 ${isUser ? "flex-row-reverse" : "flex-row"}`}>

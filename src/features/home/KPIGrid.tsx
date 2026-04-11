@@ -50,7 +50,7 @@ export function KPIGrid({ monthlyIncome, todayIncome, clientsCount, leadsCount, 
   };
 
   // Goal progress
-  const hasGoal = loaded && goal > 0;
+  const hasGoal = loaded && goal > 0 && isFinite(goal);
   const progress = hasGoal ? Math.min(1, monthlyIncome / goal) : 0;
   const percentage = Math.round(progress * 100);
   const achieved = monthlyIncome >= goal;

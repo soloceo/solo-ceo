@@ -186,6 +186,7 @@ export function ClientsView() {
 
   const saveClient = async () => {
     if (savingClient) return;
+    setSavingClient(true);
 
     // Validate required fields
     const errors: Record<string, boolean> = {};
@@ -196,10 +197,10 @@ export function ClientsView() {
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
       showToast(t("common.validationFailed") || "Please fill in all required fields");
+      setSavingClient(false);
       return;
     }
 
-    setSavingClient(true);
     const startEvt = form.timeline.find(e => e.type === "start");
     const isProjectType = form.billing_type === "project";
     const hasProjects = isProjectType && editId && proj.projects.length > 0;
@@ -266,7 +267,7 @@ export function ClientsView() {
 
   const deleteClient = async (id: number) => { try { await api.del(`/api/clients/${id}`); setShowPanel(false); showToast(t("pipeline.toast.clientDeleted")); fetchClients(); } catch { showToast(t("common.deleteFailed")); } };
 
-  const uniquePlanTiers = [...new Set(clients.filter(c => c.billing_type === "subscription" && c.plan_tier).map(c => c.plan_tier))];
+  const uniquePlanTiers = useMemo(() => [...new Set(clients.filter(c => c.billing_type === "subscription" && c.plan_tier).map(c => c.plan_tier))], [clients]);
   const filtered = useMemo(() => clients.filter(c => {
     const q = search.toLowerCase();
     const ms = c.name.toLowerCase().includes(q) || (c.company_name || "").toLowerCase().includes(q) || (c.contact_name || "").toLowerCase().includes(q) || (c.contact_email || "").toLowerCase().includes(q);
@@ -275,15 +276,15 @@ export function ClientsView() {
     const mp = filterPlan === "All" || c.plan_tier === filterPlan;
     return ms && mf && mb && mp;
   }), [clients, search, filterSt, filterBilling, filterPlan]);
-  const activeN = filtered.filter(c => c.status === "Active").length;
-  const pausedN = filtered.filter(c => c.status === "Paused").length;
+  const activeN = useMemo(() => filtered.filter(c => c.status === "Active").length, [filtered]);
+  const pausedN = useMemo(() => filtered.filter(c => c.status === "Paused").length, [filtered]);
   // 合同总额 = subscription lifetimeRevenue + project fees
-  const contractTotal = filtered.reduce((s, c) => {
+  const contractTotal = useMemo(() => filtered.reduce((s, c) => {
     if (c.billing_type === "project") return s + Number(c.project_fee || 0);
     return s + Number(c.lifetimeRevenue || 0);
-  }, 0);
+  }, 0), [filtered]);
   // 已到账 = 所有已完成收入（含订阅月付虚拟行 + 真实交易记录）
-  const filteredIds = new Set(filtered.map(c => c.id));
+  const filteredIds = useMemo(() => new Set(filtered.map(c => c.id)), [filtered]);
   const totalReceived = tx.finTxs
     .filter((r: FinanceTransaction) => r.type === "income" && (r.status || "已完成") === "已完成" && filteredIds.has(r.client_id))
     .reduce((s: number, r: FinanceTransaction) => {
@@ -362,7 +363,7 @@ export function ClientsView() {
                 </select>
               )}
               <div className="flex-1" />
-              <button onClick={exportClientsCSV} className="btn-ghost compact shrink-0"><Download size={16} /></button>
+              <button onClick={exportClientsCSV} className="btn-ghost compact shrink-0" aria-label={t("common.export")}><Download size={16} /></button>
               <button onClick={() => openPanel()} className="btn-primary compact shrink-0"><Plus size={16} /> <span className="hidden sm:inline">{t("pipeline.addClient")}</span></button>
             </div>
           </div>
@@ -505,7 +506,7 @@ export function ClientsView() {
                           <Building2 size={16} className="absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" style={{ color: formErrors.company_name ? "var(--color-danger)" : "var(--color-text-tertiary)" }} />
                           <input required value={form.company_name} onChange={e => { setForm(p => ({ ...p, company_name: e.target.value, name: e.target.value || p.contact_name })); setFormErrors(prev => ({...prev, company_name: false})); }} className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]" style={{ borderColor: formErrors.company_name ? 'var(--color-danger)' : undefined }} />
                         </div>
-                        {formErrors.company_name && <span className="text-[12px] mt-1 block" style={{ color: 'var(--color-danger)' }}>必填项</span>}
+                        {formErrors.company_name && <span className="text-[12px] mt-1 block" style={{ color: 'var(--color-danger)' }}>{t("common.validationFailed")}</span>}
                       </div>
                     </FL>
                   </div>
@@ -539,7 +540,7 @@ export function ClientsView() {
                       <input value={form.drive_folder_url} onChange={e => setForm(p => ({ ...p, drive_folder_url: e.target.value }))} placeholder={t("pipeline.clients.drivePlaceholder")} className="input-base w-full pl-9 pr-3 py-2.5 text-[15px]" />
                     </div>
                     {form.drive_folder_url && (
-                      <button type="button" onClick={() => { const url = form.drive_folder_url; if (url && /^https?:\/\//i.test(url)) window.open(url, '_blank', 'noopener'); }} className="btn-ghost flex items-center gap-1 px-3 shrink-0 text-[13px]" style={{ color: "var(--color-accent)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
+                      <button type="button" onClick={() => { const url = form.drive_folder_url; if (url) { try { const u = new URL(url); if (u.protocol === "https:" || u.protocol === "http:") window.open(url, '_blank', 'noopener'); } catch { /* invalid URL */ } } }} className="btn-ghost flex items-center gap-1 px-3 shrink-0 text-[13px]" style={{ color: "var(--color-accent)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
                         <ExternalLink size={14} /> {t("pipeline.clients.openDrive")}
                       </button>
                     )}
@@ -677,7 +678,7 @@ export function ClientsView() {
                           <div key={i} className="flex items-center gap-2">
                             <span className="badge text-[13px] shrink-0" style={{ background: `${colors[evt.type]}20`, color: colors[evt.type], minWidth: 40, textAlign: "center" }}>{labels[evt.type] || evt.type}</span>
                             <input type="date" value={evt.date} onChange={e => { const tl = [...form.timeline]; tl[i] = { ...tl[i], date: e.target.value }; setForm(p => ({ ...p, timeline: tl })); }} className="input-base flex-1 px-3 py-2 text-[15px]" />
-                            {i > 0 && <button type="button" onClick={() => { const tl = form.timeline.filter((_, j) => j !== i); setForm(p => ({ ...p, timeline: tl })); }} className="btn-icon-sm" style={{ color: "var(--color-danger)" }}><X size={16} /></button>}
+                            {i > 0 && <button type="button" onClick={() => { const tl = form.timeline.filter((_, j) => j !== i); setForm(p => ({ ...p, timeline: tl })); }} className="btn-icon-sm" style={{ color: "var(--color-danger)" }} aria-label={t("common.remove")}><X size={16} /></button>}
                           </div>
                         );
                       })}
@@ -723,6 +724,7 @@ export function ClientsView() {
                             {/* Active projects */}
                             {proj.projects.filter(p => p.status === "active").map(p => (
                               <div key={p.id} role="button" tabIndex={0} onClick={() => proj.setActiveProjectId(p.id)}
+                                onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); proj.setActiveProjectId(p.id); } }}
                                 className="w-full text-left rounded-[var(--radius-6)] p-3 transition-colors cursor-pointer"
                                 style={{ background: p.id === proj.activeProjectId ? "var(--color-accent-tint)" : "var(--color-bg-tertiary)", border: `1px solid ${p.id === proj.activeProjectId ? "var(--color-accent)" : "var(--color-border-primary)"}` }}>
                                 <div className="flex items-center justify-between">
@@ -732,8 +734,8 @@ export function ClientsView() {
                                   </div>
                                   <div className="flex items-center gap-2">
                                     <span className="text-[15px] tabular-nums" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>${Number(p.project_fee || 0).toLocaleString()}</span>
-                                    <button type="button" onClick={e => { e.stopPropagation(); proj.openEditForm(p); }} className="btn-icon-sm"><Edit2 size={14} /></button>
-                                    <button type="button" onClick={e => { e.stopPropagation(); setDeleteProjectId(p.id); }} className="btn-icon-sm" style={{ color: "var(--color-danger)" }}><Trash2 size={14} /></button>
+                                    <button type="button" onClick={e => { e.stopPropagation(); proj.openEditForm(p); }} className="btn-icon-sm" aria-label={t("common.edit")}><Edit2 size={14} /></button>
+                                    <button type="button" onClick={e => { e.stopPropagation(); setDeleteProjectId(p.id); }} className="btn-icon-sm" style={{ color: "var(--color-danger)" }} aria-label={t("common.delete")}><Trash2 size={14} /></button>
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2 mt-1 text-[13px]" style={{ color: "var(--color-text-secondary)" }}>
@@ -885,7 +887,7 @@ export function ClientsView() {
                             ) : (
                               <div className="space-y-2">
                                 {ms.filteredMilestones.map((msItem: MilestoneRow) => (
-                                  <div key={msItem.id} className="rounded-[var(--radius-6)] p-3 space-y-2 cursor-pointer transition-colors" style={{ background: "var(--color-bg-tertiary)", border: `1px solid ${msItem.status === "paid" ? "var(--color-success)" : "var(--color-border-primary)"}` }} onClick={() => { msItem.status === "paid" ? ms.openEditPaid(msItem) : ms.openEditForm(msItem); }}>
+                                  <div key={msItem.id} role="button" tabIndex={0} className="rounded-[var(--radius-6)] p-3 space-y-2 cursor-pointer transition-colors" style={{ background: "var(--color-bg-tertiary)", border: `1px solid ${msItem.status === "paid" ? "var(--color-success)" : "var(--color-border-primary)"}` }} onClick={() => { msItem.status === "paid" ? ms.openEditPaid(msItem) : ms.openEditForm(msItem); }} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); msItem.status === "paid" ? ms.openEditPaid(msItem) : ms.openEditForm(msItem); } }}>
                                     <div className="flex items-center justify-between">
                                       <div className="flex items-center gap-2">
                                         {msItem.status === "paid" ? <CircleCheck size={16} style={{ color: "var(--color-success)" }} /> : msItem.status === "overdue" ? <AlertCircle size={16} style={{ color: "var(--color-danger)" }} /> : <Clock size={16} style={{ color: "var(--color-text-secondary)" }} />}
@@ -924,8 +926,8 @@ export function ClientsView() {
                                         <button onClick={() => { ms.setMarkPaidId(msItem.id); ms.setMarkPaidMethod("bank_transfer"); }} className="text-[14px] px-3 py-1.5 rounded-full flex items-center gap-1" style={{ background: "var(--color-success-light)", color: "var(--color-success)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
                                           <CircleCheck size={16} /> {t("pipeline.milestones.markPaid")}
                                         </button>
-                                        <button onClick={() => ms.openEditForm(msItem)} className="btn-icon-sm"><Edit2 size={16} /></button>
-                                        <button onClick={() => ms.setDeleteMsId(msItem.id)} className="btn-icon-sm" style={{ color: "var(--color-danger)" }}><Trash2 size={16} /></button>
+                                        <button onClick={() => ms.openEditForm(msItem)} className="btn-icon-sm" aria-label={t("common.edit")}><Edit2 size={16} /></button>
+                                        <button onClick={() => ms.setDeleteMsId(msItem.id)} className="btn-icon-sm" style={{ color: "var(--color-danger)" }} aria-label={t("common.delete")}><Trash2 size={16} /></button>
                                       </div>
                                     )}
                                   </div>
@@ -1181,8 +1183,8 @@ export function ClientsView() {
                               {/* Manual tx edit/delete */}
                               {(!txItem.source || txItem.source === "manual") && (
                                 <div className="flex items-center gap-1 shrink-0">
-                                  <button onClick={() => tx.openEditTx(txItem)} className="btn-icon-sm"><Edit2 size={16} /></button>
-                                  <button onClick={() => tx.setDeleteTxId(txItem.id)} className="btn-icon-sm" style={{ color: "var(--color-danger)" }}><Trash2 size={16} /></button>
+                                  <button onClick={() => tx.openEditTx(txItem)} className="btn-icon-sm" aria-label={t("common.edit")}><Edit2 size={16} /></button>
+                                  <button onClick={() => tx.setDeleteTxId(txItem.id)} className="btn-icon-sm" style={{ color: "var(--color-danger)" }} aria-label={t("common.delete")}><Trash2 size={16} /></button>
                                 </div>
                               )}
                             </div>

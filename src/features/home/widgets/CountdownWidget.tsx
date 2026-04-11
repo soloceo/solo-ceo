@@ -44,8 +44,8 @@ function loadItems(): CountdownItem[] {
           id: genId(), name: old.name || "", date: old.date,
           color: COLORS[0], createdAt: new Date().toISOString(),
         };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify([migrated]));
-        localStorage.removeItem(LEGACY_KEY);
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify([migrated])); } catch { /* quota exceeded */ }
+        try { localStorage.removeItem(LEGACY_KEY); } catch { /* restricted env */ }
         return [migrated];
       }
     }

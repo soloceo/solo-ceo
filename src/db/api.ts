@@ -144,8 +144,15 @@ function syncClientSubscriptionLedger(db: Database) {
       // Preserve "已完成" only for past/today billing — future dates can't be paid yet
       const isFutureBilling = row.date > todayDateKey();
       const preservedStatus = (!isFutureBilling && exist.status === '已完成') ? '已完成' : row.status;
-      run(db, `UPDATE finance_transactions SET amount=?, description=?, date=?, status=?, tax_mode=?, tax_rate=?, tax_amount=?, client_name=?, soft_deleted=0 WHERE id=?`,
-        [row.amount, row.description, row.date, preservedStatus, row.tax_mode, row.tax_rate, row.tax_amount, row.client_name, exist.id]);
+      // Respect mrr_effective_from: find the client for this row and skip amount updates for months before the effective date
+      const clientForRow = clients.find((c: any) => c.id === row.source_id);
+      const effectiveMonth = clientForRow?.mrr_effective_from ? String(clientForRow.mrr_effective_from).substring(0, 7) : '';
+      const rowMonth = String(row.date).substring(0, 7);
+      const isBeforeEffective = effectiveMonth && rowMonth < effectiveMonth;
+      if (!isBeforeEffective) {
+        run(db, `UPDATE finance_transactions SET amount=?, description=?, date=?, status=?, tax_mode=?, tax_rate=?, tax_amount=?, client_name=?, soft_deleted=0 WHERE id=?`,
+          [row.amount, row.description, row.date, preservedStatus, row.tax_mode, row.tax_rate, row.tax_amount, row.client_name, exist.id]);
+      }
       existingMap.delete(key);
     } else {
       run(db, `INSERT INTO finance_transactions (type, source, source_id, amount, category, description, date, status, client_id, client_name, tax_mode, tax_rate, tax_amount) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
@@ -767,6 +774,7 @@ export async function handleApiRequest(
     const id = convertMatch[1];
     const lead = get(db, 'SELECT * FROM leads WHERE id=?', [id]) as DbRow;
     if (!lead) return err(404, 'Lead not found');
+    if (lead.column === 'won') return err(400, 'Lead already converted');
     const { plan_tier, status, mrr, subscription_start_date, mrr_effective_from, billing_type, project_fee } = body || {};
     const np = normalizePlanTier(plan_tier || '');
     const bt = enumVal(billing_type, VALID_BILLING_TYPES, 'subscription');
@@ -903,6 +911,13 @@ export async function handleApiRequest(
       const clientName = prev?.company_name || prev?.name || '';
       run(db, "UPDATE finance_transactions SET client_id=NULL, client_name=? WHERE client_id=?", [clientName, id]);
 
+      // Soft-delete finance transactions linked to milestones (before milestones are soft-deleted)
+      const clientMs = all(db, 'SELECT finance_tx_id FROM payment_milestones WHERE client_id=? AND soft_deleted=0', [id]);
+      const msTxIds = clientMs.map((m: any) => m.finance_tx_id).filter(Boolean);
+      for (const txId of msTxIds) {
+        run(db, 'UPDATE finance_transactions SET soft_deleted=1, updated_at=CURRENT_TIMESTAMP WHERE id=?', [txId]);
+      }
+
       // Delete payment milestones and projects
       run(db, 'UPDATE payment_milestones SET soft_deleted=1 WHERE client_id=?', [id]);
       run(db, 'UPDATE client_projects SET soft_deleted=1 WHERE client_id=?', [id]);
@@ -914,6 +929,25 @@ export async function handleApiRequest(
       await saveDb();
       return ok({ success: true });
     }
+  }
+
+  // ── CLIENT RESTORE ──────────────────────────────────────────────────────
+  const restoreMatch = path.match(/^\/api\/clients\/(\d+)\/restore$/);
+  if (restoreMatch && method === 'POST') {
+    const id = restoreMatch[1];
+    run(db, 'UPDATE clients SET soft_deleted=0, updated_at=CURRENT_TIMESTAMP WHERE id=?', [id]);
+    // Restore milestones
+    const msRows = all(db, 'SELECT finance_tx_id FROM payment_milestones WHERE client_id=? AND soft_deleted=1', [id]);
+    run(db, 'UPDATE payment_milestones SET soft_deleted=0 WHERE client_id=?', [id]);
+    run(db, 'UPDATE client_projects SET soft_deleted=0 WHERE client_id=?', [id]);
+    // Restore milestone finance transactions
+    const txIds = msRows.map((m: any) => m.finance_tx_id).filter(Boolean);
+    for (const txId of txIds) {
+      run(db, 'UPDATE finance_transactions SET soft_deleted=0, client_id=? WHERE id=?', [id, txId]);
+    }
+    logActivity(db, 'client', 'restored', `恢复客户`, '', id);
+    await saveDb();
+    return ok({ success: true });
   }
 
   // ── CLIENT PROJECTS ─────────────────────────────────────────────────────
@@ -953,6 +987,13 @@ export async function handleApiRequest(
       return ok({ success: true });
     }
     if (method === 'DELETE') {
+      // Soft-delete finance transactions linked to project milestones (before milestones are soft-deleted)
+      const projMs = all(db, 'SELECT finance_tx_id FROM payment_milestones WHERE project_id=? AND soft_deleted=0', [id]);
+      const projTxIds = projMs.map((m: any) => m.finance_tx_id).filter(Boolean);
+      for (const txId of projTxIds) {
+        run(db, 'UPDATE finance_transactions SET soft_deleted=1, updated_at=CURRENT_TIMESTAMP WHERE id=?', [txId]);
+      }
+
       run(db, 'UPDATE payment_milestones SET soft_deleted=1 WHERE project_id=?', [id]);
       run(db, 'UPDATE client_projects SET soft_deleted=1 WHERE id=?', [id]);
       await saveDb();
@@ -980,16 +1021,29 @@ export async function handleApiRequest(
          VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
         [clientId, str(label, 255), amount||0, percentage||0, str(due_date, 10), str(payment_method, 50), str(invoice_number, 100), str(note, 1000), sort_order??0, 'pending', project_id||null]);
       const msId = res.lastInsertRowid;
-      const client = get(db, 'SELECT name FROM clients WHERE id=?', [clientId]) as DbRow;
-      const cName = (client?.name as string) || '';
+      const client = get(db, 'SELECT name, company_name, tax_mode, tax_rate FROM clients WHERE id=?', [clientId]) as DbRow;
+      const cName = (client?.company_name as string) || (client?.name as string) || '';
       const txAmt = Number(amount || 0);
+      // If project_id is provided, get tax from project; else fallback to client
+      let tm = (client?.tax_mode as string) || 'none';
+      let tr = Number(client?.tax_rate || 0);
+      if (project_id) {
+        const proj = get(db, 'SELECT tax_mode, tax_rate FROM client_projects WHERE id=?', [project_id]) as DbRow;
+        if (proj) { tm = (proj.tax_mode as string) || 'none'; tr = Number(proj.tax_rate || 0); }
+      }
       if (txAmt > 0) {
-        const txRes = run(db,
-          `INSERT INTO finance_transactions (type, amount, category, description, date, status, source, source_id, client_id, client_name)
-           VALUES (?,?,?,?,?,?,?,?,?,?)`,
-          ['income', txAmt, '项目收入', `${cName} · ${label || '项目付款'}`, due_date || todayDateKey(), '待收款 (应收)', 'milestone', msId, clientId, cName]);
-        const txId = txRes.lastInsertRowid;
-        if (txId) run(db, `UPDATE payment_milestones SET finance_tx_id=? WHERE id=?`, [txId, msId]);
+        try {
+          const txRes = run(db,
+            `INSERT INTO finance_transactions (type, amount, category, description, date, status, source, source_id, client_id, client_name, tax_mode, tax_rate, tax_amount, project_id)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+            ['income', txAmt, '项目收入', `${cName} · ${label || '项目付款'}`, due_date || todayDateKey(), '待收款 (应收)', 'milestone', msId, clientId, cName, tm, tr, calcTaxOffline(txAmt, tm, tr), project_id || null]);
+          const txId = txRes.lastInsertRowid;
+          if (txId) run(db, `UPDATE payment_milestones SET finance_tx_id=? WHERE id=?`, [txId, msId]);
+        } catch (txErr) {
+          // Rollback: soft-delete the milestone
+          run(db, 'UPDATE payment_milestones SET soft_deleted=1 WHERE id=?', [msId]);
+          return err(500, 'Failed to create linked finance transaction');
+        }
       }
       logActivity(db, 'milestone', 'created', `新增付款节点：${cName} · ${label||''}`,
         amount ? `$${Number(amount).toLocaleString()}` : '', msId);
@@ -1072,36 +1126,47 @@ export async function handleApiRequest(
 
     const client = get(db, 'SELECT name, tax_mode, tax_rate FROM clients WHERE id=?', [milestone.client_id]) as DbRow;
     const clientName = client?.name || '';
-    let txTaxMode = client?.tax_mode || 'none';
-    let txTaxRate = Number(client?.tax_rate || 0);
-    // Prefer project-level tax settings if milestone belongs to a project
-    if (milestone.project_id) {
-      const proj = get(db, 'SELECT tax_mode, tax_rate FROM client_projects WHERE id=?', [milestone.project_id]) as DbRow;
-      if (proj) { txTaxMode = proj.tax_mode || txTaxMode; txTaxRate = Number(proj.tax_rate || 0) || txTaxRate; }
-    }
-    const txAmount = Number(milestone.amount||0);
-    const txTaxAmount = txTaxMode === 'exclusive' ? Math.round((txAmount * txTaxRate) / 100 * 100) / 100
-                      : txTaxMode === 'inclusive' ? Math.round((txAmount * txTaxRate) / (100 + txTaxRate) * 100) / 100
-                      : 0;
 
-    // Create finance transaction (source='milestone' to prevent manual edit/delete)
-    const txRes = run(db,
-      `INSERT INTO finance_transactions (type, amount, category, description, date, status, source, source_id, client_id, client_name, tax_mode, tax_rate, tax_amount)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      ['income', txAmount, '项目收入',
-       `${clientName} · ${milestone.label||'项目付款'}`, actualDate, '已完成',
-       'milestone', milestone.id, milestone.client_id, clientName, txTaxMode, txTaxRate, txTaxAmount]);
+    // If milestone already has a linked finance transaction, UPDATE it (match online handler)
+    let resolvedFinanceId: number;
+    if (milestone.finance_tx_id) {
+      run(db,
+        `UPDATE finance_transactions SET status='已完成', date=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`,
+        [actualDate, milestone.finance_tx_id]);
+      resolvedFinanceId = Number(milestone.finance_tx_id);
+    } else {
+      let txTaxMode = client?.tax_mode || 'none';
+      let txTaxRate = Number(client?.tax_rate || 0);
+      // Prefer project-level tax settings if milestone belongs to a project
+      if (milestone.project_id) {
+        const proj = get(db, 'SELECT tax_mode, tax_rate FROM client_projects WHERE id=?', [milestone.project_id]) as DbRow;
+        if (proj) { txTaxMode = proj.tax_mode || txTaxMode; txTaxRate = Number(proj.tax_rate || 0) || txTaxRate; }
+      }
+      const txAmount = Number(milestone.amount||0);
+      const txTaxAmount = txTaxMode === 'exclusive' ? Math.round((txAmount * txTaxRate) / 100 * 100) / 100
+                        : txTaxMode === 'inclusive' ? Math.round((txAmount * txTaxRate) / (100 + txTaxRate) * 100) / 100
+                        : 0;
+
+      // Create finance transaction (source='milestone' to prevent manual edit/delete)
+      const txRes = run(db,
+        `INSERT INTO finance_transactions (type, amount, category, description, date, status, source, source_id, client_id, client_name, tax_mode, tax_rate, tax_amount)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        ['income', txAmount, '项目收入',
+         `${clientName} · ${milestone.label||'项目付款'}`, actualDate, '已完成',
+         'milestone', milestone.id, milestone.client_id, clientName, txTaxMode, txTaxRate, txTaxAmount]);
+      resolvedFinanceId = txRes.lastInsertRowid;
+    }
 
     // Update milestone
     run(db,
       `UPDATE payment_milestones SET status='paid', paid_date=?, payment_method=?, finance_tx_id=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`,
-      [actualDate, payment_method || milestone.payment_method || '', txRes.lastInsertRowid, id]);
+      [actualDate, payment_method || milestone.payment_method || '', resolvedFinanceId, id]);
 
     logActivity(db, 'milestone', 'paid',
       `确认收款：${clientName} · ${milestone.label||'项目付款'}`,
       `$${Number(milestone.amount||0).toLocaleString()} · ${payment_method||''}`, id);
     await saveDb();
-    return ok({ success: true, financeId: txRes.lastInsertRowid });
+    return ok({ success: true, financeId: resolvedFinanceId });
   }
 
   const undoPaidMatch = path.match(/^\/api\/milestones\/(\d+)\/undo-paid$/);
@@ -1197,7 +1262,9 @@ export async function handleApiRequest(
     const plans = all(db, 'SELECT * FROM plans WHERE soft_deleted=0').map((p) => {
       const al = aliases[p.name as string] || [p.name];
       const clients = al.reduce((s, a) => s + (countMap.get(a) || 0), 0);
-      return { ...p, features: JSON.parse(p.features as string), clients };
+      let features: string[] = [];
+      try { features = JSON.parse(p.features as string); } catch { /* malformed JSON */ }
+      return { ...p, features, clients };
     });
     return ok(plans);
   }
@@ -1343,16 +1410,19 @@ export async function handleApiRequest(
 
   if (path === '/api/content-drafts' && method === 'POST') {
     const { id, topic, platform, language, content } = body;
+    const safeTopic = str(topic, 255) || '';
+    const safePlatform = str(platform, 50) || '';
+    const safeLang = str(language, 10) || 'zh';
     if (id) {
       run(db, `UPDATE content_drafts SET topic=?,platform=?,language=?,content=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`,
-        [topic||'', platform||'', language||'zh', content||'', id]);
-      logActivity(db, 'content', 'updated', `更新草稿：${topic||'未命名草稿'}`, platform ? `平台：${platform}` : '', id);
+        [safeTopic, safePlatform, safeLang, content||'', id]);
+      logActivity(db, 'content', 'updated', `更新草稿：${safeTopic||'未命名草稿'}`, safePlatform ? `平台：${safePlatform}` : '', id);
       await saveDb();
       return ok({ id, success: true });
     }
     const res = run(db, `INSERT INTO content_drafts (topic, platform, language, content) VALUES (?,?,?,?)`,
-      [topic||'', platform||'', language||'zh', content||'']);
-    logActivity(db, 'content', 'created', `保存草稿：${topic||'未命名草稿'}`, platform ? `平台：${platform}` : '', res.lastInsertRowid);
+      [safeTopic, safePlatform, safeLang, content||'']);
+    logActivity(db, 'content', 'created', `保存草稿：${safeTopic||'未命名草稿'}`, safePlatform ? `平台：${safePlatform}` : '', res.lastInsertRowid);
     await saveDb();
     return ok({ id: res.lastInsertRowid, success: true });
   }
@@ -1432,8 +1502,8 @@ export async function handleApiRequest(
     const activeTasks = Number(get(db, `SELECT COUNT(*) as c FROM tasks WHERE "column" != 'done' AND soft_deleted=0`)?.c || 0);
     const todoCount = Number(get(db, `SELECT COUNT(*) as c FROM tasks WHERE "column"='todo' AND soft_deleted=0`)?.c || 0);
     const inProgressCount = Number(get(db, `SELECT COUNT(*) as c FROM tasks WHERE "column"='inProgress' AND soft_deleted=0`)?.c || 0);
-    const workTasks = Number(get(db, `SELECT COUNT(*) as c FROM tasks WHERE "column" != 'done' AND soft_deleted=0 AND (scope IS NULL OR scope != 'personal') AND (priority IS NULL OR priority IN ('High','Medium'))`)?.c || 0);
-    const personalTasks = Number(get(db, `SELECT COUNT(*) as c FROM tasks WHERE "column" != 'done' AND soft_deleted=0 AND scope = 'personal'`)?.c || 0);
+    const workTasks = Number(get(db, `SELECT COUNT(*) as c FROM tasks WHERE "column" != 'done' AND soft_deleted=0 AND (scope IS NULL OR scope != 'personal')`)?.c || 0);
+    const personalTasks = Number(get(db, `SELECT COUNT(*) as c FROM tasks WHERE "column" != 'done' AND soft_deleted=0 AND scope = 'personal' AND parent_id IS NULL`)?.c || 0);
     const leadsCount = Number(get(db, `SELECT COUNT(*) as c FROM leads WHERE soft_deleted=0`)?.c || 0);
     const leadsNew = Number(get(db, `SELECT COUNT(*) as c FROM leads WHERE soft_deleted=0 AND "column"='new'`)?.c || 0);
     const leadsContacted = Number(get(db, `SELECT COUNT(*) as c FROM leads WHERE soft_deleted=0 AND "column"='contacted'`)?.c || 0);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Command } from "cmdk";
 import { createPortal } from "react-dom";
 import {
@@ -43,6 +43,8 @@ export function CommandPalette() {
   const { t } = useT();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [searchData, setSearchData] = useState<{ tasks: any[]; clients: any[]; leads: any[]; finance: any[] } | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   // Global keyboard shortcut
   useEffect(() => {
@@ -56,13 +58,11 @@ export function CommandPalette() {
     return () => document.removeEventListener("keydown", handler);
   }, [commandPaletteOpen, setCommandPaletteOpen]);
 
-  // Search tasks + clients when query changes
+  // Fetch data once when palette opens (not on every keystroke)
   useEffect(() => {
-    if (!commandPaletteOpen) { setQuery(""); setResults([]); return; }
-    if (query.length < 2) { setResults([]); return; }
-
+    if (!commandPaletteOpen) { setQuery(""); setResults([]); setSearchData(null); return; }
     let cancelled = false;
-    const search = async () => {
+    (async () => {
       try {
         const [tasks, clients, leads, finance] = await Promise.all([
           api.get<any[]>("/api/tasks"),
@@ -71,42 +71,51 @@ export function CommandPalette() {
           api.get<any[]>("/api/finance"),
         ]);
         if (cancelled) return;
-        const q = query.toLowerCase();
-        const matched: SearchResult[] = [];
+        setSearchData({
+          tasks: Array.isArray(tasks) ? tasks : [],
+          clients: Array.isArray(clients) ? clients : [],
+          leads: Array.isArray(leads) ? leads : [],
+          finance: Array.isArray(finance) ? finance : [],
+        });
+      } catch { /* network error */ }
+    })();
+    return () => { cancelled = true; };
+  }, [commandPaletteOpen]);
 
-        for (const task of (Array.isArray(tasks) ? tasks : [])) {
-          if (task.soft_deleted) continue;
-          if (task.title?.toLowerCase().includes(q) || task.client?.toLowerCase().includes(q)) {
-            matched.push({ type: "task", id: task.id, title: task.title, sub: task.client });
-          }
-        }
-        for (const client of (Array.isArray(clients) ? clients : [])) {
-          if (client.soft_deleted) continue;
-          const name = client.company_name || client.name || "";
-          if (name.toLowerCase().includes(q)) {
-            matched.push({ type: "client", id: client.id, title: name, sub: client.contact_name });
-          }
-        }
-        for (const lead of (Array.isArray(leads) ? leads : [])) {
-          if (lead.soft_deleted) continue;
-          if (lead.name?.toLowerCase().includes(q) || lead.industry?.toLowerCase().includes(q) || lead.needs?.toLowerCase().includes(q)) {
-            matched.push({ type: "lead", id: lead.id, title: lead.name, sub: lead.industry });
-          }
-        }
-        for (const tx of (Array.isArray(finance) ? finance : [])) {
-          if (tx.soft_deleted) continue;
-          const desc = tx.description || tx.desc || tx.client_name || "";
-          if (desc.toLowerCase().includes(q) || tx.category?.toLowerCase().includes(q)) {
-            matched.push({ type: "finance", id: tx.id, title: desc || tx.category, sub: tx.category });
-          }
-        }
-        setResults(matched.slice(0, 10));
-      } catch { /* abort or network error */ }
-    };
+  // Filter client-side when query changes (no network requests)
+  useEffect(() => {
+    if (!searchData || query.length < 2) { setResults([]); return; }
+    const q = query.toLowerCase();
+    const matched: SearchResult[] = [];
 
-    const debounce = setTimeout(search, 200);
-    return () => { clearTimeout(debounce); cancelled = true; };
-  }, [query, commandPaletteOpen]);
+    for (const task of searchData.tasks) {
+      if (task.soft_deleted) continue;
+      if (task.title?.toLowerCase().includes(q) || task.client?.toLowerCase().includes(q)) {
+        matched.push({ type: "task", id: task.id, title: task.title, sub: task.client });
+      }
+    }
+    for (const client of searchData.clients) {
+      if (client.soft_deleted) continue;
+      const name = client.company_name || client.name || "";
+      if (name.toLowerCase().includes(q)) {
+        matched.push({ type: "client", id: client.id, title: name, sub: client.contact_name });
+      }
+    }
+    for (const lead of searchData.leads) {
+      if (lead.soft_deleted) continue;
+      if (lead.name?.toLowerCase().includes(q) || lead.industry?.toLowerCase().includes(q) || lead.needs?.toLowerCase().includes(q)) {
+        matched.push({ type: "lead", id: lead.id, title: lead.name, sub: lead.industry });
+      }
+    }
+    for (const tx of searchData.finance) {
+      if (tx.soft_deleted) continue;
+      const desc = tx.description || tx.desc || tx.client_name || "";
+      if (desc.toLowerCase().includes(q) || tx.category?.toLowerCase().includes(q)) {
+        matched.push({ type: "finance", id: tx.id, title: desc || tx.category, sub: tx.category });
+      }
+    }
+    setResults(matched.slice(0, 10));
+  }, [query, searchData]);
 
   const go = (tab: string) => { setActiveTab(tab as TabId); setCommandPaletteOpen(false); };
   const quickCreate = (type: string) => {
@@ -132,6 +141,7 @@ export function CommandPalette() {
       />
 
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="Command palette"
@@ -144,7 +154,17 @@ export function CommandPalette() {
       >
             <Command
               loop
-              onKeyDown={(e) => { if (e.key === "Escape") setCommandPaletteOpen(false); }}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") setCommandPaletteOpen(false);
+                if (e.key === "Tab") {
+                  const focusable = dialogRef.current?.querySelectorAll<HTMLElement>('input, button, [tabindex]');
+                  if (!focusable?.length) return;
+                  const first = focusable[0];
+                  const last = focusable[focusable.length - 1];
+                  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+                  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+                }
+              }}
             >
               {/* Search input */}
               <div
