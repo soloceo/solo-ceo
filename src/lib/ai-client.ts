@@ -229,9 +229,21 @@ async function callText(provider: AIProvider, apiKey: string, systemPrompt: stri
 
 /* ── Streaming chat ──────────────────────────────── */
 
+/** Attachment (image/file) embedded in a chat message */
+export interface ChatAttachment {
+  /** MIME type, e.g. "image/png", "image/jpeg", "application/pdf" */
+  mimeType: string;
+  /** Base64-encoded data (no data-URL prefix) */
+  base64: string;
+  /** Original filename for display */
+  fileName: string;
+}
+
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
+  /** Optional image/file attachments (only for user messages) */
+  attachments?: ChatAttachment[];
 }
 
 export interface NativeToolCall {
@@ -274,13 +286,65 @@ export async function streamChat(
   let headers: Record<string, string>;
   let body: string;
 
+  // Helper: build Ollama messages with image support
+  const buildOllamaMessages = (msgs: ChatMessage[]) =>
+    msgs.map(m => {
+      const images = m.attachments?.filter(a => a.mimeType.startsWith("image/")).map(a => a.base64);
+      return images && images.length > 0
+        ? { role: m.role, content: m.content, images }
+        : { role: m.role, content: m.content };
+    });
+
+  // Helper: build OpenAI messages with vision support
+  const buildOpenAIMessages = (msgs: ChatMessage[]) =>
+    msgs.map(m => {
+      if (!m.attachments?.length) return { role: m.role, content: m.content };
+      const parts: Array<{ type: string; text?: string; image_url?: { url: string } }> = [];
+      if (m.content) parts.push({ type: "text", text: m.content });
+      for (const a of m.attachments) {
+        if (a.mimeType.startsWith("image/")) {
+          parts.push({ type: "image_url", image_url: { url: `data:${a.mimeType};base64,${a.base64}` } });
+        }
+      }
+      return { role: m.role, content: parts.length ? parts : m.content };
+    });
+
+  // Helper: build Claude messages with image support
+  const buildClaudeMessages = (msgs: ChatMessage[]) =>
+    msgs.filter(m => m.role !== "system").map(m => {
+      if (!m.attachments?.length) return { role: m.role, content: m.content };
+      const content: Array<{ type: string; text?: string; source?: { type: string; media_type: string; data: string } }> = [];
+      for (const a of m.attachments) {
+        if (a.mimeType.startsWith("image/")) {
+          content.push({ type: "image", source: { type: "base64", media_type: a.mimeType, data: a.base64 } });
+        }
+      }
+      if (m.content) content.push({ type: "text", text: m.content });
+      return { role: m.role, content };
+    });
+
+  // Helper: build Gemini messages with image support
+  const buildGeminiMessages = (msgs: ChatMessage[]) =>
+    msgs.filter(m => m.role !== "system").map(m => {
+      const parts: Array<{ text?: string; inline_data?: { mime_type: string; data: string } }> = [];
+      if (m.attachments?.length) {
+        for (const a of m.attachments) {
+          if (a.mimeType.startsWith("image/")) {
+            parts.push({ inline_data: { mime_type: a.mimeType, data: a.base64 } });
+          }
+        }
+      }
+      if (m.content) parts.push({ text: m.content });
+      return { role: m.role === "assistant" ? "model" : "user", parts };
+    });
+
   if (provider === "ollama") {
     const cfg = getOllamaConfig();
     url = `${cfg.url}/api/chat`;
     headers = { "Content-Type": "application/json" };
     const reqBody: Record<string, unknown> = {
       model: cfg.model,
-      messages,
+      messages: buildOllamaMessages(messages),
       stream: true,
       think: false,  // Disable extended thinking (prevents hallucinations in reasoning mode)
       options: { temperature: 0.2 },
@@ -297,7 +361,7 @@ export async function streamChat(
   } else if (provider === "openai") {
     url = "https://api.openai.com/v1/chat/completions";
     headers = { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` };
-    body = JSON.stringify({ model: "gpt-4.1-mini", messages, stream: true, max_tokens: 2048 });
+    body = JSON.stringify({ model: "gpt-4.1-mini", messages: buildOpenAIMessages(messages), stream: true, max_tokens: 2048 });
   } else if (provider === "claude") {
     url = "https://api.anthropic.com/v1/messages";
     headers = {
@@ -307,19 +371,14 @@ export async function streamChat(
       "anthropic-dangerous-direct-browser-access": "true",
     };
     const sysMsg = messages.find(m => m.role === "system")?.content || "";
-    const chatMsgs = messages.filter(m => m.role !== "system");
-    body = JSON.stringify({ model: "claude-sonnet-4-6-20250514", max_tokens: 2048, system: sysMsg, messages: chatMsgs, stream: true });
+    body = JSON.stringify({ model: "claude-sonnet-4-6-20250514", max_tokens: 2048, system: sysMsg, messages: buildClaudeMessages(messages), stream: true });
   } else if (provider === "gemini") {
     const sysMsg = messages.find(m => m.role === "system")?.content || "";
-    const chatMsgs = messages.filter(m => m.role !== "system").map(m => ({
-      role: m.role === "assistant" ? "model" : "user",
-      parts: [{ text: m.content }],
-    }));
     url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse`;
     headers = { "Content-Type": "application/json", "x-goog-api-key": apiKey };
     body = JSON.stringify({
       system_instruction: { parts: [{ text: sysMsg }] },
-      contents: chatMsgs,
+      contents: buildGeminiMessages(messages),
       generationConfig: { maxOutputTokens: 2048 },
     });
   } else {
