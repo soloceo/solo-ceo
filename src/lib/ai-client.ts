@@ -18,7 +18,6 @@ export const AI_KEY_MAP: Record<string, string> = {
 const LS_PROVIDER = "solo_ai_provider";
 const LS_OLLAMA_URL = "solo_ollama_url";
 const LS_OLLAMA_MODEL = "solo_ollama_model";
-const LS_OLLAMA_KEY = "solo_ollama_key";
 
 export function getDeviceAIProvider(): AIProvider | "" {
   const val = localStorage.getItem(LS_PROVIDER);
@@ -29,26 +28,15 @@ export function setDeviceAIProvider(p: AIProvider | ""): void {
   // Store "off" explicitly so getAIConfig won't fall back to cloud settings
   try { localStorage.setItem(LS_PROVIDER, p || "off"); } catch { /* quota exceeded */ }
 }
-export function getOllamaConfig(): { url: string; model: string; apiKey: string } {
+export function getOllamaConfig(): { url: string; model: string } {
   return {
     url: localStorage.getItem(LS_OLLAMA_URL) || "http://localhost:11434",
     model: localStorage.getItem(LS_OLLAMA_MODEL) || "gemma4",
-    apiKey: localStorage.getItem(LS_OLLAMA_KEY) || "",
   };
 }
-export function setOllamaConfig(url: string, model: string, apiKey?: string): void {
+export function setOllamaConfig(url: string, model: string): void {
   try { localStorage.setItem(LS_OLLAMA_URL, url); } catch { /* quota exceeded */ }
   try { localStorage.setItem(LS_OLLAMA_MODEL, model); } catch { /* quota exceeded */ }
-  if (apiKey !== undefined) {
-    try { localStorage.setItem(LS_OLLAMA_KEY, apiKey); } catch { /* quota exceeded */ }
-  }
-}
-
-/** Build Ollama request headers (adds Bearer auth if API key is set) */
-function ollamaHeaders(apiKey?: string): Record<string, string> {
-  const h: Record<string, string> = { "Content-Type": "application/json" };
-  if (apiKey) h["Authorization"] = `Bearer ${apiKey}`;
-  return h;
 }
 
 /**
@@ -85,10 +73,10 @@ function extractJSON(text: string): any {
 /** Call AI and get structured JSON response */
 async function callJSON(provider: AIProvider, apiKey: string, systemPrompt: string, userText: string): Promise<any> {
   if (provider === "ollama") {
-    const { url, model, apiKey: ollamaKey } = getOllamaConfig();
+    const { url, model } = getOllamaConfig();
     const res = await fetch(`${url}/api/chat`, {
       method: "POST",
-      headers: ollamaHeaders(ollamaKey),
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model,
         messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userText }],
@@ -169,10 +157,10 @@ async function callJSON(provider: AIProvider, apiKey: string, systemPrompt: stri
 /** Call AI and get plain text response (for emails, etc.) */
 async function callText(provider: AIProvider, apiKey: string, systemPrompt: string, userText: string): Promise<string> {
   if (provider === "ollama") {
-    const { url, model, apiKey: ollamaKey } = getOllamaConfig();
+    const { url, model } = getOllamaConfig();
     const res = await fetch(`${url}/api/chat`, {
       method: "POST",
-      headers: ollamaHeaders(ollamaKey),
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model,
         messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userText }],
@@ -353,7 +341,7 @@ export async function streamChat(
   if (provider === "ollama") {
     const cfg = getOllamaConfig();
     url = `${cfg.url}/api/chat`;
-    headers = ollamaHeaders(cfg.apiKey);
+    headers = { "Content-Type": "application/json" };
     const reqBody: Record<string, unknown> = {
       model: cfg.model,
       messages: buildOllamaMessages(messages),
@@ -855,9 +843,9 @@ Return JSON only: {"title":"concise task name","steps":["step 1","step 2",...]}`
 /* ── API Key Test ──────────────────────────────── */
 
 /** Fetch installed models from Ollama */
-export async function fetchOllamaModels(url: string, apiKey?: string): Promise<string[]> {
+export async function fetchOllamaModels(url: string): Promise<string[]> {
   try {
-    const res = await fetch(`${url}/api/tags`, { headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : {} });
+    const res = await fetch(`${url}/api/tags`);
     if (!res.ok) return [];
     const data = await res.json();
     return (data.models || []).map((m: { name: string }) => m.name);
@@ -867,8 +855,8 @@ export async function fetchOllamaModels(url: string, apiKey?: string): Promise<s
 export async function testApiKey(provider: AIProvider, apiKey: string): Promise<boolean> {
   try {
     if (provider === "ollama") {
-      const { url, apiKey: ollamaKey } = getOllamaConfig();
-      const models = await fetchOllamaModels(url, ollamaKey);
+      const { url } = getOllamaConfig();
+      const models = await fetchOllamaModels(url);
       return models.length > 0;
     }
     if (provider === "gemini") {

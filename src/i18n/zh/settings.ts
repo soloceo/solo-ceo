@@ -236,7 +236,6 @@ export const settings = {
   "settings.ai.ollamaUrl": "服务地址",
   "settings.ai.ollamaModel": "模型",
   "settings.ai.ollamaRefresh": "刷新",
-  "settings.ai.ollamaKeyPlaceholder": "可选 — 用于 Ollama Cloud",
   "settings.ai.ollamaConnected": "已连接 · {count} 个模型可用",
   "settings.accountSecurity": "账号安全",
   "settings.planManager": "套餐管理",

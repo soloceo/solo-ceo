@@ -234,7 +234,6 @@ export const settings = {
   "settings.ai.ollamaUrl": "URL",
   "settings.ai.ollamaModel": "Model",
   "settings.ai.ollamaRefresh": "Refresh",
-  "settings.ai.ollamaKeyPlaceholder": "Optional — for Ollama Cloud",
   "settings.ai.ollamaConnected": "Connected · {count} models available",
   "settings.accountSecurity": "Account Security",
   "settings.planManager": "Plan Manager",
