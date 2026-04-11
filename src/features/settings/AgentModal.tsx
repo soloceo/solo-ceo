@@ -97,13 +97,15 @@ export default function AgentModal({ open, onClose, onSave, editAgent }: AgentMo
   const handleSubmit = () => {
     if (!name.trim()) { setNameError(true); return; }
     setNameError(false);
+    // Validate tools against known set
+    const validTools = tools.filter(t => ALL_TOOL_NAMES.includes(t));
     onSave({
       name: name.trim(),
-      avatar,
+      avatar: avatar || '🤖',
       role,
       personality,
       rules,
-      tools,
+      tools: validTools,
       conversation_starters: starters.filter(s => s.trim()),
       template_id: templateId,
     });

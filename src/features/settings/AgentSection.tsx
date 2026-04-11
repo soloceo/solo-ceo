@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bot, Plus, Pencil, Trash2, Wrench, Play, RotateCcw } from 'lucide-react';
+import { Bot, Plus, Pencil, Trash2, Wrench, Play, RotateCcw, Copy } from 'lucide-react';
 import { useT } from '../../i18n/context';
 import PeepIllustration from '../../components/ui/PeepIllustration';
 import { useAgents } from '../../hooks/useAgents';
@@ -70,6 +70,25 @@ export default function AgentSection() {
       setShowResetAll(false);
       showToast(t('settings.agents.resetAllDone'));
     } catch (e) { showToast(String(e)); }
+  };
+
+  const handleClone = async (agent: AgentConfig) => {
+    try {
+      await create({
+        name: `${agent.name} (${lang === 'zh' ? '副本' : 'Copy'})`,
+        avatar: agent.avatar,
+        role: agent.role,
+        personality: agent.personality,
+        rules: agent.rules,
+        tools: [...(agent.tools || [])],
+        conversation_starters: [...(agent.conversation_starters || [])],
+        template_id: '', // cloned agents are custom
+        is_default: false,
+      });
+      showToast(t('settings.agents.cloned'));
+    } catch (e) {
+      showToast(String(e));
+    }
   };
 
   const getTemplateName = (templateId: string) => {
@@ -190,6 +209,14 @@ export default function AgentSection() {
                     title={t('settings.agents.modal.test')}
                   >
                     <Play size={13} />
+                  </button>
+                  <button
+                    onClick={() => handleClone(agent)}
+                    className="btn-ghost compact"
+                    style={{ color: 'var(--color-text-quaternary)' }}
+                    title={t('settings.agents.clone')}
+                  >
+                    <Copy size={13} />
                   </button>
                   {deleteId === agent.id ? (
                     <div className="flex items-center gap-0.5">

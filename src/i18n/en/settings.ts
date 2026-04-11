@@ -294,6 +294,8 @@ export const settings = {
   "settings.agents.test.empty": "Send a message to test the agent",
   "settings.agents.test.placeholder": "Type a test message...",
   "settings.agents.test.failed": "(Connection failed, check AI settings)",
+  "settings.agents.clone": "Clone Agent",
+  "settings.agents.cloned": "Agent cloned",
   "settings.cloudSync": "Cloud Sync",
   "settings.cloudSync.status": "Sync Status",
   "settings.cloudSync.connected": "Connected to Supabase cloud",

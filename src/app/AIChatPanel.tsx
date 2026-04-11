@@ -940,6 +940,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
   const { settings } = useAppSettings();
   const activeTab = useUIStore((s) => s.activeTab);
   const setActiveTab = useUIStore((s) => s.setActiveTab);
+  const showToast = useUIStore((s) => s.showToast);
   const operatorName = useSettingsStore((s) => s.operatorName);
   const operatorAvatar = useSettingsStore((s) => s.operatorAvatar);
   const businessDesc = useSettingsStore((s) => {
@@ -982,10 +983,15 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
       // True first-time user — seed defaults
       seedDefaults(l).then(() => {
         try { localStorage.setItem('solo_agents_seeded', '1'); } catch { /* quota exceeded */ }
-      }).catch(() => {});
+      }).catch((e) => {
+        console.error('[Agent seed]', e);
+        showToast(lang === 'zh' ? 'Agent 初始化失败，请刷新重试' : 'Agent setup failed, please refresh');
+      });
     } else if (agents.length > 0) {
       // Existing user — seed any new templates added in updates
-      seedMissing(l, agents).catch(() => {});
+      seedMissing(l, agents).catch((e) => {
+        console.error('[Agent seedMissing]', e);
+      });
     }
   }, [agentsLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 

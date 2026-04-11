@@ -296,6 +296,8 @@ export const settings = {
   "settings.agents.test.empty": "发送消息测试 Agent 的回复效果",
   "settings.agents.test.placeholder": "输入测试消息...",
   "settings.agents.test.failed": "(连接失败，请检查 AI 设置)",
+  "settings.agents.clone": "复制 Agent",
+  "settings.agents.cloned": "Agent 已复制",
   "settings.cloudSync": "云同步",
   "settings.cloudSync.status": "同步状态",
   "settings.cloudSync.connected": "已连接 Supabase 云端",

@@ -4,7 +4,7 @@
   "configurations": [
     {
       "name": "Frontend (Vite)",
-      "runtimeExecutable": "/usr/local/bin/node",
+      "runtimeExecutable": "/opt/homebrew/bin/node",
       "runtimeArgs": ["./node_modules/.bin/vite"],
       "port": 5173
     }
