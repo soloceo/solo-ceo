@@ -23,13 +23,15 @@ export type AgentToolName =
   | 'create_task' | 'update_task' | 'delete_task'
   | 'create_lead' | 'move_lead' | 'update_lead'
   | 'record_transaction' | 'create_client' | 'update_client'
-  | 'search_data' | 'web_search';
+  | 'search_data' | 'web_search'
+  | 'create_memo' | 'get_dashboard' | 'analyze_finance' | 'generate_outreach';
 
 export const ALL_TOOL_NAMES: AgentToolName[] = [
   'create_task', 'update_task', 'delete_task',
   'create_lead', 'move_lead', 'update_lead',
   'record_transaction', 'create_client', 'update_client',
   'search_data', 'web_search',
+  'create_memo', 'get_dashboard', 'analyze_finance', 'generate_outreach',
 ];
 
 /** Human-readable tool labels (bilingual) */
@@ -45,4 +47,8 @@ export const TOOL_LABELS: Record<AgentToolName, { zh: string; en: string }> = {
   update_client:      { zh: '更新客户',   en: 'Update Client' },
   search_data:        { zh: '搜索数据',   en: 'Search Data' },
   web_search:         { zh: '网络搜索',   en: 'Web Search' },
+  create_memo:        { zh: '创建备忘',   en: 'Create Memo' },
+  get_dashboard:      { zh: '经营仪表盘', en: 'Dashboard' },
+  analyze_finance:    { zh: '财务分析',   en: 'Finance Analysis' },
+  generate_outreach:  { zh: '生成开发信', en: 'Generate Outreach' },
 };

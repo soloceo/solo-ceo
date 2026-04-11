@@ -5,7 +5,7 @@
 
 import { api } from "../lib/api";
 import { todayDateKey } from "../lib/date-utils";
-import { getAIConfig, AI_KEY_MAP } from "../lib/ai-client";
+import { getAIConfig, AI_KEY_MAP, generateOutreach } from "../lib/ai-client";
 
 /* ── Tool schema for AI ──────────────────────────────────── */
 
@@ -181,6 +181,52 @@ export const AGENT_TOOLS: ToolDef[] = [
       required: ["query"],
     },
   },
+  {
+    name: "create_memo",
+    description: "Create a quick memo/note. Use when the user says 'remind me', 'note down', 'remember', '记一下', '备忘' etc.",
+    parameters: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Memo content (concise)" },
+        due: { type: "string", description: "Due/reminder date in YYYY-MM-DD format (optional)" },
+      },
+      required: ["title"],
+    },
+  },
+  {
+    name: "get_dashboard",
+    description: "Get real-time business dashboard stats: MRR, revenue, active tasks, leads pipeline, urgent items. Use this to answer business performance questions accurately.",
+    parameters: {
+      type: "object",
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: "analyze_finance",
+    description: "Analyze financial data with aggregation: totals by category, monthly trends, income vs expense comparison. Much more accurate than searching raw transactions.",
+    parameters: {
+      type: "object",
+      properties: {
+        period: { type: "string", description: "Time period: 'this_month', 'last_month', 'this_year', or YYYY-MM", default: "this_month" },
+        type: { type: "string", description: "Filter by type", enum: ["all", "income", "expense"], default: "all" },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "generate_outreach",
+    description: "Generate a personalized outreach/follow-up email for a lead. Searches the lead by name and writes a cold email based on their profile.",
+    parameters: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Lead name to find (fuzzy match)" },
+        tone: { type: "string", description: "Email tone", enum: ["formal", "friendly", "direct"], default: "friendly" },
+        lang: { type: "string", description: "Email language", enum: ["zh", "en"], default: "zh" },
+      },
+      required: ["name"],
+    },
+  },
 ];
 
 /* ── Tool safety classification ──────────────────────────── */
@@ -198,6 +244,10 @@ export const TOOL_SAFETY: Record<string, "read" | "write" | "destructive"> = {
   record_transaction: "write",
   create_client: "write",
   update_client: "write",
+  create_memo: "write",
+  get_dashboard: "read",
+  analyze_finance: "read",
+  generate_outreach: "read",
 };
 
 /* ── Tool execution result ────────────────────────────────── */
@@ -336,6 +386,17 @@ export function buildConfirmInfo(call: ToolCall, lang: string, currencySymbol = 
           ...(a.plan_tier ? [`${isZh ? "套餐" : "Plan"}: ${a.plan_tier}`] : []),
           ...(a.mrr ? [`MRR: ${sym}${Number(a.mrr).toLocaleString()}`] : []),
           ...(a.project_fee ? [`${isZh ? "项目费" : "Fee"}: ${sym}${Number(a.project_fee).toLocaleString()}`] : []),
+        ],
+        args: a,
+      };
+
+    case "create_memo":
+      return {
+        toolName: call.name,
+        label: isZh ? "创建备忘" : "Create Memo",
+        details: [
+          `${isZh ? "内容" : "Content"}: ${a.title}`,
+          ...(a.due ? [`${isZh ? "截止" : "Due"}: ${a.due}`] : []),
         ],
         args: a,
       };
@@ -526,6 +587,122 @@ export async function executeTool(call: ToolCall, currencySymbol = "$"): Promise
         return await executeWebSearch(query, (a.lang as string) || "en");
       }
 
+      case "create_memo": {
+        if (!a.title) return { success: false, message: "Missing required field: title" };
+        const body: Record<string, unknown> = {
+          title: a.title,
+          priority: "Medium",
+          column: "todo",
+          scope: "work-memo",
+        };
+        if (a.due) body.due = a.due;
+        await api.post("/api/tasks", body);
+        return { success: true, message: `Memo created: "${a.title}"` };
+      }
+
+      case "get_dashboard": {
+        const dash = await api.get("/api/dashboard") as Record<string, unknown>;
+        if (!dash) return { success: false, message: "Failed to load dashboard" };
+        const sym = currencySymbol;
+        const lines: string[] = [];
+        if (dash.mrr != null) lines.push(`MRR: ${sym}${Number(dash.mrr).toLocaleString()}`);
+        if (dash.revenue != null) lines.push(`Revenue (month): ${sym}${Number(dash.revenue).toLocaleString()}`);
+        if (dash.expenses != null) lines.push(`Expenses (month): ${sym}${Number(dash.expenses).toLocaleString()}`);
+        if (dash.net_income != null) lines.push(`Net income: ${sym}${Number(dash.net_income).toLocaleString()}`);
+        if (dash.active_tasks != null) lines.push(`Active tasks: ${dash.active_tasks}`);
+        if (dash.overdue_tasks != null) lines.push(`Overdue tasks: ${dash.overdue_tasks}`);
+        if (dash.total_leads != null) lines.push(`Total leads: ${dash.total_leads}`);
+        if (dash.active_clients != null) lines.push(`Active clients: ${dash.active_clients}`);
+        // Include any other keys not already listed
+        for (const [k, v] of Object.entries(dash)) {
+          if (!["mrr", "revenue", "expenses", "net_income", "active_tasks", "overdue_tasks", "total_leads", "active_clients"].includes(k) && v != null) {
+            lines.push(`${k}: ${typeof v === "number" ? v.toLocaleString() : v}`);
+          }
+        }
+        return { success: true, message: `Dashboard stats:\n${lines.join("\n")}`, data: dash };
+      }
+
+      case "analyze_finance": {
+        const items = await api.get("/api/finance") as Record<string, unknown>[];
+        if (!Array.isArray(items)) return { success: true, message: "No financial data found", data: {} };
+
+        const period = (a.period as string) || "this_month";
+        const typeFilter = (a.type as string) || "all";
+        const now = new Date();
+        let year = now.getFullYear(), month = now.getMonth(); // 0-based
+
+        if (period === "last_month") {
+          month -= 1;
+          if (month < 0) { month = 11; year -= 1; }
+        } else if (period === "this_year") {
+          // no month filter needed, handled below
+        } else if (/^\d{4}-\d{2}$/.test(period)) {
+          const [y, m] = period.split("-").map(Number);
+          year = y; month = m - 1;
+        }
+        // else this_month is default
+
+        const filtered = items.filter((item) => {
+          const d = String(item.date || "");
+          if (period === "this_year") {
+            if (!d.startsWith(String(year))) return false;
+          } else {
+            const prefix = `${year}-${String(month + 1).padStart(2, "0")}`;
+            if (!d.startsWith(prefix)) return false;
+          }
+          if (typeFilter !== "all" && item.type !== typeFilter) return false;
+          return true;
+        });
+
+        let totalIncome = 0, totalExpense = 0;
+        const byCat: Record<string, number> = {};
+        for (const item of filtered) {
+          const amt = Number(item.amount) || 0;
+          if (item.type === "income") totalIncome += amt;
+          else totalExpense += amt;
+          const cat = String(item.category || "其他");
+          byCat[cat] = (byCat[cat] || 0) + amt;
+        }
+
+        const sym = currencySymbol;
+        const catLines = Object.entries(byCat)
+          .sort((a, b) => b[1] - a[1])
+          .map(([cat, amt]) => `  ${cat}: ${sym}${amt.toLocaleString()}`);
+
+        const summary = [
+          `Period: ${period}`,
+          `Income: ${sym}${totalIncome.toLocaleString()}`,
+          `Expenses: ${sym}${totalExpense.toLocaleString()}`,
+          `Net: ${sym}${(totalIncome - totalExpense).toLocaleString()}`,
+          `Transactions: ${filtered.length}`,
+          ...(catLines.length > 0 ? [`By category:`, ...catLines] : []),
+        ].join("\n");
+
+        return { success: true, message: summary, data: { totalIncome, totalExpense, net: totalIncome - totalExpense, byCategory: byCat, count: filtered.length } };
+      }
+
+      case "generate_outreach": {
+        if (!a.name) return { success: false, message: "Missing required field: name" };
+        const lead = await findByTitle("/api/leads", "name", a.name as string);
+        if (!lead) return { success: false, message: `Lead "${a.name}" not found` };
+
+        // Get AI config
+        let settings: Record<string, string> | null = null;
+        try { settings = await api.get("/api/settings") as Record<string, string>; } catch { /* */ }
+        const aiConfig = getAIConfig(settings);
+        if (!aiConfig) return { success: false, message: "No AI provider configured. Set up an API key in Settings → AI." };
+
+        const tone = (a.tone as "formal" | "friendly" | "direct") || "friendly";
+        const lang = (a.lang as "zh" | "en") || "zh";
+        const bizDesc = settings?.business_description || undefined;
+
+        const email = await generateOutreach(
+          { name: lead.name as string, industry: lead.industry as string | undefined, needs: lead.needs as string | undefined, website: lead.website as string | undefined },
+          tone, lang, aiConfig.provider, aiConfig.apiKey, bizDesc,
+        );
+        return { success: true, message: email };
+      }
+
       default:
         return { success: false, message: `Unknown tool: ${call.name}` };
     }
@@ -665,6 +842,22 @@ export function buildFilteredToolsPrompt(lang: string, allowedTools?: string[] |
       zh: "**web_search**: 搜索互联网。参数：query(必填，尽量具体，包含地点/行业等), lang(zh/en)",
       en: "**web_search**: Search the internet. Args: query(required, be specific with location/industry), lang(zh/en)",
     },
+    create_memo: {
+      zh: "**create_memo**: 创建备忘/笔记。用户说「记一下」「备忘」「提醒我」时使用。参数：title(必填), due(YYYY-MM-DD)",
+      en: "**create_memo**: Create a quick memo/note. Use when user says 'remind me', 'note down'. Args: title(required), due(YYYY-MM-DD)",
+    },
+    get_dashboard: {
+      zh: "**get_dashboard**: 获取实时经营仪表盘：MRR、收入、支出、任务、线索、客户等关键指标。无参数",
+      en: "**get_dashboard**: Get real-time business dashboard: MRR, revenue, expenses, tasks, leads, clients. No args",
+    },
+    analyze_finance: {
+      zh: "**analyze_finance**: 财务分析：按月汇总收支、分类统计、趋势对比。参数：period(this_month/last_month/this_year/YYYY-MM), type(all/income/expense)",
+      en: "**analyze_finance**: Finance analysis: monthly totals, category breakdown, trends. Args: period(this_month/last_month/this_year/YYYY-MM), type(all/income/expense)",
+    },
+    generate_outreach: {
+      zh: "**generate_outreach**: 为线索生成个性化开发邮件。参数：name(必填,线索名), tone(formal/friendly/direct), lang(zh/en)",
+      en: "**generate_outreach**: Generate personalized outreach email for a lead. Args: name(required, lead name), tone(formal/friendly/direct), lang(zh/en)",
+    },
   };
 
   const filteredDescriptions = allowedTools
@@ -687,6 +880,14 @@ export function buildFilteredToolsPrompt(lang: string, allowedTools?: string[] |
   if (allowedTools.includes("create_lead")) {
     examplesZh.push(`用户说"添加线索：张三公司" → 你返回：\n\`\`\`json\n{"tool_call": {"name": "create_lead", "args": {"name": "张三公司"}}}\n\`\`\``);
     examplesEn.push(`User: "Add lead: Acme Corp" → return:\n\`\`\`json\n{"tool_call": {"name": "create_lead", "args": {"name": "Acme Corp"}}}\n\`\`\``);
+  }
+  if (allowedTools.includes("create_memo")) {
+    examplesZh.push(`用户说"记一下：下周二前要给客户发报价单" → 你返回：\n\`\`\`json\n{"tool_call": {"name": "create_memo", "args": {"title": "给客户发报价单", "due": "YYYY-MM-DD"}}}\n\`\`\``);
+    examplesEn.push(`User: "Remind me: send quote to client by Tuesday" → return:\n\`\`\`json\n{"tool_call": {"name": "create_memo", "args": {"title": "Send quote to client", "due": "YYYY-MM-DD"}}}\n\`\`\``);
+  }
+  if (allowedTools.includes("get_dashboard")) {
+    examplesZh.push(`用户说"看看这个月经营情况" → 你返回：\n\`\`\`json\n{"tool_call": {"name": "get_dashboard", "args": {}}}\n\`\`\``);
+    examplesEn.push(`User: "How's the business doing?" → return:\n\`\`\`json\n{"tool_call": {"name": "get_dashboard", "args": {}}}\n\`\`\``);
   }
 
   if (isZh) {
@@ -782,6 +983,10 @@ export function buildToolsPrompt(lang: string): string {
 | 添加线索/新线索 | create_lead |
 | 搜索/查找/有多少 | search_data |
 | 完成任务/任务做完了 | update_task (column=done) |
+| 记一下/备忘/提醒我 | create_memo |
+| 经营情况/仪表盘/数据概览 | get_dashboard |
+| 分析收支/财务分析/本月花了多少 | analyze_finance |
+| 写开发信/写邮件给线索 | generate_outreach |
 
 ### 可用工具
 
@@ -796,6 +1001,10 @@ export function buildToolsPrompt(lang: string): string {
 - **update_client**: 更新客户信息。参数：name(必填,用于匹配), status(Active/Paused/Cancelled/Completed), billing_type, plan_tier, mrr, project_fee
 - **search_data**: 搜索数据。参数：scope(tasks/leads/clients/finance)(必填), query
 - **web_search**: 搜索互联网。参数：query(必填), lang(zh/en)
+- **create_memo**: 创建备忘/笔记。参数：title(必填), due(YYYY-MM-DD)
+- **get_dashboard**: 获取实时经营仪表盘（MRR、收入、支出、任务、线索、客户）。无参数
+- **analyze_finance**: 财务分析（按月汇总、分类统计）。参数：period(this_month/last_month/this_year/YYYY-MM), type(all/income/expense)
+- **generate_outreach**: 为线索生成个性化开发邮件。参数：name(必填,线索名), tone(formal/friendly/direct), lang(zh/en)
 
 **重要：当用户要求执行操作时，你必须返回 JSON，不要只用文字回复。**`;
   }
@@ -841,6 +1050,10 @@ User: "Create task: write weekly report" → return:
 - **update_client**: Update a client. Args: name(required, for matching), status(Active/Paused/Cancelled/Completed), billing_type, plan_tier, mrr, project_fee
 - **search_data**: Search data. Args: scope(tasks/leads/clients/finance)(required), query
 - **web_search**: Search the internet. Args: query(required), lang(zh/en)
+- **create_memo**: Create a memo/note. Args: title(required), due(YYYY-MM-DD)
+- **get_dashboard**: Get real-time business dashboard (MRR, revenue, expenses, tasks, leads, clients). No args
+- **analyze_finance**: Finance analysis (monthly totals, category breakdown). Args: period(this_month/last_month/this_year/YYYY-MM), type(all/income/expense)
+- **generate_outreach**: Generate personalized outreach email for a lead. Args: name(required, lead name), tone(formal/friendly/direct), lang(zh/en)
 
 **IMPORTANT: When the user asks you to do something, you MUST return JSON — do NOT just describe the action in text.**`;
 }

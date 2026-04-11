@@ -1,4 +1,10 @@
 @import "tailwindcss";
+
+/* Override lg breakpoint so all iPads (portrait ≥744px) get desktop layout */
+@theme {
+  --breakpoint-lg: 744px;
+}
+
 @import "./styles/tokens.css";
 @import "./styles/base.css";
 @import "./styles/components.css";

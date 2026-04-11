@@ -452,6 +452,16 @@ function App() {
               badgeSegments={undefined}
             />
           ))}
+
+          {/* AI Chat — in main nav */}
+          <SidebarItem
+            id="__ai_chat__"
+            icon={<MessageCircle size={16} aria-hidden="true" />}
+            label={t("ai.chat.title")}
+            active={false}
+            expanded={isExpanded}
+            onClick={() => setAIChatOpen(true)}
+          />
         </nav>
 
         {/* Sidebar illustration — expanded only */}
@@ -477,15 +487,6 @@ function App() {
                 {themeIcon}
               </button>
               <button
-                onClick={() => setAIChatOpen(true)}
-                className="btn-icon-sm"
-                style={{ color: "var(--color-text-quaternary)" }}
-                title={t("ai.chat.title")}
-                aria-label={t("ai.chat.open")}
-              >
-                <MessageCircle size={14} />
-              </button>
-              <button
                 onClick={() => setActiveTab("settings")}
                 className="btn-icon-sm"
                 style={{ color: activeTab === "settings" ? "var(--color-text-primary)" : "var(--color-text-quaternary)" }}
@@ -497,18 +498,6 @@ function App() {
             </div>
           )}
 
-
-          {/* AI Chat — expanded sidebar */}
-          {isExpanded && (
-            <button
-              onClick={() => setAIChatOpen(true)}
-              className="flex items-center gap-2 w-full px-2 py-1.5 rounded-[var(--radius-6)] text-[15px] transition-colors hover:bg-[var(--color-bg-tertiary)] mb-1"
-              style={{ color: "var(--color-text-tertiary)" }}
-            >
-              <MessageCircle size={16} />
-              <span>{t("ai.chat.title")}</span>
-            </button>
-          )}
 
           {/* User */}
           <UserMenu
