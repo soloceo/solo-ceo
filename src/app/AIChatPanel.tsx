@@ -752,13 +752,23 @@ function ConversationList({
             return (
             <div
               key={conv.id}
-              className={`group flex items-center gap-1 px-2.5 py-2 rounded-lg cursor-pointer transition-colors`}
+              className={`ai-chat-conv-item group flex items-center gap-1.5 px-2.5 py-2.5 lg:py-2 rounded-lg cursor-pointer transition-colors ${isActive ? 'active' : 'ai-chat-conv-inactive'}`}
               style={{
                 background: isActive ? "var(--color-bg-tertiary)" : "transparent",
               }}
               onClick={() => onSelect(conv.id)}
               onMouseEnter={undefined}
             >
+              {/* Agent avatar for conversation */}
+              {(() => {
+                const ids = getConvAgentIds(conv);
+                const firstAgent = ids.length > 0 ? agentMap.get(ids[0]) : null;
+                return (
+                  <span className="text-[16px] shrink-0 lg:hidden">
+                    {ids.length > 1 ? '👥' : firstAgent?.avatar || '🤖'}
+                  </span>
+                );
+              })()}
               <div className="flex-1 min-w-0">
                 {editingId === conv.id ? (
                   <input
@@ -783,27 +793,32 @@ function ConversationList({
                     onClick={e => e.stopPropagation()}
                   />
                 ) : (
-                  <p className="text-[13px] truncate" style={{ color: isActive ? "var(--color-text-primary)" : "var(--color-text-secondary)", fontWeight: isActive ? 500 : 400 }}>
-                    {conv.title}
-                  </p>
+                  <>
+                    <p className="text-[13px] truncate" style={{ color: isActive ? "var(--color-text-primary)" : "var(--color-text-secondary)", fontWeight: isActive ? 500 : 400 }}>
+                      {conv.title}
+                    </p>
+                    <p className="text-[11px] mt-0.5 lg:hidden" style={{ color: "var(--color-text-quaternary)" }}>
+                      {formatTime(conv.updatedAt)} · {conv.messages.length} {lang === "zh" ? "条" : "msgs"}
+                    </p>
+                  </>
                 )}
               </div>
-              <div className="flex items-center gap-0 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex items-center gap-0 shrink-0 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                 <button
                   onClick={(e) => { e.stopPropagation(); setEditTitle(conv.title); setEditingId(conv.id); }}
-                  className="p-1 rounded-md hover:bg-[var(--color-bg-secondary)]"
+                  className="p-1.5 lg:p-1 rounded-md hover:bg-[var(--color-bg-secondary)]"
                   style={{ color: "var(--color-text-quaternary)" }}
                   aria-label={t("ai.chat.rename")}
                 >
-                  <Pencil size={12} />
+                  <Pencil size={13} />
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); onDelete(conv.id); }}
-                  className="p-1 rounded-md hover:bg-[var(--color-bg-secondary)]"
+                  className="p-1.5 lg:p-1 rounded-md hover:bg-[var(--color-bg-secondary)]"
                   style={{ color: "var(--color-text-quaternary)" }}
                   aria-label="Delete"
                 >
-                  <Trash2 size={12} />
+                  <Trash2 size={13} />
                 </button>
               </div>
             </div>
@@ -2042,10 +2057,16 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
             }}
           >
             <div className="flex items-center gap-1.5 min-w-0">
-              {!showList && activeConvId && (
-                <button onClick={() => setShowList(true)} className="btn-icon-sm lg:hidden" aria-label={t("ai.chat.conversations")}>
-                  <ChevronLeft size={18} />
+              {!showList && (
+                <button onClick={() => setShowList(true)} className="btn-icon-sm lg:hidden flex items-center gap-1" aria-label={t("ai.chat.conversations")}>
+                  <MessagesSquare size={16} />
                 </button>
+              )}
+              {/* Mobile conversation title */}
+              {!showList && activeConv && (
+                <span className="lg:hidden text-[13px] truncate max-w-[140px]" style={{ color: 'var(--color-text-secondary)', fontWeight: 500 }}>
+                  {activeConv.title}
+                </span>
               )}
               {/* Agent picker — compact dropdown */}
               {!showList && agents.length > 0 && (
@@ -2074,7 +2095,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                     <>
                       <div className="fixed inset-0" style={{ zIndex: 'var(--layer-popover, 600)' } as React.CSSProperties} onClick={() => setShowAgentPicker(false)} />
                       <div
-                        className="absolute top-full left-0 mt-1 rounded-xl py-1 min-w-[200px]"
+                        className="absolute top-full left-0 mt-1 rounded-xl py-1 min-w-[200px] max-lg:fixed max-lg:inset-x-2 max-lg:top-auto max-lg:bottom-16 max-lg:left-2 max-lg:right-2 max-lg:rounded-2xl max-lg:py-2"
                         style={{
                           background: 'var(--color-bg-secondary)',
                           border: '1px solid var(--color-border-translucent)',
@@ -2146,9 +2167,11 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
               )}
             </div>
             <div className="flex items-center gap-0.5">
-              <button onClick={handleNewConversation} className="btn-icon-sm" aria-label={t("ai.chat.newChat")} title={t("ai.chat.newChat")}>
-                <Plus size={18} />
-              </button>
+              {!showList && (
+                <button onClick={handleNewConversation} className="btn-icon-sm" aria-label={t("ai.chat.newChat")} title={t("ai.chat.newChat")}>
+                  <Plus size={18} />
+                </button>
+              )}
               <button onClick={handleClose} className="btn-icon-sm" aria-label={t("common.close")}>
                 <X size={18} />
               </button>
@@ -2176,6 +2199,15 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
             {/* Mobile conversation list — toggled */}
             {showList && (
               <div className="flex-1 flex flex-col lg:hidden">
+                {/* Mobile list header */}
+                <div className="flex items-center justify-between px-3 py-2" style={{ borderBottom: '1px solid var(--color-line-tertiary)' }}>
+                  <span className="text-[14px]" style={{ color: 'var(--color-text-primary)', fontWeight: 600 }}>
+                    {t("ai.chat.conversations")}
+                  </span>
+                  <span className="text-[12px]" style={{ color: 'var(--color-text-quaternary)' }}>
+                    {conversations.length} {lang === "zh" ? "个对话" : "chats"}
+                  </span>
+                </div>
                 <ConversationList
                   conversations={conversations}
                   activeId={activeConvId}
@@ -2186,6 +2218,17 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                   lang={lang}
                   agents={agents}
                 />
+                {/* Mobile new chat button at bottom */}
+                <div className="px-3 py-3" style={{ borderTop: '1px solid var(--color-line-tertiary)' }}>
+                  <button
+                    onClick={() => { handleNewConversation(); setShowList(false); }}
+                    className="ai-chat-new-btn w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[14px] transition-colors"
+                    style={{ background: 'var(--color-accent)', color: 'var(--color-brand-text)', fontWeight: 500 }}
+                  >
+                    <Plus size={16} />
+                    {t("ai.chat.newChat")}
+                  </button>
+                </div>
               </div>
             )}
 
@@ -2194,7 +2237,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
               {/* Messages (with drag-drop zone for image upload) */}
               <div
                 ref={scrollRef}
-                className="flex-1 overflow-y-auto px-5 lg:px-8 py-6 space-y-6 relative"
+                className="flex-1 overflow-y-auto px-3 sm:px-5 lg:px-8 py-4 lg:py-6 space-y-4 lg:space-y-6 relative"
                 style={{ overscrollBehavior: "contain" }}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -2215,7 +2258,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                   </div>
                 )}
                 {messages.length === 0 && (
-                  <div className="flex flex-col items-center justify-center h-full gap-6 max-w-[480px] mx-auto">
+                  <div className="flex flex-col items-center justify-center h-full gap-4 lg:gap-6 max-w-[480px] mx-auto px-1">
                     {hasAI ? (
                       <>
                         {activeAgents.length > 1 ? (
@@ -2242,13 +2285,13 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                             <p className="text-[13px] text-center max-w-[300px]" style={{ color: 'var(--color-text-tertiary)' }}>{t("ai.chat.defaultDesc")}</p>
                           </div>
                         )}
-                        <div className="grid grid-cols-2 gap-2 w-full">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
                           {quickPrompts.map((qp, i) => (
                             <button
                               key={i}
                               onClick={() => sendMessage(qp.prompt)}
                               disabled={isStreaming}
-                              className="px-3 py-2.5 rounded-2xl text-[13px] text-left transition-colors hover:opacity-80 press-feedback disabled:opacity-40 disabled:pointer-events-none"
+                              className="ai-chat-quick-prompt px-3 py-2.5 rounded-2xl text-[13px] text-left transition-colors hover:opacity-80 press-feedback disabled:opacity-40 disabled:pointer-events-none"
                               style={{ background: "var(--color-bg-secondary)", color: "var(--color-text-secondary)", border: "1px solid var(--color-line-tertiary)" }}
                             >
                               {qp.label}
@@ -2280,7 +2323,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                   const senderName = isUser ? operatorName : (msgAgent?.name || t("ai.chat.defaultAssistant"));
 
                   return (
-                  <div key={i} className={`max-w-[720px] mx-auto w-full ${isUser ? "" : ""}`}>
+                  <div key={i} className="max-w-[720px] mx-auto w-full">
                     {/* Group chat: always show agent avatar + name */}
                     {!isUser && isGroupConv && (
                       <div className="flex items-center gap-1.5 mb-1.5 ml-0.5">
@@ -2313,7 +2356,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                     ) : isUser ? (
                       /* ── User message ── */
                       <div className="flex justify-end">
-                        <div className="group/user relative max-w-[85%]">
+                        <div className="group/user relative max-w-[92%] sm:max-w-[85%]">
                           {/* Attached images */}
                           {msg.attachments && msg.attachments.length > 0 && (
                             <div className={`flex flex-wrap gap-1.5 justify-end ${msg.content ? 'mb-2' : ''}`}>
@@ -2329,27 +2372,27 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                             </div>
                           )}
                           {editingMsgIndex === i ? (
-                            <div className="w-full min-w-[280px]">
+                            <div className="w-full min-w-0 sm:min-w-[280px]">
                               <textarea
-                                className="w-full rounded-2xl px-4 py-3 text-[14px] leading-relaxed resize-none border-0 outline-none"
+                                className="w-full rounded-2xl px-3 sm:px-4 py-3 text-[14px] leading-relaxed resize-none border-0 outline-none"
                                 style={{ background: "var(--color-bg-secondary)", color: "var(--color-text-primary)", minHeight: 60, border: "1px solid var(--color-line-secondary)" }}
                                 value={editingMsgText}
                                 onChange={e => setEditingMsgText(e.target.value)}
                                 onKeyDown={e => {
-                                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmitEdit(); }
+                                  if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); handleSubmitEdit(); }
                                   if (e.key === "Escape") { setEditingMsgIndex(null); setEditingMsgText(""); }
                                 }}
                                 autoFocus
                               />
                               <div className="flex justify-end gap-1.5 mt-2">
-                                <button onClick={() => { setEditingMsgIndex(null); setEditingMsgText(""); }} className="px-3.5 py-1.5 rounded-full text-[13px] transition-colors hover:bg-[var(--color-bg-tertiary)]" style={{ color: "var(--color-text-secondary)" }}>{t("common.cancel")}</button>
-                                <button onClick={handleSubmitEdit} className="px-3.5 py-1.5 rounded-full text-[13px] transition-colors" style={{ background: "var(--color-text-primary)", color: "var(--color-bg-primary)" }}>{t("ai.chat.send")}</button>
+                                <button onClick={() => { setEditingMsgIndex(null); setEditingMsgText(""); }} className="px-3 sm:px-3.5 py-1.5 rounded-full text-[13px] transition-colors hover:bg-[var(--color-bg-tertiary)]" style={{ color: "var(--color-text-secondary)" }}>{t("common.cancel")}</button>
+                                <button onClick={handleSubmitEdit} className="px-3 sm:px-3.5 py-1.5 rounded-full text-[13px] transition-colors" style={{ background: "var(--color-text-primary)", color: "var(--color-bg-primary)" }}>{t("ai.chat.send")}</button>
                               </div>
                             </div>
                           ) : (
                             <>
                               <div
-                                className="rounded-3xl px-4 py-2.5 text-[14px] leading-relaxed inline-block"
+                                className="ai-chat-bubble-user rounded-3xl px-3.5 sm:px-4 py-2.5 text-[14px] leading-relaxed inline-block"
                                 style={{ background: "var(--color-bg-secondary)", color: "var(--color-text-primary)", whiteSpace: "pre-wrap", overflowWrap: "break-word" as const }}
                               >
                                 {msg.content}
@@ -2357,10 +2400,21 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                               {!isStreamingHere && (
                                 <button
                                   onClick={() => { setEditingMsgIndex(i); setEditingMsgText(typeof msg.content === "string" ? msg.content : ""); }}
-                                  className="absolute -left-8 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-all opacity-0 group-hover/user:opacity-100 hover:bg-[var(--color-bg-secondary)]"
+                                  className="absolute -left-8 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-all max-lg:hidden lg:opacity-0 lg:group-hover/user:opacity-100 hover:bg-[var(--color-bg-secondary)]"
                                   title={t("ai.chat.editMessage")}
                                 >
                                   <Pencil size={13} style={{ color: "var(--color-text-quaternary)" }} />
+                                </button>
+                              )}
+                              {/* Mobile edit — small icon below bubble, only on last user msg */}
+                              {!isStreamingHere && !messages.slice(i + 1).some(m => m.role === 'user') && (
+                                <button
+                                  onClick={() => { setEditingMsgIndex(i); setEditingMsgText(typeof msg.content === "string" ? msg.content : ""); }}
+                                  className="lg:hidden p-1 rounded-md mt-0.5 ml-auto transition-colors active:bg-[var(--color-bg-tertiary)]"
+                                  style={{ color: "var(--color-text-quaternary)" }}
+                                  title={t("ai.chat.editMessage")}
+                                >
+                                  <Pencil size={12} />
                                 </button>
                               )}
                             </>
@@ -2390,10 +2444,10 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                               <MarkdownContent content={msg.content} />
                             </div>
                             {!msg.streaming && (
-                              <div className="flex items-center gap-0.5 mt-2 opacity-0 group-hover/assistant:opacity-100 transition-opacity">
+                              <div className="flex items-center gap-0.5 mt-1.5 lg:mt-2 lg:opacity-0 lg:group-hover/assistant:opacity-100 transition-opacity">
                                 <CopyButton text={msg.content} />
                                 {!isStreamingHere && !messages.slice(i + 1).some(m => m.role === 'user') && (
-                                  <button onClick={handleRegenerate} className="p-1.5 rounded-lg transition-colors hover:bg-[var(--color-bg-secondary)]" title={t("ai.chat.regenerate")}>
+                                  <button onClick={handleRegenerate} className="p-1.5 rounded-lg transition-colors hover:bg-[var(--color-bg-secondary)] active:bg-[var(--color-bg-tertiary)]" title={t("ai.chat.regenerate")}>
                                     <RotateCcw size={14} style={{ color: "var(--color-text-quaternary)" }} />
                                   </button>
                                 )}
@@ -2435,7 +2489,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
               })()}
 
               {/* Input */}
-              <div className="shrink-0 px-5 lg:px-8 pb-4 pt-2" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom, 0px))" }}>
+              <div className="shrink-0 px-3 sm:px-5 lg:px-8 pb-4 pt-2" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom, 0px))" }}>
                 <div className="max-w-[720px] mx-auto w-full">
                 {/* @mention dropdown */}
                 {mentionQuery !== null && mentionAgents.length > 0 && (

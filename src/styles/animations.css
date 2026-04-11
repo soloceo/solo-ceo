@@ -220,3 +220,36 @@
     background: var(--color-bg-tertiary) !important;
   }
 }
+
+/* ── AI Chat mobile optimizations ──────────────────────────── */
+@media (max-width: 1023px) {
+  /* Bigger touch targets for conversation items on mobile */
+  .ai-chat-conv-item {
+    min-height: 48px;
+  }
+
+  /* Make code blocks more readable on mobile */
+  .ai-chat-panel pre {
+    font-size: 12px !important;
+  }
+
+  /* Smoother scrolling on mobile */
+  .ai-chat-panel {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Fix table overflow in markdown on mobile */
+  .ai-chat-panel table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+    font-size: 13px;
+  }
+
+  /* Ensure images in messages don't overflow on mobile */
+  .ai-chat-panel img {
+    max-width: 100%;
+    height: auto;
+  }
+}
