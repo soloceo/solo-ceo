@@ -34,8 +34,10 @@ export default function AISection({ settings, save }: AISectionProps) {
   // Ollama state
   const [ollamaUrl, setOllamaUrl] = useState(() => getOllamaConfig().url);
   const [ollamaModel, setOllamaModel] = useState(() => getOllamaConfig().model);
+  const [ollamaKey, setOllamaKey] = useState(() => getOllamaConfig().apiKey);
   const [ollamaModels, setOllamaModels] = useState<string[]>([]);
   const [ollamaLoading, setOllamaLoading] = useState(false);
+  const [showOllamaKey, setShowOllamaKey] = useState(false);
 
   // Sync cloud keys from settings
   useEffect(() => {
@@ -49,8 +51,8 @@ export default function AISection({ settings, save }: AISectionProps) {
 
   // Try to discover Ollama models on mount
   useEffect(() => {
-    fetchOllamaModels(ollamaUrl).then(m => { if (m.length) setOllamaModels(m); });
-  }, [ollamaUrl]);
+    fetchOllamaModels(ollamaUrl, ollamaKey).then(m => { if (m.length) setOllamaModels(m); });
+  }, [ollamaUrl, ollamaKey]);
 
   const selectProvider = (provider: AIProvider | "") => {
     setActiveProvider(provider);
@@ -81,15 +83,15 @@ export default function AISection({ settings, save }: AISectionProps) {
   const handleTestOllama = async () => {
     setTesting("ollama");
     setTestResult(p => ({ ...p, ollama: null }));
-    setOllamaConfig(ollamaUrl, ollamaModel);
-    const models = await fetchOllamaModels(ollamaUrl);
+    setOllamaConfig(ollamaUrl, ollamaModel, ollamaKey);
+    const models = await fetchOllamaModels(ollamaUrl, ollamaKey);
     setOllamaModels(models);
     setTestResult(p => ({ ...p, ollama: models.length > 0 }));
     setTesting(null);
   };
 
   const handleSelectOllama = () => {
-    setOllamaConfig(ollamaUrl, ollamaModel);
+    setOllamaConfig(ollamaUrl, ollamaModel, ollamaKey);
     selectProvider("ollama");
   };
 
@@ -247,6 +249,32 @@ export default function AISection({ settings, save }: AISectionProps) {
             />
           </div>
 
+          {/* API Key (optional, for Ollama Cloud) */}
+          <div className="flex items-center gap-2 mb-2">
+            <label className="text-[12px] shrink-0" style={{ color: "var(--color-text-tertiary)", width: 64 }}>
+              API Key
+            </label>
+            <div className="relative flex-1">
+              <input
+                type={showOllamaKey ? "text" : "password"}
+                value={ollamaKey}
+                onChange={e => {
+                  setOllamaKey(e.target.value);
+                  setOllamaConfig(ollamaUrl, ollamaModel, e.target.value);
+                }}
+                placeholder={t("settings.ai.ollamaKeyPlaceholder")}
+                className="input-base w-full px-3 py-2 pr-9 text-[14px]"
+                autoComplete="off"
+              />
+              <button
+                onClick={() => setShowOllamaKey(p => !p)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 btn-icon-sm"
+              >
+                {showOllamaKey ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            </div>
+          </div>
+
           {/* Model selector + test */}
           <div className="flex items-center gap-2 mb-1">
             <label className="text-[12px] shrink-0" style={{ color: "var(--color-text-tertiary)", width: 64 }}>
@@ -259,7 +287,7 @@ export default function AISection({ settings, save }: AISectionProps) {
                     value={ollamaModel}
                     onChange={e => {
                       setOllamaModel(e.target.value);
-                      setOllamaConfig(ollamaUrl, e.target.value);
+                      setOllamaConfig(ollamaUrl, e.target.value, ollamaKey);
                     }}
                     className="input-base w-full px-3 py-2 pr-8 text-[14px] appearance-none"
                   >
@@ -282,12 +310,12 @@ export default function AISection({ settings, save }: AISectionProps) {
             <button
               onClick={() => {
                 setOllamaLoading(true);
-                fetchOllamaModels(ollamaUrl).then(m => {
+                fetchOllamaModels(ollamaUrl, ollamaKey).then(m => {
                   setOllamaModels(m);
                   setOllamaLoading(false);
                   if (m.length && !m.includes(ollamaModel)) {
                     setOllamaModel(m[0]);
-                    setOllamaConfig(ollamaUrl, m[0]);
+                    setOllamaConfig(ollamaUrl, m[0], ollamaKey);
                   }
                 }).catch(() => { setOllamaLoading(false); });
               }}
