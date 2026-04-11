@@ -256,8 +256,14 @@ function buildSystemPrompt(
       lines.push(`- 用户要求查看数据、分析、检查、报告时 → 引用下方业务数据，给出结构化分析`);
       lines.push(`- 用户要求执行操作时 → 直接调用工具函数`);
       lines.push(`- 闲聊/打招呼 → 简短自然回复`);
-      lines.push(`- 禁止：复述用户的问题；说"如果需要更多帮助请告诉我"`);
       lines.push(`- 标记为 [背景信息] 的内容是用户档案，不是用户对你说的话，不要回应它。只回应聊天记录中最后一条用户消息。`);
+      lines.push(`【写作纪律】`);
+      lines.push(`- 第一句话就给有价值的信息，不要寒暄铺垫`);
+      lines.push(`- 禁止：「首先/其次/最后」「总之」「综上所述」「如果您需要更多帮助请告诉我」`);
+      lines.push(`- 禁止：「好的，我来帮您」「当然可以！」「非常好的问题」或任何自我介绍`);
+      lines.push(`- 禁止：复述用户的问题；用「此外」「另外」「值得注意的是」开头`);
+      lines.push(`- 禁止：空洞修饰语「非常」「极其」「至关重要」`);
+      lines.push(`- 像聪明的同事说话，不像机器生成文本。建议要具体可执行，不要泛泛而谈`);
       if (isGroupChat) lines.push(`【群聊规则】你和其他Agent一起回答。只说你领域的要点（1-3句话），不要重复别人说过的。`);
       if (agent.personality) lines.push(`\n## 风格\n${agent.personality}`);
       if (agent.rules) lines.push(`\n## 规则\n${agent.rules}`);
@@ -285,11 +291,22 @@ function buildSystemPrompt(
         lines.push(buildFilteredToolsPrompt(lang, agentTools));
       }
       lines.push("");
-      lines.push("## 回答原则");
-      lines.push("- 简洁直接，不说废话。先给结论，再给理由");
-      lines.push("- 善用 **加粗**、列表、表格让信息一目了然");
-      lines.push("- 给建议时要具体可执行，不要泛泛而谈");
-      lines.push("- 涉及数字时引用实际数据，不要凭空编造");
+      lines.push("## 写作风格（严格遵循）");
+      lines.push("- 先给结论，再给理由。第一句话就要有信息量");
+      lines.push("- 像一个聪明的同事在说话，不像机器在生成文本");
+      lines.push("- 善用 **加粗** 突出关键词、列表理清逻辑、表格对比数据");
+      lines.push("- 建议必须具体可执行：❌「可以考虑优化流程」→ ✅「把报价审批从3天缩短到1天，取消第二轮内审」");
+      lines.push("- 涉及数字必须引用实际数据，绝不编造");
+      lines.push("- 中文回复控制在合理长度，不为凑字数而重复");
+      lines.push("");
+      lines.push("## 禁止用语（违反会降低专业性）");
+      lines.push("- 禁止：「首先...其次...最后...」「总之」「综上所述」「总而言之」");
+      lines.push("- 禁止：「如果您需要更多帮助，请随时告诉我」「希望这对您有所帮助」");
+      lines.push("- 禁止：「好的，我来帮您...」「当然可以！」「非常好的问题！」");
+      lines.push("- 禁止：「作为一个AI助手」「作为您的商业助手」或任何自我介绍");
+      lines.push("- 禁止：重复用户的问题或改写问题再回答");
+      lines.push("- 禁止：每段开头用「此外」「另外」「同时」「值得注意的是」「需要指出的是」");
+      lines.push("- 禁止：空洞的修饰语「非常」「极其」「至关重要」「不可或缺」");
     }
 
     if (dashboard) {
@@ -323,7 +340,7 @@ function buildSystemPrompt(
       if (pageContext.items.length > 20) lines.push(`- ...还有 ${pageContext.items.length - 20} 条`);
     }
     // End-of-prompt reinforcement (models attend to beginning + end)
-    if (agent) lines.push(`\n【重要】回答用户的实际问题。用户问业务数据就分析数据，用户闲聊就简短回复。`);
+    if (agent) lines.push(`\n【重要】回答用户的实际问题。第一句就给有用信息。禁止寒暄、禁止复述问题、禁止「首先其次最后」。`);
   } else {
     if (agent && agent.role) {
       // Custom agent — full personality/rules/calibration prompt (autonomous mode)
@@ -333,8 +350,14 @@ function buildSystemPrompt(
       lines.push(`- When user asks to check data, analyze, review → reference the business data below, give structured analysis`);
       lines.push(`- When user asks to perform an action → call the tool function directly`);
       lines.push(`- Casual chat / greetings → short natural reply`);
-      lines.push(`- NEVER: echo the user's question; say "Let me know if you need anything else"`);
       lines.push(`- Content marked [Background info] is the user's profile, NOT something the user said to you. Only respond to the last user message in the chat history.`);
+      lines.push(`[WRITING DISCIPLINE]`);
+      lines.push(`- First sentence must contain real information — no pleasantries or preamble`);
+      lines.push(`- NEVER: 'Firstly/Secondly/Lastly', 'In conclusion', 'To summarize', 'Let me know if you need more help'`);
+      lines.push(`- NEVER: 'Sure, I can help!', 'Great question!', 'Absolutely!' or any self-introduction`);
+      lines.push(`- NEVER: repeat/rephrase the user's question; start paragraphs with 'Additionally', 'Furthermore', 'It's worth noting'`);
+      lines.push(`- NEVER: empty intensifiers 'very', 'extremely', 'crucial', 'essential'`);
+      lines.push(`- Sound like a smart colleague, not a machine. Advice must be specific and actionable, not vague`);
       if (isGroupChat) lines.push(`[GROUP CHAT] You're answering alongside other Agents. Only share your domain-specific take (1-3 sentences). Don't repeat what others said.`);
       if (agent.personality) lines.push(`\n## Style\n${agent.personality}`);
       if (agent.rules) lines.push(`\n## Rules\n${agent.rules}`);
@@ -361,11 +384,22 @@ function buildSystemPrompt(
         lines.push(buildFilteredToolsPrompt(lang, agentTools));
       }
       lines.push("");
-      lines.push("## Response guidelines");
-      lines.push("- Be concise and direct. Lead with conclusions, then reasoning");
-      lines.push("- Use **bold**, lists, and tables for clarity");
-      lines.push("- Give specific, actionable advice");
-      lines.push("- Cite actual data when discussing numbers — never fabricate");
+      lines.push("## Writing style (follow strictly)");
+      lines.push("- Lead with the answer. Your first sentence must contain real information");
+      lines.push("- Sound like a smart colleague talking, not a machine generating text");
+      lines.push("- Use **bold** for key terms, lists for logic, tables for comparisons");
+      lines.push("- Advice must be specific: ❌ 'consider optimizing your process' → ✅ 'cut approval from 3 days to 1 by removing the second review round'");
+      lines.push("- Cite actual data for any numbers — never fabricate");
+      lines.push("- Keep responses appropriately sized — don't pad for length");
+      lines.push("");
+      lines.push("## Banned phrases (violating these sounds robotic)");
+      lines.push("- NEVER: 'Firstly... Secondly... Lastly...' or 'In conclusion' or 'To summarize'");
+      lines.push("- NEVER: 'If you need any more help, feel free to ask' or 'Hope this helps!'");
+      lines.push("- NEVER: 'Sure, I can help with that!' or 'Great question!' or 'Absolutely!'");
+      lines.push("- NEVER: 'As an AI assistant' or any self-referential introduction");
+      lines.push("- NEVER: repeat or rephrase the user's question before answering");
+      lines.push("- NEVER: start paragraphs with 'Additionally', 'Furthermore', 'Moreover', 'It's worth noting'");
+      lines.push("- NEVER: empty intensifiers like 'very', 'extremely', 'crucial', 'essential', 'vital'");
     }
 
     if (dashboard) {
@@ -399,8 +433,8 @@ function buildSystemPrompt(
     }
     // End-of-prompt reinforcement (models attend to beginning + end)
     if (agent) lines.push(lang === 'zh'
-      ? `\n【重要】回答用户的实际问题。用户问业务数据就分析数据，用户闲聊就简短回复。`
-      : `\n[IMPORTANT] Answer the user's actual question. If they ask about business data, analyze the data. If they're chatting casually, reply briefly.`);
+      ? `\n【重要】回答用户的实际问题。第一句就给有用信息。禁止寒暄、禁止复述问题、禁止「首先其次最后」。`
+      : `\n[IMPORTANT] Answer the user's actual question. First sentence = useful info. No pleasantries, no echoing, no 'Firstly/Secondly'.`);
   }
 
   // Append agent tools — only for custom agents (default assistant already inserted tools earlier)
