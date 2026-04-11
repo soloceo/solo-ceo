@@ -11,6 +11,7 @@ interface ProfileFields {
   businessPhone: string;
   businessWebsite: string;
   businessLocation: string;
+  personalPreferences: string;
 }
 
 interface SettingsState extends ProfileFields {
@@ -44,6 +45,7 @@ const PROFILE_DEFAULTS: ProfileFields = {
   businessPhone: "",
   businessWebsite: "",
   businessLocation: "",
+  personalPreferences: "",
 };
 
 /** Settings key → Supabase app_settings key mapping */
@@ -57,6 +59,7 @@ export const PROFILE_SYNC_KEYS: Record<keyof ProfileFields, string> = {
   businessPhone: "BUSINESS_PHONE",
   businessWebsite: "BUSINESS_WEBSITE",
   businessLocation: "BUSINESS_LOCATION",
+  personalPreferences: "PERSONAL_PREFERENCES",
 };
 
 // ── Pre-seed demo profile for first-time visitors ──

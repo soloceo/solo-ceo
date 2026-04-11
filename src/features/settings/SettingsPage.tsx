@@ -132,7 +132,8 @@ export default function SettingsPage() {
   const businessPhone = useSettingsStore((s) => s.businessPhone);
   const businessWebsite = useSettingsStore((s) => s.businessWebsite);
   const businessLocation = useSettingsStore((s) => s.businessLocation);
-  const profileFieldValues: Record<string, string> = { businessTitle, businessName, businessDescription, businessEmail, businessPhone, businessWebsite, businessLocation };
+  const personalPreferences = useSettingsStore((s) => s.personalPreferences);
+  const profileFieldValues: Record<string, string> = { businessTitle, businessName, businessDescription, businessEmail, businessPhone, businessWebsite, businessLocation, personalPreferences };
   const getProfileField = (field: string) => profileFieldValues[field] || '';
   const currency = useSettingsStore((s) => s.currency);
   const timezone = useSettingsStore((s) => s.timezone);

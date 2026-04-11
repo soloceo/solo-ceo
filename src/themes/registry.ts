@@ -9,7 +9,6 @@ import { googleTheme } from './builtins/google';
 import { defaultStyle } from './styles/default';
 import { neobrutalismStyle } from './styles/neobrutalism';
 import { glassmorphismStyle } from './styles/glassmorphism';
-import { hudStyle } from './styles/hud';
 import { materialStyle } from './styles/material';
 
 /** Color palettes — order determines display order in the picker */
@@ -28,7 +27,6 @@ export const styles: StyleDefinition[] = [
   defaultStyle,
   neobrutalismStyle,
   glassmorphismStyle,
-  hudStyle,
   materialStyle,
 ];
 

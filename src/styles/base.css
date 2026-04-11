@@ -16,8 +16,6 @@
 
   --font-monospace: 'SF Mono', 'Menlo', ui-monospace, monospace;
 
-  /* HUD theme monospace — JetBrains Mono (loaded on-demand via unicode-range) */
-  --font-hud-mono: 'JetBrains Mono', 'SF Mono', 'Menlo', ui-monospace, monospace;
 
   /* SF Pro standard weights */
   --font-weight-normal:   400;

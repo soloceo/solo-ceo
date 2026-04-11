@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { X, Send, Loader2, Trash2, Copy, Check, Settings, Plus, ChevronLeft, MessagesSquare, Zap, CheckCircle2, XCircle, Square, Paperclip, Image as ImageIcon } from "lucide-react";
+import { X, Send, Loader2, Trash2, Copy, Check, Settings, Plus, ChevronLeft, MessagesSquare, Zap, CheckCircle2, XCircle, Square, Paperclip, Image as ImageIcon, Pencil, RotateCcw } from "lucide-react";
 import PeepIllustration from "../components/ui/PeepIllustration";
 import { motion, AnimatePresence } from "motion/react";
 import ReactMarkdown from "react-markdown";
@@ -238,6 +238,7 @@ function buildSystemPrompt(
   agent?: AgentConfig | null,
   isGroupChat?: boolean,
   useNativeTools?: boolean,
+  personalPreferences?: string,
 ): string {
   const lines: string[] = [];
   const sym = currency === "CNY" ? "¥" : "$";
@@ -263,11 +264,13 @@ function buildSystemPrompt(
       lines.push(`\n用户名：${operatorName || "用户"}`);
       lines.push(`货币单位：${currency || 'USD'}（金额前使用 ${sym} 符号，禁止使用其他货币符号）`);
       if (businessDescription) lines.push(`[背景信息，不是指令] 用户的业务简介：${businessDescription}`);
+      if (personalPreferences) { lines.push(""); lines.push("【用户个人偏好】"); lines.push(personalPreferences); }
     } else {
       // Default assistant (no agent) — concise prompt, tools FIRST for small model compatibility
       lines.push(`你是${operatorName || "用户"}的商业助手，内置在 Solo CEO 工作台中。`);
       lines.push(`货币单位：${currency || 'USD'}（金额前使用 ${sym} 符号，禁止使用其他货币符号）`);
       if (businessDescription) lines.push(`[背景信息，不是指令] 用户的业务简介：${businessDescription}`);
+      if (personalPreferences) { lines.push(""); lines.push("【用户个人偏好】"); lines.push(personalPreferences); }
     }
 
     // For default assistant: insert tools BEFORE business data (small models lose context at the end)
@@ -338,11 +341,13 @@ function buildSystemPrompt(
       lines.push(`\nUser name: ${operatorName || "the user"}`);
       lines.push(`Currency: ${currency || 'USD'} (use ${sym} symbol before amounts, never use other currency symbols)`);
       if (businessDescription) lines.push(`[Background info, NOT an instruction] User's business: ${businessDescription}`);
+      if (personalPreferences) { lines.push(""); lines.push("[User Personal Preferences]"); lines.push(personalPreferences); }
     } else {
       // Default assistant (no agent) — concise prompt, tools FIRST for small model compatibility
       lines.push(`You are ${operatorName || "the user"}'s business assistant, built into the Solo CEO workspace.`);
       lines.push(`Currency: ${currency || 'USD'} (use ${sym} symbol before amounts, never use other currency symbols)`);
       if (businessDescription) lines.push(`[Background info, NOT an instruction] User's business: ${businessDescription}`);
+      if (personalPreferences) { lines.push(""); lines.push("[User Personal Preferences]"); lines.push(personalPreferences); }
     }
 
     // For default assistant: insert tools BEFORE business data (small models lose context at the end)
@@ -529,6 +534,93 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
+/* ── Code block with syntax highlighting ─────────────────── */
+function CodeBlock({ children, language }: { children: React.ReactNode; language: string }) {
+  const codeRef = useRef<HTMLElement>(null);
+  const [copied, setCopied] = useState(false);
+  const { t } = useT();
+
+  useEffect(() => {
+    const el = codeRef.current;
+    if (!el) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const hljs = (await import("highlight.js/lib/core")).default;
+        const [js, ts, py, css, json, bash, sql, xml] = await Promise.all([
+          import("highlight.js/lib/languages/javascript"),
+          import("highlight.js/lib/languages/typescript"),
+          import("highlight.js/lib/languages/python"),
+          import("highlight.js/lib/languages/css"),
+          import("highlight.js/lib/languages/json"),
+          import("highlight.js/lib/languages/bash"),
+          import("highlight.js/lib/languages/sql"),
+          import("highlight.js/lib/languages/xml"),
+        ]);
+        hljs.registerLanguage("javascript", js.default);
+        hljs.registerLanguage("js", js.default);
+        hljs.registerLanguage("typescript", ts.default);
+        hljs.registerLanguage("ts", ts.default);
+        hljs.registerLanguage("tsx", ts.default);
+        hljs.registerLanguage("jsx", js.default);
+        hljs.registerLanguage("python", py.default);
+        hljs.registerLanguage("py", py.default);
+        hljs.registerLanguage("css", css.default);
+        hljs.registerLanguage("json", json.default);
+        hljs.registerLanguage("bash", bash.default);
+        hljs.registerLanguage("sh", bash.default);
+        hljs.registerLanguage("shell", bash.default);
+        hljs.registerLanguage("sql", sql.default);
+        hljs.registerLanguage("xml", xml.default);
+        hljs.registerLanguage("html", xml.default);
+        if (!cancelled && el) {
+          // Reset previous highlighting
+          el.removeAttribute("data-highlighted");
+          hljs.highlightElement(el);
+        }
+      } catch { /* highlight.js load failed, show plain text */ }
+    })();
+    return () => { cancelled = true; };
+  }, [children, language]);
+
+  const handleCopy = async () => {
+    const text = codeRef.current?.textContent || "";
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="relative group/code my-2 rounded-lg overflow-hidden" style={{ background: "var(--color-bg-tertiary)" }}>
+      <div className="flex items-center justify-between px-3 py-1" style={{ borderBottom: "1px solid var(--color-line-tertiary)" }}>
+        <span className="text-[11px] uppercase tracking-wide" style={{ color: "var(--color-text-quaternary)" }}>
+          {language || "code"}
+        </span>
+        <button
+          onClick={handleCopy}
+          className="lg:opacity-0 lg:group-hover/code:opacity-100 flex items-center gap-1 px-2 py-1 rounded text-[11px] transition-opacity"
+          style={{ color: "var(--color-text-quaternary)" }}
+        >
+          {copied ? <Check size={12} /> : <Copy size={12} />}
+          <span>{t("ai.chat.copyCode")}</span>
+        </button>
+      </div>
+      <pre className="px-3 py-2 text-[13px] overflow-x-auto">
+        <code ref={codeRef} className={language ? `language-${language}` : ""}>{children}</code>
+      </pre>
+    </div>
+  );
+}
+
 /* ── Markdown renderer for assistant messages ──────────────── */
 const MarkdownContent = React.memo(({ content }: { content: string }) => (
   <ReactMarkdown
@@ -542,11 +634,8 @@ const MarkdownContent = React.memo(({ content }: { content: string }) => (
       code: ({ children, className }) => {
         const isBlock = className?.includes("language-");
         if (isBlock) {
-          return (
-            <pre className="rounded-lg px-3 py-2 my-2 text-[13px] overflow-x-auto" style={{ background: "var(--color-bg-tertiary)" }}>
-              <code>{children}</code>
-            </pre>
-          );
+          const lang = className?.replace(/language-/, "") || "";
+          return <CodeBlock language={lang}>{children}</CodeBlock>;
         }
         return (
           <code className="px-1 py-0.5 rounded text-[13px]" style={{ background: "var(--color-bg-tertiary)" }}>
@@ -615,6 +704,7 @@ function ConversationList({
   activeId,
   onSelect,
   onDelete,
+  onRename,
   onNew,
   lang,
   agents,
@@ -623,11 +713,14 @@ function ConversationList({
   activeId: string | null;
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
+  onRename: (id: string, title: string) => void;
   onNew: () => void;
   lang: string;
   agents: AgentConfig[];
 }) {
   const { t } = useT();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
   const agentMap = React.useMemo(() => {
     const m = new Map<number, AgentConfig>();
     agents.forEach(a => m.set(a.id, a));
@@ -646,102 +739,73 @@ function ConversationList({
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="px-3 py-2 shrink-0">
-        <button
-          onClick={onNew}
-          className="ai-chat-new-btn w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-[14px] transition-colors press-feedback"
-          style={{
-            background: "var(--color-accent)",
-            color: "var(--color-brand-text)",
-          }}
-        >
-          <Plus size={16} />
-          <span>{t("ai.chat.newChat")}</span>
-        </button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-2">
+      <div className="flex-1 overflow-y-auto px-2 pt-1 pb-3 space-y-0.5">
         {conversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-32 gap-2">
-            <PeepIllustration name="chillin" size={72} />
-            <p className="text-[13px] opacity-40" style={{ color: "var(--color-text-tertiary)" }}>
+            <p className="text-[13px]" style={{ color: "var(--color-text-quaternary)" }}>
               {t("ai.chat.noConversations")}
             </p>
           </div>
         ) : (
           conversations.map((conv) => {
-            const convAgentIds = getConvAgentIds(conv);
-            const convAgents = convAgentIds.map(id => agentMap.get(id)).filter(Boolean);
-            const convIsGroup = convAgents.length > 1;
+            const isActive = conv.id === activeId;
             return (
             <div
               key={conv.id}
-              className={`ai-chat-conv-item group flex items-center gap-2.5 px-3.5 py-3 rounded-xl cursor-pointer transition-all ${conv.id === activeId ? 'ai-chat-conv-active' : 'ai-chat-conv-inactive'}`}
+              className={`group flex items-center gap-1 px-2.5 py-2 rounded-lg cursor-pointer transition-colors`}
               style={{
-                background: conv.id === activeId ? "var(--color-bg-tertiary)" : "var(--color-bg-secondary)",
-                border: conv.id === activeId ? "1px solid var(--color-accent)" : "1px solid var(--color-line-tertiary)",
+                background: isActive ? "var(--color-bg-tertiary)" : "transparent",
               }}
               onClick={() => onSelect(conv.id)}
+              onMouseEnter={undefined}
             >
-              {convIsGroup ? (
-                /* Stacked avatars for group chat */
-                <div className="shrink-0 relative" style={{ width: 32, height: 32 }}>
-                  {convAgents.slice(0, 3).map((a, idx) => (
-                    <span
-                      key={a!.id}
-                      className="absolute flex items-center justify-center rounded-full text-[11px]"
-                      style={{
-                        width: 20,
-                        height: 20,
-                        background: conv.id === activeId ? "var(--color-accent)" : "var(--color-bg-tertiary)",
-                        border: "2px solid var(--color-bg-secondary)",
-                        top: idx * 6,
-                        left: idx * 6,
-                        zIndex: 3 - idx,
-                      }}
-                    >
-                      {a!.avatar}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <div
-                  className="shrink-0 flex items-center justify-center rounded-lg text-[15px]"
-                  style={{
-                    width: 32,
-                    height: 32,
-                    background: conv.id === activeId ? "var(--color-accent)" : "var(--color-bg-tertiary)",
-                  }}
-                >
-                  <span>{convAgents[0]?.avatar || '🤖'}</span>
-                </div>
-              )}
               <div className="flex-1 min-w-0">
-                {/* Agent/Group name — Teams style */}
-                <p className="text-[13px] truncate" style={{ color: "var(--color-text-primary)", fontWeight: conv.id === activeId ? 600 : 500 }}>
-                  {convIsGroup
-                    ? (convAgents.length <= 3
-                        ? convAgents.map(a => a!.name).join(", ")
-                        : `${convAgents.slice(0, 2).map(a => a!.name).join(", ")} +${convAgents.length - 2}`)
-                    : convAgents[0]?.name || t("ai.chat.defaultAssistant")
-                  }
-                </p>
-                {/* Last message preview or topic */}
-                <p className="text-[12px] truncate mt-0.5" style={{ color: "var(--color-text-tertiary)" }}>
-                  {conv.title}
-                </p>
-                <p className="text-[10px] mt-0.5" style={{ color: "var(--color-text-quaternary)" }}>
-                  {conv.messages.length} {t("ai.chat.msgs")} · {formatTime(conv.updatedAt)}
-                </p>
+                {editingId === conv.id ? (
+                  <input
+                    type="text"
+                    value={editTitle}
+                    onChange={e => setEditTitle(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+                        const trimmed = editTitle.trim();
+                        if (trimmed) onRename(conv.id, trimmed);
+                        setEditingId(null);
+                      }
+                      if (e.key === "Escape") setEditingId(null);
+                    }}
+                    onBlur={() => {
+                      const trimmed = editTitle.trim();
+                      if (trimmed) onRename(conv.id, trimmed);
+                      setEditingId(null);
+                    }}
+                    className="input-base w-full px-1 py-0 text-[13px]"
+                    autoFocus
+                    onClick={e => e.stopPropagation()}
+                  />
+                ) : (
+                  <p className="text-[13px] truncate" style={{ color: isActive ? "var(--color-text-primary)" : "var(--color-text-secondary)", fontWeight: isActive ? 500 : 400 }}>
+                    {conv.title}
+                  </p>
+                )}
               </div>
-              <button
-                onClick={(e) => { e.stopPropagation(); onDelete(conv.id); }}
-                className="lg:opacity-0 lg:group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-[var(--color-bg-primary)]"
-                style={{ color: "var(--color-text-quaternary)" }}
-                aria-label="Delete"
-              >
-                <Trash2 size={13} />
-              </button>
+              <div className="flex items-center gap-0 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setEditTitle(conv.title); setEditingId(conv.id); }}
+                  className="p-1 rounded-md hover:bg-[var(--color-bg-secondary)]"
+                  style={{ color: "var(--color-text-quaternary)" }}
+                  aria-label={t("ai.chat.rename")}
+                >
+                  <Pencil size={12} />
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onDelete(conv.id); }}
+                  className="p-1 rounded-md hover:bg-[var(--color-bg-secondary)]"
+                  style={{ color: "var(--color-text-quaternary)" }}
+                  aria-label="Delete"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
             </div>
           );})
         )}
@@ -952,6 +1016,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
     return parts.join(' ') || s.businessDescription;
   });
   const currency = useSettingsStore((s) => s.currency);
+  const personalPreferences = useSettingsStore((s) => s.personalPreferences);
 
   // Agents
   const { agents, loading: agentsLoading, seedDefaults, seedMissing } = useAgents();
@@ -1045,9 +1110,12 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
   const isStreaming = streamingConvId !== null;
   const isStreamingHere = streamingConvId !== null && streamingConvId === activeConvId; // only block THIS conversation
   const [executingTool, setExecutingTool] = useState(false);
+  const [editingMsgIndex, setEditingMsgIndex] = useState<number | null>(null);
+  const [editingMsgText, setEditingMsgText] = useState("");
   const [dashboard, setDashboard] = useState<Record<string, unknown> | null>(null);
   const [pageContext, setPageContext] = useState<Record<string, unknown> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const streamOneAgentRef = useRef<(convId: string, agent: AgentConfig | null, aiConfig: { provider: string; apiKey: string }, abort: AbortController) => Promise<void>>(null!);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1272,6 +1340,12 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
     api.del(`/api/conversations/${id}`).catch(() => {});
   };
 
+  const handleRenameConversation = useCallback((id: string, newTitle: string) => {
+    updateConversations(prev => prev.map(c =>
+      c.id === id ? { ...c, title: newTitle, updatedAt: Date.now() } : c
+    ));
+  }, [updateConversations]);
+
   /**
    * Autonomous agent execution loop.
    * Agent can chain up to MAX_STEPS tool calls (search → create → etc.) in one turn.
@@ -1290,7 +1364,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
     // Build system prompt for THIS agent
     const useNativeTools = aiConfig.provider === "ollama";
     const sym = currency === "CNY" ? "¥" : "$";
-    const systemPrompt = buildSystemPrompt(dashboard, pageContext, activeTab, lang, operatorName, businessDesc, currency, agent, isGroup, useNativeTools);
+    const systemPrompt = buildSystemPrompt(dashboard, pageContext, activeTab, lang, operatorName, businessDesc, currency, agent, isGroup, useNativeTools, personalPreferences);
 
     // Build chat history — skip cancelled tool confirmations, prefix group agent names
     // Include image attachments on user messages so the AI can see uploaded images
@@ -1486,7 +1560,84 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
       if (last && last.role === "assistant" && last.streaming) msgs[msgs.length - 1] = { ...last, streaming: false };
       return { ...c, messages: msgs };
     }));
-  }, [dashboard, pageContext, activeTab, lang, operatorName, businessDesc, currency, agentMap, updateConversations]);
+  }, [dashboard, pageContext, activeTab, lang, operatorName, businessDesc, currency, personalPreferences, agentMap, updateConversations]);
+  streamOneAgentRef.current = streamOneAgent;
+
+  /** Shared helper: resolve agents for a conversation and stream responses */
+  const resendFromConv = useCallback(async (convId: string) => {
+    if (streamingConvId !== null) return;
+    const aiConfig = getAIConfig(settings);
+    if (!aiConfig) return;
+
+    const conv = conversationsRef.current.find(c => c.id === convId);
+    if (!conv) return;
+
+    // Find the last user message to extract @mentions
+    const lastUserMsg = [...conv.messages].reverse().find(m => m.role === "user");
+    const convAgentIds = getConvAgentIds(conv);
+    const resolved = convAgentIds.length > 0
+      ? convAgentIds.map(id => agentMap.get(id) || null).filter(Boolean)
+      : [];
+    let respondingAgents: (AgentConfig | null)[] = resolved.length > 0
+      ? resolved
+      : (activeAgent ? [activeAgent] : [null]);
+
+    // Parse @mentions
+    if (lastUserMsg) {
+      const mentionPattern = /@(\S+)/g;
+      const mentions: string[] = [];
+      let match;
+      while ((match = mentionPattern.exec(lastUserMsg.content)) !== null) mentions.push(match[1]);
+      if (mentions.length > 0 && convAgentIds.length > 0) {
+        const mentioned = respondingAgents.filter(a =>
+          a && mentions.some(m => a.name.toLowerCase().startsWith(m.toLowerCase()))
+        );
+        if (mentioned.length > 0) respondingAgents = mentioned;
+      }
+    }
+
+    setStreamingConvId(convId);
+    const abort = new AbortController();
+    abortRef.current = abort;
+
+    try {
+      for (const agent of respondingAgents) {
+        if (abort.signal.aborted) break;
+        try {
+          await streamOneAgentRef.current(convId, agent, aiConfig, abort);
+        } catch (agentErr) {
+          if ((agentErr as Error).name === "AbortError") break;
+          updateConversations(prev => prev.map(c => {
+            if (c.id !== convId) return c;
+            const msgs = [...c.messages];
+            const last = msgs[msgs.length - 1];
+            if (last && last.role === "assistant" && last.streaming) {
+              msgs[msgs.length - 1] = { ...last, content: lang === "zh" ? "(连接超时，请重试)" : "(Connection timed out)", streaming: false };
+            }
+            return { ...c, messages: msgs };
+          }));
+        }
+      }
+    } catch (e) {
+      if ((e as Error).name === "AbortError") return;
+      updateConversations(prev => prev.map(c => {
+        if (c.id !== convId) return c;
+        const msgs = [...c.messages];
+        const last = msgs[msgs.length - 1];
+        if (last && last.role === "assistant" && !last.content) {
+          msgs[msgs.length - 1] = { ...last, content: lang === "zh" ? "请求失败，请稍后重试。" : "Request failed. Please try again." };
+        }
+        return { ...c, messages: msgs };
+      }));
+    } finally {
+      setStreamingConvId(null);
+      updateConversations(prev => prev.map(c => {
+        if (c.id !== convId) return c;
+        return { ...c, messages: c.messages.map(m => ({ ...m, streaming: false })) };
+      }));
+      abortRef.current = null;
+    }
+  }, [streamingConvId, settings, activeAgent, agentMap, lang, updateConversations]);
 
   const sendMessage = useCallback(async (text: string, attachments?: MessageAttachment[]) => {
     if (!text.trim() && !attachments?.length) return;
@@ -1666,7 +1817,48 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
     }));
   }, [activeConvId, lang, updateConversations]);
 
-  /* ── File upload helpers ──────────────────���──────── */
+  /** Regenerate the last assistant response */
+  const handleRegenerate = useCallback(async () => {
+    if (!activeConvId || streamingConvId !== null) return;
+    const conv = conversationsRef.current.find(c => c.id === activeConvId);
+    if (!conv || conv.messages.length === 0) return;
+
+    // Find the last user message index
+    let lastUserIdx = -1;
+    for (let i = conv.messages.length - 1; i >= 0; i--) {
+      if (conv.messages[i].role === "user") { lastUserIdx = i; break; }
+    }
+    if (lastUserIdx === -1) return;
+
+    // Remove all messages after the last user message
+    updateConversations(prev => prev.map(c => {
+      if (c.id !== activeConvId) return c;
+      return { ...c, messages: c.messages.slice(0, lastUserIdx + 1), updatedAt: Date.now() };
+    }));
+
+    await resendFromConv(activeConvId);
+  }, [activeConvId, streamingConvId, updateConversations, resendFromConv]);
+
+  const handleSubmitEdit = useCallback(async () => {
+    if (editingMsgIndex === null || !activeConvId || streamingConvId !== null) return;
+    const text = editingMsgText.trim();
+    if (!text) return;
+
+    // Truncate messages up to and including the edited message, update its content
+    updateConversations(prev => prev.map(c => {
+      if (c.id !== activeConvId) return c;
+      const truncated = c.messages.slice(0, editingMsgIndex + 1);
+      truncated[editingMsgIndex] = { ...truncated[editingMsgIndex], content: text };
+      return { ...c, messages: truncated, updatedAt: Date.now() };
+    }));
+
+    setEditingMsgIndex(null);
+    setEditingMsgText("");
+
+    await resendFromConv(activeConvId);
+  }, [editingMsgIndex, editingMsgText, activeConvId, streamingConvId, updateConversations, resendFromConv]);
+
+  /* ── File upload helpers ──────────────────────────── */
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
   const MAX_ATTACHMENTS = 5;
   const ACCEPTED_TYPES = "image/png,image/jpeg,image/gif,image/webp";
@@ -1840,83 +2032,58 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
               border: "1px solid var(--color-line-secondary)",
             }}
           >
-          {/* Header */}
+          {/* Header — minimal */}
           <div
             className="flex items-center justify-between px-3 shrink-0"
             style={{
-              minHeight: 52,
+              minHeight: 48,
               paddingTop: "env(safe-area-inset-top, 0px)",
-              borderBottom: "1px solid var(--color-line-secondary)",
+              borderBottom: "1px solid var(--color-line-tertiary)",
             }}
           >
-            <div className="flex items-center gap-1 min-w-0">
-              {showList ? (
-                <div className="w-1 lg:hidden" />
-              ) : activeConvId ? (
-                <div className="lg:hidden">
-                  <button
-                    onClick={() => setShowList(true)}
-                    className="btn-icon-sm"
-                    aria-label={t("ai.chat.conversations")}
-                  >
-                    <ChevronLeft size={18} />
-                  </button>
-                </div>
-              ) : (
-                <div className="w-1 lg:hidden" />
+            <div className="flex items-center gap-1.5 min-w-0">
+              {!showList && activeConvId && (
+                <button onClick={() => setShowList(true)} className="btn-icon-sm lg:hidden" aria-label={t("ai.chat.conversations")}>
+                  <ChevronLeft size={18} />
+                </button>
               )}
-              {/* Show title text only when in list view on mobile or no agents exist */}
-              {(showList || agents.length === 0) && (
-                <span className={`text-[15px] truncate ${showList ? 'lg:hidden' : ''}`} style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
-                  {showList ? t("ai.chat.conversations") : t("ai.chat.title")}
-                </span>
-              )}
+              {/* Agent picker — compact dropdown */}
               {!showList && agents.length > 0 && (
                 <div className="relative shrink-0">
                   <button
                     onClick={() => setShowAgentPicker(!showAgentPicker)}
-                    aria-expanded={showAgentPicker}
-                    aria-haspopup="listbox"
-                    className="flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[12px]"
-                    style={{
-                      background: activeAgentIds.length > 0 ? 'var(--color-accent-tint)' : 'var(--color-bg-tertiary)',
-                      color: activeAgentIds.length > 0 ? 'var(--color-accent)' : 'var(--color-text-tertiary)',
-                      border: '1px solid var(--color-border-translucent)',
-                    }}
+                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-[13px] transition-colors hover:bg-[var(--color-bg-tertiary)]"
+                    style={{ color: 'var(--color-text-secondary)' }}
                   >
                     {isMultiAgent ? (
                       <>
                         <span className="flex -space-x-1">{activeAgents.slice(0, 3).map(a => <span key={a.id}>{a.avatar}</span>)}</span>
-                        {activeAgents.length > 3 && <span className="ml-0.5">+{activeAgents.length - 3}</span>}
+                        <span style={{ fontWeight: 500 }}>{activeAgents.length} Agents</span>
+                      </>
+                    ) : activeAgent ? (
+                      <>
+                        <span>{activeAgent.avatar}</span>
+                        <span className="max-w-[100px] truncate" style={{ fontWeight: 500 }}>{activeAgent.name}</span>
                       </>
                     ) : (
-                      <>
-                        <span>{activeAgent?.avatar || '🤖'}</span>
-                        <span className="max-w-[80px] truncate ml-0.5">{activeAgent?.name || t("ai.chat.defaultAssistant")}</span>
-                      </>
+                      <span style={{ color: 'var(--color-text-tertiary)' }}>🤖 {t("ai.chat.defaultAssistant")}</span>
                     )}
+                    <ChevronLeft size={12} className="-rotate-90" style={{ color: 'var(--color-text-quaternary)' }} />
                   </button>
                   {showAgentPicker && (
                     <>
                       <div className="fixed inset-0" style={{ zIndex: 'var(--layer-popover, 600)' } as React.CSSProperties} onClick={() => setShowAgentPicker(false)} />
                       <div
-                        className="absolute top-full left-0 mt-1 rounded-[var(--radius-12)] py-1.5 min-w-[220px] overflow-y-auto"
+                        className="absolute top-full left-0 mt-1 rounded-xl py-1 min-w-[200px]"
                         style={{
                           background: 'var(--color-bg-secondary)',
                           border: '1px solid var(--color-border-translucent)',
                           boxShadow: 'var(--shadow-high)',
                           zIndex: 'var(--layer-popover, 600)' as unknown as number,
-                          maxHeight: 'min(60vh, 400px)',
+                          maxHeight: 'min(60vh, 360px)',
+                          overflowY: 'auto',
                         }}
                       >
-                        {/* Section label */}
-                        <div className="px-3 pt-1 pb-2">
-                          <span className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--color-text-quaternary)', fontWeight: 600 }}>
-                            {t("ai.chat.selectParticipants")}
-                          </span>
-                        </div>
-
-                        {/* Agent list — multi-select checkboxes */}
                         {(() => {
                           const generalAgent = agents.find(a => a.template_id === 'general');
                           const otherAgents = agents.filter(a => a.template_id !== 'general');
@@ -1927,142 +2094,61 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                               <button
                                 key={a.id}
                                 onClick={() => {
-                                  // Toggle: add or remove from selection
-                                  setActiveAgentIds(prev =>
-                                    selected ? prev.filter(id => id !== a.id) : [...prev, a.id]
-                                  );
+                                  const next = selected
+                                    ? activeAgentIds.filter(id => id !== a.id)
+                                    : [...activeAgentIds, a.id];
+                                  setActiveAgentIds(next);
+                                  if (activeConvId) {
+                                    updateConversations(prev => prev.map(c => c.id !== activeConvId ? c : {
+                                      ...c,
+                                      agentId: next[0] || null,
+                                      agentIds: next.length > 0 ? [...next] : [],
+                                      updatedAt: Date.now(),
+                                    }));
+                                  }
                                 }}
-                                className="flex items-center gap-2.5 w-full px-3 py-2 text-[13px] text-left transition-colors"
+                                className="flex items-center gap-2 w-full px-3 py-2 text-[13px] text-left transition-colors"
                                 style={{
-                                  background: selected ? 'var(--color-accent-tint)' : 'transparent',
+                                  background: selected ? 'var(--color-bg-tertiary)' : 'transparent',
                                   color: 'var(--color-text-primary)',
                                 }}
                               >
-                                {/* Checkbox */}
-                                <span
-                                  className="flex items-center justify-center rounded shrink-0"
-                                  style={{
-                                    width: 16, height: 16,
-                                    border: selected ? 'none' : '1.5px solid var(--color-text-quaternary)',
-                                    background: selected ? 'var(--color-accent)' : 'transparent',
-                                  }}
-                                >
-                                  {selected && <Check size={11} style={{ color: 'var(--color-brand-text)' }} />}
-                                </span>
                                 <span>{a.avatar || '🤖'}</span>
                                 <span className="flex-1 min-w-0 truncate">{a.name}</span>
+                                {selected && <Check size={14} style={{ color: 'var(--color-text-tertiary)' }} />}
                               </button>
                             );
                           });
                         })()}
-
-                        {/* Divider + action buttons */}
-                        <div className="mx-3 my-1.5" style={{ borderTop: '1px solid var(--color-line-tertiary)' }} />
-
-                        {/* Start chat / apply button */}
-                        {(() => {
-                          const curConv = activeConvId ? conversationsRef.current.find(c => c.id === activeConvId) : null;
-                          const curConvAgentIds = curConv ? getConvAgentIds(curConv) : [];
-                          const selectionChanged = JSON.stringify([...activeAgentIds].sort()) !== JSON.stringify([...curConvAgentIds].sort());
-                          const hasSelection = activeAgentIds.length > 0;
-
-                          const applySelection = () => {
+                        <div className="mx-2 my-1" style={{ borderTop: '1px solid var(--color-line-tertiary)' }} />
+                        <button
+                          onClick={() => {
                             setShowAgentPicker(false);
-                            if (!hasSelection) {
-                              // No agents → default assistant mode
-                              if (curConv && curConv.messages.length > 0) {
-                                const newConv: Conversation = {
-                                  id: generateId(), title: t("ai.chat.newChat"),
-                                  messages: [], agentId: null, agentIds: [], createdAt: Date.now(), updatedAt: Date.now(),
-                                };
-                                updateConversations(prev => [newConv, ...prev]);
-                                setActiveConvId(newConv.id);
-                                api.post('/api/conversations', { id: newConv.id, title: newConv.title, agent_id: null, agent_ids: [], messages: [] }).catch(() => {});
-                              } else if (activeConvId) {
-                                updateConversations(prev => prev.map(c => c.id !== activeConvId ? c : { ...c, agentId: null, agentIds: [], updatedAt: Date.now() }));
-                              }
-                              return;
-                            }
-                            // Create new conversation with selected agents (or update empty current one)
-                            if (curConv && curConv.messages.length > 0) {
-                              const newConv: Conversation = {
-                                id: generateId(), title: t("ai.chat.newChat"),
-                                messages: [], agentId: activeAgentIds[0], agentIds: [...activeAgentIds],
-                                createdAt: Date.now(), updatedAt: Date.now(),
-                              };
-                              updateConversations(prev => [newConv, ...prev]);
-                              setActiveConvId(newConv.id);
-                              api.post('/api/conversations', { id: newConv.id, title: newConv.title, agent_id: newConv.agentId, agent_ids: newConv.agentIds, messages: [] }).catch(() => {});
-                            } else if (activeConvId) {
-                              updateConversations(prev => prev.map(c => c.id !== activeConvId ? c : {
-                                ...c, agentId: activeAgentIds[0], agentIds: [...activeAgentIds], updatedAt: Date.now(),
-                              }));
-                            }
-                          };
-
-                          return (
-                            <div className="px-2 pb-1 flex gap-1.5">
-                              <button
-                                onClick={applySelection}
-                                disabled={!selectionChanged && hasSelection}
-                                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-medium transition-colors disabled:opacity-40"
-                                style={{ background: 'var(--color-accent)', color: 'var(--color-brand-text)' }}
-                              >
-                                {activeAgentIds.length > 1
-                                  ? t("ai.chat.groupChat").replace("{count}", String(activeAgentIds.length))
-                                  : activeAgentIds.length === 1
-                                    ? t("ai.chat.startChat")
-                                    : t("ai.chat.defaultAssistant")
-                                }
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setShowAgentPicker(false);
-                                  setActiveTab("settings");
-                                  handleClose();
-                                  const tryScroll = (n = 0) => {
-                                    const el = document.getElementById('settings-agents');
-                                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                    else if (n < 3) setTimeout(() => tryScroll(n + 1), 150);
-                                  };
-                                  setTimeout(tryScroll, 80);
-                                }}
-                                className="flex items-center justify-center px-2 py-2 rounded-lg transition-colors"
-                                style={{ color: 'var(--color-text-tertiary)' }}
-                                title={t("ai.chat.manageAgents")}
-                              >
-                                <Settings size={14} />
-                              </button>
-                            </div>
-                          );
-                        })()}
+                            setActiveTab("settings");
+                            handleClose();
+                            const tryScroll = (n = 0) => {
+                              const el = document.getElementById('settings-agents');
+                              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                              else if (n < 3) setTimeout(() => tryScroll(n + 1), 150);
+                            };
+                            setTimeout(tryScroll, 80);
+                          }}
+                          className="flex items-center gap-2 w-full px-3 py-2 text-[13px] text-left transition-colors"
+                          style={{ color: 'var(--color-text-tertiary)' }}
+                        >
+                          <Settings size={13} />
+                          <span>{t("ai.chat.manageAgents")}</span>
+                        </button>
                       </div>
                     </>
                   )}
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-1">
-              {!showList && (
-                <div className="flex items-center gap-1 lg:hidden">
-                  <button
-                    onClick={() => setShowList(true)}
-                    className="btn-icon-sm"
-                    aria-label={t("ai.chat.conversations")}
-                    title={t("ai.chat.conversations")}
-                  >
-                    <MessagesSquare size={16} />
-                  </button>
-                  <button
-                    onClick={handleNewConversation}
-                    className="btn-icon-sm"
-                    aria-label={t("ai.chat.newChat")}
-                    title={t("ai.chat.newChat")}
-                  >
-                    <Plus size={16} />
-                  </button>
-                </div>
-              )}
+            <div className="flex items-center gap-0.5">
+              <button onClick={handleNewConversation} className="btn-icon-sm" aria-label={t("ai.chat.newChat")} title={t("ai.chat.newChat")}>
+                <Plus size={18} />
+              </button>
               <button onClick={handleClose} className="btn-icon-sm" aria-label={t("common.close")}>
                 <X size={18} />
               </button>
@@ -2070,16 +2156,17 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
           </div>
 
           <div className="flex-1 flex overflow-hidden">
-            {/* Desktop sidebar — always visible */}
+            {/* Desktop sidebar */}
             <div
               className="hidden lg:flex lg:flex-col lg:shrink-0"
-              style={{ width: 260, borderRight: '1px solid var(--color-line-secondary)', background: 'var(--color-bg-secondary)' }}
+              style={{ width: 220, borderRight: '1px solid var(--color-line-tertiary)' }}
             >
               <ConversationList
                 conversations={conversations}
                 activeId={activeConvId}
                 onSelect={handleSelectConversation}
                 onDelete={handleDeleteConversation}
+                onRename={handleRenameConversation}
                 onNew={handleNewConversation}
                 lang={lang}
                 agents={agents}
@@ -2094,6 +2181,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                   activeId={activeConvId}
                   onSelect={(id) => { handleSelectConversation(id); setShowList(false); }}
                   onDelete={handleDeleteConversation}
+                  onRename={handleRenameConversation}
                   onNew={() => { handleNewConversation(); setShowList(false); }}
                   lang={lang}
                   agents={agents}
@@ -2103,32 +2191,10 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
 
             {/* Chat area */}
             <div className={`flex-1 flex flex-col min-w-0 ${showList ? 'hidden lg:flex' : 'flex'}`}>
-              {/* Group chat members bar */}
-              {activeConv && (() => {
-                const memberAgents = getConvAgentIds(activeConv).map(id => agentMap.get(id)).filter(Boolean);
-                if (memberAgents.length < 2) return null;
-                return (
-                  <div
-                    className="flex items-center gap-2 px-4 py-1.5 shrink-0 overflow-x-auto"
-                    style={{ borderBottom: "1px solid var(--color-line-secondary)", background: "var(--color-bg-secondary)" }}
-                  >
-                    <span className="text-[10px] shrink-0" style={{ color: "var(--color-text-quaternary)", textTransform: "uppercase", fontWeight: 600 }}>
-                      {t("ai.chat.members")}
-                    </span>
-                    {memberAgents.map(a => (
-                      <span key={a!.id} className="flex items-center gap-1 shrink-0 px-1.5 py-0.5 rounded-full text-[11px]" style={{ background: "var(--color-bg-tertiary)", color: "var(--color-text-secondary)" }}>
-                        <span>{a!.avatar}</span>
-                        <span>{a!.name}</span>
-                      </span>
-                    ))}
-                  </div>
-                );
-              })()}
-
               {/* Messages (with drag-drop zone for image upload) */}
               <div
                 ref={scrollRef}
-                className="flex-1 overflow-y-auto px-4 py-3 space-y-3 relative"
+                className="flex-1 overflow-y-auto px-5 lg:px-8 py-6 space-y-6 relative"
                 style={{ overscrollBehavior: "contain" }}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -2149,74 +2215,41 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                   </div>
                 )}
                 {messages.length === 0 && (
-                  <div className="flex flex-col items-center justify-center h-full gap-4">
+                  <div className="flex flex-col items-center justify-center h-full gap-6 max-w-[480px] mx-auto">
                     {hasAI ? (
                       <>
-                        {/* Agent team intro (group) or single agent welcome */}
                         {activeAgents.length > 1 ? (
                           <div className="flex flex-col items-center gap-3">
-                            <PeepIllustration name="experiments" size={120} />
                             <div className="flex -space-x-2">
                               {activeAgents.map(a => (
-                                <div
-                                  key={a.id}
-                                  className="flex items-center justify-center rounded-full text-[18px] ring-2 ring-[var(--color-bg-primary)]"
-                                  style={{ width: 40, height: 40, background: 'var(--color-bg-tertiary)' }}
-                                >
-                                  {a.avatar}
-                                </div>
+                                <div key={a.id} className="flex items-center justify-center rounded-full text-[18px] ring-2 ring-[var(--color-bg-primary)]" style={{ width: 40, height: 40, background: 'var(--color-bg-tertiary)' }}>{a.avatar}</div>
                               ))}
                             </div>
-                            <div className="text-center max-w-[280px]">
-                              <p className="text-[14px] truncate" style={{ color: 'var(--color-text-secondary)', fontWeight: 600 }}>
-                                {activeAgents.length <= 3
-                                  ? activeAgents.map(a => a.name).join(' · ')
-                                  : `${activeAgents.slice(0, 3).map(a => a.name).join(' · ')} +${activeAgents.length - 3}`}
-                              </p>
-                              <p className="text-[12px] mt-1" style={{ color: 'var(--color-text-tertiary)' }}>
-                                {t("ai.chat.teamReady")}
-                              </p>
-                            </div>
+                            <p className="text-[14px]" style={{ color: 'var(--color-text-tertiary)' }}>{t("ai.chat.teamReady")}</p>
+                            <p className="text-[12px] text-center" style={{ color: 'var(--color-text-quaternary)' }}>
+                              {lang === "zh" ? "所有成员会依次回答，用 @ 可单独提问" : "All members reply in turn. Use @ to ask one specifically."}
+                            </p>
                           </div>
                         ) : activeAgent ? (
                           <div className="flex flex-col items-center gap-2">
-                            <div
-                              className="flex items-center justify-center rounded-full text-2xl"
-                              style={{ width: 48, height: 48, background: 'var(--color-bg-tertiary)' }}
-                            >
-                              {activeAgent.avatar}
-                            </div>
-                            <p className="text-[14px]" style={{ color: 'var(--color-text-secondary)', fontWeight: 600 }}>
-                              {activeAgent.name}
-                            </p>
-                            <p className="text-[12px] text-center max-w-[260px]" style={{ color: 'var(--color-text-tertiary)' }}>
-                              {activeAgent.role?.slice(0, 60)}{activeAgent.role?.length > 60 ? '...' : ''}
-                            </p>
+                            <span className="text-3xl">{activeAgent.avatar}</span>
+                            <p className="text-[15px]" style={{ color: 'var(--color-text-secondary)', fontWeight: 600 }}>{activeAgent.name}</p>
+                            {activeAgent.role && <p className="text-[13px] text-center max-w-[300px]" style={{ color: 'var(--color-text-tertiary)' }}>{activeAgent.role.slice(0, 80)}</p>}
                           </div>
                         ) : (
-                          <div className="flex flex-col items-center gap-3">
-                            <PeepIllustration name="pondering" size={180} />
-                            <p className="text-[15px]" style={{ color: 'var(--color-text-secondary)', fontWeight: 600 }}>
-                              {t("ai.chat.defaultAssistant")}
-                            </p>
-                            <p className="text-[12px] text-center max-w-[260px]" style={{ color: 'var(--color-text-tertiary)' }}>
-                              {t("ai.chat.defaultDesc")}
-                            </p>
+                          <div className="flex flex-col items-center gap-2">
+                            <PeepIllustration name="pondering" size={100} />
+                            <p className="text-[13px] text-center max-w-[300px]" style={{ color: 'var(--color-text-tertiary)' }}>{t("ai.chat.defaultDesc")}</p>
                           </div>
                         )}
-                        {/* Quick prompts */}
-                        <div className="flex flex-wrap gap-2 justify-center max-w-[320px]">
+                        <div className="grid grid-cols-2 gap-2 w-full">
                           {quickPrompts.map((qp, i) => (
                             <button
                               key={i}
                               onClick={() => sendMessage(qp.prompt)}
                               disabled={isStreaming}
-                              className="ai-chat-quick-prompt px-3 py-1.5 rounded-full text-[13px] transition-colors hover:opacity-80 press-feedback disabled:opacity-40 disabled:pointer-events-none"
-                              style={{
-                                background: "var(--color-bg-secondary)",
-                                color: "var(--color-text-secondary)",
-                                border: "1px solid var(--color-line-tertiary)",
-                              }}
+                              className="px-3 py-2.5 rounded-2xl text-[13px] text-left transition-colors hover:opacity-80 press-feedback disabled:opacity-40 disabled:pointer-events-none"
+                              style={{ background: "var(--color-bg-secondary)", color: "var(--color-text-secondary)", border: "1px solid var(--color-line-tertiary)" }}
                             >
                               {qp.label}
                             </button>
@@ -2225,29 +2258,13 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                       </>
                     ) : (
                       <div className="flex flex-col items-center gap-3">
-                        <PeepIllustration name="roboto" size={160} />
-                        <p className="text-[13px] text-center" style={{ color: "var(--color-text-tertiary)" }}>
-                          {t("ai.chat.noProvider")}
-                        </p>
+                        <PeepIllustration name="roboto" size={100} />
+                        <p className="text-[13px] text-center" style={{ color: "var(--color-text-tertiary)" }}>{t("ai.chat.noProvider")}</p>
                         <button
-                          onClick={() => {
-                            setActiveTab("settings");
-                            handleClose();
-                            const tryScroll = (n = 0) => {
-                              const el = document.getElementById('settings-ai');
-                              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                              else if (n < 3) setTimeout(() => tryScroll(n + 1), 150);
-                            };
-                            setTimeout(tryScroll, 80);
-                          }}
+                          onClick={() => { setActiveTab("settings"); handleClose(); const tryScroll = (n = 0) => { const el = document.getElementById('settings-ai'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); else if (n < 3) setTimeout(() => tryScroll(n + 1), 150); }; setTimeout(tryScroll, 80); }}
                           className="px-4 py-1.5 rounded-full text-[13px] transition-colors"
-                          style={{
-                            background: "var(--color-accent)",
-                            color: "var(--color-brand-text)",
-                          }}
-                        >
-                          {t("common.goSettings")}
-                        </button>
+                          style={{ background: "var(--color-accent)", color: "var(--color-brand-text)" }}
+                        >{t("common.goSettings")}</button>
                       </div>
                     )}
                   </div>
@@ -2255,130 +2272,139 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                 {messages.map((msg, i) => {
                   const msgAgent = msg.agentId != null ? agentMap.get(msg.agentId) : null;
                   const isUser = msg.role === "user";
-                  // Collapse consecutive same-sender headers
                   const prevMsg = i > 0 ? messages[i - 1] : null;
                   const sameSender = prevMsg
                     && prevMsg.role === msg.role
                     && (prevMsg.agentId || null) === (msg.agentId || null)
                     && !prevMsg.toolConfirm;
                   const senderName = isUser ? operatorName : (msgAgent?.name || t("ai.chat.defaultAssistant"));
-                  const senderAvatarRaw = isUser ? (operatorAvatar || "👤") : (msgAgent?.avatar || "🤖");
-                  const senderIsImage = typeof senderAvatarRaw === "string" && (senderAvatarRaw.startsWith("data:image/") || senderAvatarRaw.startsWith("http"));
 
                   return (
-                  <div key={i} className={`flex gap-2.5 ${isUser ? "flex-row-reverse" : "flex-row"}`}>
-                    {/* Avatar column */}
-                    <div className="shrink-0" style={{ width: 28 }}>
-                      {!sameSender && (
-                        <div
-                          className="flex items-center justify-center rounded-full text-[14px] overflow-hidden"
-                          style={{ width: 28, height: 28, background: "var(--color-bg-tertiary)" }}
-                        >
-                          {senderIsImage
-                            ? <img src={senderAvatarRaw} alt="" className="w-full h-full object-cover rounded-full" />
-                            : senderAvatarRaw}
-                        </div>
-                      )}
-                    </div>
+                  <div key={i} className={`max-w-[720px] mx-auto w-full ${isUser ? "" : ""}`}>
+                    {/* Group chat: always show agent avatar + name */}
+                    {!isUser && isGroupConv && (
+                      <div className="flex items-center gap-1.5 mb-1.5 ml-0.5">
+                        <span className="text-[14px]">{msgAgent?.avatar || '🤖'}</span>
+                        <span className="text-[13px]" style={{ color: "var(--color-text-secondary)", fontWeight: 600 }}>{senderName}</span>
+                      </div>
+                    )}
 
-                    {/* Message column */}
-                    <div className={`flex-1 min-w-0 ${isUser ? "flex flex-col items-end" : ""}`} style={{ maxWidth: "85%" }}>
-                      {/* Sender name header (collapse for consecutive) */}
-                      {!sameSender && (
-                        <div className={`flex items-center gap-1.5 mb-0.5 ${isUser ? "flex-row-reverse mr-1" : "ml-1"}`}>
-                          <span className="text-[11px]" style={{ color: "var(--color-text-tertiary)", fontWeight: 600 }}>{senderName}</span>
-                          {msg.timestamp && (
-                            <span className="text-[10px]" style={{ color: "var(--color-text-quaternary)" }}>
-                              {new Date(msg.timestamp).toLocaleTimeString(lang === 'zh' ? 'zh-CN' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          )}
-                        </div>
-                      )}
-
-                      {msg.toolConfirm ? (
-                        <ToolConfirmCard
-                          confirm={msg.toolConfirm}
-                          onConfirm={() => handleToolConfirm(i)}
-                          onReject={() => handleToolReject(i)}
-                          onUpdateArgs={(newArgs) => {
-                            if (!activeConvId) return;
-                            updateConversations(prev => prev.map(c => {
-                              if (c.id !== activeConvId) return c;
-                              const msgs = [...c.messages];
-                              const m = msgs[i];
-                              if (!m?.toolConfirm) return c;
-                              // Rebuild confirm info with new args
-                              const updated = buildConfirmInfo({ name: m.toolConfirm.toolName, args: newArgs }, lang, currency === "CNY" ? "¥" : "$");
-                              msgs[i] = { ...m, toolConfirm: updated };
-                              return { ...c, messages: msgs };
-                            }));
-                          }}
-                          lang={lang}
-                          executing={executingTool}
-                          result={msg.toolResult}
-                        />
-                      ) : (
-                        <div
-                          className={`ai-chat-bubble rounded-2xl px-3.5 py-2.5 text-[14px] leading-relaxed inline-block ${isUser ? "ai-chat-bubble-user" : "ai-chat-bubble-assistant group relative"}`}
-                          style={isUser ? {
-                            background: "var(--color-accent)",
-                            color: "var(--color-brand-text)",
-                            borderBottomRightRadius: 6,
-                            whiteSpace: "pre-wrap",
-                            overflowWrap: "break-word" as const,
-                          } : {
-                            background: "var(--color-bg-secondary)",
-                            color: "var(--color-text-primary)",
-                            borderBottomLeftRadius: 6,
-                            overflowWrap: "break-word" as const,
-                            ...(isGroupConv && msg.agentId ? { borderLeft: `3px solid ${AGENT_COLORS[activeConvAgentIds.indexOf(msg.agentId) % AGENT_COLORS.length]}` } : {}),
-                          }}
-                        >
+                    {msg.toolConfirm ? (
+                      <ToolConfirmCard
+                        confirm={msg.toolConfirm}
+                        onConfirm={() => handleToolConfirm(i)}
+                        onReject={() => handleToolReject(i)}
+                        onUpdateArgs={(newArgs) => {
+                          if (!activeConvId) return;
+                          updateConversations(prev => prev.map(c => {
+                            if (c.id !== activeConvId) return c;
+                            const msgs = [...c.messages];
+                            const m = msgs[i];
+                            if (!m?.toolConfirm) return c;
+                            const updated = buildConfirmInfo({ name: m.toolConfirm.toolName, args: newArgs }, lang, currency === "CNY" ? "¥" : "$");
+                            msgs[i] = { ...m, toolConfirm: updated };
+                            return { ...c, messages: msgs };
+                          }));
+                        }}
+                        lang={lang}
+                        executing={executingTool}
+                        result={msg.toolResult}
+                      />
+                    ) : isUser ? (
+                      /* ── User message ── */
+                      <div className="flex justify-end">
+                        <div className="group/user relative max-w-[85%]">
                           {/* Attached images */}
                           {msg.attachments && msg.attachments.length > 0 && (
-                            <div className={`flex flex-wrap gap-1.5 ${msg.content ? 'mb-2' : ''}`}>
+                            <div className={`flex flex-wrap gap-1.5 justify-end ${msg.content ? 'mb-2' : ''}`}>
                               {msg.attachments.map((att, ai) =>
                                 att.dataUrl ? (
-                                  <img
-                                    key={ai}
-                                    src={att.dataUrl}
-                                    alt={att.fileName}
-                                    className="rounded-lg max-h-[200px] max-w-full object-contain cursor-pointer"
-                                    style={{ border: '1px solid rgba(255,255,255,0.15)' }}
-                                    onClick={() => window.open(att.dataUrl, '_blank')}
-                                  />
+                                  <img key={ai} src={att.dataUrl} alt={att.fileName} className="rounded-xl max-h-[200px] max-w-full object-contain cursor-pointer" onClick={() => window.open(att.dataUrl, '_blank')} />
                                 ) : (
-                                  <div
-                                    key={ai}
-                                    className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[12px]"
-                                    style={{ background: 'rgba(255,255,255,0.1)' }}
-                                  >
-                                    <ImageIcon size={14} />
-                                    <span>{att.fileName}</span>
+                                  <div key={ai} className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[12px]" style={{ background: 'var(--color-bg-tertiary)' }}>
+                                    <ImageIcon size={14} /><span>{att.fileName}</span>
                                   </div>
                                 )
                               )}
                             </div>
                           )}
-                          {!isUser ? (
-                            msg.content ? (
-                              <>
-                                <MarkdownContent content={msg.content} />
-                                {!msg.streaming && (
-                                  <div className="flex justify-end mt-1 -mb-1 -mr-1">
-                                    <CopyButton text={msg.content} />
-                                  </div>
-                                )}
-                              </>
-                            ) : msg.streaming ? (
-                              <Loader2 size={14} className="animate-spin" style={{ color: "var(--color-text-tertiary)" }} />
-                            ) : null
+                          {editingMsgIndex === i ? (
+                            <div className="w-full min-w-[280px]">
+                              <textarea
+                                className="w-full rounded-2xl px-4 py-3 text-[14px] leading-relaxed resize-none border-0 outline-none"
+                                style={{ background: "var(--color-bg-secondary)", color: "var(--color-text-primary)", minHeight: 60, border: "1px solid var(--color-line-secondary)" }}
+                                value={editingMsgText}
+                                onChange={e => setEditingMsgText(e.target.value)}
+                                onKeyDown={e => {
+                                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmitEdit(); }
+                                  if (e.key === "Escape") { setEditingMsgIndex(null); setEditingMsgText(""); }
+                                }}
+                                autoFocus
+                              />
+                              <div className="flex justify-end gap-1.5 mt-2">
+                                <button onClick={() => { setEditingMsgIndex(null); setEditingMsgText(""); }} className="px-3.5 py-1.5 rounded-full text-[13px] transition-colors hover:bg-[var(--color-bg-tertiary)]" style={{ color: "var(--color-text-secondary)" }}>{t("common.cancel")}</button>
+                                <button onClick={handleSubmitEdit} className="px-3.5 py-1.5 rounded-full text-[13px] transition-colors" style={{ background: "var(--color-text-primary)", color: "var(--color-bg-primary)" }}>{t("ai.chat.send")}</button>
+                              </div>
+                            </div>
                           ) : (
-                            msg.content
+                            <>
+                              <div
+                                className="rounded-3xl px-4 py-2.5 text-[14px] leading-relaxed inline-block"
+                                style={{ background: "var(--color-bg-secondary)", color: "var(--color-text-primary)", whiteSpace: "pre-wrap", overflowWrap: "break-word" as const }}
+                              >
+                                {msg.content}
+                              </div>
+                              {!isStreamingHere && (
+                                <button
+                                  onClick={() => { setEditingMsgIndex(i); setEditingMsgText(typeof msg.content === "string" ? msg.content : ""); }}
+                                  className="absolute -left-8 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-all opacity-0 group-hover/user:opacity-100 hover:bg-[var(--color-bg-secondary)]"
+                                  title={t("ai.chat.editMessage")}
+                                >
+                                  <Pencil size={13} style={{ color: "var(--color-text-quaternary)" }} />
+                                </button>
+                              )}
+                            </>
                           )}
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    ) : (
+                      /* ── Assistant message ── */
+                      <div className="group/assistant">
+                        {/* Attached images */}
+                        {msg.attachments && msg.attachments.length > 0 && (
+                          <div className={`flex flex-wrap gap-1.5 ${msg.content ? 'mb-2' : ''}`}>
+                            {msg.attachments.map((att, ai) =>
+                              att.dataUrl ? (
+                                <img key={ai} src={att.dataUrl} alt={att.fileName} className="rounded-xl max-h-[200px] max-w-full object-contain cursor-pointer" onClick={() => window.open(att.dataUrl, '_blank')} />
+                              ) : (
+                                <div key={ai} className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[12px]" style={{ background: 'var(--color-bg-tertiary)' }}>
+                                  <ImageIcon size={14} /><span>{att.fileName}</span>
+                                </div>
+                              )
+                            )}
+                          </div>
+                        )}
+                        {msg.content ? (
+                          <>
+                            <div className="text-[14px] leading-relaxed" style={{ color: "var(--color-text-primary)", overflowWrap: "break-word" as const, ...(isGroupConv && msg.agentId ? { borderLeft: `3px solid ${AGENT_COLORS[activeConvAgentIds.indexOf(msg.agentId) % AGENT_COLORS.length]}`, paddingLeft: 12 } : {}) }}>
+                              <MarkdownContent content={msg.content} />
+                            </div>
+                            {!msg.streaming && (
+                              <div className="flex items-center gap-0.5 mt-2 opacity-0 group-hover/assistant:opacity-100 transition-opacity">
+                                <CopyButton text={msg.content} />
+                                {!isStreamingHere && !messages.slice(i + 1).some(m => m.role === 'user') && (
+                                  <button onClick={handleRegenerate} className="p-1.5 rounded-lg transition-colors hover:bg-[var(--color-bg-secondary)]" title={t("ai.chat.regenerate")}>
+                                    <RotateCcw size={14} style={{ color: "var(--color-text-quaternary)" }} />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </>
+                        ) : msg.streaming ? (
+                          <Loader2 size={16} className="animate-spin" style={{ color: "var(--color-text-tertiary)" }} />
+                        ) : null}
+                      </div>
+                    )}
                   </div>
                   );
                 })}
@@ -2409,145 +2435,91 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
               })()}
 
               {/* Input */}
-              <div
-                className="shrink-0 px-3 pb-3 pt-1.5"
-                style={{
-                  borderTop: "1px solid var(--color-line-secondary)",
-                  paddingBottom: "max(12px, env(safe-area-inset-bottom, 0px))",
-                }}
-              >
-                <div className="flex items-center justify-between mb-1 px-1">
-                  <AIConnectionStatus settings={settings} />
-                </div>
+              <div className="shrink-0 px-5 lg:px-8 pb-4 pt-2" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom, 0px))" }}>
+                <div className="max-w-[720px] mx-auto w-full">
                 {/* @mention dropdown */}
                 {mentionQuery !== null && mentionAgents.length > 0 && (
-                  <div
-                    className="rounded-[var(--radius-8)] py-1 mb-1"
-                    style={{
-                      background: "var(--color-bg-secondary)",
-                      border: "1px solid var(--color-border-translucent)",
-                      boxShadow: "var(--shadow-high)",
-                    }}
-                  >
+                  <div className="rounded-xl py-1 mb-1.5" style={{ background: "var(--color-bg-secondary)", border: "1px solid var(--color-border-translucent)", boxShadow: "var(--shadow-high)" }}>
                     {mentionAgents.map((a, idx) => (
-                      <button
-                        key={a.id}
-                        onClick={() => insertMention(a)}
-                        className="flex items-center gap-2 w-full px-3 py-2.5 text-[13px] text-left transition-colors"
-                        style={{
-                          color: "var(--color-text-primary)",
-                          background: idx === mentionIndex ? 'var(--color-accent-tint)' : 'transparent',
-                        }}
-                        onMouseDown={(e) => e.preventDefault() /* prevent blur */}
-                        onMouseEnter={() => setMentionIndex(idx)}
-                      >
-                        <span>{a.avatar}</span>
-                        <span className="flex-1">{a.name}</span>
+                      <button key={a.id} onClick={() => insertMention(a)} className="flex items-center gap-2 w-full px-3 py-2 text-[13px] text-left transition-colors" style={{ color: "var(--color-text-primary)", background: idx === mentionIndex ? 'var(--color-accent-tint)' : 'transparent' }} onMouseDown={(e) => e.preventDefault()} onMouseEnter={() => setMentionIndex(idx)}>
+                        <span>{a.avatar}</span><span className="flex-1">{a.name}</span>
                         {idx === mentionIndex && <span className="text-[10px]" style={{ color: 'var(--color-text-quaternary)' }}>↵</span>}
                       </button>
                     ))}
                   </div>
                 )}
-                {/* Attachment preview strip */}
-                {pendingAttachments.length > 0 && (
-                  <div className="flex gap-2 mb-1.5 px-1 flex-wrap">
-                    {pendingAttachments.map((att, ai) => (
-                      <div key={ai} className="relative group/att">
-                        <img
-                          src={att.dataUrl}
-                          alt={att.fileName}
-                          className="rounded-lg object-cover"
-                          style={{ width: 56, height: 56, border: '1px solid var(--color-line-tertiary)' }}
-                        />
-                        <button
-                          onClick={() => removeAttachment(ai)}
-                          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover/att:opacity-100 transition-opacity"
-                          style={{ background: 'var(--color-danger, #eb5757)', color: '#fff' }}
-                        >
-                          <X size={12} />
-                        </button>
-                        <div className="text-[10px] text-center truncate mt-0.5" style={{ maxWidth: 56, color: 'var(--color-text-quaternary)' }}>
-                          {att.fileName.length > 8 ? att.fileName.slice(0, 6) + '…' : att.fileName}
+                {/* Unified input container */}
+                <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid var(--color-line-secondary)", background: "var(--color-bg-secondary)" }}>
+                  {/* Attachment preview inside container */}
+                  {pendingAttachments.length > 0 && (
+                    <div className="flex gap-2 px-3 pt-3 flex-wrap">
+                      {pendingAttachments.map((att, ai) => (
+                        <div key={ai} className="relative group/att">
+                          <img src={att.dataUrl} alt={att.fileName} className="rounded-lg object-cover" style={{ width: 56, height: 56 }} />
+                          <button onClick={() => removeAttachment(ai)} className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover/att:opacity-100 transition-opacity" style={{ background: 'var(--color-danger, #eb5757)', color: '#fff' }}><X size={12} /></button>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {/* Hidden file input */}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept={ACCEPTED_TYPES}
-                  multiple
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
-                <div className="flex items-end gap-1.5">
-                  {/* Upload button */}
-                  <button
-                    onClick={handleFileSelect}
-                    disabled={isStreamingHere || pendingAttachments.length >= MAX_ATTACHMENTS}
-                    className="shrink-0 rounded-full flex items-center justify-center transition-all disabled:opacity-30 press-feedback"
-                    style={{
-                      minWidth: 40,
-                      minHeight: 40,
-                      color: "var(--color-text-tertiary)",
-                    }}
-                    aria-label={lang === "zh" ? "上传图片" : "Upload image"}
-                    title={lang === "zh" ? "上传图片（支持拖拽和粘贴）" : "Upload image (drag & drop or paste)"}
-                  >
-                    <Paperclip size={18} />
-                  </button>
+                      ))}
+                    </div>
+                  )}
+                  <input ref={fileInputRef} type="file" accept={ACCEPTED_TYPES} multiple className="hidden" onChange={handleFileChange} />
                   <textarea
                     ref={inputRef}
                     value={input}
                     onChange={handleInputChange}
                     onKeyDown={handleKeyDown}
                     onPaste={handlePaste}
-                    placeholder={pendingAttachments.length
-                      ? (lang === "zh" ? "描述图片或提问..." : "Describe the image or ask a question...")
-                      : t("ai.chat.placeholder")}
+                    placeholder={pendingAttachments.length ? (lang === "zh" ? "描述图片或提问..." : "Describe the image or ask...") : isGroupConv ? (lang === "zh" ? "输入消息... (@ 可指定 Agent)" : "Type a message... (@ to mention agent)") : t("ai.chat.placeholder")}
                     rows={1}
-                    className="input-base flex-1 px-3 py-2.5 text-[14px] resize-none"
-                    style={{ maxHeight: 120, minHeight: 44 }}
+                    className="w-full px-4 pt-3 pb-1 text-[14px] resize-none bg-transparent border-0 outline-none"
+                    style={{ maxHeight: 120, minHeight: 24, color: "var(--color-text-primary)" }}
                     disabled={isStreamingHere}
                   />
-                  {isStreamingHere ? (
-                    <button
-                      onClick={() => { abortRef.current?.abort(); setStreamingConvId(null); }}
-                      className="ai-chat-send shrink-0 rounded-full flex items-center justify-center transition-all w-10 h-10 lg:w-10 lg:h-10"
-                      style={{
-                        minWidth: 44,
-                        minHeight: 44,
-                        background: "var(--color-danger, #eb5757)",
-                        color: "var(--color-text-on-color, #fff)",
-                      }}
-                      aria-label={t("ai.chat.stop")}
-                    >
-                      <Square size={14} fill="currentColor" />
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handleSend}
-                      disabled={!input.trim() && !pendingAttachments.length}
-                      className="ai-chat-send shrink-0 rounded-full flex items-center justify-center transition-all disabled:opacity-30"
-                      style={{
-                        minWidth: 44,
-                        minHeight: 44,
-                        background: "var(--color-accent)",
-                        color: "var(--color-brand-text)",
-                      }}
-                      aria-label={t("ai.chat.send")}
-                    >
-                      <Send size={18} />
-                    </button>
-                  )}
+                  {/* Bottom toolbar inside container */}
+                  <div className="flex items-center justify-between px-2 pb-2 pt-1">
+                    <div className="flex items-center gap-0.5">
+                      <button
+                        onClick={handleFileSelect}
+                        disabled={isStreamingHere || pendingAttachments.length >= MAX_ATTACHMENTS}
+                        className="p-1.5 rounded-lg transition-colors hover:bg-[var(--color-bg-tertiary)] disabled:opacity-30"
+                        style={{ color: "var(--color-text-tertiary)" }}
+                        aria-label={lang === "zh" ? "上传图片" : "Upload image"}
+                        title={lang === "zh" ? "上传图片" : "Upload image"}
+                      >
+                        <Paperclip size={16} />
+                      </button>
+                    </div>
+                    {isStreamingHere ? (
+                      <button
+                        onClick={() => { abortRef.current?.abort(); setStreamingConvId(null); }}
+                        className="shrink-0 rounded-lg flex items-center justify-center transition-all p-1.5"
+                        style={{ background: "var(--color-danger, #eb5757)", color: "#fff" }}
+                        aria-label={t("ai.chat.stop")}
+                      >
+                        <Square size={14} fill="currentColor" />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleSend}
+                        disabled={!input.trim() && !pendingAttachments.length}
+                        className="shrink-0 rounded-lg flex items-center justify-center transition-all disabled:opacity-20 p-1.5"
+                        style={{ background: input.trim() || pendingAttachments.length ? "var(--color-text-primary)" : "var(--color-bg-tertiary)", color: input.trim() || pendingAttachments.length ? "var(--color-bg-primary)" : "var(--color-text-quaternary)" }}
+                        aria-label={t("ai.chat.send")}
+                      >
+                        <Send size={16} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {/* Model indicator */}
+                <div className="flex items-center justify-center mt-1.5">
+                  <AIConnectionStatus settings={settings} />
+                </div>
                 </div>
               </div>
             </div>
           </div>
         </motion.div>
-        </>
+      </>
       )}
     </AnimatePresence>,
     document.body,

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, Trash2, Save, User, Upload, Check } from 'lucide-react';
+import { Camera, Trash2, Save, User, Upload, Check, Download, FileText } from 'lucide-react';
 import { useT } from '../../i18n/context';
+import { useUIStore } from '../../store/useUIStore';
 
 interface ProfileSectionProps {
   operatorName: string;
@@ -174,6 +175,160 @@ export default function ProfileSection({
         <SaveButton handleSave={handleSave} label={t("settings.saveBtn")} />
 
       </div>
+
+      {/* Personal Preferences */}
+      <PreferencesBlock getField={getField} setField={setField} handleSave={handleSave} />
     </section>
+  );
+}
+
+/* ── Preference template ── */
+const PREF_TEMPLATE_ZH = `# 个人偏好
+
+## 沟通风格
+- 偏好简洁直接的回答
+- 用中文回复
+
+## 业务优先级
+- 当前阶段重点是客户增长
+- 现金流优先于利润率
+
+## 决策方式
+- 数据驱动，给建议时附上数据依据
+
+## 工作习惯
+- 上午专注深度工作，不安排会议
+- 周五做复盘和下周计划
+
+## 内容与语气
+- 给客户的沟通正式专业
+- 内部内容可以轻松随意
+
+## AI 交互偏好
+- 回答尽量精简，不需要过多解释
+- 重要操作前先确认
+`;
+
+const PREF_TEMPLATE_EN = `# Personal Preferences
+
+## Communication Style
+- Prefer concise, direct answers
+- Reply in English
+
+## Business Priorities
+- Current focus is client growth
+- Cash flow over profit margin
+
+## Decision Making
+- Data-driven; include supporting data with suggestions
+
+## Work Habits
+- Deep work in the morning, no meetings
+- Friday for reviews and next week planning
+
+## Content & Tone
+- Formal and professional for client communication
+- Casual for internal content
+
+## AI Interaction
+- Keep answers brief, no over-explanation
+- Confirm before important actions
+`;
+
+const MAX_PREF_SIZE = 50 * 1024; // 50KB
+
+function PreferencesBlock({ getField, setField, handleSave }: {
+  getField: (field: string) => string;
+  setField: (field: string, value: string) => void;
+  handleSave: () => void;
+}) {
+  const { t, lang } = useT();
+  const showToast = useUIStore(s => s.showToast);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const value = getField('personalPreferences');
+
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > MAX_PREF_SIZE) {
+      showToast(t("settings.preferences.fileTooLarge"));
+      e.target.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = typeof reader.result === 'string' ? reader.result : '';
+      setField('personalPreferences', text);
+      showToast(t("settings.preferences.importSuccess"));
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  const handleExport = () => {
+    const blob = new Blob([value], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'solo-ceo-preferences.md';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleTemplate = () => {
+    setField('personalPreferences', lang === 'zh' ? PREF_TEMPLATE_ZH : PREF_TEMPLATE_EN);
+  };
+
+  return (
+    <div className="card p-5 space-y-4 mt-4">
+      <div>
+        <h3 className="text-[15px] font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+          {t("settings.preferences.title")}
+        </h3>
+        <p className="text-[13px] mt-1" style={{ color: 'var(--color-text-tertiary)' }}>
+          {t("settings.preferences.description")}
+        </p>
+      </div>
+
+      <textarea
+        value={value}
+        onChange={(e) => setField('personalPreferences', e.target.value)}
+        placeholder={lang === 'zh' ? '在这里写下你的个人偏好（Markdown 格式）...' : 'Write your personal preferences here (Markdown format)...'}
+        className="input-base w-full px-3 py-2.5 text-[14px] resize-none font-mono"
+        style={{ minHeight: 120, maxHeight: 300, lineHeight: 1.6 }}
+        rows={6}
+      />
+
+      <div className="flex items-center gap-2 flex-wrap">
+        <input ref={fileInputRef} type="file" accept=".md,.txt,.markdown" className="hidden" onChange={handleImport} />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="btn-ghost compact flex items-center gap-1.5 text-[13px]"
+        >
+          <Upload size={14} />
+          {t("settings.preferences.import")}
+        </button>
+        <button
+          onClick={handleExport}
+          disabled={!value.trim()}
+          className="btn-ghost compact flex items-center gap-1.5 text-[13px] disabled:opacity-40"
+        >
+          <Download size={14} />
+          {t("settings.preferences.export")}
+        </button>
+        {!value.trim() && (
+          <button
+            onClick={handleTemplate}
+            className="btn-ghost compact flex items-center gap-1.5 text-[13px]"
+            style={{ color: 'var(--color-accent)' }}
+          >
+            <FileText size={14} />
+            {t("settings.preferences.template")}
+          </button>
+        )}
+      </div>
+
+      <SaveButton handleSave={handleSave} label={t("settings.saveBtn")} />
+    </div>
   );
 }

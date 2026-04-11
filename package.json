@@ -2,7 +2,7 @@
   "name": "solo-ceo",
   "productName": "一人CEO",
   "private": true,
-  "version": "2.34.0",
+  "version": "2.35.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -20,6 +20,7 @@
     "@tanstack/react-virtual": "^3.13.21",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "highlight.js": "^11.11.1",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
     "react": "^19.0.0",

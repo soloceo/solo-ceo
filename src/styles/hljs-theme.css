@@ -1,0 +1,45 @@
+/* highlight.js token colors — uses existing CSS variables for theme compatibility */
+.hljs {
+  color: var(--color-text-primary);
+  background: transparent;
+}
+.hljs-comment,
+.hljs-quote { color: var(--color-text-quaternary); font-style: italic; }
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-type { color: #d2a8ff; }
+.hljs-string,
+.hljs-attr,
+.hljs-addition { color: #a5d6ff; }
+.hljs-number,
+.hljs-literal,
+.hljs-variable { color: #79c0ff; }
+.hljs-title,
+.hljs-title\.function_,
+.hljs-section { color: #d2a8ff; }
+.hljs-built_in { color: #ffa657; }
+.hljs-name,
+.hljs-tag { color: #7ee787; }
+.hljs-attribute { color: #79c0ff; }
+.hljs-deletion { color: #ffa198; }
+.hljs-meta { color: var(--color-text-tertiary); }
+.hljs-punctuation { color: var(--color-text-secondary); }
+
+/* Light mode overrides */
+:root:not(.dark) .hljs-keyword,
+:root:not(.dark) .hljs-selector-tag,
+:root:not(.dark) .hljs-type { color: #8250df; }
+:root:not(.dark) .hljs-string,
+:root:not(.dark) .hljs-attr,
+:root:not(.dark) .hljs-addition { color: #0a3069; }
+:root:not(.dark) .hljs-number,
+:root:not(.dark) .hljs-literal,
+:root:not(.dark) .hljs-variable { color: #0550ae; }
+:root:not(.dark) .hljs-title,
+:root:not(.dark) .hljs-title\.function_,
+:root:not(.dark) .hljs-section { color: #8250df; }
+:root:not(.dark) .hljs-built_in { color: #953800; }
+:root:not(.dark) .hljs-name,
+:root:not(.dark) .hljs-tag { color: #116329; }
+:root:not(.dark) .hljs-attribute { color: #0550ae; }
+:root:not(.dark) .hljs-deletion { color: #82071e; }
