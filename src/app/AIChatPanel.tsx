@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { X, Send, Loader2, Trash2, Copy, Check, Settings, Plus, ChevronLeft, MessagesSquare, Zap, CheckCircle2, XCircle, Square } from "lucide-react";
+import { X, Send, Loader2, Trash2, Copy, Check, Settings, Plus, ChevronLeft, MessagesSquare, Zap, CheckCircle2, XCircle, Square, Paperclip, Image as ImageIcon } from "lucide-react";
 import PeepIllustration from "../components/ui/PeepIllustration";
 import { motion, AnimatePresence } from "motion/react";
 import ReactMarkdown from "react-markdown";
@@ -17,6 +17,7 @@ import {
   getOllamaConfig,
   streamChat,
   type AIProvider,
+  type ChatAttachment,
   type ChatMessage,
   type StreamResult,
   type NativeToolDef,
@@ -34,12 +35,23 @@ import {
 import { useAgents } from "../hooks/useAgents";
 import type { AgentConfig } from "../lib/agent-types";
 
+interface MessageAttachment {
+  mimeType: string;
+  /** Base64 data (no prefix) */
+  base64: string;
+  fileName: string;
+  /** Data URL for display (data:mime;base64,...) */
+  dataUrl: string;
+}
+
 interface Message {
   role: "user" | "assistant";
   content: string;
   agentId?: number | null;
   streaming?: boolean;
   timestamp?: number;
+  /** Uploaded images/files */
+  attachments?: MessageAttachment[];
   /** Tool confirmation pending user action */
   toolConfirm?: ToolConfirmInfo;
   /** Tool execution result */
@@ -82,7 +94,7 @@ function loadConversations(): Conversation[] {
   } catch { return []; }
 }
 
-/** Trim messages for storage (keep last 100 per conversation) */
+/** Trim messages for storage (keep last 100 per conversation, strip large base64 data) */
 function trimConv(c: Conversation) {
   return {
     ...c,
@@ -90,6 +102,12 @@ function trimConv(c: Conversation) {
       role: m.role, content: m.content,
       ...(m.agentId != null ? { agentId: m.agentId } : {}),
       ...(m.timestamp ? { timestamp: m.timestamp } : {}),
+      // Store attachment metadata only (no base64 — too large for localStorage)
+      ...(m.attachments?.length ? {
+        attachments: m.attachments.map(a => ({
+          mimeType: a.mimeType, fileName: a.fileName, base64: "", dataUrl: "",
+        })),
+      } : {}),
     })),
   };
 }
@@ -1026,6 +1044,8 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingAttachments, setPendingAttachments] = useState<MessageAttachment[]>([]);
 
   const hasAI = !!getAIConfig(settings);
 
@@ -1267,6 +1287,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
     const systemPrompt = buildSystemPrompt(dashboard, pageContext, activeTab, lang, operatorName, businessDesc, currency, agent, isGroup, useNativeTools);
 
     // Build chat history — skip cancelled tool confirmations, prefix group agent names
+    // Include image attachments on user messages so the AI can see uploaded images
     const chatHistory: ChatMessage[] = [
       { role: "system", content: systemPrompt },
       ...currentMsgs
@@ -1274,11 +1295,22 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
         .filter(m => !(m.toolResult && !m.toolResult.success && m.content.startsWith('~~'))) // exclude skipped confirmations
         .slice(-20)
         .map(m => {
+          // Convert MessageAttachment[] → ChatAttachment[] (only those with actual data)
+          const chatAttachments: ChatAttachment[] | undefined =
+            m.attachments?.filter(a => a.base64).map(a => ({
+              mimeType: a.mimeType, base64: a.base64, fileName: a.fileName,
+            }));
+          const hasAttachments = chatAttachments && chatAttachments.length > 0;
+
           if (isGroup && m.role === "assistant" && m.agentId && m.agentId !== agent?.id) {
             const otherName = agentMap.get(m.agentId)?.name || 'Assistant';
             return { role: m.role as "user" | "assistant", content: `[${otherName}]: ${m.content}` };
           }
-          return { role: m.role as "user" | "assistant", content: m.content };
+          return {
+            role: m.role as "user" | "assistant",
+            content: m.content,
+            ...(hasAttachments ? { attachments: chatAttachments } : {}),
+          };
         }),
     ];
 
@@ -1450,8 +1482,8 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
     }));
   }, [dashboard, pageContext, activeTab, lang, operatorName, businessDesc, currency, agentMap, updateConversations]);
 
-  const sendMessage = useCallback(async (text: string) => {
-    if (!text.trim()) return;
+  const sendMessage = useCallback(async (text: string, attachments?: MessageAttachment[]) => {
+    if (!text.trim() && !attachments?.length) return;
     // Block if this conversation (or the target conversation) is already streaming
     if (streamingConvId !== null) return;
 
@@ -1481,9 +1513,10 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
     }
 
     if (!aiConfig) {
+      const noProviderUserMsg: Message = { role: "user" as const, content: text, timestamp: Date.now(), ...(attachments?.length ? { attachments } : {}) };
       updateConversations(prev => prev.map(c => {
         if (c.id !== convId) return c;
-        const newMsgs = [...c.messages, { role: "user" as const, content: text, timestamp: Date.now() }, { role: "assistant" as const, content: t("ai.chat.noProvider"), timestamp: Date.now() }];
+        const newMsgs = [...c.messages, noProviderUserMsg, { role: "assistant" as const, content: t("ai.chat.noProvider"), timestamp: Date.now() }];
         return { ...c, messages: newMsgs, title: generateTitle(newMsgs, lang), updatedAt: Date.now() };
       }));
       return;
@@ -1505,10 +1538,11 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
       };
     }));
 
-    // Add user message
+    // Add user message (with optional attachments)
+    const userMsg: Message = { role: "user" as const, content: text, timestamp: Date.now(), ...(attachments?.length ? { attachments } : {}) };
     updateConversations(prev => prev.map(c => {
       if (c.id !== convId) return c;
-      const newMsgs = [...c.messages, { role: "user" as const, content: text, timestamp: Date.now() }];
+      const newMsgs = [...c.messages, userMsg];
       return { ...c, messages: newMsgs, title: generateTitle(newMsgs, lang), updatedAt: Date.now() };
     }));
     setStreamingConvId(convId);
@@ -1626,13 +1660,124 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
     }));
   }, [activeConvId, lang, updateConversations]);
 
+  /* ── File upload helpers ──────────────────���──────── */
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+  const MAX_ATTACHMENTS = 5;
+  const ACCEPTED_TYPES = "image/png,image/jpeg,image/gif,image/webp";
+
+  /** Compress an image file to a manageable base64 (max 1200px, JPEG quality 0.8) */
+  const compressImage = useCallback((file: File): Promise<MessageAttachment> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new window.Image();
+        img.onload = () => {
+          const maxDim = 1200;
+          let w = img.width, h = img.height;
+          if (w > maxDim || h > maxDim) {
+            const ratio = Math.min(maxDim / w, maxDim / h);
+            w = Math.round(w * ratio);
+            h = Math.round(h * ratio);
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d")!;
+          ctx.drawImage(img, 0, 0, w, h);
+          const outputType = file.type === "image/png" ? "image/png" : "image/jpeg";
+          const quality = outputType === "image/jpeg" ? 0.8 : undefined;
+          const dataUrl = canvas.toDataURL(outputType, quality);
+          const base64 = dataUrl.split(",")[1];
+          resolve({ mimeType: outputType, base64, fileName: file.name, dataUrl });
+        };
+        img.onerror = () => reject(new Error("Failed to load image"));
+        img.src = reader.result as string;
+      };
+      reader.onerror = () => reject(new Error("Failed to read file"));
+      reader.readAsDataURL(file);
+    });
+  }, []);
+
+  const processFiles = useCallback(async (files: FileList | File[]) => {
+    const arr = Array.from(files);
+    const remaining = MAX_ATTACHMENTS - pendingAttachments.length;
+    const toProcess = arr.slice(0, remaining);
+    const results: MessageAttachment[] = [];
+    for (const file of toProcess) {
+      if (file.size > MAX_FILE_SIZE) continue;
+      if (!file.type.startsWith("image/")) continue;
+      try {
+        const att = await compressImage(file);
+        results.push(att);
+      } catch { /* skip unprocessable files */ }
+    }
+    if (results.length) {
+      setPendingAttachments(prev => [...prev, ...results].slice(0, MAX_ATTACHMENTS));
+    }
+  }, [pendingAttachments.length, compressImage]);
+
+  const handleFileSelect = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.length) {
+      processFiles(e.target.files);
+      e.target.value = ""; // Reset so same file can be selected again
+    }
+  }, [processFiles]);
+
+  const removeAttachment = useCallback((idx: number) => {
+    setPendingAttachments(prev => prev.filter((_, i) => i !== idx));
+  }, []);
+
+  /** Handle drag-and-drop on the chat area */
+  const [isDragOver, setIsDragOver] = useState(false);
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  }, []);
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  }, []);
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    if (e.dataTransfer.files?.length) {
+      processFiles(e.dataTransfer.files);
+    }
+  }, [processFiles]);
+
+  /** Handle paste images from clipboard */
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    const imageFiles: File[] = [];
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith("image/")) {
+        const file = items[i].getAsFile();
+        if (file) imageFiles.push(file);
+      }
+    }
+    if (imageFiles.length) {
+      e.preventDefault();
+      processFiles(imageFiles);
+    }
+  }, [processFiles]);
+
   const handleSend = useCallback(() => {
     const text = input.trim();
-    if (!text || streamingConvId !== null) return; // Don't clear input if can't send
+    if ((!text && !pendingAttachments.length) || streamingConvId !== null) return;
     setInput("");
     if (inputRef.current) inputRef.current.style.height = "auto";
-    sendMessage(text);
-  }, [input, sendMessage, streamingConvId]);
+    const attachments = pendingAttachments.length ? [...pendingAttachments] : undefined;
+    setPendingAttachments([]);
+    sendMessage(text, attachments);
+  }, [input, sendMessage, streamingConvId, pendingAttachments]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // @mention keyboard navigation
@@ -1974,12 +2119,29 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                 );
               })()}
 
-              {/* Messages */}
+              {/* Messages (with drag-drop zone for image upload) */}
               <div
                 ref={scrollRef}
-                className="flex-1 overflow-y-auto px-4 py-3 space-y-3"
+                className="flex-1 overflow-y-auto px-4 py-3 space-y-3 relative"
                 style={{ overscrollBehavior: "contain" }}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
               >
+                {/* Drag overlay */}
+                {isDragOver && (
+                  <div
+                    className="absolute inset-0 z-10 flex items-center justify-center rounded-lg"
+                    style={{ background: 'rgba(var(--color-accent-rgb, 99,102,241), 0.08)', border: '2px dashed var(--color-accent)', pointerEvents: 'none' }}
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      <ImageIcon size={32} style={{ color: 'var(--color-accent)' }} />
+                      <span className="text-[14px] font-medium" style={{ color: 'var(--color-accent)' }}>
+                        {lang === "zh" ? "拖放图片到这里" : "Drop image here"}
+                      </span>
+                    </div>
+                  </div>
+                )}
                 {messages.length === 0 && (
                   <div className="flex flex-col items-center justify-center h-full gap-4">
                     {hasAI ? (
@@ -2166,6 +2328,32 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                             ...(isGroupConv && msg.agentId ? { borderLeft: `3px solid ${AGENT_COLORS[activeConvAgentIds.indexOf(msg.agentId) % AGENT_COLORS.length]}` } : {}),
                           }}
                         >
+                          {/* Attached images */}
+                          {msg.attachments && msg.attachments.length > 0 && (
+                            <div className={`flex flex-wrap gap-1.5 ${msg.content ? 'mb-2' : ''}`}>
+                              {msg.attachments.map((att, ai) =>
+                                att.dataUrl ? (
+                                  <img
+                                    key={ai}
+                                    src={att.dataUrl}
+                                    alt={att.fileName}
+                                    className="rounded-lg max-h-[200px] max-w-full object-contain cursor-pointer"
+                                    style={{ border: '1px solid rgba(255,255,255,0.15)' }}
+                                    onClick={() => window.open(att.dataUrl, '_blank')}
+                                  />
+                                ) : (
+                                  <div
+                                    key={ai}
+                                    className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[12px]"
+                                    style={{ background: 'rgba(255,255,255,0.1)' }}
+                                  >
+                                    <ImageIcon size={14} />
+                                    <span>{att.fileName}</span>
+                                  </div>
+                                )
+                              )}
+                            </div>
+                          )}
                           {!isUser ? (
                             msg.content ? (
                               <>
@@ -2254,13 +2442,65 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                     ))}
                   </div>
                 )}
-                <div className="flex items-end gap-2">
+                {/* Attachment preview strip */}
+                {pendingAttachments.length > 0 && (
+                  <div className="flex gap-2 mb-1.5 px-1 flex-wrap">
+                    {pendingAttachments.map((att, ai) => (
+                      <div key={ai} className="relative group/att">
+                        <img
+                          src={att.dataUrl}
+                          alt={att.fileName}
+                          className="rounded-lg object-cover"
+                          style={{ width: 56, height: 56, border: '1px solid var(--color-line-tertiary)' }}
+                        />
+                        <button
+                          onClick={() => removeAttachment(ai)}
+                          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover/att:opacity-100 transition-opacity"
+                          style={{ background: 'var(--color-danger, #eb5757)', color: '#fff' }}
+                        >
+                          <X size={12} />
+                        </button>
+                        <div className="text-[10px] text-center truncate mt-0.5" style={{ maxWidth: 56, color: 'var(--color-text-quaternary)' }}>
+                          {att.fileName.length > 8 ? att.fileName.slice(0, 6) + '…' : att.fileName}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept={ACCEPTED_TYPES}
+                  multiple
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                <div className="flex items-end gap-1.5">
+                  {/* Upload button */}
+                  <button
+                    onClick={handleFileSelect}
+                    disabled={isStreamingHere || pendingAttachments.length >= MAX_ATTACHMENTS}
+                    className="shrink-0 rounded-full flex items-center justify-center transition-all disabled:opacity-30 press-feedback"
+                    style={{
+                      minWidth: 40,
+                      minHeight: 40,
+                      color: "var(--color-text-tertiary)",
+                    }}
+                    aria-label={lang === "zh" ? "上传图片" : "Upload image"}
+                    title={lang === "zh" ? "上传图片（支持拖拽和粘贴）" : "Upload image (drag & drop or paste)"}
+                  >
+                    <Paperclip size={18} />
+                  </button>
                   <textarea
                     ref={inputRef}
                     value={input}
                     onChange={handleInputChange}
                     onKeyDown={handleKeyDown}
-                    placeholder={t("ai.chat.placeholder")}
+                    onPaste={handlePaste}
+                    placeholder={pendingAttachments.length
+                      ? (lang === "zh" ? "描述图片或提问..." : "Describe the image or ask a question...")
+                      : t("ai.chat.placeholder")}
                     rows={1}
                     className="input-base flex-1 px-3 py-2.5 text-[14px] resize-none"
                     style={{ maxHeight: 120, minHeight: 44 }}
@@ -2283,7 +2523,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                   ) : (
                     <button
                       onClick={handleSend}
-                      disabled={!input.trim()}
+                      disabled={!input.trim() && !pendingAttachments.length}
                       className="ai-chat-send shrink-0 rounded-full flex items-center justify-center transition-all disabled:opacity-30"
                       style={{
                         minWidth: 44,
