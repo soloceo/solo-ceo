@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bot, Eye, EyeOff, Check, X, Loader2, ExternalLink, Save, Trash2, Monitor, ChevronDown, Smartphone } from 'lucide-react';
+import { Bot, Eye, EyeOff, Check, X, Loader2, ExternalLink, Save, Trash2, Monitor, ChevronDown } from 'lucide-react';
 import { useT } from '../../i18n/context';
 import {
   testApiKey, fetchOllamaModels,
@@ -7,10 +7,6 @@ import {
   getOllamaConfig, setOllamaConfig,
   type AIProvider,
 } from '../../lib/ai-client';
-import {
-  isWebGPUAvailable, isEngineReady, getOrCreateEngine, unloadEngine,
-  WEBLLM_MODELS, getWebLLMModel, setWebLLMModel,
-} from '../../lib/webllm-engine';
 
 interface AISectionProps {
   settings: Record<string, string> | null;
@@ -40,13 +36,6 @@ export default function AISection({ settings, save }: AISectionProps) {
   const [ollamaModel, setOllamaModel] = useState(() => getOllamaConfig().model);
   const [ollamaModels, setOllamaModels] = useState<string[]>([]);
   const [ollamaLoading, setOllamaLoading] = useState(false);
-
-  // WebLLM state
-  const [webllmModel, setWebllmModelState] = useState(() => getWebLLMModel());
-  const [webllmLoading, setWebllmLoading] = useState(false);
-  const [webllmProgress, setWebllmProgress] = useState("");
-  const [webllmReady, setWebllmReady] = useState(() => isEngineReady());
-  const webgpuOk = isWebGPUAvailable();
 
   // Sync cloud keys from settings
   useEffect(() => {
@@ -329,123 +318,6 @@ export default function AISection({ settings, save }: AISectionProps) {
             <p className="text-[12px] mt-1.5" style={{ color: "var(--color-text-quaternary)", paddingLeft: 64 }}>
               {t("settings.ai.ollamaConnected").replace("{count}", String(ollamaModels.length))}
             </p>
-          )}
-        </div>
-
-        {/* ── WebLLM (browser-local via WebGPU) ── */}
-        <div className="px-4 py-3">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Smartphone size={16} style={{ color: activeProvider === "webllm" ? "var(--color-accent)" : "var(--color-text-tertiary)" }} />
-              <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-                WebLLM
-              </span>
-              <span className="text-[12px]" style={{ color: "var(--color-text-quaternary)" }}>
-                {t("settings.ai.webllmBrowser")}
-              </span>
-            </div>
-            <button
-              onClick={() => {
-                if (activeProvider === "webllm") {
-                  selectProvider("");
-                } else if (webgpuOk) {
-                  selectProvider("webllm");
-                }
-              }}
-              disabled={!webgpuOk}
-              className="text-[12px] px-2 py-0.5 rounded-[var(--radius-4)] transition-colors disabled:opacity-40"
-              style={activeProvider === "webllm" ? {
-                background: "var(--color-accent)", color: "var(--color-brand-text)",
-                fontWeight: "var(--font-weight-medium)",
-              } as React.CSSProperties : {
-                background: "var(--color-bg-tertiary)", color: "var(--color-text-tertiary)",
-                fontWeight: "var(--font-weight-medium)",
-              } as React.CSSProperties}
-            >
-              {activeProvider === "webllm" ? t("settings.ai.disconnect") : t("settings.ai.connect")}
-            </button>
-          </div>
-
-          {!webgpuOk ? (
-            <p className="text-[12px]" style={{ color: "var(--color-danger)" }}>
-              {t("settings.ai.webllmNoGpu")}
-            </p>
-          ) : (
-            <>
-              {/* Model selector */}
-              <div className="flex items-center gap-2 mb-2">
-                <label className="text-[12px] shrink-0" style={{ color: "var(--color-text-tertiary)", width: 64 }}>
-                  {t("settings.ai.webllmModel")}
-                </label>
-                <div className="relative flex-1">
-                  <select
-                    value={webllmModel}
-                    onChange={e => {
-                      setWebllmModelState(e.target.value);
-                      setWebLLMModel(e.target.value);
-                      setWebllmReady(false);
-                    }}
-                    className="input-base w-full px-3 py-2 pr-8 text-[14px] appearance-none"
-                  >
-                    {WEBLLM_MODELS.map(m => (
-                      <option key={m.id} value={m.id}>{m.label} ({m.vram})</option>
-                    ))}
-                  </select>
-                  <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "var(--color-text-tertiary)" }} />
-                </div>
-              </div>
-
-              {/* Load / Unload + status */}
-              <div className="flex items-center gap-2" style={{ paddingLeft: 64 }}>
-                {!webllmReady ? (
-                  <button
-                    onClick={async () => {
-                      setWebllmLoading(true);
-                      setWebllmProgress("");
-                      try {
-                        await getOrCreateEngine((progress, text) => {
-                          setWebllmProgress(`${Math.round(progress * 100)}% — ${text}`);
-                        });
-                        setWebllmReady(true);
-                        selectProvider("webllm");
-                      } catch (e) {
-                        setWebllmProgress(String((e as Error).message));
-                      } finally {
-                        setWebllmLoading(false);
-                      }
-                    }}
-                    disabled={webllmLoading}
-                    className="btn-ghost compact text-[13px] shrink-0 disabled:opacity-40"
-                  >
-                    {webllmLoading ? <Loader2 size={14} className="animate-spin" /> : t("settings.ai.webllmLoad")}
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      unloadEngine();
-                      setWebllmReady(false);
-                      setWebllmProgress("");
-                      if (activeProvider === "webllm") selectProvider("");
-                    }}
-                    className="btn-ghost compact text-[13px] shrink-0"
-                  >
-                    {t("settings.ai.webllmUnload")}
-                  </button>
-                )}
-                {webllmReady && (
-                  <span className="shrink-0">
-                    <Check size={14} style={{ color: "var(--color-success)" }} />
-                  </span>
-                )}
-              </div>
-
-              {/* Progress / status text */}
-              {webllmProgress && (
-                <p className="text-[12px] mt-1.5" style={{ color: webllmReady ? "var(--color-success)" : "var(--color-text-quaternary)", paddingLeft: 64 }}>
-                  {webllmReady ? t("settings.ai.webllmReady") : webllmProgress}
-                </p>
-              )}
-            </>
           )}
         </div>
 

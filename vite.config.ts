@@ -37,8 +37,6 @@ export default defineConfig(({mode}) => {
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-          // Don't precache the mediapipe chunk — it loads on-demand when user selects Gemma 4
-          globIgnores: ['**/vendor-mediapipe-*.js'],
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/.*supabase\.co\/.*/i,
@@ -68,7 +66,6 @@ export default defineConfig(({mode}) => {
             'vendor-dnd': ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
             'vendor-motion': ['motion'],
             'vendor-cmdk': ['cmdk'],
-            'vendor-mediapipe': ['@mediapipe/tasks-genai'],
           },
         },
       },
