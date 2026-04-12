@@ -1,0 +1,48 @@
+/* ══════════════════════════════════════════════════════════════════
+   Cal — Residual CSS overrides
+   The Cal.com-inspired shadow system is handled entirely by tokens.
+   Only inline-style components needing !important live here.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── AI Chat — override inline styles with Cal shadow system ──── */
+[data-theme="cal"] .ai-chat-panel {
+  border: none !important;
+  box-shadow: var(--shadow-high) !important;
+  border-radius: var(--radius-base) !important;
+}
+[data-theme="cal"] .ai-chat-bubble-user,
+[data-theme="cal"] .ai-chat-bubble-assistant {
+  border: none;
+  box-shadow: var(--shadow-tiny);
+  border-radius: var(--radius-base) !important;
+}
+[data-theme="cal"] .ai-chat-quick-prompt {
+  border: none !important;
+  box-shadow: var(--shadow-tiny);
+  border-radius: var(--radius-base) !important;
+}
+[data-theme="cal"] .ai-chat-send {
+  border: none;
+  box-shadow: var(--shadow-tiny);
+}
+[data-theme="cal"] .ai-chat-new-btn {
+  border: none !important;
+  box-shadow: var(--shadow-low);
+  border-radius: var(--radius-base) !important;
+}
+[data-theme="cal"] .ai-chat-new-btn:hover {
+  box-shadow: var(--shadow-medium);
+}
+[data-theme="cal"] .ai-chat-conv-item {
+  border: none !important;
+  border-radius: var(--radius-base) !important;
+  box-shadow: var(--shadow-low);
+  background: var(--color-bg-primary) !important;
+}
+[data-theme="cal"] .ai-chat-conv-item:hover {
+  box-shadow: var(--shadow-medium);
+}
+[data-theme="cal"] .ai-chat-conv-item.active,
+[data-theme="cal"] .ai-chat-conv-item[style*="accent"] {
+  box-shadow: var(--shadow-medium);
+}

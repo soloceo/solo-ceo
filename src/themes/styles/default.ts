@@ -5,9 +5,24 @@ import type { StyleDefinition } from '../types';
  * No overrides: all structural tokens come from tokens.css defaults.
  * Rounded corners, soft shadows, system fonts, no hover translate.
  */
-export const defaultStyle: StyleDefinition = {
+const defaultStyle: StyleDefinition = {
   id: 'default',
   nameKey: 'settings.style.default',
   descKey: 'settings.style.defaultDesc',
+  order: 0,
+  preview: {
+    card: {
+      border: '1px solid var(--color-border-secondary)',
+      borderRadius: '8px',
+      boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+    },
+    elements: {
+      accentShape: 'bar',
+      accentRadius: 3,
+      textLineRadius: 2,
+    },
+  },
   overrides: { light: {}, dark: {} },
 };
+
+export default defaultStyle;

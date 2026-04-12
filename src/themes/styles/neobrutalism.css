@@ -1,0 +1,117 @@
+/* ══════════════════════════════════════════════════════════════════
+   Neobrutalism — Residual CSS overrides
+   Everything expressible as tokens is in neobrutalism.ts.
+   Only complex selectors (child, sibling, data-attr, pseudo combos)
+   and !important overrides that cannot be pure tokens remain here.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Skeleton — kill shimmer animation ───────────────────────── */
+[data-theme="neobrutalism"] .skeleton-bone {
+  background: var(--color-bg-quaternary);
+  animation: none;
+}
+
+/* ── Press feedback — snap instead of scale ──────────────────── */
+[data-theme="neobrutalism"] .press-feedback:active {
+  transform: translate(2px, 2px) !important;
+}
+
+/* ── Divider lines — use border-width token ──────────────────── */
+[data-theme="neobrutalism"] .divide-y > * + * {
+  --tw-divide-y-reverse: 0;
+  border-top-width: var(--divider-width);
+}
+
+/* ── Mobile nav pill — child selectors ───────────────────────── */
+[data-theme="neobrutalism"] .mobile-nav-pill .mobile-tab-indicator {
+  border-radius: var(--radius-pill) !important;
+  border: var(--border-width) solid var(--color-border-primary);
+  background: var(--color-accent-tint) !important;
+  box-shadow: var(--shadow-tiny);
+}
+[data-theme="neobrutalism"] .mobile-nav-pill button[aria-current="page"] {
+  font-weight: var(--font-weight-bold) !important;
+}
+
+/* ── Mobile sheet — desktop override (768px+) ────────────────── */
+@media (min-width: 768px) {
+  [data-theme="neobrutalism"] .mobile-sheet-content {
+    border-radius: var(--radius-base);
+    border: var(--border-width-heavy) solid var(--color-border-primary);
+    box-shadow: var(--shadow-high);
+  }
+}
+
+/* ── Sidebar nav — deep descendant selectors ─────────────────── */
+@media (min-width: 768px) {
+  [data-theme="neobrutalism"] .sidebar-glass nav button {
+    border-radius: var(--radius-base);
+    font-weight: var(--font-weight-semibold);
+    text-transform: var(--text-transform-tab);
+    letter-spacing: var(--letter-spacing-tab);
+    font-size: var(--tab-font-size);
+    transition: background var(--transition-fast), transform var(--transition-fast);
+  }
+  [data-theme="neobrutalism"] .sidebar-glass nav .sidebar-indicator {
+    border-radius: var(--radius-base);
+    border: var(--border-width) solid var(--color-border-primary);
+    background: var(--color-accent-tint) !important;
+    box-shadow: var(--shadow-tiny);
+  }
+  [data-theme="neobrutalism"] .sidebar-glass nav button[aria-current="page"] {
+    font-weight: var(--font-weight-bold);
+  }
+  [data-theme="neobrutalism"] .sidebar-glass nav button:active {
+    transform: translate(var(--btn-active-translate-x), var(--btn-active-translate-y));
+  }
+}
+
+/* ── AI Chat — inline-style components need !important ───────── */
+[data-theme="neobrutalism"] .ai-chat-panel {
+  border: var(--border-width) solid var(--color-border-primary) !important;
+  box-shadow: -6px 6px 0 var(--color-border-primary) !important;
+  border-radius: 0 !important;
+}
+[data-theme="neobrutalism"] .ai-chat-bubble-user,
+[data-theme="neobrutalism"] .ai-chat-bubble-assistant {
+  border: var(--border-width) solid var(--color-border-primary);
+  box-shadow: var(--shadow-tiny);
+  border-radius: var(--radius-base) !important;
+}
+[data-theme="neobrutalism"] .ai-chat-quick-prompt {
+  border: var(--border-width) solid var(--color-border-primary) !important;
+  box-shadow: var(--shadow-tiny);
+  border-radius: var(--radius-base) !important;
+}
+[data-theme="neobrutalism"] .ai-chat-send {
+  border: var(--border-width) solid var(--color-border-primary);
+  box-shadow: var(--shadow-tiny);
+}
+[data-theme="neobrutalism"] .ai-chat-send:active {
+  box-shadow: none;
+  transform: translate(var(--btn-active-translate-x), var(--btn-active-translate-y));
+}
+[data-theme="neobrutalism"] .ai-chat-new-btn {
+  border: var(--border-width) solid var(--color-border-primary) !important;
+  box-shadow: var(--shadow-float);
+  border-radius: var(--radius-base) !important;
+}
+[data-theme="neobrutalism"] .ai-chat-new-btn:active {
+  box-shadow: none;
+  transform: translate(3px, 3px);
+}
+[data-theme="neobrutalism"] .ai-chat-conv-item {
+  border: var(--border-width) solid var(--color-border-primary) !important;
+  border-radius: var(--radius-base) !important;
+  box-shadow: var(--shadow-float);
+  background: var(--color-bg-primary) !important;
+}
+[data-theme="neobrutalism"] .ai-chat-conv-item:hover {
+  transform: translate(1px, 1px);
+  box-shadow: var(--shadow-tiny);
+}
+[data-theme="neobrutalism"] .ai-chat-conv-item.active,
+[data-theme="neobrutalism"] .ai-chat-conv-item[style*="accent"] {
+  box-shadow: var(--shadow-float);
+  border-color: var(--color-accent) !important;
+}

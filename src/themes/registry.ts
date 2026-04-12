@@ -5,10 +5,6 @@ import { roseTheme } from './builtins/rose';
 import { forestTheme } from './builtins/forest';
 import { midnightTheme } from './builtins/midnight';
 import { monoTheme } from './builtins/mono';
-import { googleTheme } from './builtins/google';
-import { defaultStyle } from './styles/default';
-import { neobrutalismStyle } from './styles/neobrutalism';
-import { materialStyle } from './styles/material';
 
 /** Color palettes — order determines display order in the picker */
 export const palettes: ThemeDefinition[] = [
@@ -18,15 +14,21 @@ export const palettes: ThemeDefinition[] = [
   forestTheme,
   midnightTheme,
   monoTheme,
-  googleTheme,
 ];
 
-/** Visual styles — order determines display order in the picker */
-export const styles: StyleDefinition[] = [
-  defaultStyle,
-  neobrutalismStyle,
-  materialStyle,
-];
+/**
+ * Visual styles — auto-discovered from ./styles/*.ts via import.meta.glob.
+ * To add a new style: create a .ts file in ./styles/ with a default export.
+ * To remove a style: delete the file. No registry edits needed.
+ */
+const styleModules = import.meta.glob<{ default: StyleDefinition }>(
+  './styles/*.ts',
+  { eager: true }
+);
+
+export const styles: StyleDefinition[] = Object.values(styleModules)
+  .map((m) => m.default)
+  .sort((a, b) => a.order - b.order);
 
 const paletteMap = new Map(palettes.map((p) => [p.id, p]));
 const styleMap = new Map(styles.map((s) => [s.id, s]));
@@ -38,7 +40,7 @@ export function getPalette(id: string): ThemeDefinition {
 
 /** Look up a style by ID; returns defaultStyle if not found */
 export function getStyle(id: string): StyleDefinition {
-  return styleMap.get(id) ?? defaultStyle;
+  return styleMap.get(id) ?? styles[0];
 }
 
 // ── Legacy compat: keep old exports for any remaining references ──

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Moon, Sun, Monitor, Globe, DollarSign, Clock, RefreshCw, Check, AlertCircle, ChevronDown, Palette, Layers } from 'lucide-react';
+import { Moon, Sun, Monitor, Globe, DollarSign, Clock, RefreshCw, Check, AlertCircle, ChevronDown, Layers } from 'lucide-react';
 import { useT, type Lang } from '../../i18n/context';
 import { api } from '../../lib/api';
-import { palettes, styles } from '../../themes';
+import { styles } from '../../themes';
 
 type ThemeMode = 'light' | 'dark' | 'auto';
 type SyncState = 'idle' | 'checking' | 'ok' | 'offset' | 'error';
@@ -35,6 +35,11 @@ const themeModes: { value: ThemeMode; icon: typeof Sun; labelKey: string }[] = [
 
 export default function AppearanceSection({ themeMode, setThemeMode, styleId, setStyleId, paletteId, setPaletteId, lang, setLang, currency, setCurrency, timezone, setTimezone }: AppearanceSectionProps) {
   const { t } = useT();
+
+  // Each style has its own built-in color scheme — reset palette to default
+  useEffect(() => {
+    if (paletteId !== 'default') setPaletteId('default');
+  }, [paletteId, setPaletteId]);
 
   // ── Live clock ──
   const [now, setNow] = useState(() => new Date());
@@ -128,8 +133,7 @@ export default function AppearanceSection({ themeMode, setThemeMode, styleId, se
           <div className="grid grid-cols-2 gap-3 mb-5">
             {styles.map((s) => {
               const isActive = styleId === s.id;
-              const isNeo = s.id === 'neobrutalism';
-              const isMaterial = s.id === 'material';
+              const { card, elements } = s.preview;
               return (
                 <button
                   key={s.id}
@@ -140,48 +144,34 @@ export default function AppearanceSection({ themeMode, setThemeMode, styleId, se
                     border: isActive ? '2px solid var(--color-accent)' : '2px solid var(--color-border-primary)',
                   }}
                 >
-                  {/* Preview area */}
+                  {/* Preview area — driven by style.preview config */}
                   <div
                     className="relative w-full h-14 mb-2.5 overflow-hidden"
                     style={{
                       background: 'var(--color-bg-primary)',
-                      border: isNeo
-                        ? '2px solid var(--color-text-primary)'
-                        : isMaterial
-                        ? 'none'
-                        : '1px solid var(--color-border-secondary)',
-                      borderRadius: isNeo ? '3px' : isMaterial ? '12px' : '8px',
-                      boxShadow: isNeo
-                        ? '3px 3px 0 var(--color-text-primary)'
-                        : isMaterial
-                        ? '0 1px 2px rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15)'
-                        : '0 1px 4px rgba(0,0,0,0.06)',
+                      border: card.border,
+                      borderRadius: card.borderRadius,
+                      boxShadow: card.boxShadow,
                     }}
                   >
-                    {/* Material: pill button + chip row */}
-                    {isMaterial ? (
+                    {elements.accentShape === 'chip-row' ? (
                       <>
-                        <div className="absolute top-2 left-2.5" style={{ height: 10, width: 28, background: 'var(--color-accent)', borderRadius: 999 }} />
+                        <div className="absolute top-2 left-2.5" style={{ height: 10, width: 28, background: 'var(--color-accent)', borderRadius: elements.accentRadius }} />
                         <div className="absolute bottom-2 left-2.5 flex gap-1">
-                          <div style={{ width: 20, height: 6, background: 'var(--color-accent)', opacity: 0.12, borderRadius: 999 }} />
-                          <div style={{ width: 16, height: 6, background: 'var(--color-text-primary)', opacity: 0.08, borderRadius: 999 }} />
-                          <div style={{ width: 18, height: 6, background: 'var(--color-text-primary)', opacity: 0.08, borderRadius: 999 }} />
+                          <div style={{ width: 20, height: 6, background: 'var(--color-accent)', opacity: 0.12, borderRadius: elements.textLineRadius }} />
+                          <div style={{ width: 16, height: 6, background: 'var(--color-text-primary)', opacity: 0.08, borderRadius: elements.textLineRadius }} />
+                          <div style={{ width: 18, height: 6, background: 'var(--color-text-primary)', opacity: 0.08, borderRadius: elements.textLineRadius }} />
                         </div>
                       </>
                     ) : (
                       <>
                         <div
                           className="absolute top-2 left-2.5 right-2.5"
-                          style={{
-                            height: 5,
-                            background: 'var(--color-accent)',
-                            borderRadius: isNeo ? '1px' : '3px',
-                            opacity: 1,
-                          }}
+                          style={{ height: 5, background: 'var(--color-accent)', borderRadius: elements.accentRadius }}
                         />
                         <div className="absolute bottom-2 left-2.5 flex flex-col gap-1">
-                          <div style={{ width: 32, height: 3, background: 'var(--color-text-primary)', opacity: 0.5, borderRadius: isNeo ? 0 : 2 }} />
-                          <div style={{ width: 22, height: 3, background: 'var(--color-text-primary)', opacity: 0.25, borderRadius: isNeo ? 0 : 2 }} />
+                          <div style={{ width: 32, height: 3, background: 'var(--color-text-primary)', opacity: 0.5, borderRadius: elements.textLineRadius }} />
+                          <div style={{ width: 22, height: 3, background: 'var(--color-text-primary)', opacity: 0.25, borderRadius: elements.textLineRadius }} />
                         </div>
                       </>
                     )}
@@ -204,42 +194,6 @@ export default function AppearanceSection({ themeMode, setThemeMode, styleId, se
             })}
           </div>
 
-          {/* Palette picker — grid */}
-          <div className="flex items-center gap-3 mb-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-8)]" style={{ background: 'color-mix(in srgb, var(--color-accent) 10%, transparent)', color: 'var(--color-accent)' }}>
-              <Palette size={20} />
-            </div>
-            <div className="text-[15px]" style={{ color: 'var(--color-text-primary)', fontWeight: 'var(--font-weight-medium)' } as React.CSSProperties}>{t("settings.palette")}</div>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-            {palettes.map((p) => {
-              const isActive = paletteId === p.id;
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => setPaletteId(p.id)}
-                  className="relative flex items-center gap-2.5 rounded-[var(--radius-10)] px-3 py-2.5 transition-all text-left"
-                  style={{
-                    background: isActive ? 'color-mix(in srgb, var(--color-accent) 6%, var(--color-bg-secondary))' : 'var(--color-bg-secondary)',
-                    border: isActive ? '2px solid var(--color-accent)' : '2px solid transparent',
-                  }}
-                >
-                  {/* Color dot */}
-                  <div
-                    className="w-5 h-5 rounded-full shrink-0"
-                    style={{
-                      background: p.preview.accent,
-                      boxShadow: `0 0 0 2px ${p.preview.bg}, 0 0 0 3px ${p.preview.accent}40`,
-                    }}
-                  />
-                  {/* Name */}
-                  <div className="text-[12px] leading-tight truncate" style={{ color: isActive ? 'var(--color-text-primary)' : 'var(--color-text-secondary)', fontWeight: isActive ? 600 : 400 }}>
-                    {t(p.nameKey)}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
         </div>
 
         {/* Language switcher */}

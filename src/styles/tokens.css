@@ -153,6 +153,119 @@
   --translate-hover-x:     0px;
   --translate-hover-y:     0px;
 
+  /* ── Typography — Structural (per-element text DNA) ─────────── */
+  --font-weight-heading:     var(--font-weight-bold);
+  --letter-spacing-heading:  -0.02em;
+  --text-transform-heading:  none;
+  --font-weight-kpi:         var(--font-weight-bold);
+  --letter-spacing-kpi:      -0.02em;
+  --text-transform-label:    none;
+  --letter-spacing-label:    0em;
+  --text-transform-button:   none;
+  --letter-spacing-button:   0em;
+  --text-transform-badge:    none;
+  --letter-spacing-badge:    0em;
+  --text-transform-tab:      none;
+  --letter-spacing-tab:      0em;
+
+  /* ── Component Dimensions ────────────────────────────────────── */
+  --button-height:           40px;
+  --button-height-compact:   36px;
+  --input-height:            40px;
+  --button-padding-x:        16px;
+  --button-padding-y:        8px;
+  --button-font-size:        0.875rem;
+  --badge-padding-x:         8px;
+  --badge-padding-y:         2px;
+  --badge-font-size:         0.75rem;
+  --badge-border-width:      0px;
+
+  /* ── Component Visual ────────────────────────────────────────── */
+  --card-shadow:             none;
+  --card-elevated-shadow:    var(--shadow-low);
+  --icon-btn-radius:         var(--radius-rounded);
+  --progress-height:         4px;
+  --progress-radius:         var(--radius-2);
+  --progress-border:         none;
+
+  /* ── Interaction States ──────────────────────────────────────── */
+  --opacity-disabled:        0.4;
+  --opacity-active-press:    0.7;
+  --focus-outline-width:     2px;
+  --focus-outline-color:     var(--color-accent);
+
+  /* ── Glass / Backdrop ────────────────────────────────────────── */
+  --backdrop-blur:           blur(16px) saturate(180%);
+
+  /* ── Animation Durations ─────────────────────────────────────── */
+  --duration-fast:           0.15s;
+  --duration-normal:         0.2s;
+  --duration-slow:           0.3s;
+  --duration-slower:         0.6s;
+
+  /* ── Button Interaction Model ��───────────────────────────────── */
+  --button-font-weight:      var(--font-weight-medium);
+  --btn-hover-shadow:        var(--shadow-interactive-hover);
+  --btn-hover-translate-x:   0px;
+  --btn-hover-translate-y:   0px;
+  --btn-active-opacity:      var(--opacity-active-press);
+  --btn-active-translate-x:  0px;
+  --btn-active-translate-y:  0px;
+  --btn-active-shadow:       var(--shadow-interactive);
+
+  /* ── Icon Button Interaction ─────────────────────────────────── */
+  --icon-btn-border:         0px solid transparent;
+  --icon-btn-hover-border:   transparent;
+  --icon-btn-hover-shadow:   none;
+
+  /* ── Input Interaction Model ─────────────────────────────────── */
+  --input-shadow:            none;
+  --input-focus-border:      var(--color-accent);
+  --input-focus-shadow:      0 0 0 3px color-mix(in srgb, var(--color-accent) 40%, transparent);
+  --select-shadow:           none;
+
+  /* ── Ghost Button Hover ──────────────────────────────────────── */
+  --ghost-hover-border:      transparent;
+
+  /* ── Component Structural ────────────────────────────────────── */
+  --badge-font-weight:       var(--font-weight-medium);
+  --label-font-weight:       var(--font-weight-medium);
+  --kpi-label-font-size:     13px;
+  --tab-font-size:           13px;
+  --tab-active-font-weight:  var(--font-weight-semibold);
+  --tab-active-bg:           var(--color-bg-tertiary);
+  --tab-active-color:        var(--color-text-primary);
+  --tab-active-border:       transparent;
+
+  /* ── Skeleton ────────────────────────────────────────────────── */
+  --skeleton-border:         none;
+
+  /* ── Modal / Overlay / Sheet ─────────────────────────────────── */
+  --modal-border:            none;
+  --modal-shadow:            var(--shadow-high);
+  --overlay-bg:              var(--color-overlay-primary);
+  --sheet-radius-mobile:     var(--radius-12) var(--radius-12) 0 0;
+  --sheet-border-mobile:     none;
+  --sheet-shadow-mobile:     var(--shadow-high);
+
+  /* ── Table ───────────────────────────────────────────────────── */
+  --table-header-bg:         var(--color-bg-panel);
+  --table-header-border:     none;
+  --table-row-border:        1px solid var(--color-line-secondary);
+
+  /* ── Layout Panels ───────────────────────────────────────────── */
+  --sidebar-panel-shadow:    none;
+  --divider-width:           1px;
+
+  /* ── Floating Elements ───────────────────────────────────────── */
+  --shadow-float:            var(--shadow-medium);
+  --btn-group-shadow:        none;
+
+  /* ── Button / Badge / Tab Radius ─────────────────────────────── */
+  --btn-radius:              var(--radius-base);
+  --badge-radius:            var(--radius-base);
+  --tab-radius:              var(--radius-6);
+
   color-scheme: light;
 }
 

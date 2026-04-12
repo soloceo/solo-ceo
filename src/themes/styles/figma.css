@@ -1,0 +1,96 @@
+/* ══════════════════════════════════════════════════════════════════
+   Figma — Residual CSS overrides
+   Pill buttons/badges/tabs are now pure tokens (--btn-radius, etc.)
+   Only complex selectors and !important overrides remain here.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Canvas background — depth through bg contrast, not shadows ──
+   Figma's core depth philosophy: white cards on gray canvas.
+   html gets gray for iOS overscroll bounce; content panel needs
+   !important to override the inline style in App.tsx.            ── */
+[data-theme="figma"],
+[data-theme="figma"] body,
+[data-theme="figma"] #root > div {
+  background-color: var(--color-bg-secondary);
+  background: var(--color-bg-secondary) !important;
+}
+[data-theme="figma"] .app-grid-bg {
+  background-color: var(--color-bg-secondary) !important;
+}
+
+/* ── Sidebar — white nav on gray canvas (Figma panel contrast) ─── */
+[data-theme="figma"] .sidebar-glass {
+  background: var(--glass-bg-sidebar) !important;
+}
+
+/* ── Dashed focus outlines — Figma editor selection handle echo ─ */
+[data-theme="figma"] .btn-primary:focus-visible,
+[data-theme="figma"] .btn-secondary:focus-visible,
+[data-theme="figma"] .btn-ghost:focus-visible,
+[data-theme="figma"] .btn-icon:focus-visible,
+[data-theme="figma"] .btn-icon-sm:focus-visible {
+  outline-style: dashed;
+}
+
+/* ── Icon button hover — glass tint (Figma signature) ──────────── */
+@media (hover: hover) {
+  [data-theme="figma"] .btn-icon:hover,
+  [data-theme="figma"] .btn-icon-sm:hover {
+    background: var(--color-bg-translucent);
+  }
+}
+
+/* ── Mobile nav pill — pill indicator shape ─────────────────────── */
+[data-theme="figma"] .mobile-nav-pill .mobile-tab-indicator {
+  border-radius: 9999px !important;
+}
+
+/* ── Sidebar nav — pill tabs on desktop ─────────────────────────── */
+@media (min-width: 768px) {
+  [data-theme="figma"] .sidebar-glass nav button {
+    border-radius: 9999px;
+    transition: background var(--transition-fast);
+  }
+  [data-theme="figma"] .sidebar-glass nav .sidebar-indicator {
+    border-radius: 9999px;
+  }
+}
+
+/* ── AI Chat — override inline styles ───────────────────────────── */
+[data-theme="figma"] .ai-chat-panel {
+  border: 1px solid var(--color-border-translucent) !important;
+  box-shadow: var(--shadow-high) !important;
+  border-radius: var(--radius-base) !important;
+}
+[data-theme="figma"] .ai-chat-bubble-user,
+[data-theme="figma"] .ai-chat-bubble-assistant {
+  border: none;
+  box-shadow: none;
+  border-radius: var(--radius-base) !important;
+}
+[data-theme="figma"] .ai-chat-bubble-user {
+  background: var(--color-bg-tertiary);
+}
+[data-theme="figma"] .ai-chat-quick-prompt {
+  border: 1px solid var(--color-border-translucent) !important;
+  box-shadow: none;
+  border-radius: 9999px !important;
+}
+[data-theme="figma"] .ai-chat-send {
+  border: none;
+  border-radius: 50%;
+}
+[data-theme="figma"] .ai-chat-new-btn {
+  border: 1px solid var(--color-border-translucent) !important;
+  box-shadow: none;
+  border-radius: 9999px !important;
+}
+[data-theme="figma"] .ai-chat-conv-item {
+  border: 1px solid var(--color-border-translucent) !important;
+  border-radius: var(--radius-base) !important;
+  box-shadow: none;
+  background: var(--color-bg-primary) !important;
+}
+[data-theme="figma"] .ai-chat-conv-item:hover {
+  background: var(--color-bg-secondary) !important;
+}

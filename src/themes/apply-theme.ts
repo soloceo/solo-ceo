@@ -4,27 +4,89 @@ import { getPalette, getStyle } from './registry';
 
 type ThemeMode = 'light' | 'dark' | 'auto';
 
-/** All CSS property keys a theme defines — used for cleanup */
+/**
+ * All CSS property keys a theme can define — used for cleanup when switching.
+ * MUST include every key from ThemeColorTokens to prevent stale values.
+ */
 const TOKEN_KEYS: (keyof ThemeColorTokens)[] = [
+  // ── Backgrounds ──
   '--color-bg-primary', '--color-bg-secondary', '--color-bg-tertiary',
   '--color-bg-quaternary', '--color-bg-panel', '--color-bg-translucent',
+  // ── Lines / Dividers ──
   '--color-line-secondary', '--color-line-tertiary',
+  // ── Borders ──
   '--color-border-primary', '--color-border-secondary', '--color-border-translucent',
+  // ── Text ──
   '--color-text-primary', '--color-text-secondary', '--color-text-tertiary',
   '--color-text-quaternary', '--color-text-on-color',
+  // ── Accent / Brand ──
   '--color-accent', '--color-accent-hover', '--color-accent-tint', '--color-brand-text',
+  // ── Semantic palette ──
   '--color-blue', '--color-green', '--color-orange', '--color-purple',
   '--color-success', '--color-success-light', '--color-warning', '--color-warning-light',
   '--color-danger', '--color-danger-light', '--color-danger-tint', '--color-info',
+  // ── Header ──
   '--header-bg', '--header-border',
+  // ── Overlay ──
   '--color-overlay-primary',
+  // ── Glass ──
   '--glass-bg', '--glass-bg-sidebar', '--glass-bg-content', '--glass-border', '--glass-shadow',
+  // ── Shadows ──
   '--shadow-tiny', '--shadow-low', '--shadow-medium', '--shadow-high',
+  // ── Grid ──
   '--grid-line-color',
+  // ── Structural — border, radius, font, hover ──
   '--border-width', '--border-width-heavy', '--radius-base',
   '--font-heading', '--font-base',
   '--shadow-interactive', '--shadow-interactive-hover',
   '--translate-hover-x', '--translate-hover-y',
+  // ── Typography structural ──
+  '--font-weight-heading', '--letter-spacing-heading', '--text-transform-heading',
+  '--font-weight-kpi', '--letter-spacing-kpi',
+  '--text-transform-label', '--letter-spacing-label',
+  '--text-transform-button', '--letter-spacing-button',
+  '--text-transform-badge', '--letter-spacing-badge',
+  '--text-transform-tab', '--letter-spacing-tab',
+  // ── Component dimensions ──
+  '--button-height', '--button-height-compact', '--input-height',
+  '--button-padding-x', '--button-padding-y', '--button-font-size',
+  '--badge-padding-x', '--badge-padding-y', '--badge-font-size', '--badge-border-width',
+  // ── Component visual ──
+  '--card-shadow', '--card-elevated-shadow', '--icon-btn-radius',
+  '--progress-height', '--progress-radius', '--progress-border',
+  // ── Interaction ──
+  '--opacity-disabled', '--opacity-active-press',
+  '--focus-outline-width', '--focus-outline-color',
+  // ── Glass / Backdrop ──
+  '--backdrop-blur',
+  // ── Animation Durations ──
+  '--duration-fast', '--duration-normal', '--duration-slow', '--duration-slower',
+  // ── Button interaction ──
+  '--button-font-weight', '--btn-hover-shadow',
+  '--btn-hover-translate-x', '--btn-hover-translate-y',
+  '--btn-active-opacity', '--btn-active-translate-x', '--btn-active-translate-y', '--btn-active-shadow',
+  // ── Icon button interaction ──
+  '--icon-btn-border', '--icon-btn-hover-border', '--icon-btn-hover-shadow',
+  // ── Input interaction ──
+  '--input-shadow', '--input-focus-border', '--input-focus-shadow', '--select-shadow',
+  // ── Ghost ──
+  '--ghost-hover-border',
+  // ── Component structural ──
+  '--badge-font-weight', '--label-font-weight', '--kpi-label-font-size',
+  '--tab-font-size', '--tab-active-font-weight', '--tab-active-bg', '--tab-active-color', '--tab-active-border',
+  // ── Skeleton ──
+  '--skeleton-border',
+  // ── Modal / overlay / sheet ──
+  '--modal-border', '--modal-shadow', '--overlay-bg',
+  '--sheet-radius-mobile', '--sheet-border-mobile', '--sheet-shadow-mobile',
+  // ── Table ──
+  '--table-header-bg', '--table-header-border', '--table-row-border',
+  // ── Layout ──
+  '--sidebar-panel-shadow', '--divider-width',
+  // ── Floating ──
+  '--shadow-float', '--btn-group-shadow',
+  // ── Button / Badge / Tab Radius ──
+  '--btn-radius', '--badge-radius', '--tab-radius',
 ];
 
 /** Update Safari/iOS status bar meta theme-color */
