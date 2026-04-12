@@ -64,7 +64,7 @@ export function QuickCreateMenu({ setActiveTab }: QuickCreateMenuProps) {
         <Plus
           size={14}
           style={{
-            transition: "transform 0.15s",
+            transition: "transform var(--duration-fast)",
             transform: quickCreateOpen ? "rotate(45deg)" : undefined,
           }}
         />

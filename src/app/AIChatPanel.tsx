@@ -964,7 +964,7 @@ function ToolConfirmCard({
           <span className="text-[12px]" style={{ color: "var(--color-text-tertiary)" }}>
             {t("ai.chat.scope")}
           </span>
-          <div className="page-tabs" style={{ fontSize: 12 }}>
+          <div className="page-tabs" style={{ fontSize: "var(--font-size-xs)" }}>
             {(["business", "personal"] as const).map(s => {
               const isMemo = confirm.args.scope === "work-memo";
               const isActive = isTask
@@ -992,7 +992,7 @@ function ToolConfirmCard({
                     }
                   }}
                   className="px-2 py-1"
-                  style={{ fontSize: 12 }}
+                  style={{ fontSize: "var(--font-size-xs)" }}
                 >
                   {s === "business" ? t("ai.chat.scopeBusiness") : t("ai.chat.scopePersonal")}
                 </button>
@@ -2098,7 +2098,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
               )}
               {/* Mobile conversation title */}
               {!showList && activeConv && (
-                <span className="lg:hidden text-[13px] truncate max-w-[140px]" style={{ color: 'var(--color-text-secondary)', fontWeight: 500 }}>
+                <span className="lg:hidden text-[13px] truncate max-w-[140px]" style={{ color: 'var(--color-text-secondary)', fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
                   {activeConv.title}
                 </span>
               )}
@@ -2113,12 +2113,12 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                     {isMultiAgent ? (
                       <>
                         <span className="flex -space-x-1">{activeAgents.slice(0, 3).map(a => <span key={a.id}>{a.avatar}</span>)}</span>
-                        <span style={{ fontWeight: 500 }}>{activeAgents.length} Agents</span>
+                        <span style={{ fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{activeAgents.length} Agents</span>
                       </>
                     ) : activeAgent ? (
                       <>
                         <span>{activeAgent.avatar}</span>
-                        <span className="max-w-[100px] truncate" style={{ fontWeight: 500 }}>{activeAgent.name}</span>
+                        <span className="max-w-[100px] truncate" style={{ fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{activeAgent.name}</span>
                       </>
                     ) : (
                       <span style={{ color: 'var(--color-text-tertiary)' }}>🤖 {t("ai.chat.defaultAssistant")}</span>
@@ -2257,7 +2257,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                   <button
                     onClick={() => { handleNewConversation(); setShowList(false); }}
                     className="ai-chat-new-btn w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[14px] transition-colors"
-                    style={{ background: 'var(--color-accent)', color: 'var(--color-brand-text)', fontWeight: 500 }}
+                    style={{ background: 'var(--color-accent)', color: 'var(--color-brand-text)', fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
                   >
                     <Plus size={16} />
                     {t("ai.chat.newChat")}
@@ -2544,7 +2544,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                       {pendingAttachments.map((att, ai) => (
                         <div key={ai} className="relative group/att">
                           <img src={att.dataUrl} alt={att.fileName} className="rounded-lg object-cover" style={{ width: 56, height: 56 }} />
-                          <button onClick={() => removeAttachment(ai)} className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover/att:opacity-100 transition-opacity" style={{ background: 'var(--color-danger, #eb5757)', color: '#fff' }}><X size={12} /></button>
+                          <button onClick={() => removeAttachment(ai)} className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover/att:opacity-100 transition-opacity" style={{ background: 'var(--color-danger, #eb5757)', color: 'var(--color-text-on-color)' }}><X size={12} /></button>
                         </div>
                       ))}
                     </div>
@@ -2580,7 +2580,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                       <button
                         onClick={() => { abortRef.current?.abort(); setStreamingConvId(null); }}
                         className="shrink-0 rounded-lg flex items-center justify-center transition-all p-1.5"
-                        style={{ background: "var(--color-danger, #eb5757)", color: "#fff" }}
+                        style={{ background: "var(--color-danger, #eb5757)", color: "var(--color-text-on-color)" }}
                         aria-label={t("ai.chat.stop")}
                       >
                         <Square size={14} fill="currentColor" />

@@ -158,7 +158,7 @@ export function KPIGrid({ monthlyIncome, todayIncome, clientsCount, leadsCount, 
             <div className="progress-track" style={{ height: 6 }}>
               <div
                 className="progress-fill"
-                style={{ width: `${percentage}%`, background: barColor, borderRadius: 3 }}
+                style={{ width: `${percentage}%`, background: barColor, borderRadius: "var(--radius-2)" }}
               />
             </div>
             <div className="flex items-center justify-end mt-1.5">

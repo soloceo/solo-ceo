@@ -346,7 +346,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
                     className="flex items-center justify-center tabular-nums mt-0.5"
                     style={{
                       width: 24, height: 24, borderRadius: "50%",
-                      fontSize: 13,
+                      fontSize: "var(--font-size-sm)",
                       fontWeight: isToday ? 700 : 400,
                       background: isToday ? accent : "transparent",
                       color: isToday ? "var(--color-text-on-color)" : "var(--color-text-primary)",
@@ -355,7 +355,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
                     {d.getDate()}
                   </span>
                   {/* Dot indicator */}
-                  <div className="mt-0.5" style={{ width: 4, height: 4, borderRadius: 2, background: info ? (allDone ? "var(--color-success)" : accent) : "transparent" }} />
+                  <div className="mt-0.5" style={{ width: 4, height: 4, borderRadius: "var(--radius-2)", background: info ? (allDone ? "var(--color-success)" : accent) : "transparent" }} />
                 </button>
               );
             })}

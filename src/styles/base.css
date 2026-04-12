@@ -98,39 +98,45 @@ button:disabled {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-tertiary);
+  text-transform: var(--text-transform-label);
+  letter-spacing: var(--letter-spacing-label);
 }
 
 /* ── Heading scale (guide 1.2 — 1.25x ratio) ─────────────────── */
 .text-title-3xl {
   font-size: var(--font-size-3xl);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-heading);
   font-family: var(--font-heading);
   line-height: var(--line-height-title);
-  letter-spacing: -0.02em;
+  letter-spacing: var(--letter-spacing-heading);
+  text-transform: var(--text-transform-heading);
   color: var(--color-text-primary);
 }
 .text-title-2xl {
   font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-heading);
   font-family: var(--font-heading);
   line-height: var(--line-height-title);
-  letter-spacing: -0.02em;
+  letter-spacing: var(--letter-spacing-heading);
+  text-transform: var(--text-transform-heading);
   color: var(--color-text-primary);
 }
 .text-title-xl {
   font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-heading);
   font-family: var(--font-heading);
   line-height: var(--line-height-heading);
-  letter-spacing: -0.015em;
+  letter-spacing: var(--letter-spacing-heading);
+  text-transform: var(--text-transform-heading);
   color: var(--color-text-primary);
 }
 .text-title-lg {
   font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-heading);
   font-family: var(--font-heading);
   line-height: var(--line-height-heading);
-  letter-spacing: -0.01em;
+  letter-spacing: var(--letter-spacing-heading);
+  text-transform: var(--text-transform-heading);
   color: var(--color-text-primary);
 }
 

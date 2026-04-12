@@ -158,7 +158,7 @@ function ActivityWidget() {
                 {item.count > 1 && (
                   <span
                     className="ml-0.5"
-                    style={{ fontSize: s(9), color: c, fontWeight: 600, background: `color-mix(in srgb, ${c} 8%, transparent)`, borderRadius: 3, padding: "0 3px" }}
+                    style={{ fontSize: s(9), color: c, fontWeight: 600, background: `color-mix(in srgb, ${c} 8%, transparent)`, borderRadius: "var(--radius-2)", padding: "0 3px" }}
                   >
                     x{item.count}
                   </span>

@@ -13,6 +13,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
   static getDerivedStateFromError(error: Error) { return { hasError: true, error }; }
   render() {
     if (this.state.hasError) {
+      // fallback: CSS vars not available — hardcoded colors are intentional
       return (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: 16, fontFamily: 'system-ui', color: '#999' }}>
           <p style={{ fontSize: 18, fontWeight: 600 }}>Something went wrong</p>

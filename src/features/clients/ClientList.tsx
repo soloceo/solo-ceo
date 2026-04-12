@@ -753,7 +753,7 @@ export function ClientsView() {
                               return (
                                 <div>
                                   <button type="button" onClick={() => setCompletedExpanded(v => !v)} className="w-full text-left text-[13px] py-2 flex items-center gap-1" style={{ color: "var(--color-text-tertiary)" }}>
-                                    <span style={{ transform: completedExpanded ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s", display: "inline-block" }}>▸</span>
+                                    <span style={{ transform: completedExpanded ? "rotate(90deg)" : "rotate(0deg)", transition: "transform var(--duration-normal)", display: "inline-block" }}>▸</span>
                                     {t("pipeline.projects.completedSection")} ({done.length})
                                   </button>
                                   {completedExpanded && done.map(p => (

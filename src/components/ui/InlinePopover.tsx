@@ -136,7 +136,7 @@ export function PopoverOption({
       style={{ color: color || "var(--color-text-primary)", fontWeight: selected ? "var(--font-weight-semibold)" : "var(--font-weight-normal)", background: "transparent", border: "none" } as React.CSSProperties}
     >
       <span className="flex-1">{children}</span>
-      {selected && <span aria-hidden="true" style={{ color: "var(--color-accent)", fontSize: "14px" }}>✓</span>}
+      {selected && <span aria-hidden="true" style={{ color: "var(--color-accent)", fontSize: "var(--font-size-base)" }}>✓</span>}
     </button>
   );
 }

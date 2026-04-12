@@ -52,13 +52,13 @@ export function ProtocolSection({ title, steps, lang }: ProtocolSectionProps) {
               style={{
                 width: i === currentIdx ? 16 : 6,
                 height: 6,
-                borderRadius: 3,
+                borderRadius: "var(--radius-2)",
                 background: i < currentIdx
                   ? "var(--color-text-quaternary)"
                   : i === currentIdx
                     ? "var(--color-accent)"
                     : "var(--color-border-secondary)",
-                transition: "all 0.3s ease",
+                transition: "all var(--duration-slow) ease",
               }}
             />
           ))}
@@ -135,7 +135,7 @@ export function ProtocolSection({ title, steps, lang }: ProtocolSectionProps) {
           style={{
             color: "var(--color-text-quaternary)",
             transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
-            transition: "transform 0.2s ease",
+            transition: "transform var(--duration-normal) ease",
           }}
         />
       </button>
@@ -222,7 +222,7 @@ export function ProtocolSection({ title, steps, lang }: ProtocolSectionProps) {
                   style={{
                     color: "var(--color-text-quaternary)",
                     transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
-                    transition: "transform 0.2s ease",
+                    transition: "transform var(--duration-normal) ease",
                   }}
                 />
               </button>

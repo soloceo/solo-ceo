@@ -193,7 +193,7 @@ export function UserMenu({
                     themeMode === value
                       ? "var(--color-text-on-color)"
                       : "var(--color-text-tertiary)",
-                  fontSize: "12px",
+                  fontSize: "var(--font-size-xs)",
                   fontWeight: "var(--font-weight-medium)",
                 } as React.CSSProperties}
                 title={t(`settings.theme${value.charAt(0).toUpperCase() + value.slice(1)}`) || value}

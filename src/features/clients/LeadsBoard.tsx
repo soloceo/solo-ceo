@@ -280,7 +280,7 @@ export function LeadsView() {
           ))}
         </div>
         <button onClick={() => setShowFunnel(f => !f)} className={`btn-ghost compact gap-1 ${showFunnel ? "ring-1" : ""}`} style={showFunnel ? { color: "var(--color-accent)", borderColor: "var(--color-accent)" } : undefined}>
-          <ChevronDown size={14} style={{ transform: showFunnel ? "rotate(180deg)" : undefined, transition: "transform 0.2s" }} /> {t("pipeline.funnel.title")}
+          <ChevronDown size={14} style={{ transform: showFunnel ? "rotate(180deg)" : undefined, transition: "transform var(--duration-normal)" }} /> {t("pipeline.funnel.title")}
         </button>
         <div className="flex-1" />
         <button

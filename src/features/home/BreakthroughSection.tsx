@@ -72,7 +72,7 @@ export function BreakthroughSection() {
             className="progress-fill"
             style={{
               width: `${Math.max(phasePct, 2)}%`,
-              borderRadius: 3,
+              borderRadius: "var(--radius-2)",
               background: phasePct === 100
                 ? "var(--color-success)"
                 : "var(--color-accent)",

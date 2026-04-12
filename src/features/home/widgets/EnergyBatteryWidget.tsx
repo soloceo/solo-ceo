@@ -126,7 +126,7 @@ function BatteryShape({ level, color, s }: { level: number; color: string; s: (p
           }} />
         )}
         <div className="absolute inset-0 flex items-center justify-center tabular-nums" style={{
-          fontSize, fontWeight: 700, color: "var(--color-text-primary)",
+          fontSize, fontWeight: "var(--font-weight-bold)", color: "var(--color-text-primary)",
           textShadow: "var(--shadow-low)",
         }}>
           {level}
@@ -196,7 +196,7 @@ function EnergyBatteryWidget() {
       {!state ? (
         /* ── Morning Setup ── */
         <div className="flex-1 flex flex-col items-center" style={{ animation: "energyFadeIn 0.25s ease" }}>
-          <span className="self-start" style={{ fontSize: s(13), fontWeight: 700, color: "var(--color-text-tertiary)", lineHeight: 1, marginBottom: s(4), paddingInline: s(4) }}>
+          <span className="self-start" style={{ fontSize: s(13), fontWeight: "var(--font-weight-bold)", color: "var(--color-text-tertiary)", lineHeight: 1, marginBottom: s(4), paddingInline: s(4) } as React.CSSProperties}>
             {title}
           </span>
           <div className="flex-1 flex items-center justify-center">
@@ -223,7 +223,7 @@ function EnergyBatteryWidget() {
         <>
           {/* Header: title + reset + percentage */}
           <div className="flex items-center shrink-0" style={{ marginBottom: s(2), gap: s(2), paddingInline: s(4) }}>
-            <span className="flex-1 min-w-0 truncate" style={{ fontSize: s(13), fontWeight: 700, color, lineHeight: 1 }}>
+            <span className="flex-1 min-w-0 truncate" style={{ fontSize: s(13), fontWeight: "var(--font-weight-bold)", color, lineHeight: 1 } as React.CSSProperties}>
               {title}
             </span>
             <button
@@ -234,7 +234,7 @@ function EnergyBatteryWidget() {
             >
               <RotateCcw size={s(10)} />
             </button>
-            <span className="tabular-nums shrink-0" style={{ fontSize: s(13), color, fontWeight: 700 }}>
+            <span className="tabular-nums shrink-0" style={{ fontSize: s(13), color, fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
               {currentEnergy}%
             </span>
           </div>

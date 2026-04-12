@@ -242,7 +242,7 @@ export const TaskCard = React.memo(function TaskCard({
                 className="btn-icon-sm"
                 aria-label="Cancel delete"
               >
-                <span style={{ color: "var(--color-text-quaternary)", fontSize: "12px" }}>×</span>
+                <span style={{ color: "var(--color-text-quaternary)", fontSize: "var(--font-size-xs)" }}>×</span>
               </button>
             </div>
           ) : (

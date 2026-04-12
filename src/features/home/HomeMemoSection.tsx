@@ -71,7 +71,7 @@ function ScopeToggle({ value, onChange, lang, size = "sm" }: {
         onClick={() => onChange("work-memo")}
         className={`inline-flex items-center gap-1 px-2 ${py} ${text} rounded-[var(--radius-4)] transition-all`}
         style={{
-          fontWeight: 600,
+          fontWeight: "var(--font-weight-semibold)",
           background: value === "work-memo" ? "var(--color-bg-primary)" : "transparent",
           color: value === "work-memo" ? "var(--color-accent)" : "var(--color-text-quaternary)",
           boxShadow: value === "work-memo" ? "var(--shadow-low)" : "none",
@@ -83,7 +83,7 @@ function ScopeToggle({ value, onChange, lang, size = "sm" }: {
         onClick={() => onChange("personal")}
         className={`inline-flex items-center gap-1 px-2 ${py} ${text} rounded-[var(--radius-4)] transition-all`}
         style={{
-          fontWeight: 600,
+          fontWeight: "var(--font-weight-semibold)",
           background: value === "personal" ? "var(--color-bg-primary)" : "transparent",
           color: value === "personal" ? "var(--color-info)" : "var(--color-text-quaternary)",
           boxShadow: value === "personal" ? "var(--shadow-low)" : "none",
@@ -106,7 +106,7 @@ function ScopeBadge({ scope, lang }: { scope: string; lang: string }) {
           ? "color-mix(in srgb, var(--color-info) 8%, transparent)"
           : "color-mix(in srgb, var(--color-accent) 8%, transparent)",
         color: isPersonal ? "var(--color-info)" : "var(--color-accent)",
-        fontWeight: 600,
+        fontWeight: "var(--font-weight-semibold)",
       } as React.CSSProperties}
     >
       {isPersonal
@@ -345,7 +345,7 @@ export function HomeMemoSection() {
                     {dayLabels[i]}
                   </span>
                   <span className="flex items-center justify-center tabular-nums mt-1" style={{
-                    width: 30, height: 30, borderRadius: "50%", fontSize: 14,
+                    width: 30, height: 30, borderRadius: "50%", fontSize: "var(--font-size-base)",
                     fontWeight: isToday ? "var(--font-weight-bold)" : "var(--font-weight-regular)",
                     background: isToday ? "var(--color-accent)" : "transparent",
                     color: isToday ? "var(--color-text-on-color)" : "var(--color-text-primary)",

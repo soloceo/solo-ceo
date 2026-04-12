@@ -42,10 +42,11 @@ export default function FinanceChart({ chartData, isMobile, t }: FinanceChartPro
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: isMobile ? 0 : -15, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-primary)" />
+            {/* Recharts SVG tick requires numeric fontSize — CSS vars not supported */}
             <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--color-text-secondary)" }} tickLine={false} axisLine={false} />
             <YAxis tick={{ fontSize: 11, fill: "var(--color-text-secondary)" }} tickLine={false} axisLine={false} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
             <Tooltip
-              contentStyle={{ background: "var(--color-bg-primary)", border: "1px solid var(--color-border-primary)", borderRadius: "var(--radius-8)", fontSize: 12 }}
+              contentStyle={{ background: "var(--color-bg-primary)", border: "1px solid var(--color-border-primary)", borderRadius: "var(--radius-8)", fontSize: "var(--font-size-xs)" }}
               formatter={(value: number, name: string) => [`$${value.toLocaleString()}`, name === "income" ? t("money.chart.revenue") : name === "expense" ? t("money.chart.expense") : t("money.chart.net")]}
               labelFormatter={(label: string) => `${label}${t("money.monthSuffix")}`}
             />

@@ -610,7 +610,7 @@ function App() {
                         style={{
                           background: themeMode === value ? "var(--color-accent)" : "transparent",
                           color: themeMode === value ? "var(--color-text-on-color)" : "var(--color-text-tertiary)",
-                          fontSize: "12px",
+                          fontSize: "var(--font-size-xs)",
                           fontWeight: "var(--font-weight-medium)",
                         } as React.CSSProperties}
                         title={t(`settings.theme${value.charAt(0).toUpperCase() + value.slice(1)}`) || value}
@@ -747,7 +747,7 @@ function App() {
                   aria-label="Quick create"
                   aria-expanded={fabMenuOpen}
                 >
-                  <Plus size={20} style={{ transition: "transform 0.2s", transform: fabMenuOpen ? "rotate(45deg)" : undefined }} />
+                  <Plus size={20} style={{ transition: "transform var(--duration-normal)", transform: fabMenuOpen ? "rotate(45deg)" : undefined }} />
                 </button>
               </div>
             )}
@@ -865,7 +865,7 @@ const MobileNavItem = React.memo(function MobileNavItem({
       className={`relative flex-1 flex flex-col items-center justify-center gap-1 select-none rounded-full py-1.5 min-h-[44px] press-feedback`}
       style={{
         color: active ? "var(--color-accent)" : "var(--color-text-quaternary)",
-        transition: "color 0.2s var(--ease-ios), transform 0.15s var(--ease-ios-bounce)",
+        transition: "color var(--duration-normal) var(--ease-ios), transform var(--duration-fast) var(--ease-ios-bounce)",
       } as React.CSSProperties}
     >
       {active && (
