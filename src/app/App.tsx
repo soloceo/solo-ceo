@@ -355,7 +355,7 @@ function App() {
       {/* ═══════════ Desktop Sidebar ═══════════ */}
       <aside
         ref={sidebarRef}
-        className="hidden lg:flex flex-col shrink-0 transition-[width] duration-200 sidebar-glass"
+        className="hidden md:flex flex-col shrink-0 transition-[width] duration-200 sidebar-glass"
         style={{
           width: isExpanded ? "var(--sidebar-width)" : 56,
           background: "var(--color-bg-secondary)",
@@ -520,14 +520,14 @@ function App() {
 
       {/* ═══════════ Main Content — floating panel ═══════════ */}
       <div
-        className="flex flex-1 flex-col overflow-hidden lg:my-2 lg:mr-2 content-panel app-grid-bg"
+        className="flex flex-1 flex-col overflow-hidden md:my-2 md:mr-2 content-panel app-grid-bg"
         style={{
           backgroundColor: "var(--color-bg-primary)",
         }}
       >
         {/* Mobile header — floating capsules */}
         <div
-          className="lg:hidden fixed left-0 right-0 z-[var(--layer-header)] flex items-center justify-between pointer-events-none mobile-top-bar"
+          className="md:hidden fixed left-0 right-0 z-[var(--layer-header)] flex items-center justify-between pointer-events-none mobile-top-bar"
           style={{
             top: 0,
             paddingTop: "calc(var(--mobile-header-pt, env(safe-area-inset-top, 0px)) + 8px)",
@@ -672,7 +672,7 @@ function App() {
         {/* Mobile bottom row — nav + FAB side by side, independent */}
         {!hideMobileNav && (
           <div
-            className="lg:hidden fixed left-0 right-0 z-[var(--layer-header)] flex items-center gap-2 mobile-bottom-bar pb-safe-half"
+            className="md:hidden fixed left-0 right-0 z-[var(--layer-header)] flex items-center gap-2 mobile-bottom-bar pb-safe-half"
             style={{
               bottom: 0,
               paddingLeft: 20,

@@ -8,7 +8,6 @@ import { monoTheme } from './builtins/mono';
 import { googleTheme } from './builtins/google';
 import { defaultStyle } from './styles/default';
 import { neobrutalismStyle } from './styles/neobrutalism';
-import { glassmorphismStyle } from './styles/glassmorphism';
 import { materialStyle } from './styles/material';
 
 /** Color palettes — order determines display order in the picker */
@@ -26,7 +25,6 @@ export const palettes: ThemeDefinition[] = [
 export const styles: StyleDefinition[] = [
   defaultStyle,
   neobrutalismStyle,
-  glassmorphismStyle,
   materialStyle,
 ];
 

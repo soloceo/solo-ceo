@@ -108,8 +108,6 @@ export const settings = {
   "settings.style.defaultDesc": "圆角·柔影",
   "settings.style.neobrutalism": "新粗野",
   "settings.style.neobrutalismDesc": "粗边框·硬阴影",
-  "settings.style.glassmorphism": "毛玻璃",
-  "settings.style.glassmorphismDesc": "半透明·柔光·模糊",
   "settings.style.material": "Material",
   "settings.style.materialDesc": "无边框·阴影层级·大圆角",
   "settings.palette": "配色",
