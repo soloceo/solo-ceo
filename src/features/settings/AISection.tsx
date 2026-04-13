@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Bot, Eye, EyeOff, Check, X, Loader2, ExternalLink, Save, Trash2, Monitor, ChevronDown } from 'lucide-react';
 import { useT } from '../../i18n/context';
 import {
-  testApiKey, fetchOllamaModels,
+  testApiKey, fetchOllamaModels, fetchLMStudioModels,
   getDeviceAIProvider, setDeviceAIProvider,
   getOllamaConfig, setOllamaConfig,
+  getLMStudioConfig, setLMStudioConfig,
   type AIProvider,
 } from '../../lib/ai-client';
 
@@ -37,6 +38,12 @@ export default function AISection({ settings, save }: AISectionProps) {
   const [ollamaModels, setOllamaModels] = useState<string[]>([]);
   const [ollamaLoading, setOllamaLoading] = useState(false);
 
+  // LM Studio state
+  const [lmsUrl, setLmsUrl] = useState(() => getLMStudioConfig().url);
+  const [lmsModel, setLmsModel] = useState(() => getLMStudioConfig().model);
+  const [lmsModels, setLmsModels] = useState<string[]>([]);
+  const [lmsLoading, setLmsLoading] = useState(false);
+
   // Sync cloud keys from settings
   useEffect(() => {
     if (!settings) return;
@@ -51,6 +58,11 @@ export default function AISection({ settings, save }: AISectionProps) {
   useEffect(() => {
     fetchOllamaModels(ollamaUrl).then(m => { if (m.length) setOllamaModels(m); });
   }, [ollamaUrl]);
+
+  // Try to discover LM Studio models on mount
+  useEffect(() => {
+    fetchLMStudioModels(lmsUrl).then(m => { if (m.length) setLmsModels(m); });
+  }, [lmsUrl]);
 
   const selectProvider = (provider: AIProvider | "") => {
     setActiveProvider(provider);
@@ -91,6 +103,21 @@ export default function AISection({ settings, save }: AISectionProps) {
   const handleSelectOllama = () => {
     setOllamaConfig(ollamaUrl, ollamaModel);
     selectProvider("ollama");
+  };
+
+  const handleTestLMS = async () => {
+    setTesting("lmstudio");
+    setTestResult(p => ({ ...p, lmstudio: null }));
+    setLMStudioConfig(lmsUrl, lmsModel);
+    const models = await fetchLMStudioModels(lmsUrl);
+    setLmsModels(models);
+    setTestResult(p => ({ ...p, lmstudio: models.length > 0 }));
+    setTesting(null);
+  };
+
+  const handleSelectLMS = () => {
+    setLMStudioConfig(lmsUrl, lmsModel);
+    selectProvider("lmstudio");
   };
 
   return (
@@ -317,6 +344,121 @@ export default function AISection({ settings, save }: AISectionProps) {
           {ollamaModels.length > 0 && (
             <p className="text-[12px] mt-1.5" style={{ color: "var(--color-text-quaternary)", paddingLeft: 64 }}>
               {t("settings.ai.ollamaConnected").replace("{count}", String(ollamaModels.length))}
+            </p>
+          )}
+        </div>
+
+        {/* ── LM Studio (local) ── */}
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Monitor size={16} style={{ color: activeProvider === "lmstudio" ? "var(--color-accent)" : "var(--color-text-tertiary)" }} />
+              <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
+                LM Studio
+              </span>
+              <span className="text-[12px]" style={{ color: "var(--color-text-quaternary)" }}>
+                {t("settings.ai.local")}
+              </span>
+            </div>
+            <button
+              onClick={() => activeProvider === "lmstudio" ? selectProvider("") : handleSelectLMS()}
+              className="text-[12px] px-2 py-0.5 rounded-[var(--radius-4)] transition-colors"
+              style={activeProvider === "lmstudio" ? {
+                background: "var(--color-accent)", color: "var(--color-brand-text)",
+                fontWeight: "var(--font-weight-medium)",
+              } as React.CSSProperties : {
+                background: "var(--color-bg-tertiary)", color: "var(--color-text-tertiary)",
+                fontWeight: "var(--font-weight-medium)",
+              } as React.CSSProperties}
+            >
+              {activeProvider === "lmstudio" ? t("settings.ai.disconnect") : t("settings.ai.connect")}
+            </button>
+          </div>
+
+          {/* URL input */}
+          <div className="flex items-center gap-2 mb-2">
+            <label className="text-[12px] shrink-0" style={{ color: "var(--color-text-tertiary)", width: 64 }}>
+              {t("settings.ai.ollamaUrl")}
+            </label>
+            <input
+              type="text"
+              value={lmsUrl}
+              onChange={e => setLmsUrl(e.target.value)}
+              placeholder="http://localhost:1234"
+              className="input-base flex-1 px-3 py-2 text-[14px]"
+            />
+          </div>
+
+          {/* Model selector + test */}
+          <div className="flex items-center gap-2 mb-1">
+            <label className="text-[12px] shrink-0" style={{ color: "var(--color-text-tertiary)", width: 64 }}>
+              {t("settings.ai.ollamaModel")}
+            </label>
+            <div className="relative flex-1">
+              {lmsModels.length > 0 ? (
+                <div className="relative">
+                  <select
+                    value={lmsModel}
+                    onChange={e => {
+                      setLmsModel(e.target.value);
+                      setLMStudioConfig(lmsUrl, e.target.value);
+                    }}
+                    className="input-base w-full px-3 py-2 pr-8 text-[14px] appearance-none"
+                  >
+                    {lmsModels.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                  <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "var(--color-text-tertiary)" }} />
+                </div>
+              ) : (
+                <input
+                  type="text"
+                  value={lmsModel}
+                  onChange={e => setLmsModel(e.target.value)}
+                  placeholder="model-name"
+                  className="input-base w-full px-3 py-2 text-[14px]"
+                />
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2" style={{ paddingLeft: 64 }}>
+            <button
+              onClick={() => {
+                setLmsLoading(true);
+                fetchLMStudioModels(lmsUrl).then(m => {
+                  setLmsModels(m);
+                  setLmsLoading(false);
+                  if (m.length && !m.includes(lmsModel)) {
+                    setLmsModel(m[0]);
+                    setLMStudioConfig(lmsUrl, m[0]);
+                  }
+                }).catch(() => { setLmsLoading(false); });
+              }}
+              disabled={lmsLoading}
+              className="btn-ghost compact text-[13px] shrink-0 disabled:opacity-40"
+            >
+              {lmsLoading ? <Loader2 size={14} className="animate-spin" /> : t("settings.ai.ollamaRefresh")}
+            </button>
+            <button
+              onClick={handleTestLMS}
+              disabled={testing === "lmstudio"}
+              className="btn-ghost compact text-[13px] shrink-0 disabled:opacity-40"
+            >
+              {testing === "lmstudio" ? <Loader2 size={14} className="animate-spin" /> : t("settings.ai.test")}
+            </button>
+            {testResult.lmstudio !== undefined && testResult.lmstudio !== null && (
+              <span className="shrink-0">
+                {testResult.lmstudio
+                  ? <Check size={14} style={{ color: "var(--color-success)" }} />
+                  : <X size={14} style={{ color: "var(--color-danger)" }} />
+                }
+              </span>
+            )}
+          </div>
+
+          {/* Status hint */}
+          {lmsModels.length > 0 && (
+            <p className="text-[12px] mt-1.5" style={{ color: "var(--color-text-quaternary)", paddingLeft: 64 }}>
+              {t("settings.ai.ollamaConnected").replace("{count}", String(lmsModels.length))}
             </p>
           )}
         </div>

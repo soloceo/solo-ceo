@@ -1411,7 +1411,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
     const isGroup = conv ? isGroupChat(conv) : false;
 
     // Build system prompt for THIS agent
-    const useNativeTools = aiConfig.provider === "ollama";
+    const useNativeTools = aiConfig.provider === "ollama" || aiConfig.provider === "lmstudio";
     const sym = currency === "CNY" ? "¥" : "$";
     const systemPrompt = buildSystemPrompt(dashboard, pageContext, activeTab, lang, operatorName, businessDesc, currency, agent, isGroup, useNativeTools, personalPreferences);
 
@@ -1458,9 +1458,9 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
     while (stepCount < MAX_AGENT_STEPS && !abort.signal.aborted) {
       stepCount++;
 
-      // For Ollama, pass native tool definitions for reliable function calling
+      // For local models, pass native tool definitions for reliable function calling
       const allowedToolNames = agent?.tools ?? null;
-      const nativeTools: NativeToolDef[] | undefined = aiConfig.provider === "ollama"
+      const nativeTools: NativeToolDef[] | undefined = (aiConfig.provider === "ollama" || aiConfig.provider === "lmstudio")
         ? (allowedToolNames
             ? AGENT_TOOLS.filter(t => allowedToolNames.includes(t.name))
             : allowedToolNames === null ? AGENT_TOOLS : [] // null=all, []=none

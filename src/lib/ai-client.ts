@@ -5,7 +5,7 @@
 
 import { todayDateKey } from "./date-utils";
 
-export type AIProvider = "gemini" | "claude" | "openai" | "ollama";
+export type AIProvider = "gemini" | "claude" | "openai" | "ollama" | "lmstudio";
 
 export const AI_KEY_MAP: Record<string, string> = {
   gemini: "gemini_api_key",
@@ -18,6 +18,8 @@ export const AI_KEY_MAP: Record<string, string> = {
 const LS_PROVIDER = "solo_ai_provider";
 const LS_OLLAMA_URL = "solo_ollama_url";
 const LS_OLLAMA_MODEL = "solo_ollama_model";
+const LS_LMSTUDIO_URL = "solo_lmstudio_url";
+const LS_LMSTUDIO_MODEL = "solo_lmstudio_model";
 
 export function getDeviceAIProvider(): AIProvider | "" {
   const val = localStorage.getItem(LS_PROVIDER);
@@ -38,6 +40,16 @@ export function setOllamaConfig(url: string, model: string): void {
   try { localStorage.setItem(LS_OLLAMA_URL, url); } catch { /* quota exceeded */ }
   try { localStorage.setItem(LS_OLLAMA_MODEL, model); } catch { /* quota exceeded */ }
 }
+export function getLMStudioConfig(): { url: string; model: string } {
+  return {
+    url: localStorage.getItem(LS_LMSTUDIO_URL) || "http://localhost:1234",
+    model: localStorage.getItem(LS_LMSTUDIO_MODEL) || "",
+  };
+}
+export function setLMStudioConfig(url: string, model: string): void {
+  try { localStorage.setItem(LS_LMSTUDIO_URL, url); } catch { /* quota exceeded */ }
+  try { localStorage.setItem(LS_LMSTUDIO_MODEL, model); } catch { /* quota exceeded */ }
+}
 
 /**
  * Unified config reader — device-level provider takes precedence.
@@ -48,7 +60,7 @@ export function getAIConfig(settings: Record<string, string> | null): { provider
   const hasDevicePref = localStorage.getItem(LS_PROVIDER) != null;
   const provider = hasDevicePref ? getDeviceAIProvider() : (settings?.ai_provider as AIProvider | "");
   if (!provider) return null;
-  if (provider === "ollama") return { provider, apiKey: "" };
+  if (provider === "ollama" || provider === "lmstudio") return { provider, apiKey: "" };
   const keyName = AI_KEY_MAP[provider];
   const apiKey = keyName ? (settings?.[keyName] || "") : "";
   if (!apiKey) return null;
@@ -90,6 +102,26 @@ async function callJSON(provider: AIProvider, apiKey: string, systemPrompt: stri
     const data = await res.json();
     const text = data.message?.content;
     if (!text) throw new Error("Empty Ollama response");
+    return extractJSON(text);
+  }
+
+  if (provider === "lmstudio") {
+    const { url, model } = getLMStudioConfig();
+    const res = await fetch(`${url}/v1/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        response_format: { type: "json_object" },
+        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userText }],
+        temperature: 0,
+        stream: false,
+      }),
+    });
+    if (!res.ok) throw new Error(`LM Studio error: ${res.status}`);
+    const data = await res.json();
+    const text = data.choices?.[0]?.message?.content;
+    if (!text) throw new Error("Empty LM Studio response");
     return extractJSON(text);
   }
 
@@ -171,6 +203,23 @@ async function callText(provider: AIProvider, apiKey: string, systemPrompt: stri
     if (!res.ok) throw new Error(`Ollama error: ${res.status}`);
     const data = await res.json();
     return data.message?.content || "";
+  }
+
+  if (provider === "lmstudio") {
+    const { url, model } = getLMStudioConfig();
+    const res = await fetch(`${url}/v1/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userText }],
+        temperature: 0.2,
+        stream: false,
+      }),
+    });
+    if (!res.ok) throw new Error(`LM Studio error: ${res.status}`);
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content || "";
   }
 
   if (provider === "gemini") {
@@ -358,6 +407,11 @@ export async function streamChat(
       }));
     }
     body = JSON.stringify(reqBody);
+  } else if (provider === "lmstudio") {
+    const cfg = getLMStudioConfig();
+    url = `${cfg.url}/v1/chat/completions`;
+    headers = { "Content-Type": "application/json" };
+    body = JSON.stringify({ model: cfg.model, messages: buildOpenAIMessages(messages), stream: true, temperature: 0.2 });
   } else if (provider === "openai") {
     url = "https://api.openai.com/v1/chat/completions";
     headers = { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` };
@@ -852,11 +906,25 @@ export async function fetchOllamaModels(url: string): Promise<string[]> {
   } catch { return []; }
 }
 
+export async function fetchLMStudioModels(url: string): Promise<string[]> {
+  try {
+    const res = await fetch(`${url}/v1/models`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.data || []).map((m: { id: string }) => m.id);
+  } catch { return []; }
+}
+
 export async function testApiKey(provider: AIProvider, apiKey: string): Promise<boolean> {
   try {
     if (provider === "ollama") {
       const { url } = getOllamaConfig();
       const models = await fetchOllamaModels(url);
+      return models.length > 0;
+    }
+    if (provider === "lmstudio") {
+      const { url } = getLMStudioConfig();
+      const models = await fetchLMStudioModels(url);
       return models.length > 0;
     }
     if (provider === "gemini") {
