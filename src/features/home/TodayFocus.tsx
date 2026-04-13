@@ -89,45 +89,45 @@ export function TodayFocus({
 
   return (
     <section>
-      {/* Header */}
-      <div className="mb-3">
-        <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
-          {t("home.focus.title")}
-        </h3>
-        <p className="text-[12px] mt-1" style={{ color: "var(--color-text-quaternary)" }}>{t("home.focus.desc")}</p>
-      </div>
-
-      {/* ── Tier 1: Due Today / Overdue ── */}
-      {dueItems.length > 0 && (
-        <div className="card overflow-hidden mb-3">
-          <div className="flex items-center gap-1.5 px-4 pt-3 pb-1.5">
-            <Clock size={12} style={{ color: "var(--color-text-tertiary)" }} />
-            <span className="text-[12px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
-              {lang === "zh" ? "截止事项" : "Due Items"}
-            </span>
-            <span className="text-[11px] tabular-nums px-1.5 py-0.5 rounded-[var(--radius-4)]"
-              style={{ background: "color-mix(in srgb, var(--color-error) 8%, transparent)", color: "var(--color-error)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
-              {dueItems.length}
-            </span>
-          </div>
-          <div className="flex flex-col">
-            {dueItems.map((item) => (
-              <FocusRow
-                key={item.key}
-                item={item}
-                badge={badgeConfig(item.type)}
-                onNavigate={() => handleNavigate(item)}
-                urgency={item.isOverdue ? "overdue" : "today"}
-                lang={lang}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── Tier 2: AI Recommended Focus ── */}
       <div className="card overflow-hidden">
+        {/* Header (inside card) */}
+        <div className="px-4 pt-4 pb-2">
+          <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
+            {t("home.focus.title")}
+          </h3>
+          <p className="text-[12px] mt-0.5" style={{ color: "var(--color-text-quaternary)" }}>{t("home.focus.desc")}</p>
+        </div>
+
+        {/* ── Tier 1: Due Today / Overdue ── */}
         {dueItems.length > 0 && (
+          <>
+            <div className="flex items-center gap-1.5 px-4 pt-2 pb-1.5">
+              <Clock size={12} style={{ color: "var(--color-text-tertiary)" }} />
+              <span className="text-[12px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
+                {lang === "zh" ? "截止事项" : "Due Items"}
+              </span>
+              <span className="text-[11px] tabular-nums px-1.5 py-0.5 rounded-[var(--radius-4)]"
+                style={{ background: "color-mix(in srgb, var(--color-error) 8%, transparent)", color: "var(--color-error)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
+                {dueItems.length}
+              </span>
+            </div>
+            <div className="flex flex-col">
+              {dueItems.map((item) => (
+                <FocusRow
+                  key={item.key}
+                  item={item}
+                  badge={badgeConfig(item.type)}
+                  onNavigate={() => handleNavigate(item)}
+                  urgency={item.isOverdue ? "overdue" : "today"}
+                  lang={lang}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* ── Tier 2: AI Recommended Focus ── */}
+        {dueItems.length > 0 && aiItems.length > 0 && (
           <div className="flex items-center gap-1.5 px-4 pt-3 pb-1.5">
             <span className="text-[12px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
               {lang === "zh" ? "AI 推荐" : "AI Recommended"}

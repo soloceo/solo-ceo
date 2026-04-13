@@ -4,27 +4,56 @@ import { AnimatePresence, motion } from "motion/react";
 import { useT } from "../../i18n/context";
 import { useAppSettings, invalidateSettingsCache } from "../../hooks/useAppSettings";
 import { useUIStore } from "../../store/useUIStore";
-import { BookOpen, ChevronDown, ChevronRight, X, CheckCircle2 } from "lucide-react";
+import { BookOpen, Clock, ChevronDown, ChevronRight, X, CheckCircle2 } from "lucide-react";
 import type { Principle, KnowledgeCategory } from "../../data/evolution-knowledge";
-/* Lazy-load the 53KB knowledge data — only fetched when this component first renders */
+import type { ProtocolStep } from "../../data/evolution-protocol";
+
+/* ── Protocol helpers ── */
+function formatTimeRange(r?: [number, number]): string {
+  if (!r) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(r[0])}:00–${pad(r[1] === 24 ? 0 : r[1])}:00`;
+}
+
+function getCurrentStepIndex(steps: ProtocolStep[]): number {
+  const h = new Date().getHours();
+  for (let i = steps.length - 1; i >= 0; i--) {
+    const r = steps[i].timeRange;
+    if (r && h >= r[0]) return i;
+  }
+  return 0;
+}
+
+/* ── Expanded panel type ── */
+type ExpandedPanel = null | "lesson" | "protocol";
 
 export function KnowledgeBaseSection() {
   const { t, lang } = useT();
+  const l = lang as "zh" | "en";
   const { settings, save } = useAppSettings();
   const setHideMobileNav = useUIStore((s) => s.setHideMobileNav);
 
+  /* Knowledge data (lazy) */
   const [categories, setCategories] = useState<KnowledgeCategory[]>([]);
-  const [principleExpanded, setPrincipleExpanded] = useState(false);
-  const [showAllPrinciples, setShowAllPrinciples] = useState(false);
-  const [selectedPrinciple, setSelectedPrinciple] = useState<(Principle & { catEmoji: string }) | null>(null);
+  const [protocolSteps, setProtocolSteps] = useState<ProtocolStep[]>([]);
 
   useEffect(() => {
     let cancelled = false;
-    import("../../data/evolution-knowledge").then(m => {
-      if (!cancelled) setCategories(m.KNOWLEDGE_CATEGORIES);
+    Promise.all([
+      import("../../data/evolution-knowledge"),
+      import("../../data/evolution-protocol"),
+    ]).then(([km, pm]) => {
+      if (!cancelled) {
+        setCategories(km.KNOWLEDGE_CATEGORIES);
+        setProtocolSteps(pm.PROTOCOL_STEPS);
+      }
     });
     return () => { cancelled = true; };
   }, []);
+
+  /* All principles sheet */
+  const [showAllPrinciples, setShowAllPrinciples] = useState(false);
+  const [selectedPrinciple, setSelectedPrinciple] = useState<(Principle & { catEmoji: string }) | null>(null);
 
   useEffect(() => {
     setHideMobileNav(showAllPrinciples);
@@ -53,92 +82,242 @@ export function KnowledgeBaseSection() {
     return allPrinciples[idx];
   }, [allPrinciples]);
 
-  if (!todayPrinciple) return null;
+  /* Protocol current step */
+  const currentIdx = useMemo(() => getCurrentStepIndex(protocolSteps), [protocolSteps]);
+  const currentStep = protocolSteps[currentIdx];
+  const nextStep = currentIdx < protocolSteps.length - 1 ? protocolSteps[currentIdx + 1] : null;
+
+  /* Expand state */
+  const [expanded, setExpanded] = useState<ExpandedPanel>(null);
+  const [showFullTimeline, setShowFullTimeline] = useState(false);
+  const [expandedStepId, setExpandedStepId] = useState<string | null>(null);
+
+  const toggle = (panel: "lesson" | "protocol") => {
+    setExpanded((prev) => (prev === panel ? null : panel));
+    setShowFullTimeline(false);
+    setExpandedStepId(null);
+  };
+
+  if (!todayPrinciple || protocolSteps.length === 0) return null;
 
   return (
     <>
       <section>
-        {/* Header */}
-        <div className="mb-3">
-          <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
-              {t("home.dailyLesson")}
-            </span>
-            <span className="text-[11px] px-1.5 py-0.5 rounded-full"
-              style={{ background: "var(--color-bg-tertiary)", color: "var(--color-text-secondary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-              {categories.find((c) => c.principles.some((p) => p.id === todayPrinciple.id))?.name[lang as "zh" | "en"]}
-            </span>
-          </div>
+        {/* ── Compact dual-row card ── */}
+        <div className="card overflow-hidden">
+          {/* Row 1: Daily Protocol */}
           <button
-            onClick={() => setShowAllPrinciples(true)}
-            className="flex items-center gap-1.5 text-[13px] press-feedback"
-            style={{ color: "var(--color-accent)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
+            onClick={() => toggle("protocol")}
+            className="flex items-center gap-3 w-full text-left px-4 py-3 transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback"
           >
-            <BookOpen size={12} />
-            {t("home.browseAllPrinciples").replace("{count}", String(allPrinciples.length))}
+            <Clock size={14} className="shrink-0" style={{ color: "var(--color-text-tertiary)" }} />
+            <span className="text-[12px] shrink-0 px-1.5 py-0.5 rounded-[var(--radius-4)]"
+              style={{ color: "var(--color-text-on-color)", background: "var(--color-accent)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
+              {currentStep.time[l]}
+            </span>
+            <span className="text-[13px] flex-1 min-w-0 truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
+              {currentStep.title[l]}
+            </span>
+            <span className="text-[11px] tabular-nums shrink-0" style={{ color: "var(--color-text-quaternary)" }}>
+              {formatTimeRange(currentStep.timeRange)}
+            </span>
+            <ChevronDown
+              size={13}
+              className="shrink-0"
+              style={{
+                color: "var(--color-text-quaternary)",
+                transform: expanded === "protocol" ? "rotate(180deg)" : "rotate(0deg)",
+                transition: "transform 0.2s ease",
+              }}
+            />
           </button>
-          </div>
-          <p className="text-[12px] mt-0.5" style={{ color: "var(--color-text-quaternary)" }}>{t("home.principle.desc")}</p>
-        </div>
 
-        {/* Card */}
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={() => setPrincipleExpanded((v) => !v)}
-          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setPrincipleExpanded((v) => !v); } }}
-          className="card overflow-hidden cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback"
-        >
-          <div className="px-4 pt-4 pb-3">
-            <div className="flex items-start gap-3">
-              <div className="flex-1 min-w-0">
-                <h3 className="text-[16px] mb-2" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)", lineHeight: 1.3 } as React.CSSProperties}>
-                  {todayPrinciple.name[lang as "zh" | "en"]}
-                </h3>
-                <p className="text-[13px] leading-relaxed line-clamp-2" style={{ color: "var(--color-text-tertiary)" }}>
-                  {todayPrinciple.core[lang as "zh" | "en"]}
-                </p>
-              </div>
-              <div className="shrink-0 mt-1">
-                {principleExpanded ? <ChevronDown size={14} style={{ color: "var(--color-text-quaternary)" }} /> : <ChevronRight size={14} style={{ color: "var(--color-text-quaternary)" }} />}
-              </div>
-            </div>
-          </div>
-
-          {/* Study CTA */}
-          <div className="flex items-center justify-between px-4 pb-3.5">
-            <button
-              onClick={(e) => { e.stopPropagation(); recordStudy(todayPrinciple.id); }}
-              className="flex items-center gap-1.5 text-[13px] px-3 py-1.5 rounded-full transition-colors press-feedback"
-              style={{ background: "var(--color-bg-tertiary)", color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}
-            >
-              <CheckCircle2 size={13} />
-              {t("home.markStudied")}
-            </button>
-            {(studyCounts[todayPrinciple.id] || 0) > 0 && (
-              <span className="text-[12px] tabular-nums" style={{ color: "var(--color-text-quaternary)" }}>
-                {t("home.studied")} ×{studyCounts[todayPrinciple.id]}
-              </span>
-            )}
-          </div>
-
-          {/* Expanded detail */}
+          {/* Protocol expanded detail */}
           <AnimatePresence>
-            {principleExpanded && todayPrinciple.explanation && (
+            {expanded === "protocol" && (
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3, ease: [0.25, 1, 0.5, 1] }}
+                transition={{ duration: 0.25, ease: [0.25, 1, 0.5, 1] }}
                 className="overflow-hidden"
               >
-                {/* Whitespace separator instead of divider */}
-                <div style={{ height: 1, margin: "0 16px", background: "var(--color-line-secondary)" }} />
-                <div className="flex flex-col">
-                  <p className="text-[14px] leading-relaxed px-4 py-3.5" style={{ color: "var(--color-text-secondary)" }}>
-                    {todayPrinciple.explanation[lang as "zh" | "en"]}
+                <div style={{ height: 1, background: "var(--color-line-tertiary)" }} />
+                <div className="px-4 py-3.5">
+                  {/* Current step description */}
+                  <p className="text-[13px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+                    {currentStep.description[l]}
                   </p>
+
+                  {/* Next step preview */}
+                  {nextStep && (
+                    <div className="flex items-center gap-2 mt-3 pt-3" style={{ borderTop: "1px solid var(--color-line-tertiary)" }}>
+                      <span className="text-[11px] shrink-0" style={{ color: "var(--color-text-quaternary)" }}>
+                        {t("home.protocolNext")}
+                      </span>
+                      <span className="text-[11px] px-1.5 py-0.5 rounded-[var(--radius-4)] shrink-0"
+                        style={{ color: "var(--color-text-tertiary)", background: "var(--color-bg-tertiary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
+                        {nextStep.time[l]}
+                      </span>
+                      <span className="text-[12px] truncate" style={{ color: "var(--color-text-tertiary)" }}>
+                        {nextStep.title[l]}
+                      </span>
+                      <span className="text-[11px] tabular-nums shrink-0" style={{ color: "var(--color-text-quaternary)" }}>
+                        {formatTimeRange(nextStep.timeRange)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Full timeline toggle */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowFullTimeline(!showFullTimeline); setExpandedStepId(null); }}
+                    className="flex items-center gap-1.5 mt-3 press-feedback"
+                  >
+                    <span className="text-[12px]" style={{ color: "var(--color-text-tertiary)" }}>
+                      {t("home.allProtocolSteps")}
+                    </span>
+                    <ChevronDown
+                      size={12}
+                      style={{
+                        color: "var(--color-text-quaternary)",
+                        transform: showFullTimeline ? "rotate(180deg)" : "rotate(0deg)",
+                        transition: "transform 0.2s ease",
+                      }}
+                    />
+                  </button>
+
+                  {/* Full timeline */}
+                  <AnimatePresence>
+                    {showFullTimeline && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
+                        className="overflow-hidden"
+                      >
+                        <div className="mt-2 rounded-[var(--radius-base)] overflow-hidden" style={{ border: "1px solid var(--color-line-tertiary)" }}>
+                          {protocolSteps.map((step, i) => {
+                            const isCurrent = i === currentIdx;
+                            const isPast = i < currentIdx;
+                            const isOpen = expandedStepId === step.id;
+                            const isLast = i === protocolSteps.length - 1;
+                            return (
+                              <button
+                                key={step.id}
+                                onClick={(e) => { e.stopPropagation(); setExpandedStepId(isOpen ? null : step.id); }}
+                                className="flex gap-3 w-full text-left px-3 py-2 press-feedback transition-colors hover:bg-[var(--color-bg-tertiary)]"
+                                style={!isLast ? { borderBottom: "1px solid var(--color-line-tertiary)" } : undefined}
+                              >
+                                {/* Timeline dot */}
+                                <div className="flex flex-col items-center shrink-0" style={{ width: 12 }}>
+                                  <div style={{
+                                    width: isCurrent ? 10 : 6,
+                                    height: isCurrent ? 10 : 6,
+                                    borderRadius: "50%",
+                                    background: isCurrent ? "var(--color-accent)" : isPast ? "var(--color-text-quaternary)" : "var(--color-border-secondary)",
+                                    border: isCurrent ? "2px solid color-mix(in srgb, var(--color-accent) 30%, transparent)" : "none",
+                                    marginTop: 5,
+                                    flexShrink: 0,
+                                  }} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[11px] shrink-0" style={{
+                                      color: isCurrent ? "var(--color-accent)" : isPast ? "var(--color-text-quaternary)" : "var(--color-text-tertiary)",
+                                      fontWeight: "var(--font-weight-bold)",
+                                    } as React.CSSProperties}>
+                                      {step.time[l]}
+                                    </span>
+                                    <span className="text-[11px] tabular-nums shrink-0" style={{ color: "var(--color-text-quaternary)" }}>
+                                      {formatTimeRange(step.timeRange)}
+                                    </span>
+                                    <span className="text-[12px] truncate" style={{
+                                      color: isPast ? "var(--color-text-quaternary)" : "var(--color-text-primary)",
+                                      fontWeight: isCurrent ? "var(--font-weight-semibold)" : "var(--font-weight-medium)",
+                                    } as React.CSSProperties}>
+                                      {step.title[l]}
+                                    </span>
+                                  </div>
+                                  {isOpen && (
+                                    <p className="text-[12px] mt-1 leading-relaxed" style={{ color: "var(--color-text-tertiary)" }}>
+                                      {step.description[l]}
+                                    </p>
+                                  )}
+                                </div>
+                                <ChevronDown size={12} className="shrink-0 mt-1" style={{
+                                  color: "var(--color-text-quaternary)",
+                                  transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+                                  transition: "transform 0.2s ease",
+                                }} />
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Divider */}
+          <div style={{ height: 1, background: "var(--color-line-tertiary)" }} />
+
+          {/* Row 2: Daily Lesson */}
+          <button
+            onClick={() => toggle("lesson")}
+            className="flex items-center gap-3 w-full text-left px-4 py-3 transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback"
+          >
+            <BookOpen size={14} className="shrink-0" style={{ color: "var(--color-accent)" }} />
+            <span className="text-[12px] shrink-0" style={{ color: "var(--color-text-tertiary)" }}>
+              {t("home.dailyLesson")}
+            </span>
+            <span className="text-[13px] flex-1 min-w-0 truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
+              {todayPrinciple.name[l]}
+            </span>
+            {(studyCounts[todayPrinciple.id] || 0) > 0 && (
+              <span className="text-[11px] tabular-nums shrink-0" style={{ color: "var(--color-text-quaternary)" }}>
+                ×{studyCounts[todayPrinciple.id]}
+              </span>
+            )}
+            <ChevronDown
+              size={13}
+              className="shrink-0"
+              style={{
+                color: "var(--color-text-quaternary)",
+                transform: expanded === "lesson" ? "rotate(180deg)" : "rotate(0deg)",
+                transition: "transform 0.2s ease",
+              }}
+            />
+          </button>
+
+          {/* Lesson expanded detail */}
+          <AnimatePresence>
+            {expanded === "lesson" && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.25, ease: [0.25, 1, 0.5, 1] }}
+                className="overflow-hidden"
+              >
+                <div style={{ height: 1, background: "var(--color-line-tertiary)" }} />
+                <div className="px-4 py-3.5">
+                  {/* Core insight */}
+                  <p className="text-[13px] leading-relaxed mb-3" style={{ color: "var(--color-text-secondary)" }}>
+                    {todayPrinciple.core[l]}
+                  </p>
+
+                  {/* Explanation */}
+                  {todayPrinciple.explanation && (
+                    <p className="text-[13px] leading-relaxed mb-3" style={{ color: "var(--color-text-tertiary)" }}>
+                      {todayPrinciple.explanation[l]}
+                    </p>
+                  )}
+
+                  {/* Action steps */}
                   {todayPrinciple.actionSteps && todayPrinciple.actionSteps.length > 0 && (
                     <PrincipleList icon="→" color="var(--color-accent)" label={t("home.actionSteps")} items={todayPrinciple.actionSteps} lang={lang} />
                   )}
@@ -148,6 +327,26 @@ export function KnowledgeBaseSection() {
                   {todayPrinciple.antiPatterns && todayPrinciple.antiPatterns.length > 0 && (
                     <PrincipleList icon="✗" color="var(--color-danger)" label={t("home.antiPatterns")} items={todayPrinciple.antiPatterns} lang={lang} bullet="✗" />
                   )}
+
+                  {/* Actions row */}
+                  <div className="flex items-center justify-between mt-3 pt-3" style={{ borderTop: "1px solid var(--color-line-tertiary)" }}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); recordStudy(todayPrinciple.id); }}
+                      className="flex items-center gap-1.5 text-[13px] px-3 py-1.5 rounded-full transition-colors press-feedback"
+                      style={{ background: "var(--color-bg-tertiary)", color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}
+                    >
+                      <CheckCircle2 size={13} />
+                      {t("home.markStudied")}
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setShowAllPrinciples(true); }}
+                      className="flex items-center gap-1 text-[12px] press-feedback"
+                      style={{ color: "var(--color-accent)" }}
+                    >
+                      <BookOpen size={11} />
+                      {t("home.browseAllPrinciples").replace("{count}", String(allPrinciples.length))}
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -200,17 +399,17 @@ export function KnowledgeBaseSection() {
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-[18px]">{selectedPrinciple.catEmoji}</span>
                       <h3 className="text-[17px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
-                        {selectedPrinciple.name[lang as "zh" | "en"]}
+                        {selectedPrinciple.name[l]}
                       </h3>
                     </div>
                     <p className="text-[14px] mb-3" style={{ color: "var(--color-text-tertiary)", lineHeight: 1.5 }}>
-                      {selectedPrinciple.core[lang as "zh" | "en"]}
+                      {selectedPrinciple.core[l]}
                     </p>
                     <div className="card overflow-hidden">
                       <div className="flex flex-col">
                         {selectedPrinciple.explanation && (
                           <div className="px-4 py-3.5 text-[14px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
-                            {selectedPrinciple.explanation[lang as "zh" | "en"]}
+                            {selectedPrinciple.explanation[l]}
                           </div>
                         )}
                         {selectedPrinciple.actionSteps && selectedPrinciple.actionSteps.length > 0 && (
@@ -246,7 +445,7 @@ export function KnowledgeBaseSection() {
                         <div className="flex items-center gap-2 mb-2.5 px-1">
                           <span className="text-[17px]">{cat.emoji}</span>
                           <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
-                            {cat.name[lang as "zh" | "en"]}
+                            {cat.name[l]}
                           </span>
                           <span className="text-[12px] tabular-nums px-1.5 py-0.5 rounded-full" style={{ color: "var(--color-text-tertiary)", background: "var(--color-bg-tertiary)" }}>
                             {cat.principles.length}
@@ -256,8 +455,8 @@ export function KnowledgeBaseSection() {
                           <div className="flex flex-col">
                             {cat.principles.map((p) => {
                               const isToday = p.id === todayPrinciple.id;
-                              const coreText = p.core[lang as "zh" | "en"];
-                              const truncated = coreText.length > 50 ? coreText.slice(0, 50) + "…" : coreText;
+                              const coreText = p.core[l];
+                              const truncated = coreText.length > 50 ? coreText.slice(0, 50) + "..." : coreText;
                               return (
                                 <button
                                   key={p.id}
@@ -270,7 +469,7 @@ export function KnowledgeBaseSection() {
                                       color: "var(--color-text-primary)",
                                       fontWeight: "var(--font-weight-semibold)",
                                     } as React.CSSProperties}>
-                                      {p.name[lang as "zh" | "en"]}
+                                      {p.name[l]}
                                     </span>
                                     {isToday && (
                                       <span className="text-[10px] px-1.5 py-0.5 rounded-full shrink-0"
@@ -316,13 +515,13 @@ function PrincipleList({ icon, color, label, items, lang, bullet }: {
   bullet?: string;
 }) {
   return (
-    <div className="px-4 py-3.5">
-      <h4 className="text-[11px] mb-2.5 flex items-center gap-1.5" style={{ color, fontWeight: "var(--font-weight-semibold)", textTransform: "uppercase", letterSpacing: "0.05em" } as React.CSSProperties}>
+    <div className="mb-2">
+      <h4 className="text-[11px] mb-1.5 flex items-center gap-1.5" style={{ color, fontWeight: "var(--font-weight-semibold)", textTransform: "uppercase", letterSpacing: "0.05em" } as React.CSSProperties}>
         <span>{icon}</span> {label}
       </h4>
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1.5">
         {items.map((s, i) => (
-          <div key={i} className="flex items-start gap-2 text-[13px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+          <div key={i} className="flex items-start gap-2 text-[12px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
             <span className="shrink-0 text-[11px] mt-0.5 tabular-nums" style={{ color }}>
               {bullet || `${i + 1}.`}
             </span>

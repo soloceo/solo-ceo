@@ -11,11 +11,9 @@ import type { ActivityItem } from "./ActivityTimeline";
 import { WeeklyReport } from "./WeeklyReport";
 import { TodayFocus, type FocusItem } from "./TodayFocus";
 import { KnowledgeBaseSection } from "./KnowledgeBaseSection";
-import { ProtocolSection } from "./ProtocolSection";
 import { BreakthroughSection } from "./BreakthroughSection";
 import { HomeMemoSection } from "./HomeMemoSection";
 import { BarChart3 } from "lucide-react";
-import { PROTOCOL_STEPS } from "../../data/evolution-protocol";
 import { api } from "../../lib/api";
 import PeepIllustration from "../../components/ui/PeepIllustration";
 import type { PeepName } from "../../components/ui/PeepIllustration";
@@ -154,6 +152,9 @@ export default function HomePage() {
           </button>
         </div>
 
+        {/* ── Daily Briefing — compact banner ── */}
+        <KnowledgeBaseSection />
+
         {/* ── Panel Tabs ── */}
         <div className="page-tabs">
           {(["dashboard", "widgets"] as const).map((tab) => (
@@ -170,29 +171,30 @@ export default function HomePage() {
         </div>
 
         {homeView === "dashboard" && (
-          <div className="flex flex-col" style={{ gap: 28 }}>
-              <KPIGrid
-                monthlyIncome={data.monthlyIncome || 0}
-                todayIncome={data.todayIncome || 0}
-                clientsCount={data.clientsCount || 0}
-                leadsCount={data.leadsCount || 0}
-                workTasks={data.workTasks || 0}
-                personalTasks={data.personalTasks || 0}
-                loading={loading}
-              />
-              <TodayFocus
-                todayFocus={data.todayFocus}
-                dueTodayItems={data.dueTodayItems}
-                loading={loading}
-              />
-              <HomeMemoSection />
-              <div className="flex flex-col" style={{ gap: 24 }}>
-                <KnowledgeBaseSection />
-                <ProtocolSection
-                  title={t("home.dailyProtocol")}
-                  steps={PROTOCOL_STEPS}
-                  lang={lang}
+          <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:gap-5">
+              {/* ── Left column: KPI + Today Focus ── */}
+              <div className="flex flex-col gap-4 min-w-0">
+                <KPIGrid
+                  monthlyIncome={data.monthlyIncome || 0}
+                  todayIncome={data.todayIncome || 0}
+                  clientsCount={data.clientsCount || 0}
+                  leadsCount={data.leadsCount || 0}
+                  workTasks={data.workTasks || 0}
+                  personalTasks={data.personalTasks || 0}
+                  loading={loading}
                 />
+                <TodayFocus
+                  todayFocus={data.todayFocus}
+                  dueTodayItems={data.dueTodayItems}
+                  loading={loading}
+                />
+              </div>
+              {/* ── Right column: Memo Calendar ── */}
+              <div className="min-w-0">
+                <HomeMemoSection />
+              </div>
+              {/* ── Full width bottom ── */}
+              <div className="lg:col-span-2">
                 <BreakthroughSection />
               </div>
           </div>
