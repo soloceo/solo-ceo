@@ -119,8 +119,8 @@ export default function HomePage() {
       <div className="page-stack">
         {/* ── Header: Greeting card with peep bust ── */}
         <div
-          className="card relative overflow-hidden px-5 py-5"
-          style={{ minHeight: 120 }}
+          className="card relative overflow-hidden px-5 py-4"
+          style={{ minHeight: 100 }}
         >
           {/* Accent tint overlay — sits behind content, on top of card base */}
           <div className="absolute inset-0 pointer-events-none" style={{ background: "var(--color-accent-tint)", opacity: 0.5 }} />
@@ -138,7 +138,7 @@ export default function HomePage() {
 
           {/* Right: peep illustration — clear, not overlapping report btn */}
           <div className="absolute right-8 bottom-0 z-0">
-            <PeepIllustration name={greetingPeep()} size={120} />
+            <PeepIllustration name={greetingPeep()} size={105} />
           </div>
 
           {/* Report button — floated top-right */}

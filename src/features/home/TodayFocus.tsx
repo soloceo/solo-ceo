@@ -1,5 +1,5 @@
-import React, { useMemo } from "react";
-import { Check, ChevronRight as ArrowRight, DollarSign, Package, Settings, Clock, AlertTriangle, StickyNote, User } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { Check, ChevronRight as ArrowRight, ChevronDown, DollarSign, Package, Settings, Clock, AlertTriangle, StickyNote, User } from "lucide-react";
 import { useT } from "../../i18n/context";
 import { useUIStore } from "../../store/useUIStore";
 
@@ -76,6 +76,12 @@ export function TodayFocus({
     return focusItems.filter((item) => { if (seen.has(item.type)) return false; seen.add(item.type); return true; });
   }, [focusItems]);
 
+  const [showAll, setShowAll] = useState(false);
+  const VISIBLE_LIMIT = 5;
+  const allItems = useMemo(() => [...dueItems, ...aiItems], [dueItems, aiItems]);
+  const totalCount = allItems.length;
+  const hasMore = totalCount > VISIBLE_LIMIT;
+
   const revenueLabel = t("home.focus.revenue");
   const deliveryLabel = t("home.focus.delivery");
 
@@ -98,53 +104,64 @@ export function TodayFocus({
           <p className="text-[12px] mt-0.5" style={{ color: "var(--color-text-quaternary)" }}>{t("home.focus.desc")}</p>
         </div>
 
-        {/* ── Tier 1: Due Today / Overdue ── */}
-        {dueItems.length > 0 && (
-          <>
-            <div className="flex items-center gap-1.5 px-4 pt-2 pb-1.5">
-              <Clock size={12} style={{ color: "var(--color-text-tertiary)" }} />
-              <span className="text-[12px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
-                {lang === "zh" ? "截止事项" : "Due Items"}
-              </span>
-              <span className="text-[11px] tabular-nums px-1.5 py-0.5 rounded-[var(--radius-4)]"
-                style={{ background: "color-mix(in srgb, var(--color-error) 8%, transparent)", color: "var(--color-error)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
-                {dueItems.length}
-              </span>
-            </div>
-            <div className="flex flex-col">
-              {dueItems.map((item) => (
-                <FocusRow
-                  key={item.key}
-                  item={item}
-                  badge={badgeConfig(item.type)}
-                  onNavigate={() => handleNavigate(item)}
-                  urgency={item.isOverdue ? "overdue" : "today"}
-                  lang={lang}
-                />
-              ))}
-            </div>
-          </>
-        )}
+        {/* ── Combined items with collapse ── */}
+        {(() => {
+          let rendered = 0;
+          const limit = showAll ? Infinity : VISIBLE_LIMIT;
+          const showDueHeader = dueItems.length > 0;
+          const dueVisible = dueItems.slice(0, Math.max(0, limit - rendered));
+          rendered += dueVisible.length;
+          const showAiHeader = dueItems.length > 0 && aiItems.length > 0 && rendered < limit;
+          const aiVisible = aiItems.slice(0, Math.max(0, limit - rendered));
 
-        {/* ── Tier 2: AI Recommended Focus ── */}
-        {dueItems.length > 0 && aiItems.length > 0 && (
-          <div className="flex items-center gap-1.5 px-4 pt-3 pb-1.5">
-            <span className="text-[12px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
-              {lang === "zh" ? "AI 推荐" : "AI Recommended"}
-            </span>
-          </div>
+          return (
+            <>
+              {showDueHeader && (
+                <div className="flex items-center gap-1.5 px-4 pt-2 pb-1.5">
+                  <Clock size={12} style={{ color: "var(--color-text-tertiary)" }} />
+                  <span className="text-[12px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
+                    {lang === "zh" ? "截止事项" : "Due Items"}
+                  </span>
+                  <span className="text-[11px] tabular-nums px-1.5 py-0.5 rounded-[var(--radius-4)]"
+                    style={{ background: "color-mix(in srgb, var(--color-error) 8%, transparent)", color: "var(--color-error)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
+                    {dueItems.length}
+                  </span>
+                </div>
+              )}
+              <div className="flex flex-col">
+                {dueVisible.map((item) => (
+                  <FocusRow key={item.key} item={item} badge={badgeConfig(item.type)} onNavigate={() => handleNavigate(item)} urgency={item.isOverdue ? "overdue" : "today"} lang={lang} />
+                ))}
+              </div>
+              {showAiHeader && (
+                <div className="flex items-center gap-1.5 px-4 pt-3 pb-1.5">
+                  <span className="text-[12px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
+                    {lang === "zh" ? "AI 推荐" : "AI Recommended"}
+                  </span>
+                </div>
+              )}
+              <div className="flex flex-col">
+                {aiVisible.map((item) => (
+                  <FocusRow key={item.key} item={item} badge={badgeConfig(item.type)} onNavigate={() => handleNavigate(item)} lang={lang} />
+                ))}
+              </div>
+            </>
+          );
+        })()}
+
+        {/* Show more / less toggle */}
+        {hasMore && (
+          <button
+            onClick={() => setShowAll(!showAll)}
+            className="flex items-center justify-center gap-1 w-full py-2 text-[12px] transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback"
+            style={{ color: "var(--color-text-tertiary)", borderTop: "1px solid var(--color-border-primary)" }}
+          >
+            {showAll
+              ? (lang === "zh" ? "收起" : "Show less")
+              : (lang === "zh" ? `查看全部 ${totalCount} 项` : `Show all ${totalCount} items`)}
+            <ChevronDown size={12} style={{ transform: showAll ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s ease" }} />
+          </button>
         )}
-        <div className="flex flex-col">
-          {aiItems.map((item) => (
-            <FocusRow
-              key={item.key}
-              item={item}
-              badge={badgeConfig(item.type)}
-              onNavigate={() => handleNavigate(item)}
-              lang={lang}
-            />
-          ))}
-        </div>
 
         {/* Empty state */}
         {!loading && !aiItems.length && !dueItems.length && (

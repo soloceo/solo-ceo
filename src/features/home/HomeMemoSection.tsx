@@ -14,7 +14,7 @@ function toDateStr(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-/** Build a 42-cell (6×7) grid for a given month */
+/** Build a month grid — 5 rows if last row is all next month, else 6 rows */
 function getMonthGrid(year: number, month: number): Date[] {
   const first = new Date(year, month, 1);
   const startDay = first.getDay(); // 0=Sun
@@ -23,7 +23,10 @@ function getMonthGrid(year: number, month: number): Date[] {
     const d = new Date(year, month, 1 - startDay + i);
     cells.push(d);
   }
-  return cells;
+  // Trim last row if all dates are next month
+  const lastRowStart = 35;
+  const allNextMonth = cells.slice(lastRowStart).every(d => d.getMonth() !== month);
+  return allNextMonth ? cells.slice(0, 35) : cells;
 }
 
 const SHORT_DAY_ZH = ["日", "一", "二", "三", "四", "五", "六"];
@@ -350,8 +353,6 @@ export function HomeMemoSection() {
             <Plus size={14} /> {t("home.memo.add")}
           </button>
         </div>
-        <p className="text-[12px] px-4 pb-2" style={{ color: "var(--color-text-quaternary)" }}>{t("home.memo.desc")}</p>
-
         {/* ── Month calendar header ── */}
         <div className="flex items-center justify-between px-4 pt-3 pb-1">
           <button onClick={() => goMonth(-1)} className="btn-icon-sm press-feedback" aria-label="Previous month">
