@@ -3,6 +3,26 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.39.0] - 2026-04-13
+
+### Added
+- **LM Studio support** — connect local LLMs via OpenAI-compatible API (model discovery, test, stream chat)
+- **DESIGN.md** — comprehensive design system doc (colors, typography, components, motion, agent prompt guide)
+- **AI chat max output tokens** — all cloud models now use maximum output limits (OpenAI/Claude 16K, Gemini 65K)
+
+### Fixed
+- **AI chat client data** — expanded client context in system prompt (subscription_timeline, payment_method, tax, dates) so AI can answer renewal/billing questions
+- **Tool format garbage** — added `cleanToolGarbage()` to strip `<tool_code>`, Python syntax, and XML tags from AI responses; added anti-hallucination prompt instructions
+- **GET field parity audit** — 13 missing fields across 4 endpoints:
+  - `/api/clients`: `drive_folder_url`, `project_end_date`, `contact_name/email/phone`
+  - `/api/clients/{id}/projects`: `project_start_date`, `project_end_date`, `tax_mode`, `tax_rate`
+  - `/api/clients/{id}/milestones`: `invoice_number`, `note`, `project_id`
+  - `/api/finance`: `project_id`
+
+### Changed
+- **Homepage redesign** — merged daily briefing, full month calendar, 2-column grid layout
+- **Homepage density** — collapsible focus list, compact greeting, smart calendar rows
+
 ## [2.32.0] - 2026-04-10
 
 ### Security
