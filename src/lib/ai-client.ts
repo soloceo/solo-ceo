@@ -415,7 +415,7 @@ export async function streamChat(
   } else if (provider === "openai") {
     url = "https://api.openai.com/v1/chat/completions";
     headers = { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` };
-    body = JSON.stringify({ model: "gpt-4.1-mini", messages: buildOpenAIMessages(messages), stream: true, max_tokens: 2048 });
+    body = JSON.stringify({ model: "gpt-4.1-mini", messages: buildOpenAIMessages(messages), stream: true, max_tokens: 16384 });
   } else if (provider === "claude") {
     url = "https://api.anthropic.com/v1/messages";
     headers = {
@@ -425,7 +425,7 @@ export async function streamChat(
       "anthropic-dangerous-direct-browser-access": "true",
     };
     const sysMsg = messages.find(m => m.role === "system")?.content || "";
-    body = JSON.stringify({ model: "claude-sonnet-4-6-20250514", max_tokens: 2048, system: sysMsg, messages: buildClaudeMessages(messages), stream: true });
+    body = JSON.stringify({ model: "claude-sonnet-4-6-20250514", max_tokens: 16384, system: sysMsg, messages: buildClaudeMessages(messages), stream: true });
   } else if (provider === "gemini") {
     const sysMsg = messages.find(m => m.role === "system")?.content || "";
     url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse`;
@@ -433,7 +433,7 @@ export async function streamChat(
     body = JSON.stringify({
       system_instruction: { parts: [{ text: sysMsg }] },
       contents: buildGeminiMessages(messages),
-      generationConfig: { maxOutputTokens: 2048 },
+      generationConfig: { maxOutputTokens: 65536 },
     });
   } else {
     throw new Error(`Unsupported provider: ${provider}`);
