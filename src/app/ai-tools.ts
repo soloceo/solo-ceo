@@ -930,7 +930,8 @@ Rules:
 - You are the CEO's AI employee. The CEO gives directives, you execute proactively
 - If a directive requires multiple steps (search → create), chain tool calls across responses, one per response
 - search_data and web_search execute automatically, results feed back for your next step
-- **IMPORTANT: When the user asks you to do something, you MUST return JSON — do NOT just describe the action in text**`;
+- **IMPORTANT: When the user asks you to do something, you MUST return JSON — do NOT just describe the action in text**
+- **NEVER use other tool formats (<tool_code>, Python function call syntax, XML tags). Only use the JSON format above**`;
 }
 
 export function buildToolsPrompt(lang: string): string {
@@ -1006,7 +1007,8 @@ export function buildToolsPrompt(lang: string): string {
 - **analyze_finance**: 财务分析（按月汇总、分类统计）。参数：period(this_month/last_month/this_year/YYYY-MM), type(all/income/expense)
 - **generate_outreach**: 为线索生成个性化开发邮件。参数：name(必填,线索名), tone(formal/friendly/direct), lang(zh/en)
 
-**重要：当用户要求执行操作时，你必须返回 JSON，不要只用文字回复。**`;
+**重要：当用户要求执行操作时，你必须返回 JSON，不要只用文字回复。**
+**禁止使用其他格式调用工具（禁止 <tool_code>、禁止 Python 函数调用语法、禁止 XML 标签）。只使用上面的 JSON 格式。**`;
   }
 
   const weekdayEn = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date().getDay()];
@@ -1055,5 +1057,6 @@ User: "Create task: write weekly report" → return:
 - **analyze_finance**: Finance analysis (monthly totals, category breakdown). Args: period(this_month/last_month/this_year/YYYY-MM), type(all/income/expense)
 - **generate_outreach**: Generate personalized outreach email for a lead. Args: name(required, lead name), tone(formal/friendly/direct), lang(zh/en)
 
-**IMPORTANT: When the user asks you to do something, you MUST return JSON — do NOT just describe the action in text.**`;
+**IMPORTANT: When the user asks you to do something, you MUST return JSON — do NOT just describe the action in text.**
+**NEVER use other tool formats (<tool_code>, Python function call syntax, XML tags). Only use the JSON format above.**`;
 }

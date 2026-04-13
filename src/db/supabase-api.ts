@@ -475,7 +475,7 @@ export async function handleSupabaseRequest(
     const currentYear = new Date().getFullYear();
     const { data: clients } = await supabase
       .from('clients')
-      .select('id, name, company_name, plan_tier, status, mrr, billing_type, project_fee, tax_mode, tax_rate, payment_method, industry, brand_context, subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from, subscription_timeline, joined_at, created_at, updated_at')
+      .select('id, name, company_name, plan_tier, status, mrr, billing_type, project_fee, tax_mode, tax_rate, payment_method, industry, brand_context, contact_name, contact_email, contact_phone, subscription_start_date, paused_at, resumed_at, cancelled_at, mrr_effective_from, subscription_timeline, joined_at, created_at, updated_at, drive_folder_url, project_end_date')
       .eq('user_id', userId)
       .eq('soft_deleted', false)
       .order('joined_at', { ascending: false });
@@ -649,7 +649,7 @@ export async function handleSupabaseRequest(
     if (method === 'GET') {
       const { data, error: e } = await supabase
         .from('client_projects')
-        .select('id, client_id, name, note, status, project_fee, sort_order, created_at, updated_at')
+        .select('id, client_id, name, note, status, project_fee, sort_order, created_at, updated_at, project_start_date, project_end_date, tax_mode, tax_rate')
         .eq('user_id', userId)
         .eq('client_id', clientId)
         .eq('soft_deleted', false)
@@ -723,7 +723,7 @@ export async function handleSupabaseRequest(
       const today = todayDateKey();
       const { data, error: e } = await supabase
         .from('payment_milestones')
-        .select('id, client_id, label, amount, percentage, due_date, status, finance_tx_id, sort_order, paid_date, payment_method, created_at')
+        .select('id, client_id, label, amount, percentage, due_date, status, finance_tx_id, sort_order, paid_date, payment_method, created_at, invoice_number, note, project_id')
         .eq('user_id', userId)
         .eq('client_id', clientId)
         .eq('soft_deleted', false)
@@ -1086,7 +1086,7 @@ export async function handleSupabaseRequest(
     // Single table query — no more virtual rows!
     const { data, error: e } = await supabase
       .from('finance_transactions')
-      .select('id, type, amount, category, description, date, status, source, source_id, tax_mode, tax_rate, tax_amount, client_id, client_name, created_at, updated_at')
+      .select('id, type, amount, category, description, date, status, source, source_id, tax_mode, tax_rate, tax_amount, client_id, client_name, created_at, updated_at, project_id')
       .eq('user_id', userId)
       .eq('soft_deleted', false)
       .order('date', { ascending: false });

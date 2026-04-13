@@ -173,6 +173,20 @@ function formatItemDetail(item: Record<string, unknown>, activeTab: string, curr
     if (item.mrr != null && Number(item.mrr) > 0) parts.push(`MRR:${currency}${Number(item.mrr).toLocaleString()}`);
     if (item.project_fee != null && Number(item.project_fee) > 0) parts.push(`fee:${currency}${Number(item.project_fee).toLocaleString()}`);
     if (item.plan_tier) parts.push(`plan:${item.plan_tier}`);
+    if (item.payment_method) parts.push(`pay:${item.payment_method}`);
+    if (item.tax_mode && item.tax_mode !== "none") parts.push(`tax:${item.tax_mode}@${item.tax_rate || 0}%`);
+    if (item.created_at) parts.push(`since:${String(item.created_at).slice(0, 10)}`);
+    // Subscription timeline — extract next renewal
+    if (item.subscription_timeline && Array.isArray(item.subscription_timeline)) {
+      const timeline = item.subscription_timeline as Array<Record<string, unknown>>;
+      const now = new Date().toISOString().slice(0, 10);
+      const upcoming = timeline.filter(e => String(e.date || e.start || "") >= now);
+      if (upcoming.length > 0) {
+        const next = upcoming[0];
+        parts.push(`next-renewal:${next.date || next.start || "?"}`);
+      }
+      parts.push(`timeline:${timeline.length}entries`);
+    }
   } else if (activeTab === "finance") {
     if (item.type) parts.push(`[${item.type}]`);
     if (item.category) parts.push(`${item.category}`);
@@ -470,7 +484,8 @@ async function fetchPageContext(tab: string): Promise<Record<string, unknown> | 
   if (!endpoint) return null;
   try {
     const data = await api.get(endpoint);
-    return { items: Array.isArray(data) ? data : [] };
+    const items = Array.isArray(data) ? data : [];
+    return { items };
   } catch {
     return null;
   }
@@ -864,6 +879,22 @@ function ConversationList({
 }
 
 /* ── Tool call parser ──────────────────────────────────────── */
+
+/** Strip hallucinated tool call formats that some models output (e.g. <tool_code>, function calls) */
+function cleanToolGarbage(text: string): string {
+  return text
+    // <tool_code>...</tool_code> or <tool_code>... (unclosed)
+    .replace(/<tool_code>[\s\S]*?(<\/tool_code>|$)/gi, '')
+    // <tool_call>...</tool_call>
+    .replace(/<tool_call>[\s\S]*?(<\/tool_call>|$)/gi, '')
+    // <function_call>...</function_call>
+    .replace(/<function_call>[\s\S]*?(<\/function_call>|$)/gi, '')
+    // Python-style function calls: func_name(arg="val", ...)
+    .replace(/\b(send_\w+|create_\w+|update_\w+|delete_\w+|search_\w+|record_\w+|move_\w+|get_\w+|analyze_\w+|generate_\w+)\s*\([^)]*\)\s*/g, '')
+    // Lone XML-style tool tags
+    .replace(/<\/?(?:tool|function|action|command)_?\w*>/gi, '')
+    .trim();
+}
 
 /** Try to extract a tool_call JSON from the AI response text */
 function parseToolCall(text: string): ToolCall | null {
@@ -2475,7 +2506,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                         {msg.content ? (
                           <>
                             <div className="text-[14px] leading-relaxed" style={{ color: "var(--color-text-primary)", overflowWrap: "break-word" as const, ...(isGroupConv && msg.agentId ? { borderLeft: `3px solid ${AGENT_COLORS[activeConvAgentIds.indexOf(msg.agentId) % AGENT_COLORS.length]}`, paddingLeft: 12 } : {}) }}>
-                              <MarkdownContent content={msg.content} />
+                              <MarkdownContent content={cleanToolGarbage(msg.content)} />
                             </div>
                             {!msg.streaming && (
                               <div className="flex items-center gap-0.5 mt-1.5 lg:mt-2 lg:opacity-0 lg:group-hover/assistant:opacity-100 transition-opacity">
