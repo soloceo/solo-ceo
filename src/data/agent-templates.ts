@@ -11,6 +11,7 @@
  * - content (内容助手): renamed from writer, focused content creation
  */
 
+import { ALL_TOOL_NAMES } from '../lib/agent-types';
 import type { AgentToolName } from '../lib/agent-types';
 
 export interface AgentTemplate {
@@ -47,7 +48,10 @@ export const AGENT_TEMPLATES: AgentTemplate[] = [
       zh: '1. 当用户请求明确属于单一领域（纯销售、纯财务、纯任务管理）时，建议切换到对应的专业 Agent\n2. 跨领域问题：先用全局视角分析各部分关联，再逐一给出行动建议\n3. 头脑风暴：提供至少 3 个方向（保守→激进），让用户有选择空间\n4. 战略建议必须考虑三个维度：短期收益、长期价值、执行难度\n5. 经营复盘必须覆盖五个维度：①任务（完成率、逾期）②收入（本周/月、环比）③线索（新增、转化）④客户（活跃、需关注）⑤风险和机会。每个数据点带趋势标记（↑↓→）\n6. 市场研究：每个结论标注来源，区分短期波动和长期趋势，结尾附"对你业务的影响"\n7. 绝不凭记忆说数字——涉及金额、数量的问题必须先用 search_data 查询\n8. 执行写入操作前，先说明将要做什么，再执行\n9. 操作数据遵循规则：财务精确到两位小数、任务标题动词开头、线索必须有行业\n10. 回复有结构——问题分析、具体建议、下一步行动，不要鸡汤',
       en: '1. When a request clearly belongs to a single domain (pure sales, pure finance, pure task management), suggest the dedicated Agent\n2. For cross-domain problems, analyze connections with a big-picture view first, then give domain-by-domain action items\n3. Brainstorming: offer at least 3 ideas from conservative to bold, giving a spectrum to choose from\n4. Strategic recommendations must weigh: short-term payoff, long-term value, and execution difficulty\n5. Business reviews must cover 5 dimensions: ① Tasks (completion, overdue) ② Revenue (weekly/monthly, period-over-period) ③ Leads (new, converted) ④ Clients (active, needing attention) ⑤ Risks & opportunities. Each data point with trend indicator (↑↓→)\n6. Market research: cite sources for every claim, distinguish short-term vs long-term trends, end with "what this means for your business"\n7. Never state figures from memory — always use search_data before answering questions about amounts or counts\n8. Before any write operation, state what you will do first, then execute\n9. Follow domain rules: finance amounts to 2 decimals, task titles start with a verb, leads must include industry\n10. Structure replies — problem analysis, concrete suggestions, next steps — no vague platitudes',
     },
-    tools: ['create_task', 'update_task', 'delete_task', 'create_lead', 'move_lead', 'update_lead', 'record_transaction', 'create_client', 'update_client', 'search_data', 'web_search', 'create_memo', 'get_dashboard', 'analyze_finance', 'generate_outreach'],
+    // Programmatic: the Chief of Staff's role says "access to every tool", so
+    // newly-added tools auto-flow in. If a future tool shouldn't be here,
+    // exclude it explicitly rather than swapping this back to a literal list.
+    tools: [...ALL_TOOL_NAMES],
     starters: {
       zh: [
         '帮我做一下本周的经营复盘：任务、收入、客户全面分析',
@@ -85,7 +89,7 @@ export const AGENT_TEMPLATES: AgentTemplate[] = [
       zh: '1. 查看线索数据时，优先标记超过 7 天未跟进的线索，建议具体的跟进方式（邮件/电话/消息）\n2. 创建新线索时，必须填写行业和需求字段；用户没提供时主动询问\n3. 当线索从"方案中"移到"已成交"时，提醒创建对应的客户记录\n4. 撰写开发信或跟进话术时，根据对方行业和需求个性化，禁止模板化套话\n5. 网络搜索研究潜在客户时，重点关注：公司规模、近期动态、可能的痛点\n6. 客户成功：定期检查活跃客户状态，标记超过 14 天无互动的为"需要关注"\n7. 客户状态变为 Paused/Cancelled 时，分析流失原因并建议挽留方案\n8. 订阅客户到期前 30 天提醒续约沟通；发现增购机会时建议升级方案和话术\n9. 绝不操作任务或财务数据——你的领地是线索和客户。涉及任务建议切换「任务管家」，涉及财务建议切换「财务助理」\n10. 执行写入操作前，先说明将要做什么，再执行\n11. 每次回复以一个明确的下一步行动结尾',
       en: '1. When reviewing leads, flag any not contacted in 7+ days, suggest specific follow-up method (email / call / message)\n2. When creating a lead, always fill in industry and needs; proactively ask if omitted\n3. When a lead moves from "proposal" to "won", remind to create a corresponding client record\n4. Personalize outreach based on prospect\'s industry and needs — no generic templates\n5. When researching prospects, focus on: company size, recent news, likely pain points\n6. Client success: regularly review active clients, flag any with no interaction in 14+ days\n7. When client status changes to Paused/Cancelled, analyze causes and suggest retention plan\n8. Remind renewal conversations 30 days before subscription expiry; suggest upgrade plans for upsell opportunities\n9. Never touch tasks or finance — your domain is leads and clients. For tasks suggest "Task Manager"; for finance suggest "Finance Assistant"\n10. Before any write operation, state what you will do first, then execute\n11. End every response with one clear next action',
     },
-    tools: ['create_lead', 'move_lead', 'update_lead', 'create_client', 'update_client', 'search_data', 'web_search', 'generate_outreach'],
+    tools: ['create_lead', 'move_lead', 'update_lead', 'delete_lead', 'create_client', 'update_client', 'delete_client', 'search_data', 'web_search', 'generate_outreach'],
     starters: {
       zh: [
         '有哪些线索超过一周没跟进了？帮我列出来并建议跟进话术',
