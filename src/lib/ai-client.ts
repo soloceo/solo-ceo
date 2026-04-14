@@ -155,7 +155,7 @@ async function callJSON(provider: AIProvider, apiKey: string, systemPrompt: stri
         "anthropic-dangerous-direct-browser-access": "true",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6-20250514",
+        model: "claude-sonnet-4-6",
         max_tokens: 1024,
         system: systemPrompt,
         messages: [{ role: "user", content: userText }],
@@ -250,7 +250,7 @@ async function callText(provider: AIProvider, apiKey: string, systemPrompt: stri
         "anthropic-dangerous-direct-browser-access": "true",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6-20250514",
+        model: "claude-sonnet-4-6",
         max_tokens: 1024,
         system: systemPrompt,
         messages: [{ role: "user", content: userText }],
@@ -425,7 +425,7 @@ export async function streamChat(
       "anthropic-dangerous-direct-browser-access": "true",
     };
     const sysMsg = messages.find(m => m.role === "system")?.content || "";
-    body = JSON.stringify({ model: "claude-sonnet-4-6-20250514", max_tokens: 16384, system: sysMsg, messages: buildClaudeMessages(messages), stream: true });
+    body = JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 16384, system: sysMsg, messages: buildClaudeMessages(messages), stream: true });
   } else if (provider === "gemini") {
     const sysMsg = messages.find(m => m.role === "system")?.content || "";
     url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse`;
@@ -951,7 +951,7 @@ export async function testApiKey(provider: AIProvider, apiKey: string): Promise<
           "anthropic-dangerous-direct-browser-access": "true",
         },
         body: JSON.stringify({
-          model: "claude-sonnet-4-6-20250514",
+          model: "claude-sonnet-4-6",
           max_tokens: 5,
           messages: [{ role: "user", content: "Say OK" }],
         }),
