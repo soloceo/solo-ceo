@@ -22,6 +22,11 @@ CREATE TABLE IF NOT EXISTS ai_agents (
 CREATE INDEX IF NOT EXISTS idx_agents_user_active
   ON ai_agents (user_id, soft_deleted);
 
+-- 同一个 template_id 每个用户只能有一个活跃 agent
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ai_agents_unique_template
+  ON ai_agents (user_id, template_id)
+  WHERE soft_deleted = FALSE AND template_id <> '';
+
 -- RLS policies (per-operation, matching project convention)
 ALTER TABLE ai_agents ENABLE ROW LEVEL SECURITY;
 
