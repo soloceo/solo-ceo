@@ -20,6 +20,7 @@ import { createPortal } from "react-dom";
 import { useT } from "../../i18n/context";
 import { useRealtimeRefresh } from "../../hooks/useRealtimeRefresh";
 import { useIsMobile } from "../../hooks/useIsMobile";
+import { useIsTouchPointer } from "../../hooks/useIsTouchPointer";
 import { useUIStore } from "../../store/useUIStore";
 import { Skeleton } from "../../components/ui";
 
@@ -556,14 +557,9 @@ const SortableLeadCard: React.FC<SortableLeadCardProps> = React.memo(({ lead, on
     low: { bg: "color-mix(in srgb, var(--color-danger) 10%, transparent)", color: "var(--color-danger)", label: t("common.low") },
   };
   const s = score ? scoreColors[score.score] : null;
-  const style: React.CSSProperties = isOverlay
-    ? { boxShadow: "var(--shadow-high)", transform: "rotate(2deg) scale(1.02)", opacity: 0.95 }
-    : { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1, touchAction: "manipulation" };
 
-  return (
-    <div ref={isOverlay ? undefined : setNodeRef} {...(isOverlay ? {} : attributes)} {...(isOverlay ? {} : listeners)}
-      style={style} onClick={() => onEdit(lead)}
-      className={`group card-interactive cursor-grab active:cursor-grabbing p-3 press-feedback`}>
+  const cardInner = (
+    <>
       <div className="flex items-start justify-between gap-2 mb-1 min-w-0">
         <div className="min-w-0 flex-1">
           <h4 className="text-[15px] truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{lead.name || "—"}</h4>
@@ -580,6 +576,47 @@ const SortableLeadCard: React.FC<SortableLeadCardProps> = React.memo(({ lead, on
         {lead.source ? <span className="badge">{lead.source}</span> : <span />}
         <button onClick={e => { e.stopPropagation(); onDelete(lead.id); }} className="btn-icon-sm" aria-label="Delete lead"><Trash2 size={14} /></button>
       </div>
+    </>
+  );
+
+  if (isOverlay) {
+    return (
+      <div
+        style={{ boxShadow: "var(--shadow-high)", transform: "rotate(2deg) scale(1.02)", opacity: 0.95 }}
+        onClick={() => onEdit(lead)}
+        className="group card-interactive cursor-grab active:cursor-grabbing p-3 press-feedback"
+      >
+        {cardInner}
+      </div>
+    );
+  }
+
+  // Two-element split: outer div owns dnd-kit's drag transform; inner motion.div owns intro/exit.
+  // Combining both on a single motion.div with animated `scale` causes Framer Motion to composite
+  // its motion values onto dnd-kit's transform, offsetting the dragged card from the cursor.
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      style={{
+        // See comment in SortableTaskCard: with DragOverlay, skip transform on the active card.
+        transform: isDragging ? undefined : CSS.Transform.toString(transform),
+        transition: isDragging ? undefined : transition,
+        opacity: isDragging ? 0.4 : 1,
+        touchAction: "manipulation",
+      }}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ type: "spring", stiffness: 320, damping: 30 }}
+        onClick={() => onEdit(lead)}
+        className="group card-interactive cursor-grab active:cursor-grabbing p-3 press-feedback"
+      >
+        {cardInner}
+      </motion.div>
     </div>
   );
 });
@@ -594,9 +631,9 @@ function findLeadColumn(leads: Record<string, Lead[]>, id: string): string | nul
 
 function useLeadDnd(leads: Record<string, Lead[]>, columns: LeadColumn[], onDragEnd: (r: DragResult) => void) {
   const [activeId, setActiveId] = useState<string | null>(null);
-  const isMobile = useIsMobile();
+  const isTouch = useIsTouchPointer();
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: isMobile ? 99999 : 5 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: isTouch ? 99999 : 5 } }),
   );
   const allLeads = useMemo(() => Object.values(leads).flat(), [leads]);
   const activeLead = activeId ? allLeads.find((l: Lead) => l.id.toString() === activeId) : null;
@@ -663,9 +700,11 @@ function LeadKanban({ leads, columns, onDragEnd, onAdd, onEdit, onDelete, emptyT
                           <span className="text-[13px]" style={{ color: "var(--color-text-quaternary)" }}>{emptyText}</span>
                         </div>
                       )}
-                      {items.map((lead: Lead) => (
-                        <SortableLeadCard key={lead.id} lead={lead} onEdit={(l: Lead) => onEdit(l, col.id)} onDelete={onDelete} score={leadScores?.[lead.id]} />
-                      ))}
+                      <AnimatePresence mode="popLayout">
+                        {items.map((lead: Lead) => (
+                          <SortableLeadCard key={lead.id} lead={lead} onEdit={(l: Lead) => onEdit(l, col.id)} onDelete={onDelete} score={leadScores?.[lead.id]} />
+                        ))}
+                      </AnimatePresence>
                     </div>
                   </LeadDroppableColumn>
                 </SortableContext>
@@ -680,6 +719,60 @@ function LeadKanban({ leads, columns, onDragEnd, onAdd, onEdit, onDelete, emptyT
     </div>
   );
 }
+
+/* ── Sortable card for Lead Swimlane (extracted so useSortable is not called in a map loop) ── */
+interface SortableLeadSwimlaneCardProps {
+  lead: Lead;
+  col: LeadColumn;
+  columns: LeadColumn[];
+  onEdit: (lead: Lead, col: ColId) => void;
+  onDelete: (id: number) => void;
+  onMove: (id: number, col: string) => void;
+}
+const SortableLeadSwimlaneCard: React.FC<SortableLeadSwimlaneCardProps> = React.memo(({ lead, col, columns, onEdit, onDelete, onMove }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: lead.id.toString() });
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      style={{
+        transform: isDragging ? undefined : CSS.Transform.toString(transform),
+        transition: isDragging ? undefined : transition,
+        opacity: isDragging ? 0.4 : 1,
+        touchAction: "manipulation",
+      }}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ type: "spring", stiffness: 320, damping: 30 }}
+        onClick={() => onEdit(lead, col.id)}
+        className="card-interactive cursor-grab active:cursor-grabbing p-3 press-feedback"
+      >
+        <div className="flex items-start justify-between gap-2 mb-1 min-w-0">
+          <div className="min-w-0 flex-1">
+            <h4 className="text-[15px] truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{lead.name || "—"}</h4>
+            <p className="text-[13px] truncate mt-0.5" style={{ color: "var(--color-text-secondary)" }}>{lead.industry || "—"}</p>
+          </div>
+          <div className="flex items-center gap-1 shrink-0" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+            <select value={col.id} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onMove(lead.id, e.target.value)}
+              className="input-base compact cursor-pointer text-[13px] px-2"
+              style={{ fontWeight: "var(--font-weight-medium)", height: "28px" } as React.CSSProperties}>
+              {columns.map((c: LeadColumn) => <option key={c.id} value={c.id}>{c.title}</option>)}
+            </select>
+          </div>
+        </div>
+        {lead.needs && <p className="text-[13px] line-clamp-2 mb-1" style={{ color: "var(--color-text-secondary)" }}>{lead.needs}</p>}
+        <div className="flex items-center justify-between mt-1">
+          {lead.source ? <span className="badge">{lead.source}</span> : <span />}
+          <button onClick={(e: React.MouseEvent) => { e.stopPropagation(); onDelete(lead.id); }} className="btn-icon-sm" aria-label="Delete lead"><Trash2 size={14} /></button>
+        </div>
+      </motion.div>
+    </div>
+  );
+});
 
 /* ── Lead Swimlane ────────────────────────────────────────────── */
 function LeadSwimlane({ leads, columns, onDragEnd, onAdd, onEdit, onDelete, onMove, emptyText }: LeadSwimlaneProps) {
@@ -711,39 +804,17 @@ function LeadSwimlane({ leads, columns, onDragEnd, onAdd, onEdit, onDelete, onMo
                   ) : (
                     <div className="p-1.5 space-y-1">
                       <AnimatePresence mode="popLayout">
-                      {items.map((lead: Lead) => {
-                        const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: lead.id.toString() });
-                        return (
-                          <motion.div key={lead.id} ref={setNodeRef} {...attributes} {...listeners}
-                            layout
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            transition={{ type: "spring", stiffness: 320, damping: 30 }}
-                            style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1, touchAction: "manipulation" }}
-                            onClick={() => onEdit(lead, col.id)}
-                            className="card-interactive cursor-grab active:cursor-grabbing p-3 press-feedback">
-                            <div className="flex items-start justify-between gap-2 mb-1 min-w-0">
-                              <div className="min-w-0 flex-1">
-                                <h4 className="text-[15px] truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{lead.name || "—"}</h4>
-                                <p className="text-[13px] truncate mt-0.5" style={{ color: "var(--color-text-secondary)" }}>{lead.industry || "—"}</p>
-                              </div>
-                              <div className="flex items-center gap-1 shrink-0" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-                                <select value={col.id} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onMove(lead.id, e.target.value)}
-                                  className="input-base compact cursor-pointer text-[13px] px-2"
-                                  style={{ fontWeight: "var(--font-weight-medium)", height: "28px" } as React.CSSProperties}>
-                                  {columns.map((c: LeadColumn) => <option key={c.id} value={c.id}>{c.title}</option>)}
-                                </select>
-                              </div>
-                            </div>
-                            {lead.needs && <p className="text-[13px] line-clamp-2 mb-1" style={{ color: "var(--color-text-secondary)" }}>{lead.needs}</p>}
-                            <div className="flex items-center justify-between mt-1">
-                              {lead.source ? <span className="badge">{lead.source}</span> : <span />}
-                              <button onClick={(e: React.MouseEvent) => { e.stopPropagation(); onDelete(lead.id); }} className="btn-icon-sm" aria-label="Delete lead"><Trash2 size={14} /></button>
-                            </div>
-                          </motion.div>
-                        );
-                      })}
+                      {items.map((lead: Lead) => (
+                        <SortableLeadSwimlaneCard
+                          key={lead.id}
+                          lead={lead}
+                          col={col}
+                          columns={columns}
+                          onEdit={onEdit}
+                          onDelete={onDelete}
+                          onMove={onMove}
+                        />
+                      ))}
                       </AnimatePresence>
                     </div>
                   )}

@@ -79,11 +79,16 @@
   overflow: hidden;
 }
 
-/* ── Page enter (iOS 26 style — 300ms fade+slide) ─────────── */
+/* ── Page enter (iOS 26 style — 300ms fade) ──────────────── */
+/* NOTE: keyframes intentionally animate opacity only. A persistent transform
+ *       on this wrapper (via animation-fill-mode: both) would create a CSS
+ *       containing block for position:fixed descendants, which broke
+ *       @dnd-kit's <DragOverlay> — the overlay would anchor to this div
+ *       (offset by the sidebar width) instead of the viewport. */
 
 @keyframes page-enter {
-  from { opacity: 0; transform: translateY(6px) scale(0.98); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .page-enter {

@@ -1,7 +1,5 @@
 import React, { useState } from "react";
 import { createPortal } from "react-dom";
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import { Clock, Trash2, Calendar, ArrowRightLeft } from "lucide-react";
 import { fmtDate } from "../../lib/format";
 import { todayDateKey } from "../../lib/date-utils";
@@ -60,36 +58,16 @@ export const TaskCard = React.memo(function TaskCard({
   const prio = prioLabel[task.priority];
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
-    id: task.id.toString(),
-    disabled: isOverlay,
-  });
-
-  const style: React.CSSProperties = isOverlay
+  const style: React.CSSProperties | undefined = isOverlay
     ? { boxShadow: "var(--shadow-high)", transform: "rotate(2deg) scale(1.02)", opacity: 0.95 }
-    : {
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.4 : 1,
-        touchAction: "manipulation",
-      };
+    : undefined;
 
   const cardContent = (
     <div
-      ref={isOverlay ? undefined : setNodeRef}
-      {...(isOverlay ? {} : attributes)}
-      {...(isOverlay ? {} : listeners)}
       role="listitem"
       style={style}
       onClick={() => onEdit(task)}
-      className={`group card-interactive cursor-grab active:cursor-grabbing p-3 press-feedback ${isDragging && !isOverlay ? "z-[var(--layer-tooltip)]" : ""}`}
+      className="group card-interactive cursor-grab active:cursor-grabbing p-3 press-feedback"
     >
       <div className="flex items-center gap-2 mb-1 min-w-0">
         {onPriorityChange ? (

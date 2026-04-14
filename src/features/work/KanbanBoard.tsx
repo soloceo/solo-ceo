@@ -10,10 +10,11 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Plus } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useIsMobile } from "../../hooks/useIsMobile";
+import { useIsTouchPointer } from "../../hooks/useIsTouchPointer";
 import { TaskCard, type Task } from "./TaskCard";
 
 export interface ColDef {
@@ -44,12 +45,66 @@ function findColumn(tasks: Record<string, Task[]>, taskId: string): string | nul
   return null;
 }
 
+/** Sortable card wrapper — owns useSortable so transform/layout coexist on the same motion.div (matches LeadsBoard pattern) */
+interface SortableTaskCardProps {
+  task: Task;
+  onEdit: (task: Task) => void;
+  onDelete: (id: number) => void;
+  onClientClick?: () => void;
+  onPriorityChange?: (id: number, priority: Task["priority"]) => void;
+  onDueChange?: (id: number, due: string) => void;
+  columns?: ColDef[];
+  onColumnChange?: (id: number, col: string) => void;
+}
+
+function SortableTaskCard({ task, onEdit, onDelete, onClientClick, onPriorityChange, onDueChange, columns, onColumnChange }: SortableTaskCardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id.toString() });
+  // Outer div owns dnd-kit drag transform. Inner motion.div owns intro/exit animations.
+  // Two elements on purpose: a single motion.div with both `initial/animate` (on `scale`) and dnd-kit's
+  // `style.transform` causes Framer Motion to composite its motion values on top of dnd-kit's transform,
+  // which makes dragged cards offset from the cursor.
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      style={{
+        // With DragOverlay, the active card must NOT carry a transform — otherwise it
+        // visually translates away from the cursor while the overlay floats at the cursor.
+        // Neighbors still need transform to animate the shift that makes room for the drag.
+        transform: isDragging ? undefined : CSS.Transform.toString(transform),
+        transition: isDragging ? undefined : transition,
+        opacity: isDragging ? 0.4 : 1,
+        touchAction: "manipulation",
+      }}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ type: "spring", stiffness: 320, damping: 30 }}
+      >
+        <TaskCard
+          task={task}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onClientClick={onClientClick}
+          onPriorityChange={onPriorityChange}
+          onDueChange={onDueChange}
+          columns={columns}
+          onColumnChange={onColumnChange}
+        />
+      </motion.div>
+    </div>
+  );
+}
+
 export function KanbanBoard({ columns, tasks, onDragEnd, onAdd, onEdit, onDelete, onClientClick, emptyText, onPriorityChange, onDueChange, onColumnChange }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
-  const isMobile = useIsMobile();
+  const isTouch = useIsTouchPointer();
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: isMobile ? 99999 : 5 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: isTouch ? 99999 : 5 } }),
   );
 
   const allTasks = useMemo(() => Object.values(tasks).flat(), [tasks]);
@@ -192,25 +247,17 @@ const KanbanColumn = React.memo(function KanbanColumn({ col, items, onAdd, onEdi
             )}
             <AnimatePresence mode="popLayout">
               {items.map((task) => (
-                <motion.div
+                <SortableTaskCard
                   key={task.id}
-                  layout
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ type: "spring", stiffness: 320, damping: 30 }}
-                >
-                  <TaskCard
-                    task={task}
-                    onEdit={onEdit}
-                    onDelete={onDelete}
-                    onClientClick={onClientClick}
-                    onPriorityChange={onPriorityChange}
-                    onDueChange={onDueChange}
-                    columns={columns}
-                    onColumnChange={onColumnChange}
-                  />
-                </motion.div>
+                  task={task}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  onClientClick={onClientClick}
+                  onPriorityChange={onPriorityChange}
+                  onDueChange={onDueChange}
+                  columns={columns}
+                  onColumnChange={onColumnChange}
+                />
               ))}
             </AnimatePresence>
           </div>
@@ -237,10 +284,10 @@ interface SwimlaneProps {
 
 export function SwimlaneView({ columns, tasks, onDragEnd, onAdd, onEdit, onDelete, onMove, emptyText, onPriorityChange, onDueChange, onColumnChange }: SwimlaneProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
-  const isMobile = useIsMobile();
+  const isTouch = useIsTouchPointer();
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: isMobile ? 99999 : 5 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: isTouch ? 99999 : 5 } }),
   );
 
   const allTasks = useMemo(() => Object.values(tasks).flat(), [tasks]);
@@ -321,18 +368,20 @@ export function SwimlaneView({ columns, tasks, onDragEnd, onAdd, onEdit, onDelet
                     </button>
                   ) : (
                     <div className="p-1.5 space-y-1">
-                      {items.map((task) => (
-                        <TaskCard
-                          key={task.id}
-                          task={task}
-                          onEdit={onEdit}
-                          onDelete={onDelete}
-                          onPriorityChange={onPriorityChange}
-                          onDueChange={onDueChange}
-                          columns={columns}
-                          onColumnChange={onColumnChange}
-                        />
-                      ))}
+                      <AnimatePresence mode="popLayout">
+                        {items.map((task) => (
+                          <SortableTaskCard
+                            key={task.id}
+                            task={task}
+                            onEdit={onEdit}
+                            onDelete={onDelete}
+                            onPriorityChange={onPriorityChange}
+                            onDueChange={onDueChange}
+                            columns={columns}
+                            onColumnChange={onColumnChange}
+                          />
+                        ))}
+                      </AnimatePresence>
                     </div>
                   )}
                 </DroppableColumn>
