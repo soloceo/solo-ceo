@@ -670,6 +670,42 @@ function CodeBlock({ children, language }: { children: React.ReactNode; language
   );
 }
 
+/**
+ * Normalize tab-separated tabular blocks into markdown pipe tables.
+ * Some models (Gemini especially) emit tables as tab-separated rows instead
+ * of GFM pipe syntax — remark-gfm can't parse those, so we convert upstream.
+ *
+ * Detection: 2+ consecutive lines each with >=2 TAB chars and the same tab count.
+ */
+function normalizeTabTables(src: string): string {
+  const lines = src.split("\n");
+  const out: string[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const tabCount = (lines[i].match(/\t/g) || []).length;
+    if (tabCount >= 2) {
+      // Look ahead for consecutive rows with matching tab count
+      let j = i + 1;
+      while (j < lines.length && (lines[j].match(/\t/g) || []).length === tabCount) j++;
+      if (j - i >= 2) {
+        // It's a table block — convert
+        const rows = lines.slice(i, j).map(l => l.split("\t").map(c => c.trim()));
+        const header = rows[0];
+        const sep = header.map(() => "---");
+        const body = rows.slice(1);
+        out.push(`| ${header.join(" | ")} |`);
+        out.push(`| ${sep.join(" | ")} |`);
+        for (const row of body) out.push(`| ${row.join(" | ")} |`);
+        i = j;
+        continue;
+      }
+    }
+    out.push(lines[i]);
+    i++;
+  }
+  return out.join("\n");
+}
+
 /* ── Markdown renderer for assistant messages ──────────────── */
 const MarkdownContent = React.memo(({ content }: { content: string }) => (
   <ReactMarkdown
@@ -709,9 +745,34 @@ const MarkdownContent = React.memo(({ content }: { content: string }) => (
           {children}
         </blockquote>
       ),
+      table: ({ children }) => (
+        <div className="my-2 overflow-x-auto rounded-[var(--radius-6)]" style={{ border: "1px solid var(--color-border-primary)" }}>
+          <table className="w-full text-[13px] border-collapse">{children}</table>
+        </div>
+      ),
+      thead: ({ children }) => (
+        <thead style={{ background: "var(--color-bg-tertiary)" }}>{children}</thead>
+      ),
+      tbody: ({ children }) => <tbody>{children}</tbody>,
+      tr: ({ children }) => (
+        <tr style={{ borderTop: "1px solid var(--color-border-primary)" }}>{children}</tr>
+      ),
+      th: ({ children, style }) => (
+        <th
+          className="px-2.5 py-1.5 text-left align-top"
+          style={{ fontWeight: "var(--font-weight-semibold)", color: "var(--color-text-primary)", ...style }}
+        >
+          {children}
+        </th>
+      ),
+      td: ({ children, style }) => (
+        <td className="px-2.5 py-1.5 align-top" style={{ color: "var(--color-text-secondary)", ...style }}>
+          {children}
+        </td>
+      ),
     }}
   >
-    {content}
+    {normalizeTabTables(content)}
   </ReactMarkdown>
 ));
 
