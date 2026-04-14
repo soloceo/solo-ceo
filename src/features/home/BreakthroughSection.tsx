@@ -129,7 +129,7 @@ export function BreakthroughSection() {
                     <button
                       key={task.id}
                       onClick={(e) => { e.stopPropagation(); toggleBreakthroughTask(activePhase.id, task.id); }}
-                      className="flex items-start gap-3 text-left text-[14px] w-full px-4 py-2.5 press-feedback transition-colors hover:bg-[var(--color-bg-tertiary)]"
+                      className="flex items-start gap-3 text-left text-[14px] w-full px-4 py-3 press-feedback transition-colors hover:bg-[var(--color-bg-tertiary)]"
                       style={{
                         color: checked ? "var(--color-text-quaternary)" : "var(--color-text-primary)",
                       }}

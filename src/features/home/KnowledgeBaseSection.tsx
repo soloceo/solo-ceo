@@ -143,7 +143,7 @@ export function KnowledgeBaseSection() {
                 className="overflow-hidden"
               >
                 <div style={{ height: 1, background: "var(--color-line-tertiary)" }} />
-                <div className="px-4 py-3.5">
+                <div className="px-4 py-4">
                   {/* Current step description */}
                   <p className="text-[13px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
                     {currentStep.description[l]}
@@ -304,7 +304,7 @@ export function KnowledgeBaseSection() {
                 className="overflow-hidden"
               >
                 <div style={{ height: 1, background: "var(--color-line-tertiary)" }} />
-                <div className="px-4 py-3.5">
+                <div className="px-4 py-4">
                   {/* Core insight */}
                   <p className="text-[13px] leading-relaxed mb-3" style={{ color: "var(--color-text-secondary)" }}>
                     {todayPrinciple.core[l]}
@@ -408,7 +408,7 @@ export function KnowledgeBaseSection() {
                     <div className="card overflow-hidden">
                       <div className="flex flex-col">
                         {selectedPrinciple.explanation && (
-                          <div className="px-4 py-3.5 text-[14px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+                          <div className="px-4 py-4 text-[14px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
                             {selectedPrinciple.explanation[l]}
                           </div>
                         )}

@@ -115,16 +115,13 @@ export default function HomePage() {
   const [homeView, setHomeView] = useState<"dashboard" | "widgets">("dashboard");
 
   return (
-    <div ref={scrollRef} className="mobile-page max-w-[1680px] mx-auto min-h-full p-4 md:p-6 lg:p-8 relative">
+    <div ref={scrollRef} className="mobile-page max-w-[1680px] mx-auto min-h-full p-4 md:px-6 md:pb-6 md:pt-0 lg:px-8 lg:pb-8 lg:pt-0 relative">
       <div className="page-stack">
         {/* ── Header: Greeting card with peep bust ── */}
         <div
-          className="card relative overflow-hidden px-5 py-4"
+          className="card relative overflow-hidden p-4"
           style={{ minHeight: 100 }}
         >
-          {/* Accent tint overlay — sits behind content, on top of card base */}
-          <div className="absolute inset-0 pointer-events-none" style={{ background: "var(--color-accent-tint)", opacity: 0.5 }} />
-
           {/* Left: greeting text */}
           <div className="relative z-[1] flex-1 min-w-0" style={{ maxWidth: "60%" }}>
             <div className="flex items-center gap-2">
@@ -171,7 +168,7 @@ export default function HomePage() {
         </div>
 
         {homeView === "dashboard" && (
-          <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:gap-5">
+          <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:gap-4">
               {/* ── Left column: KPI + Today Focus ── */}
               <div className="flex flex-col gap-4 min-w-0">
                 <KPIGrid

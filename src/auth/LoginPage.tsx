@@ -84,7 +84,6 @@ export default function LoginPage() {
       {/* ═══ Left panel — illustration + brand (cohesive hero block) ═══ */}
       <div
         className="flex items-center justify-center px-8 py-8 lg:w-[45%] lg:min-h-screen"
-        style={{ background: 'var(--color-accent-tint)' }}
       >
         <div className="flex flex-col items-center gap-4 lg:gap-6">
           <PeepIllustration name="feliz" size={160} className="lg:!w-[280px] lg:!h-[280px]" />

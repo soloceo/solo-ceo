@@ -358,7 +358,6 @@ function App() {
         className="hidden md:flex flex-col shrink-0 transition-[width] duration-200 sidebar-glass"
         style={{
           width: isExpanded ? "var(--sidebar-width)" : 56,
-          background: "var(--color-bg-secondary)",
           transitionTimingFunction: "var(--ease-out-quad)",
         } as React.CSSProperties}
       >
@@ -520,7 +519,7 @@ function App() {
 
       {/* ═══════════ Main Content — floating panel ═══════════ */}
       <div
-        className="flex flex-1 flex-col overflow-hidden md:my-2 md:mr-2 content-panel app-grid-bg"
+        className="flex flex-1 flex-col overflow-hidden md:my-3 md:mx-3 content-panel app-grid-bg"
         style={{
           backgroundColor: "var(--color-bg-primary)",
         }}

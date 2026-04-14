@@ -206,7 +206,7 @@ function FocusRow({ item, badge, onNavigate, urgency }: {
 
   return (
     <div
-      className={`flex items-center gap-3 group transition-colors hover:bg-[var(--color-bg-tertiary)] px-4 py-2.5 ${hasLink ? "cursor-pointer" : ""}`}
+      className={`flex items-center gap-3 group transition-colors hover:bg-[var(--color-bg-tertiary)] px-4 py-3 ${hasLink ? "cursor-pointer" : ""}`}
       style={{ borderBottom: "1px solid var(--color-border-primary)" }}
       onClick={hasLink ? onNavigate : undefined}
     >

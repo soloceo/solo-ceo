@@ -5,11 +5,11 @@
 
 :root {
   /* ── Backgrounds — Light (Notion-inspired clean white) ──────── */
-  --color-bg-primary:      #ffffff;
+  --color-bg-primary:      #fdfdfc;
   --color-bg-secondary:    #f7f6f3;
-  --color-bg-tertiary:     #f1f0ed;
-  --color-bg-quaternary:   #e9e8e4;
-  --color-bg-panel:        #ffffff;
+  --color-bg-tertiary:     #e5e5e4;
+  --color-bg-quaternary:   #e5e5e4;
+  --color-bg-panel:        #fdfdfc;
   --color-bg-translucent:  rgba(55,53,47,0.03);
 
   /* ── Lines / Dividers ────────────────────────────────────────── */
@@ -68,15 +68,16 @@
 
   /* ── Shadows — nearly flat (Notion-inspired) ───────────────── */
   --shadow-tiny:           0 0 0 transparent;
-  --shadow-low:            0 1px 2px rgba(0,0,0,0.04);
-  --shadow-medium:         0 2px 6px rgba(0,0,0,0.05);
-  --shadow-high:           0 4px 12px rgba(0,0,0,0.08), 0 0 0 1px rgba(55,53,47,0.06);
+  --shadow-low:            0 2px 6px rgba(0,0,0,0.05);
+  --shadow-medium:         0 4px 14px rgba(0,0,0,0.07);
+  --shadow-high:           0 8px 24px rgba(0,0,0,0.10), 0 0 0 1px rgba(55,53,47,0.06);
 
   /* ── Radius — Linear system ──────────────────────────────────── */
   --radius-2:              2px;
   --radius-4:              4px;
   --radius-6:              6px;
   --radius-8:              8px;
+  --radius-10:             10px;
   --radius-12:             12px;
   --radius-16:             16px;
   --radius-20:             20px;
@@ -145,7 +146,7 @@
   /* ── Structural — themeable border, radius, font, hover ────── */
   --border-width:          1px;
   --border-width-heavy:    1px;
-  --radius-base:           var(--radius-6);
+  --radius-base:           var(--radius-10);
   --font-heading:          var(--font-regular);
   --font-base:             var(--font-regular);
   --shadow-interactive:    var(--shadow-low);
@@ -181,8 +182,8 @@
   --badge-border-width:      0px;
 
   /* ── Component Visual ────────────────────────────────────────── */
-  --card-shadow:             none;
-  --card-elevated-shadow:    var(--shadow-low);
+  --card-shadow:             var(--shadow-medium);
+  --card-elevated-shadow:    var(--shadow-high);
   --icon-btn-radius:         var(--radius-rounded);
   --progress-height:         4px;
   --progress-radius:         var(--radius-2);
@@ -254,7 +255,7 @@
   --table-row-border:        1px solid var(--color-line-secondary);
 
   /* ── Layout Panels ───────────────────────────────────────────── */
-  --sidebar-panel-shadow:    none;
+  --sidebar-panel-shadow:    var(--shadow-medium);
   --divider-width:           1px;
 
   /* ── Floating Elements ───────────────────────────────────────── */
@@ -321,9 +322,9 @@
   --glass-shadow:          0 1px 3px rgba(0,0,0,0.2);
 
   --shadow-tiny:           0 0 0 transparent;
-  --shadow-low:            0 1px 2px rgba(0,0,0,0.2);
-  --shadow-medium:         0 2px 8px rgba(0,0,0,0.3);
-  --shadow-high:           0 4px 16px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06);
+  --shadow-low:            0 2px 8px rgba(0,0,0,0.25);
+  --shadow-medium:         0 4px 16px rgba(0,0,0,0.35);
+  --shadow-high:           0 8px 28px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.06);
 
   /* ── Grid background ────────────────────────────────────────── */
   --grid-line-color:       rgba(255,255,255,0.03);

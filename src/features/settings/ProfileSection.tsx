@@ -44,7 +44,7 @@ export default function ProfileSection({
 
   return (
     <section>
-      <div className="card p-5 space-y-5">
+      <div className="card p-4 space-y-4">
         {/* Row 1: Avatar + Name */}
         <div className="flex items-center gap-4">
           {/* Avatar with camera overlay */}
@@ -280,7 +280,7 @@ function PreferencesBlock({ getField, setField, handleSave }: {
   };
 
   return (
-    <div className="card p-5 space-y-4 mt-4">
+    <div className="card p-4 space-y-4 mt-4">
       <div>
         <h3 className="text-[15px] font-semibold" style={{ color: 'var(--color-text-primary)' }}>
           {t("settings.preferences.title")}

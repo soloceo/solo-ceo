@@ -374,7 +374,7 @@ export function ClientsView() {
             {filtered.map(c => {
               const plan = c.plan_tier === "Basic" ? t("pipeline.convert.planBasic") : c.plan_tier === "Pro" ? t("pipeline.convert.planPro") : c.plan_tier === "Enterprise" ? t("pipeline.convert.planEnterprise") : (c.plan_tier || c.plan);
               return (
-                <button key={c.id} onClick={() => openPanel(c)} className="w-full text-left card-interactive p-3 flex items-center gap-3 press-feedback">
+                <button key={c.id} onClick={() => openPanel(c)} className="w-full text-left card-interactive p-4 flex items-center gap-3 press-feedback">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-6)] text-[13px]" style={{ background: "var(--color-accent-tint)", color: "var(--color-accent)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>{(c.company_name || c.name || "?").charAt(0).toUpperCase()}</div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 min-w-0"><span className="text-[15px] truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{c.company_name || c.name}</span>

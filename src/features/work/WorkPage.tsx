@@ -408,7 +408,7 @@ export default function WorkPage() {
   );
 
   return (
-    <div ref={scrollRef} className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col p-4 md:p-6 lg:p-8 relative">
+    <div ref={scrollRef} className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col p-4 md:px-6 md:pb-6 md:pt-0 lg:px-8 lg:pb-8 lg:pt-0 relative">
       <h1 className="sr-only">{t("nav.work")}</h1>
 
       <div className="flex-1 flex flex-col">

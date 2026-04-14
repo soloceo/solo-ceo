@@ -57,10 +57,7 @@
 
   .page-stack {
     @apply flex flex-col;
-    gap: 20px;
-  }
-  @media (min-width: 768px) {
-    .page-stack { gap: 24px; }
+    gap: 24px;
   }
 
   /* ── KPI typography ─────────────────────────────────────── */

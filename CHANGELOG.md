@@ -3,6 +3,18 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.43.0] - 2026-04-14
+
+### Changed
+- **Design system overhaul — unified spacing, colors, radii, shadows.** All surface-level visuals adjusted for consistency across the app:
+  - **Layout symmetry** — sidebar top edge now aligns with the first content card (both at 12px); main content wrapper uses `md:my-3 md:mx-3` so left-to-sidebar gap equals right-to-viewport gap. Page-level top padding removed on desktop (`md:pt-0 lg:pt-0`) across all 7 pages (Home, Work, Leads, Clients, Finance, Settings) so the first card sits flush with the sidebar top.
+  - **Background color** — `--color-bg-primary` and `--color-bg-panel` changed from `#ffffff` to `#fdfdfc` (warm off-white). Applies to app shell, all `.card`/`.card-elevated`/`.card-interactive` backgrounds, and panel surfaces.
+  - **Hover / Select gray unified** — `--color-bg-tertiary` (hover) and `--color-bg-quaternary` (select/active) both set to `#e5e5e4`. Replaces the fragmented `#f1f0ed` / `#e9e8e4` pair used across 59 `hover:bg-[var(--color-bg-tertiary)]` sites in 26 files.
+  - **Corner radius** — `--radius-base` changed from `6px` to `10px` (new `--radius-10` token added). Applies to all cards, the sidebar frame, buttons, badges, and tab pills.
+  - **Card + sidebar shadows** — `--card-shadow` is now `var(--shadow-medium)` (was `none`); `--sidebar-panel-shadow` is now `var(--shadow-medium)` (was `none`). Shadow tokens themselves re-tuned with larger spread: `--shadow-low` `0 2px 6px / 5%`, `--shadow-medium` `0 4px 14px / 7%`, `--shadow-high` `0 8px 24px / 10%` in light; proportionally stronger in dark.
+  - **HomePage spacing consolidated to a 4-tier scale (4 / 8 / 16 / 24 px)** — all card padding is `p-4` (was a mix of `p-3`/`p-5`/`px-5 py-4`); all inter-card gaps are `gap-4` (was `gap-5`/`gap: 12`); `.page-stack` between-section gap is `24px` (was `20px` mobile / `24px` desktop); list row heights are `py-3` (was `py-2.5`/`py-3.5`). Affects KPIGrid, HomePage greeting card, TodayFocus/BreakthroughSection/ActivityTimeline/ProtocolSection rows, KnowledgeBaseSection inner panels, ProfileSection form card, ClientList main row.
+  - **Accent-tint overlays removed** — HomePage greeting card no longer has the yellow accent-tint wash; LoginPage left illustration panel no longer has the yellow tint either. Both surfaces now use the same `--color-bg-primary` as every other card.
+
 ## [2.42.2] - 2026-04-14
 
 ### Changed

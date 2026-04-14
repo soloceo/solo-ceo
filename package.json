@@ -2,7 +2,7 @@
   "name": "solo-ceo",
   "productName": "一人CEO",
   "private": true,
-  "version": "2.42.2",
+  "version": "2.43.0",
   "type": "module",
   "scripts": {
     "dev": "vite",

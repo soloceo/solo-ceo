@@ -98,7 +98,7 @@ export function ActivityTimeline({ items, loading }: ActivityTimelineProps) {
           return (
             <div
               key={`${item.time}-${i}`}
-              className="flex gap-3 px-4 py-2.5 transition-colors hover:bg-[var(--color-bg-tertiary)]"
+              className="flex gap-3 px-4 py-3 transition-colors hover:bg-[var(--color-bg-tertiary)]"
               style={!isLast ? { borderBottom: "1px solid var(--color-line-tertiary)" } : undefined}
             >
               {/* Timeline dot */}

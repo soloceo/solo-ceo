@@ -526,7 +526,7 @@ export default function FinancePage() {
   /* ── Loading ── */
   if (isLoading) {
     return (
-      <div className="mobile-page max-w-[1680px] mx-auto min-h-full p-4 md:p-6 lg:p-8">
+      <div className="mobile-page max-w-[1680px] mx-auto min-h-full p-4 md:px-6 md:pb-6 md:pt-0 lg:px-8 lg:pb-8 lg:pt-0">
         <div className="space-y-4 animate-skeleton-in">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[1,2,3,4].map(i => <Skeleton key={i} className="h-[80px] rounded-[var(--radius-12)]" />)}
@@ -541,7 +541,7 @@ export default function FinancePage() {
   }
 
   return (
-    <div ref={pullRef} className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col p-4 md:p-6 lg:p-8 relative">
+    <div ref={pullRef} className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col p-4 md:px-6 md:pb-6 md:pt-0 lg:px-8 lg:pb-8 lg:pt-0 relative">
       <h1 className="sr-only">{t("nav.finance")}</h1>
 
       {/* ── Tabs + Actions row ── */}

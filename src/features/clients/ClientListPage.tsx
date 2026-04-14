@@ -13,7 +13,7 @@ export default function ClientListPage() {
   usePullToRefresh(pullRef, refresh);
 
   return (
-    <div ref={pullRef} className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col p-4 md:p-6 lg:p-8 relative">
+    <div ref={pullRef} className="mobile-page max-w-[1680px] mx-auto min-h-full flex flex-col p-4 md:px-6 md:pb-6 md:pt-0 lg:px-8 lg:pb-8 lg:pt-0 relative">
       <h1 className="sr-only">{t("pipeline.clients")}</h1>
       <ClientsView />
     </div>

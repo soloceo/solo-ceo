@@ -152,7 +152,7 @@ export function ProtocolSection({ title, steps, lang }: ProtocolSectionProps) {
               <button
                 key={step.id}
                 onClick={() => setExpandedStepId(isOpen ? null : step.id)}
-                className="flex gap-3 w-full text-left px-3 py-2.5 press-feedback transition-colors hover:bg-[var(--color-bg-tertiary)]"
+                className="flex gap-3 w-full text-left px-4 py-3 press-feedback transition-colors hover:bg-[var(--color-bg-tertiary)]"
               >
                 {/* Vertical timeline rail */}
                 <div className="flex flex-col items-center shrink-0" style={{ width: 12 }}>
