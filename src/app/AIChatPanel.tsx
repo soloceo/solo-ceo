@@ -28,6 +28,7 @@ import {
   buildFilteredToolsPrompt,
   buildConfirmInfo,
   executeTool,
+  createToolContext,
   TOOL_SAFETY,
   type ToolCall,
   type ToolConfirmInfo,
@@ -1546,6 +1547,11 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
     const executedActions: string[] = [];
     let stepCount = 0;
 
+    // Shared tool context for this turn — endpoint cache persists across
+    // tool calls in the multi-step loop (e.g. search_data then update_task
+    // won't re-fetch /api/tasks) and mutations auto-invalidate.
+    const toolCtx = createToolContext(sym);
+
     // --- Autonomous execution loop ---
     while (stepCount < MAX_AGENT_STEPS && !abort.signal.aborted) {
       stepCount++;
@@ -1647,8 +1653,8 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
         return { ...c, messages: msgs, updatedAt: Date.now() };
       }));
 
-      // Execute the tool
-      const toolResult = await executeTool(toolCall, sym);
+      // Execute the tool (shared ctx → endpoint cache reused across steps)
+      const toolResult = await executeTool(toolCall, toolCtx);
       executedActions.push(`${toolResult.success ? "✅" : "❌"} ${buildConfirmInfo(toolCall, lang, sym).label}: ${toolResult.message}`);
 
       // Update status to show result
