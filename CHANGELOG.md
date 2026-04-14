@@ -3,6 +3,29 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.40.0] - 2026-04-14
+
+### Fixed
+- **Drag-and-drop cursor offset** — Kanban/Leads cards no longer jump to the right of the cursor while dragging. Root cause: `.page-enter`'s animation kept a `transform: matrix(1,0,0,1,0,0)` on the wrapper (via `animation-fill-mode: both`), which per CSS spec creates a containing block for `position: fixed` descendants — so `<DragOverlay>` anchored to the page wrapper (offset by the sidebar width) instead of the viewport. `page-enter` now animates opacity only.
+- **DnD sensor gating** — drag was disabled on desktop when the window was narrower than the `lg` breakpoint. New `useIsTouchPointer` hook (`matchMedia('(pointer: coarse)')`) replaces viewport-width detection for sensor activation.
+- **Lead swimlane hooks violation** — extracted `SortableLeadSwimlaneCard` so `useSortable` is no longer called inside `.map()`.
+
+### Changed
+- **Leads card mount animation** — now matches the Tasks page (opacity + scale spring via framer-motion `AnimatePresence`).
+- **Sortable card architecture** — outer `<div>` owns the dnd-kit transform; inner `motion.div` owns intro/exit. Transform/transition suppressed while `isDragging` so `DragOverlay` alone represents the floating card.
+
+### Added
+- **AI chat markdown tables** — styled table rendering that matches design tokens, plus `normalizeTabTables()` upstream of the renderer to convert Gemini's tab-separated tables into GFM pipe tables.
+
+### Database
+- **Idempotent base schema** — `000_full_schema.sql` drops the destructive `DROP … CASCADE` prologue and switches all DDL to `CREATE … IF NOT EXISTS`, so running it on an initialized project is a no-op.
+- **RLS / perf / realtime migrations** — supersedes `001_split_rls_policies` and `002_soft_delete_rls_guard` with `001_optimize_rls_policies` and `002_fix_function_search_path`; adds `007_drop_unused_indexes`, `008_tasks_add_scope_parent_client`, `009_clients_subscription_timeline`, `010_optimize_rls_ai_and_projects`, `011_fk_index_realtime_and_cleanup`. `ai_agents` gains a partial unique index `(user_id, template_id) WHERE NOT soft_deleted` so each user has at most one active agent per template.
+
+### Chore
+- **Claude model id** — `ai-client.ts` switches from dated `claude-sonnet-4-6-20250514` snapshot to the `claude-sonnet-4-6` alias at all four call sites (JSON / text / stream / key test).
+- **`.env.example`** — dropped stale `GEMINI_API_KEY` stub; all AI keys are now entered in-app (Settings → AI) and stored per-user in `app_settings`.
+- **`.claude/launch.json`** — Vite runtime path updated to `/opt/homebrew/bin/node` (Apple Silicon Homebrew).
+
 ## [2.39.0] - 2026-04-13
 
 ### Added
