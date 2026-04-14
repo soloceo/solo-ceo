@@ -447,6 +447,40 @@ export const TOOLS = {
     },
   },
 
+  delete_lead: {
+    schema: {
+      description: "Delete (remove) a lead from the pipeline. Soft-delete — can be restored from the backend.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Lead name to find (fuzzy match)" },
+        },
+        required: ["name"],
+      },
+    },
+    safety: "destructive",
+    labels: { zh: "删除线索", en: "Delete Lead" },
+    prompt: {
+      zh: "**delete_lead**: 删除线索。参数：name(必填,用于匹配)",
+      en: "**delete_lead**: Delete a lead. Args: name(required, for matching)",
+    },
+    async execute(a, ctx) {
+      if (!a.name) return { success: false, message: "Missing required field: name" };
+      const lead = await findByTitle("/api/leads", "name", a.name as string, ctx);
+      if (!lead) return { success: false, message: `Lead "${a.name}" not found` };
+      await api.del(`/api/leads/${lead.id}`);
+      invalidate(ctx, "/api/leads");
+      return { success: true, message: `Lead "${lead.name}" deleted` };
+    },
+    confirm(a, lang) {
+      const isZh = lang === "zh";
+      return {
+        label: isZh ? "删除线索" : "Delete Lead",
+        details: [`${isZh ? "名称" : "Name"}: ${a.name}`],
+      };
+    },
+  },
+
   record_transaction: {
     schema: {
       description: "Record an income or expense transaction. Use scope=personal for personal expenses (food, transport, rent, etc.) and scope=business for business transactions.",
@@ -617,6 +651,43 @@ export const TOOLS = {
           ...(a.plan_tier ? [`${isZh ? "套餐" : "Plan"}: ${a.plan_tier}`] : []),
           ...(a.mrr ? [`MRR: ${sym}${Number(a.mrr).toLocaleString()}`] : []),
           ...(a.project_fee ? [`${isZh ? "项目费" : "Fee"}: ${sym}${Number(a.project_fee).toLocaleString()}`] : []),
+        ],
+      };
+    },
+  },
+
+  delete_client: {
+    schema: {
+      description: "Delete (remove) a client. Soft-delete — also unlinks related tasks and soft-deletes milestone-linked finance transactions. Prefer update_client with status=Cancelled for churn; use delete_client only to remove mistaken/test entries.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Client name to find (fuzzy match)" },
+        },
+        required: ["name"],
+      },
+    },
+    safety: "destructive",
+    labels: { zh: "删除客户", en: "Delete Client" },
+    prompt: {
+      zh: "**delete_client**: 删除客户（软删除，会解绑任务和软删除相关财务）。流失客户请用 update_client 改 status=Cancelled；delete_client 仅用于删除误建/测试记录。参数：name(必填,用于匹配)",
+      en: "**delete_client**: Delete a client (soft-delete, unlinks tasks + soft-deletes linked finance). For churn, prefer update_client with status=Cancelled; use delete_client only for mistaken/test entries. Args: name(required, for matching)",
+    },
+    async execute(a, ctx) {
+      if (!a.name) return { success: false, message: "Missing required field: name" };
+      const client = await findByTitle("/api/clients", "name", a.name as string, ctx);
+      if (!client) return { success: false, message: `Client "${a.name}" not found` };
+      await api.del(`/api/clients/${client.id}`);
+      invalidate(ctx, "/api/clients", "/api/tasks", "/api/finance", "/api/dashboard");
+      return { success: true, message: `Client "${client.name}" deleted` };
+    },
+    confirm(a, lang) {
+      const isZh = lang === "zh";
+      return {
+        label: isZh ? "删除客户" : "Delete Client",
+        details: [
+          `${isZh ? "名称" : "Name"}: ${a.name}`,
+          isZh ? "⚠️ 会解绑相关任务和软删除里程碑财务记录" : "⚠️ Will unlink related tasks and soft-delete milestone finance records",
         ],
       };
     },
