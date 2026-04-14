@@ -298,9 +298,12 @@ function buildSystemPrompt(
     // For custom agents: tools go after all context (standard position)
     if (!agent || !agent.role) {
       if (useNativeTools) {
-        // Ollama native tool calling — minimal hint (tools passed via API, not text prompt)
+        // Local models (Ollama/LM Studio): pass tools via API AND include text-based fallback
+        // Many local models don't support native tool calling — text JSON fallback covers them
         const weekday = ["日", "一", "二", "三", "四", "五", "六"][new Date().getDay()];
         lines.push(`\n今天是 ${todayDateKey()}（周${weekday}）。你可以调用工具来执行操作。当用户要求你做某事时，直接调用对应的工具函数，不要用文字描述操作。`);
+        const agentTools = agent?.tools ? agent.tools : null;
+        lines.push(buildFilteredToolsPrompt(lang, agentTools));
       } else {
         const agentTools = agent?.tools ? agent.tools : null;
         lines.push(buildFilteredToolsPrompt(lang, agentTools));
@@ -391,9 +394,11 @@ function buildSystemPrompt(
     // For default assistant: insert tools BEFORE business data (small models lose context at the end)
     if (!agent || !agent.role) {
       if (useNativeTools) {
-        // Ollama native tool calling — minimal hint (tools passed via API, not text prompt)
+        // Local models (Ollama/LM Studio): pass tools via API AND include text-based fallback
         const weekdayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
         lines.push(`\nToday is ${todayDateKey()} (${weekdayNames[new Date().getDay()]}). You can call tools to perform actions. When the user asks you to do something, call the appropriate tool function directly — do not describe the action in text.`);
+        const agentTools = agent?.tools ? agent.tools : null;
+        lines.push(buildFilteredToolsPrompt(lang, agentTools));
       } else {
         const agentTools = agent?.tools ? agent.tools : null;
         lines.push(buildFilteredToolsPrompt(lang, agentTools));
@@ -455,7 +460,7 @@ function buildSystemPrompt(
   // Append agent tools — only for custom agents (default assistant already inserted tools earlier)
   if (agent && agent.role) {
     if (useNativeTools) {
-      // Ollama native tool calling — include weekday + date parsing hint
+      // Local models (Ollama/LM Studio): native tool API + text-based fallback
       const td = todayDateKey();
       const weekdayZh = ["日", "一", "二", "三", "四", "五", "六"][new Date().getDay()];
       const weekdayEn = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date().getDay()];
@@ -463,6 +468,8 @@ function buildSystemPrompt(
         ? `\n今天是 ${td}（周${weekdayZh}）。用户提到"明天""下周五""月底"等相对日期时，请推算出具体 YYYY-MM-DD。你可以调用工具来执行操作。用户要求做某事时，直接调用工具函数。`
         : `\nToday is ${td} (${weekdayEn}). Calculate YYYY-MM-DD for relative dates like "tomorrow", "next Friday". You can call tools to perform actions. When asked, call the tool function directly.`;
       lines.push(hint);
+      const agentTools = agent.tools ?? null;
+      lines.push(buildFilteredToolsPrompt(lang, agentTools));
     } else {
       const agentTools = agent.tools ?? null;
       lines.push(buildFilteredToolsPrompt(lang, agentTools));

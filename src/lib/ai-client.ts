@@ -411,7 +411,22 @@ export async function streamChat(
     const cfg = getLMStudioConfig();
     url = `${cfg.url}/v1/chat/completions`;
     headers = { "Content-Type": "application/json" };
-    body = JSON.stringify({ model: cfg.model, messages: buildOpenAIMessages(messages), stream: true, temperature: 0.2 });
+    const reqBody: Record<string, unknown> = {
+      model: cfg.model,
+      messages: buildOpenAIMessages(messages),
+      stream: true,
+      temperature: 0.2,
+    };
+    // Pass native tools for function calling (LM Studio supports OpenAI tools format)
+    if (nativeTools && nativeTools.length > 0) {
+      reqBody.temperature = 0;
+      reqBody.tools = nativeTools.map(t => ({
+        type: "function",
+        function: { name: t.name, description: t.description, parameters: t.parameters },
+      }));
+      reqBody.tool_choice = "auto";
+    }
+    body = JSON.stringify(reqBody);
   } else if (provider === "openai") {
     url = "https://api.openai.com/v1/chat/completions";
     headers = { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` };

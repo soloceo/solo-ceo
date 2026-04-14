@@ -3,6 +3,12 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.42.1] - 2026-04-14
+
+### Fixed
+- **LM Studio cannot call tools** — `streamChat` LM Studio branch was ignoring the `nativeTools` parameter; now passes `tools` + `tool_choice: "auto"` in OpenAI-compatible format so LM Studio models can create tasks, update clients, etc.
+- **Local models without native tool support** — local-model system prompt now includes both the native tool API hint AND text-based tool definitions as fallback. Models that support native function calling use the API path; models that don't output JSON in text which `parseToolCall()` handles. Covers the full range from qwen/llama3.1 (native) down to smaller models that only do text JSON.
+
 ## [2.42.0] - 2026-04-14
 
 ### Added
