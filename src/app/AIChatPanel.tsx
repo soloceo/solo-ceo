@@ -678,6 +678,68 @@ function CodeBlock({ children, language }: { children: React.ReactNode; language
  *
  * Detection: 2+ consecutive lines each with >=2 TAB chars and the same tab count.
  */
+/**
+ * Convert LaTeX math-mode symbol groups like `$\rightarrow$` or
+ * `$\downarrow\downarrow$` into their Unicode equivalents. Models (esp. Gemini
+ * and some Qwen variants) habitually wrap trend arrows in `$...$` even though
+ * we never enabled a math renderer — so the raw LaTeX leaks through as text.
+ *
+ * Safety: only transforms `$...$` chunks whose contents are _exclusively_
+ * known LaTeX command tokens. `$50`, `$5.00`, `$var$`, `$\rightarrow 10%$`
+ * are all left untouched — on any unknown command we bail and keep the
+ * original text rather than risk deleting content the user actually wanted.
+ */
+const LATEX_SYMBOLS: Record<string, string> = {
+  // arrows
+  rightarrow: "→", leftarrow: "←", uparrow: "↑", downarrow: "↓",
+  leftrightarrow: "↔", updownarrow: "↕",
+  Rightarrow: "⇒", Leftarrow: "⇐", Leftrightarrow: "⇔",
+  to: "→", gets: "←",
+  longrightarrow: "→", longleftarrow: "←", longleftrightarrow: "↔",
+  nearrow: "↗", searrow: "↘", swarrow: "↙", nwarrow: "↖",
+  // relations
+  approx: "≈", neq: "≠", ne: "≠", geq: "≥", leq: "≤", ge: "≥", le: "≤",
+  equiv: "≡", sim: "∼", propto: "∝",
+  // operators & misc
+  pm: "±", mp: "∓", times: "×", div: "÷", cdot: "·",
+  infty: "∞", checkmark: "✓", bullet: "•",
+  alpha: "α", beta: "β", gamma: "γ", delta: "δ", theta: "θ",
+  pi: "π", sigma: "σ", omega: "ω", mu: "μ",
+  Delta: "Δ", Sigma: "Σ", Omega: "Ω",
+};
+
+/** Replace a LaTeX delimiter pair iff the body is exclusively known command
+ *  tokens. Any unknown command → keep the match untouched. */
+function replaceLatexDelim(src: string, pattern: RegExp): string {
+  return src.replace(pattern, (match, body: string) => {
+    let allKnown = true;
+    const replaced = body.replace(/\\([a-zA-Z]+)/g, (raw: string, name: string) => {
+      if (name in LATEX_SYMBOLS) return LATEX_SYMBOLS[name];
+      allKnown = false;
+      return raw;
+    });
+    return allKnown ? replaced.replace(/\s+/g, "") : match;
+  });
+}
+
+function normalizeLatexSymbols(src: string): string {
+  // Order matters: `$$...$$` must run before `$...$`, otherwise the inner
+  // single-dollar pass would chew off the middle and leave stray `$`s.
+  let s = src;
+  s = replaceLatexDelim(s, /\$\$((?:\\[a-zA-Z]+\s*)+)\$\$/g);
+  s = replaceLatexDelim(s, /\$((?:\\[a-zA-Z]+\s*)+)\$/g);
+  s = replaceLatexDelim(s, /\\\(((?:\\[a-zA-Z]+\s*)+)\\\)/g);
+  s = replaceLatexDelim(s, /\\\[((?:\\[a-zA-Z]+\s*)+)\\\]/g);
+  return s;
+}
+
+/** `#Title` without the required space after `#` silently fails to render as
+ *  a heading in GFM. Common small-model error. Leaves `###` separator rows
+ *  alone (only adds a space when the char after the hashes is real content). */
+function normalizeHeadingSpace(src: string): string {
+  return src.replace(/^(#{1,6})([^\s#])/gm, "$1 $2");
+}
+
 function normalizeTabTables(src: string): string {
   const lines = src.split("\n");
   const out: string[] = [];
@@ -773,7 +835,7 @@ const MarkdownContent = React.memo(({ content }: { content: string }) => (
       ),
     }}
   >
-    {normalizeTabTables(content)}
+    {normalizeTabTables(normalizeHeadingSpace(normalizeLatexSymbols(content)))}
   </ReactMarkdown>
 ));
 
