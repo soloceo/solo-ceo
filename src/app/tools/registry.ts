@@ -87,6 +87,12 @@ function invalidate(ctx: ToolContext, ...endpoints: string[]) {
   for (const e of endpoints) ctx.cache.delete(e);
 }
 
+/** Finance transaction category enums — must match UI/DB options. */
+const FINANCE_CATEGORIES: Record<"business" | "personal", readonly string[]> = {
+  business: ["收入", "软件支出", "外包支出", "其他支出"],
+  personal: ["餐饮", "交通", "房租", "娱乐", "个人其他"],
+};
+
 /** Find item by fuzzy title — returns null if not found. */
 async function findByTitle(
   endpoint: string,
@@ -473,18 +479,27 @@ export const TOOLS = {
       if (!a.amount || !isFinite(amt) || amt <= 0) return { success: false, message: "Missing or invalid amount" };
       if (!a.description) return { success: false, message: "Missing required field: description" };
       const isPersonal = a.scope === "personal";
+      const scopeKey = isPersonal ? "personal" : "business";
+      const allowedCats = FINANCE_CATEGORIES[scopeKey];
       const defaultCat = isPersonal
         ? (a.type === "income" ? "个人其他" : "餐饮")
         : (a.type === "income" ? "收入" : "其他支出");
+      let category = typeof a.category === "string" && a.category.trim() ? a.category.trim() : defaultCat;
+      if (!allowedCats.includes(category)) {
+        return {
+          success: false,
+          message: `Invalid category "${category}" for scope=${scopeKey}. Allowed: ${allowedCats.join(", ")}`,
+        };
+      }
       const body: Record<string, unknown> = {
         type: a.type || "expense",
         amount: amt,
         description: a.description,
         date: a.date || todayDateKey(),
-        category: a.category || defaultCat,
+        category,
         status: (a.status as string) || "已完成",
         source: "manual",
-        scope: isPersonal ? "personal" : "business",
+        scope: scopeKey,
       };
       await api.post("/api/finance", body);
       invalidate(ctx, "/api/finance", "/api/dashboard");
@@ -615,6 +630,7 @@ export const TOOLS = {
         properties: {
           scope: { type: "string", description: "Where to search", enum: ["tasks", "leads", "clients", "finance"] },
           query: { type: "string", description: "Search keyword or filter" },
+          limit: { type: "number", description: "Max items to return (1-50, default 10). Raise if you need to see more matches.", default: 10 },
         },
         required: ["scope"],
       },
@@ -622,8 +638,8 @@ export const TOOLS = {
     safety: "read",
     labels: { zh: "搜索数据", en: "Search Data" },
     prompt: {
-      zh: "**search_data**: 搜索数据。参数：scope(tasks/leads/clients/finance)(必填), query",
-      en: "**search_data**: Search data. Args: scope(tasks/leads/clients/finance)(required), query",
+      zh: "**search_data**: 搜索数据。参数：scope(tasks/leads/clients/finance)(必填), query, limit(1-50，默认10)。返回包含 total 和 items，total 是匹配总数，items 是截断后的结果。",
+      en: "**search_data**: Search data. Args: scope(tasks/leads/clients/finance)(required), query, limit(1-50, default 10). Returns {total, items} — total is full match count, items is truncated.",
     },
     async execute(a, ctx) {
       const endpoints: Record<string, string> = {
@@ -635,7 +651,7 @@ export const TOOLS = {
       const endpoint = endpoints[a.scope as string];
       if (!endpoint) return { success: false, message: `Unknown scope: ${a.scope}` };
       const items = await cachedGet<Record<string, unknown>[]>(endpoint, ctx);
-      if (!Array.isArray(items)) return { success: true, message: "No data found", data: [] };
+      if (!Array.isArray(items)) return { success: true, message: "No data found", data: { total: 0, items: [] } };
 
       let results = items;
       if (a.query) {
@@ -646,7 +662,18 @@ export const TOOLS = {
           return searchable.includes(q);
         });
       }
-      return { success: true, message: `Found ${results.length} items`, data: results.slice(0, 10) };
+
+      // Clamp limit to [1, 50] — protect against the model asking for the whole table
+      const rawLimit = Number(a.limit);
+      const limit = isFinite(rawLimit) && rawLimit > 0 ? Math.min(Math.floor(rawLimit), 50) : 10;
+      const truncated = results.length > limit;
+      const items_out = results.slice(0, limit);
+
+      const message = truncated
+        ? `Found ${results.length} items (showing first ${limit})`
+        : `Found ${results.length} items`;
+
+      return { success: true, message, data: { total: results.length, items: items_out } };
     },
   },
 
