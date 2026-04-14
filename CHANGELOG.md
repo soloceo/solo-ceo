@@ -3,6 +3,15 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.42.0] - 2026-04-14
+
+### Added
+- **IBM Carbon theme** — new palette and style selectable in Settings → Appearance. Palette uses Gray 10–100 neutrals + Blue 60 accent in light, Blue 40 in dark; style enforces 0px radius everywhere (buttons, cards, inputs, badges, tabs), IBM Plex Sans/Mono loaded from Google Fonts with display headings at weight 300, micro-tracking (0.16px body / 0.32px label), Gray 10 inputs with the signature bottom-border + 2px inset blue focus ring, Blue 60 ghost button text, Carbon productive-motion duration scale (70/110/240/400 ms), flat surfaces with shadows reserved for floating elements, tab underline indicator, and custom 8px scrollbars. The two layers are independent — mix either with an existing palette/style for partial fidelity.
+
+### Fixed
+- **AI chat — LaTeX math leaks** — models frequently wrap trend arrows and operators in LaTeX even when no math renderer is available (e.g. `$\rightarrow$`, `\(\approx\)`). Added a preprocessor that maps ~40 common LaTeX commands (arrows, relations, Greek letters, operators) to their Unicode equivalents, covering all four delimiter variants `$...$`, `$$...$$`, `\(...\)`, `\[...\]`. Only transforms a delimiter pair when every token inside is a known command — `$50`, `$5.00`, `$var$`, and mixed content like `$\rightarrow 10%$` are all left untouched to avoid deleting user content.
+- **AI chat — malformed headings** — `#Title` without a space now gets normalized to `# Title` before ReactMarkdown, fixing a common small-model formatting slip that silently failed to render as a heading in GFM. Regex leaves `###` separator rows and properly-spaced headings alone.
+
 ## [2.41.0] - 2026-04-14
 
 ### Changed
