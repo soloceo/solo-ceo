@@ -5,6 +5,7 @@ import { roseTheme } from './builtins/rose';
 import { forestTheme } from './builtins/forest';
 import { midnightTheme } from './builtins/midnight';
 import { monoTheme } from './builtins/mono';
+import { carbonTheme } from './builtins/carbon';
 
 /** Color palettes — order determines display order in the picker */
 export const palettes: ThemeDefinition[] = [
@@ -14,6 +15,7 @@ export const palettes: ThemeDefinition[] = [
   forestTheme,
   midnightTheme,
   monoTheme,
+  carbonTheme,
 ];
 
 /**

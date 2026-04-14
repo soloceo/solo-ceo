@@ -1,0 +1,295 @@
+/* ══════════════════════════════════════════════════════════════════
+   Carbon — Component-level overrides
+   IBM Carbon Design System fidelity layer: Gray 10 input fields,
+   authentic focus rings (2px inset blue + 1px white inner),
+   Blue 60 ghost links, pill tag chips, IBM Plex font features.
+   All rules scoped to [data-theme="carbon"] so they only fire when
+   the Carbon STYLE is active (palette is independent).
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── IBM Plex font features — optical sizing & tabular numerals ── */
+[data-theme="carbon"] body,
+[data-theme="carbon"] button,
+[data-theme="carbon"] input,
+[data-theme="carbon"] select,
+[data-theme="carbon"] textarea {
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1, "tnum" 1;
+  font-variant-numeric: tabular-nums;
+  font-optical-sizing: auto;
+}
+
+/* ── Display-size headings use IBM Plex at weight 300 (Light) ──── */
+[data-theme="carbon"] .text-title-3xl,
+[data-theme="carbon"] .text-title-2xl {
+  font-weight: 300;
+  letter-spacing: 0;
+}
+
+/* ── Body text: Carbon micro-tracking at 14px ─────────────────── */
+[data-theme="carbon"] {
+  letter-spacing: 0.16px;
+}
+[data-theme="carbon"] .text-title-3xl,
+[data-theme="carbon"] .text-title-2xl,
+[data-theme="carbon"] .text-title-xl,
+[data-theme="carbon"] .text-title-lg {
+  letter-spacing: 0;
+}
+
+/* ── Inputs: Carbon signature Gray 10 field + bottom border ───── */
+[data-theme="carbon"] .input-base {
+  background: #f4f4f4;
+  border: 1px solid transparent;
+  border-bottom: 1px solid #8d8d8d;
+  border-radius: 0;
+  box-shadow: none;
+  color: #161616;
+  transition: border-color 110ms cubic-bezier(0.2, 0, 0.38, 0.9),
+              background 110ms cubic-bezier(0.2, 0, 0.38, 0.9);
+}
+[data-theme="carbon"] .input-base:hover {
+  background: #e8e8e8;
+  border-bottom-color: #8d8d8d;
+}
+[data-theme="carbon"] .input-base:focus,
+[data-theme="carbon"] .input-base:focus-visible {
+  background: #f4f4f4;
+  border-color: transparent;
+  border-bottom-color: #0f62fe;
+  outline: 2px solid #0f62fe;
+  outline-offset: -2px;
+  box-shadow: none;
+}
+[data-theme="carbon"] .input-base::placeholder {
+  color: #6f6f6f;
+}
+
+/* Dark-mode inputs: Gray 90 field + Gray 50 bottom border ───── */
+[data-theme="carbon"].dark .input-base,
+.dark [data-theme="carbon"] .input-base {
+  background: #262626;
+  border-bottom-color: #6f6f6f;
+  color: #f4f4f4;
+}
+[data-theme="carbon"].dark .input-base:hover,
+.dark [data-theme="carbon"] .input-base:hover {
+  background: #353535;
+}
+[data-theme="carbon"].dark .input-base:focus,
+.dark [data-theme="carbon"] .input-base:focus {
+  background: #262626;
+  border-bottom-color: #78a9ff;
+  outline-color: #78a9ff;
+}
+[data-theme="carbon"].dark .input-base::placeholder,
+.dark [data-theme="carbon"] .input-base::placeholder {
+  color: #8d8d8d;
+}
+
+/* Select dropdown chevron: swap gray arrow for Carbon-style ──── */
+[data-theme="carbon"] select.input-base {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%23161616' stroke-width='1.5'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+[data-theme="carbon"].dark select.input-base,
+.dark [data-theme="carbon"] select.input-base {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%23f4f4f4' stroke-width='1.5'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+}
+
+/* ── Authentic Carbon focus ring: 2px inset blue + 1px white ──── */
+[data-theme="carbon"] .btn-primary:focus-visible,
+[data-theme="carbon"] .btn-secondary:focus-visible,
+[data-theme="carbon"] .btn-ghost:focus-visible,
+[data-theme="carbon"] .btn-icon:focus-visible,
+[data-theme="carbon"] .btn-icon-sm:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: -3px;
+  box-shadow: inset 0 0 0 2px #0f62fe;
+}
+[data-theme="carbon"].dark .btn-primary:focus-visible,
+.dark [data-theme="carbon"] .btn-primary:focus-visible,
+[data-theme="carbon"].dark .btn-secondary:focus-visible,
+.dark [data-theme="carbon"] .btn-secondary:focus-visible,
+[data-theme="carbon"].dark .btn-ghost:focus-visible,
+.dark [data-theme="carbon"] .btn-ghost:focus-visible,
+[data-theme="carbon"].dark .btn-icon:focus-visible,
+.dark [data-theme="carbon"] .btn-icon:focus-visible {
+  outline: 2px solid #161616;
+  outline-offset: -3px;
+  box-shadow: inset 0 0 0 2px #78a9ff;
+}
+
+/* ── Primary button: solid rectangle, no shadow, crisp hover ──── */
+[data-theme="carbon"] .btn-primary {
+  box-shadow: none;
+  border-radius: 0;
+  font-weight: 400;
+  transition: background 70ms cubic-bezier(0.2, 0, 0.38, 0.9);
+}
+[data-theme="carbon"] .btn-primary:hover {
+  box-shadow: none;
+  transform: none;
+}
+[data-theme="carbon"] .btn-primary:active {
+  background: #002d9c;
+  opacity: 1;
+  box-shadow: none;
+  transform: none;
+}
+[data-theme="carbon"].dark .btn-primary:active,
+.dark [data-theme="carbon"] .btn-primary:active {
+  background: #0043ce;
+}
+
+/* ── Secondary button: Carbon Gray 80 solid (white text) ──────── */
+[data-theme="carbon"] .btn-secondary {
+  background: #393939;
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  font-weight: 400;
+}
+[data-theme="carbon"] .btn-secondary:hover {
+  background: #4c4c4c;
+  box-shadow: none;
+  transform: none;
+  color: #ffffff;
+}
+[data-theme="carbon"] .btn-secondary:active {
+  background: #6f6f6f;
+}
+[data-theme="carbon"].dark .btn-secondary,
+.dark [data-theme="carbon"] .btn-secondary {
+  background: #6f6f6f;
+  color: #ffffff;
+}
+[data-theme="carbon"].dark .btn-secondary:hover,
+.dark [data-theme="carbon"] .btn-secondary:hover {
+  background: #5e5e5e;
+}
+
+/* ── Ghost button: Blue 60 text (the Carbon link-button style) ── */
+[data-theme="carbon"] .btn-ghost {
+  color: #0f62fe;
+  font-weight: 400;
+  border-radius: 0;
+}
+[data-theme="carbon"] .btn-ghost:hover {
+  background: #e8e8e8;
+  color: #0353e9;
+}
+[data-theme="carbon"].dark .btn-ghost,
+.dark [data-theme="carbon"] .btn-ghost {
+  color: #78a9ff;
+}
+[data-theme="carbon"].dark .btn-ghost:hover,
+.dark [data-theme="carbon"] .btn-ghost:hover {
+  background: #353535;
+  color: #a6c8ff;
+}
+
+/* ── Icon buttons: sharp square, subtle hover ─────────────────── */
+[data-theme="carbon"] .btn-icon,
+[data-theme="carbon"] .btn-icon-sm {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* ── Links: underline on hover (Carbon pattern) ───────────────── */
+[data-theme="carbon"] a:not(.btn-primary):not(.btn-secondary):not(.btn-ghost):not(.btn-icon) {
+  text-decoration: none;
+  color: #0f62fe;
+  transition: color 70ms cubic-bezier(0.2, 0, 0.38, 0.9);
+}
+[data-theme="carbon"] a:not(.btn-primary):not(.btn-secondary):not(.btn-ghost):not(.btn-icon):hover {
+  color: #0043ce;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+[data-theme="carbon"].dark a:not(.btn-primary):not(.btn-secondary):not(.btn-ghost):not(.btn-icon),
+.dark [data-theme="carbon"] a:not(.btn-primary):not(.btn-secondary):not(.btn-ghost):not(.btn-icon) {
+  color: #78a9ff;
+}
+[data-theme="carbon"].dark a:not(.btn-primary):not(.btn-secondary):not(.btn-ghost):not(.btn-icon):hover,
+.dark [data-theme="carbon"] a:not(.btn-primary):not(.btn-secondary):not(.btn-ghost):not(.btn-icon):hover {
+  color: #a6c8ff;
+}
+
+/* ── Cards: flat, no shadow, hair-line border ─────────────────── */
+[data-theme="carbon"] .card {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* ── AI Chat — flat, 0px radius ───────────────────────────────── */
+[data-theme="carbon"] .ai-chat-panel,
+[data-theme="carbon"] .ai-chat-bubble-user,
+[data-theme="carbon"] .ai-chat-bubble-assistant,
+[data-theme="carbon"] .ai-chat-quick-prompt,
+[data-theme="carbon"] .ai-chat-send,
+[data-theme="carbon"] .ai-chat-new-btn,
+[data-theme="carbon"] .ai-chat-conv-item {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+[data-theme="carbon"] .ai-chat-panel {
+  border: 1px solid #e0e0e0 !important;
+}
+[data-theme="carbon"].dark .ai-chat-panel,
+.dark [data-theme="carbon"] .ai-chat-panel {
+  border-color: #393939 !important;
+}
+
+/* ── Tabs: underline-indicator pattern (Carbon signature) ─────── */
+[data-theme="carbon"] [role="tab"][aria-selected="true"],
+[data-theme="carbon"] .tab-active {
+  background: transparent !important;
+  border-bottom: 2px solid #0f62fe !important;
+  border-radius: 0 !important;
+  color: #161616 !important;
+}
+[data-theme="carbon"].dark [role="tab"][aria-selected="true"],
+.dark [data-theme="carbon"] [role="tab"][aria-selected="true"],
+[data-theme="carbon"].dark .tab-active,
+.dark [data-theme="carbon"] .tab-active {
+  border-bottom-color: #78a9ff !important;
+  color: #f4f4f4 !important;
+}
+
+/* ── Selection: Blue 10 tint for selected rows/items ──────────── */
+[data-theme="carbon"] ::selection {
+  background: #edf5ff;
+  color: #161616;
+}
+[data-theme="carbon"].dark ::selection,
+.dark [data-theme="carbon"] ::selection {
+  background: #253858;
+  color: #f4f4f4;
+}
+
+/* ── Scrollbar chrome for Carbon monochrome feel ──────────────── */
+[data-theme="carbon"] ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  display: initial;
+}
+[data-theme="carbon"] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+[data-theme="carbon"] ::-webkit-scrollbar-thumb {
+  background: #c6c6c6;
+  border-radius: 0;
+}
+[data-theme="carbon"] ::-webkit-scrollbar-thumb:hover {
+  background: #8d8d8d;
+}
+[data-theme="carbon"].dark ::-webkit-scrollbar-thumb,
+.dark [data-theme="carbon"] ::-webkit-scrollbar-thumb {
+  background: #525252;
+}
+[data-theme="carbon"].dark ::-webkit-scrollbar-thumb:hover,
+.dark [data-theme="carbon"] ::-webkit-scrollbar-thumb:hover {
+  background: #6f6f6f;
+}
