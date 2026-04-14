@@ -800,7 +800,16 @@ export async function handleApiRequest(
   if (path === '/api/clients' && method === 'GET') {
     syncClientSubscriptionLedger(db);
     const currentYear = new Date().getFullYear();
-    const clients = all(db, 'SELECT * FROM clients WHERE soft_deleted=0 ORDER BY joined_at DESC');
+    // Explicit column list keeps offline in parity with online (supabase-api.ts)
+    // so new columns don't silently appear/disappear in only one handler
+    const clients = all(db, `SELECT
+      id, name, company_name, plan_tier, status, mrr, billing_type, project_fee,
+      tax_mode, tax_rate, payment_method, industry, brand_context,
+      contact_name, contact_email, contact_phone,
+      subscription_start_date, paused_at, resumed_at, cancelled_at,
+      mrr_effective_from, subscription_timeline, joined_at, created_at, updated_at,
+      drive_folder_url, project_end_date
+      FROM clients WHERE soft_deleted=0 ORDER BY joined_at DESC`);
     // Calculate lifetime/YTD revenue from finance_transactions (completed income per client) — matches online handler
     const revRows = all(db, `SELECT client_id, amount, date FROM finance_transactions WHERE type='income' AND status='已完成' AND soft_deleted=0 AND client_id IS NOT NULL`);
     const revMap = new Map<number, Array<{ amount: number; date: string }>>();

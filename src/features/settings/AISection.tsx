@@ -263,7 +263,7 @@ export default function AISection({ settings, save }: AISectionProps) {
           {/* URL input */}
           <div className="flex items-center gap-2 mb-2">
             <label className="text-[12px] shrink-0" style={{ color: "var(--color-text-tertiary)", width: 64 }}>
-              {t("settings.ai.ollamaUrl")}
+              {t("settings.ai.localUrl")}
             </label>
             <input
               type="text"
@@ -277,7 +277,7 @@ export default function AISection({ settings, save }: AISectionProps) {
           {/* Model selector + test */}
           <div className="flex items-center gap-2 mb-1">
             <label className="text-[12px] shrink-0" style={{ color: "var(--color-text-tertiary)", width: 64 }}>
-              {t("settings.ai.ollamaModel")}
+              {t("settings.ai.localModel")}
             </label>
             <div className="relative flex-1">
               {ollamaModels.length > 0 ? (
@@ -321,7 +321,7 @@ export default function AISection({ settings, save }: AISectionProps) {
               disabled={ollamaLoading}
               className="btn-ghost compact text-[13px] shrink-0 disabled:opacity-40"
             >
-              {ollamaLoading ? <Loader2 size={14} className="animate-spin" /> : t("settings.ai.ollamaRefresh")}
+              {ollamaLoading ? <Loader2 size={14} className="animate-spin" /> : t("settings.ai.localRefresh")}
             </button>
             <button
               onClick={handleTestOllama}
@@ -343,7 +343,7 @@ export default function AISection({ settings, save }: AISectionProps) {
           {/* Status hint */}
           {ollamaModels.length > 0 && (
             <p className="text-[12px] mt-1.5" style={{ color: "var(--color-text-quaternary)", paddingLeft: 64 }}>
-              {t("settings.ai.ollamaConnected").replace("{count}", String(ollamaModels.length))}
+              {t("settings.ai.localConnected").replace("{count}", String(ollamaModels.length))}
             </p>
           )}
         </div>
@@ -378,7 +378,7 @@ export default function AISection({ settings, save }: AISectionProps) {
           {/* URL input */}
           <div className="flex items-center gap-2 mb-2">
             <label className="text-[12px] shrink-0" style={{ color: "var(--color-text-tertiary)", width: 64 }}>
-              {t("settings.ai.ollamaUrl")}
+              {t("settings.ai.localUrl")}
             </label>
             <input
               type="text"
@@ -392,7 +392,7 @@ export default function AISection({ settings, save }: AISectionProps) {
           {/* Model selector + test */}
           <div className="flex items-center gap-2 mb-1">
             <label className="text-[12px] shrink-0" style={{ color: "var(--color-text-tertiary)", width: 64 }}>
-              {t("settings.ai.ollamaModel")}
+              {t("settings.ai.localModel")}
             </label>
             <div className="relative flex-1">
               {lmsModels.length > 0 ? (
@@ -436,7 +436,7 @@ export default function AISection({ settings, save }: AISectionProps) {
               disabled={lmsLoading}
               className="btn-ghost compact text-[13px] shrink-0 disabled:opacity-40"
             >
-              {lmsLoading ? <Loader2 size={14} className="animate-spin" /> : t("settings.ai.ollamaRefresh")}
+              {lmsLoading ? <Loader2 size={14} className="animate-spin" /> : t("settings.ai.localRefresh")}
             </button>
             <button
               onClick={handleTestLMS}
@@ -458,7 +458,7 @@ export default function AISection({ settings, save }: AISectionProps) {
           {/* Status hint */}
           {lmsModels.length > 0 && (
             <p className="text-[12px] mt-1.5" style={{ color: "var(--color-text-quaternary)", paddingLeft: 64 }}>
-              {t("settings.ai.ollamaConnected").replace("{count}", String(lmsModels.length))}
+              {t("settings.ai.localConnected").replace("{count}", String(lmsModels.length))}
             </p>
           )}
         </div>

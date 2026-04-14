@@ -3,6 +3,19 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.42.2] - 2026-04-14
+
+### Changed
+- **App icon** — replaced the yellow "S" favicon/PWA icons with the Open Doodles `astro` character (small astronaut with helmet). Updates `public/favicon.svg`, `public/icon-192.png`, `public/icon-512.png` (also used as maskable).
+
+### Fixed
+- **LM Studio streamChat missing `max_tokens`** — responses could be truncated at model-specific defaults. Now explicit `max_tokens: 16384` matching OpenAI/Claude.
+- **AI JSON / text temperature drift across providers** — `callJSON` now pins `temperature: 0` on Gemini/Claude/OpenAI (was inheriting 1.0 defaults). `callText` pins `temperature: 0.2` on all five providers (Ollama/LM Studio already had 0.2). Structured output is deterministic; free-form text has the same mild randomness everywhere.
+- **Offline `/api/clients` GET used `SELECT *`** — swapped to the same explicit 27-column list as `supabase-api.ts` so a new column can't silently appear in one handler but not the other.
+
+### Changed
+- **i18n: `settings.ai.ollama*` → `settings.ai.local*`** — the URL / Model / Refresh / Connected strings were already generic and shared between the Ollama and LM Studio sections. Renamed the keys (zh + en + AISection.tsx) so semantics match usage.
+
 ## [2.42.1] - 2026-04-14
 
 ### Fixed

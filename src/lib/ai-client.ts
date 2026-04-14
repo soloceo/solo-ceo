@@ -134,7 +134,7 @@ async function callJSON(provider: AIProvider, apiKey: string, systemPrompt: stri
         body: JSON.stringify({
           system_instruction: { parts: [{ text: systemPrompt }] },
           contents: [{ parts: [{ text: userText }] }],
-          generationConfig: { responseMimeType: "application/json" },
+          generationConfig: { responseMimeType: "application/json", temperature: 0 },
         }),
       }
     );
@@ -157,6 +157,7 @@ async function callJSON(provider: AIProvider, apiKey: string, systemPrompt: stri
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
         max_tokens: 1024,
+        temperature: 0,
         system: systemPrompt,
         messages: [{ role: "user", content: userText }],
       }),
@@ -177,6 +178,7 @@ async function callJSON(provider: AIProvider, apiKey: string, systemPrompt: stri
       response_format: { type: "json_object" },
       messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userText }],
       max_tokens: 512,
+      temperature: 0,
     }),
   });
   if (!res.ok) throw new Error(`OpenAI API error: ${res.status}`);
@@ -231,7 +233,7 @@ async function callText(provider: AIProvider, apiKey: string, systemPrompt: stri
         body: JSON.stringify({
           system_instruction: { parts: [{ text: systemPrompt }] },
           contents: [{ parts: [{ text: userText }] }],
-          generationConfig: { responseMimeType: "text/plain" },
+          generationConfig: { responseMimeType: "text/plain", temperature: 0.2 },
         }),
       }
     );
@@ -252,6 +254,7 @@ async function callText(provider: AIProvider, apiKey: string, systemPrompt: stri
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
         max_tokens: 1024,
+        temperature: 0.2,
         system: systemPrompt,
         messages: [{ role: "user", content: userText }],
       }),
@@ -269,6 +272,7 @@ async function callText(provider: AIProvider, apiKey: string, systemPrompt: stri
       model: "gpt-4.1-mini",
       messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userText }],
       max_tokens: 1024,
+      temperature: 0.2,
     }),
   });
   if (!res.ok) throw new Error(`OpenAI API error: ${res.status}`);
@@ -416,6 +420,7 @@ export async function streamChat(
       messages: buildOpenAIMessages(messages),
       stream: true,
       temperature: 0.2,
+      max_tokens: 16384,
     };
     // Pass native tools for function calling (LM Studio supports OpenAI tools format)
     if (nativeTools && nativeTools.length > 0) {
