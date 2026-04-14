@@ -3,6 +3,18 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.41.0] - 2026-04-14
+
+### Changed
+- **AI agent tools — single source of truth** — all 15 tools (schema, safety tier, bilingual labels/prompts, executor, confirm card) now live in one central registry at `src/app/tools/registry.ts`. `ai-tools.ts` and `agent-types.ts` derive `AGENT_TOOLS`, `TOOL_SAFETY`, `TOOL_LABELS`, `ALL_TOOL_NAMES` from the registry instead of maintaining parallel lists. Adding a tool is now a one-file change.
+- **Per-turn tool cache** — multi-step agent turns share a `ToolContext` with a request-scoped cache, so consecutive tool calls that hit the same endpoint (e.g. `findByTitle` after `search_data`) reuse the first response. Writes invalidate the relevant endpoints automatically.
+- **`search_data` pagination** — accepts an optional `limit` (1–50, clamped server-side, default 10) and returns `{ total, items }` instead of a bare array. The truncation-aware message ("Found 23 items (showing first 10)") lets the model realize when it needs to raise `limit` — previously it silently only saw the first 10.
+
+### Added
+- **`delete_lead` + `delete_client`** — close the CRUD asymmetry with `delete_task`. Both are `safety: "destructive"` so they always require user confirmation. `delete_client` warns in its prompt hint and confirm card about the soft-delete cascade (unlinks tasks by `client_id`, nulls `finance_transactions.client_id`, soft-deletes milestone-linked finance rows) and steers the model toward `update_client status=Cancelled` for churn.
+- **`record_transaction` category guard** — validates `category` against the scope enum (business: 收入/软件支出/外包支出/其他支出, personal: 餐饮/交通/房租/娱乐/个人其他) before POSTing. Invalid categories short-circuit with the allowed list in the error message so the model can self-correct without a DB round-trip — no more stray "餐饮" entries on business scope.
+- **Default agent templates updated** — Chief of Staff (`general`) now uses `[...ALL_TOOL_NAMES]` so future tools auto-flow in (the literal list had already drifted and was missing the two new deletes). Sales & Client Manager (`sales`) gains `delete_lead` + `delete_client` for cleaning up duplicates and test entries. Existing agent records don't auto-upgrade — users can "sync from template" to pick up the new tools.
+
 ## [2.40.0] - 2026-04-14
 
 ### Fixed
