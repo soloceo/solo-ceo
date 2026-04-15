@@ -85,7 +85,7 @@ export default function PeepIllustration({ name, size = 140, className = '', sty
     loader().then((mod) => {
       urlCache.set(name, mod.default);
       setSrc(mod.default);
-    });
+    }).catch((e) => { console.warn('[PeepIllustration] load', name, e); });
   }, [name]);
 
   if (!src) return <div style={{ width: size, height: size, flexShrink: 0 }} />;

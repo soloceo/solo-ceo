@@ -9,6 +9,7 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, label, error, id, ...props }, ref) => {
     const inputId = id || label?.toLowerCase().replace(/\s+/g, "-");
+    const errorId = error && inputId ? `${inputId}-error` : undefined;
     return (
       <div className="flex flex-col gap-1.5">
         {label && (
@@ -19,6 +20,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         <input
           ref={ref}
           id={inputId}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={errorId}
           className={cn(
             "input-base px-3 text-[15px]",
             error && "border-[var(--color-danger)] focus:border-[var(--color-danger)] focus:!shadow-[0_0_0_2px_color-mix(in_srgb,var(--color-danger)_8%,transparent)]",
@@ -28,7 +31,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           {...props}
         />
         {error && (
-          <span className="text-[14px]" style={{ color: "var(--color-danger)" }}>{error}</span>
+          <span id={errorId} className="text-[14px]" style={{ color: "var(--color-danger)" }}>{error}</span>
         )}
       </div>
     );
@@ -45,6 +48,7 @@ export interface TextAreaProps extends React.TextareaHTMLAttributes<HTMLTextArea
 export const TextArea = React.forwardRef<HTMLTextAreaElement, TextAreaProps>(
   ({ className, label, error, id, ...props }, ref) => {
     const inputId = id || label?.toLowerCase().replace(/\s+/g, "-");
+    const errorId = error && inputId ? `${inputId}-error` : undefined;
     return (
       <div className="flex flex-col gap-1.5">
         {label && (
@@ -55,6 +59,8 @@ export const TextArea = React.forwardRef<HTMLTextAreaElement, TextAreaProps>(
         <textarea
           ref={ref}
           id={inputId}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={errorId}
           className={cn(
             "input-base px-3 py-2 text-[15px] min-h-[80px] resize-y",
             className,
@@ -63,7 +69,7 @@ export const TextArea = React.forwardRef<HTMLTextAreaElement, TextAreaProps>(
           {...props}
         />
         {error && (
-          <span className="text-[14px]" style={{ color: "var(--color-danger)" }}>{error}</span>
+          <span id={errorId} className="text-[14px]" style={{ color: "var(--color-danger)" }}>{error}</span>
         )}
       </div>
     );
@@ -81,6 +87,7 @@ export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElemen
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
   ({ className, label, error, options, id, ...props }, ref) => {
     const inputId = id || label?.toLowerCase().replace(/\s+/g, "-");
+    const errorId = error && inputId ? `${inputId}-error` : undefined;
     return (
       <div className="flex flex-col gap-1.5">
         {label && (
@@ -91,6 +98,8 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         <select
           ref={ref}
           id={inputId}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={errorId}
           className={cn(
             "input-base px-3 pr-8 text-[15px]",
             className,
@@ -103,7 +112,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           ))}
         </select>
         {error && (
-          <span className="text-[14px]" style={{ color: "var(--color-danger)" }}>{error}</span>
+          <span id={errorId} className="text-[14px]" style={{ color: "var(--color-danger)" }}>{error}</span>
         )}
       </div>
     );
