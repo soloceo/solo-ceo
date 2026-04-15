@@ -5,8 +5,8 @@
  *
  * Effects keyed by class:
  *   .card-interactive, .card-glow, .stat-card, .widget-card, .nav-glow,
- *   .sidebar-glass, .ai-input-glow — sets `--mx` / `--my` (0-100%) while hovered
- *                                    (radial spotlight gradient + border glow)
+ *   .sidebar-glass — sets `--mx` / `--my` (0-100%) while hovered
+ *                    (radial spotlight gradient + border glow)
  *
  * Guards:
  *   • `(prefers-reduced-motion: reduce)` — effects disabled entirely
@@ -19,7 +19,7 @@ let lx = 0;
 let ly = 0;
 let prevSpot: HTMLElement | null = null;
 
-const SPOTLIGHT_SEL = ".card-interactive, .card-glow, .stat-card, .widget-card, .nav-glow, .sidebar-glass, .ai-input-glow";
+const SPOTLIGHT_SEL = ".card-interactive, .card-glow, .stat-card, .widget-card, .nav-glow, .sidebar-glass";
 
 export function initMouseEffects(): void {
   if (initialized || typeof window === "undefined") return;
