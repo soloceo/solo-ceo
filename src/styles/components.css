@@ -477,6 +477,141 @@
     }
   }
 
+  /* ── AI Chat — push mode (≥ 744px, covers tablet + desktop) ─────
+     Below 744 (mobile): chat is full-screen overlay (default Tailwind inset-0).
+     At 744+: the chat drops into the LEFT HALF of the original content
+     area — like a new component claiming 50% of the main page. The
+     content re-flows into the RIGHT HALF. All gaps stay identical to
+     the original layout: 12px from sidebar, 12px between chat/content,
+     12px to the viewport right edge.
+
+     Geometry (all measurements in viewport coordinates):
+       sidebar:     margin-left 12px + width(sidebarActual) + margin-right 0
+       sidebar ends at: 12 + sidebarActual
+       original content border-box: starts at (sidebarActual + 24), ends at (100vw − 12)
+       original content width: 100vw − sidebarActual − 36
+
+       With chat open, that original width is split into:
+         chat (50%) | 12px gap | content (50%)
+         → chat-width = content-width = (originalContent − 12) / 2
+                                      = (100vw − sidebarActual − 48) / 2
+
+       chat-left = original content-left = sidebarActual + 24
+       content-left = chat-right + 12 = sidebarActual + 24 + chatWidth + 12
+       content margin-left override = 24 + chatWidth (flex-natural-left is sidebar-right)
+
+     `--sidebar-actual` is published on <body> by App.tsx so this rule
+     can resolve the sidebar's current width (the chat is portaled to
+     <body>, outside the flex container).
+
+     When chat is open, the remaining content width is ~half the viewport,
+     so we also collapse all responsive grids inside `.content-panel` to
+     a single-column mobile-like stack.
+     ──────────────────────────────────────────────────────────── */
+
+  /* Publish the sidebar's effective width for portaled chat to read */
+  body { --sidebar-actual: 56px; }
+  body.sidebar-expanded { --sidebar-actual: var(--sidebar-width, 232px); }
+
+  /* Derived half-width of the original content area (− 12px for the
+     chat↔content gap). Both chat and content consume this width. */
+  body { --ai-chat-half: calc((100vw - var(--sidebar-actual) - 48px) / 2); }
+
+  .content-panel {
+    transition: margin-left var(--duration-slow, 0.3s) var(--ease-ios, cubic-bezier(0.4, 0, 0.2, 1));
+  }
+  @media (min-width: 744px) {
+    .ai-chat-panel {
+      top: 12px;
+      bottom: 12px;
+      right: auto;
+      /* Original content-left edge = 12 (sidebar margin) + sidebarW + 12 (gap) */
+      left: calc(var(--sidebar-actual) + 24px);
+      /* Half of the original content area (minus the 12px inner gap) */
+      width: var(--ai-chat-half);
+      max-width: none;
+      border-radius: var(--radius-base);
+      /* In push-mode the chat is structural chrome — downgrade from
+         layer-dialog so popovers/modals opened from the content area
+         render above it. Just below layer-header (sidebar) so the
+         slide-in animation emerges from behind the sidebar. */
+      z-index: calc(var(--layer-header) - 1);
+      /* In push-mode, AIChat is a structural sibling of .content-panel.
+         Keep the inline border (1px line-secondary) from the component
+         so the panel has a defined edge — only soften the heavy modal
+         drop-shadow (var(--shadow-high)) to a lighter sibling shadow
+         since we're not in modal mode. */
+      box-shadow: var(--sidebar-panel-shadow, 0 4px 14px rgba(0, 0, 0, 0.07)) !important;
+    }
+    /* Match AIChat's internal horizontal padding to the content-panel's
+       md:px-6 (24px) so the first visible element inside the chat lands
+       at x = sidebar-right + 12 + 24 = same place as the first card in
+       the content panel when chat is closed. Without this, AIChat's
+       tight px-3 (12px) made first content land 11px closer to the
+       sidebar than cards did in the closed state. */
+    .ai-chat-panel > .px-3 {
+      padding-left: 24px !important;
+      padding-right: 24px !important;
+    }
+    .ai-chat-backdrop {
+      display: none;
+    }
+    .content-panel.chat-open {
+      /* Push content to start after chat + 12px gap.
+         flex-natural-left = sidebar-right = 12 + sidebarActual
+         desired-content-left = chat-right + 12 = (sidebarActual + 24 + chatWidth) + 12
+         margin-left override = desired − flex-natural = 24 + chatWidth */
+      margin-left: calc(var(--ai-chat-half) + 24px);
+    }
+
+    /* When chat is open, collapse the content area to a mobile-like
+       single-column layout — override Tailwind md:/lg: responsive grids
+       so nothing spills or gets squeezed into awkward 2-col layouts. */
+    .content-panel.chat-open [class*="md:grid-cols-"],
+    .content-panel.chat-open [class*="lg:grid-cols-"] {
+      grid-template-columns: 1fr !important;
+    }
+    .content-panel.chat-open [class*="md:col-span-"],
+    .content-panel.chat-open [class*="lg:col-span-"] {
+      grid-column: span 1 !important;
+    }
+    .content-panel.chat-open [class*="md:flex-row"],
+    .content-panel.chat-open [class*="lg:flex-row"] {
+      flex-direction: column !important;
+    }
+
+    /* Mobile/desktop visibility swaps — at 487px container but desktop
+       viewport, viewport-based media queries still fire md:/lg:, so table
+       layouts (ClientList, TransactionList) show squished instead of
+       switching to mobile card rows. Force-reveal mobile-only layouts and
+       force-hide desktop-only layouts in chat-open mode.
+       Exclude [class~="fixed"] so this only affects in-flow layout
+       switchers (card lists vs tables) — NOT fixed mobile chrome
+       (top bar, bottom nav, FAB), which belong to the viewport-level
+       layer and must remain viewport-queried. */
+    .content-panel.chat-open [class~="md:hidden"]:not([class~="fixed"]),
+    .content-panel.chat-open [class~="lg:hidden"]:not([class~="fixed"]) {
+      display: revert !important;
+    }
+    .content-panel.chat-open [class~="hidden"][class~="md:block"]:not([class~="fixed"]),
+    .content-panel.chat-open [class~="hidden"][class~="md:grid"]:not([class~="fixed"]),
+    .content-panel.chat-open [class~="hidden"][class~="md:flex"]:not([class~="fixed"]),
+    .content-panel.chat-open [class~="hidden"][class~="md:inline"]:not([class~="fixed"]),
+    .content-panel.chat-open [class~="hidden"][class~="md:inline-flex"]:not([class~="fixed"]),
+    .content-panel.chat-open [class~="hidden"][class~="lg:block"]:not([class~="fixed"]),
+    .content-panel.chat-open [class~="hidden"][class~="lg:grid"]:not([class~="fixed"]),
+    .content-panel.chat-open [class~="hidden"][class~="lg:flex"]:not([class~="fixed"]),
+    .content-panel.chat-open [class~="hidden"][class~="lg:inline"]:not([class~="fixed"]),
+    .content-panel.chat-open [class~="hidden"][class~="lg:inline-flex"]:not([class~="fixed"]) {
+      display: none !important;
+    }
+
+    /* Keep content-panel's original 24/32px padding even when chat is
+       open — the user wants sidebar↔first-visible-content distance to
+       match closed-state exactly. Only collapse grid/flex layouts
+       (above) so nothing spills at narrower widths. */
+  }
+
   /* ── Glass (mobile nav only) ───────────────────────────────── */
 
   .glass {

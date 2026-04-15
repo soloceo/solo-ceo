@@ -153,6 +153,18 @@ function App() {
     if (mainScrollRef.current) mainScrollRef.current.scrollTop = 0;
   }, [activeTab]);
 
+  /* ── Publish sidebar state to body so the portaled AI chat panel
+        can position itself next to the sidebar (chat sits between
+        sidebar and content when open on desktop/tablet). ── */
+  useEffect(() => {
+    const body = document.body;
+    body.classList.toggle('sidebar-expanded', isExpanded);
+    body.classList.toggle('sidebar-collapsed', !isExpanded);
+    return () => {
+      body.classList.remove('sidebar-expanded', 'sidebar-collapsed');
+    };
+  }, [isExpanded]);
+
   /* ── Protocol streak ── */
   const [protocolStreakRaw, setProtocolStreakRaw] = useState<string | null>(null);
 
@@ -452,14 +464,14 @@ function App() {
             />
           ))}
 
-          {/* AI Chat — in main nav */}
+          {/* AI Chat — in main nav (toggle) */}
           <SidebarItem
             id="__ai_chat__"
             icon={<MessageCircle size={16} aria-hidden="true" />}
             label={t("ai.chat.title")}
-            active={false}
+            active={aiChatOpen}
             expanded={isExpanded}
-            onClick={() => setAIChatOpen(true)}
+            onClick={() => setAIChatOpen(!aiChatOpen)}
           />
         </nav>
 
@@ -519,7 +531,7 @@ function App() {
 
       {/* ═══════════ Main Content — floating panel ═══════════ */}
       <div
-        className="flex flex-1 flex-col overflow-hidden md:my-3 md:mx-3 content-panel app-grid-bg"
+        className={`flex flex-1 flex-col overflow-hidden md:my-3 md:mx-3 content-panel app-grid-bg${aiChatOpen ? ' chat-open' : ''}`}
         style={{
           backgroundColor: "var(--color-bg-primary)",
         }}

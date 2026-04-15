@@ -3,6 +3,23 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.44.0] - 2026-04-14
+
+### Changed
+- **AI Chat panel — smoothed all motion.** Seven animation fixes so the panel feels like one surface with the content layout:
+  - Panel slide-in/slide-out now uses the same tween (`0.3s cubic-bezier(0.4, 0, 0.2, 1)`) as the content-panel CSS push, so the chat and the content it displaces move as one instead of racing each other.
+  - Desktop conversation sidebar animates its width (0 → 180px) and opacity together on toggle, replacing the abrupt show/hide.
+  - Agent picker, more-menu (⋯), and @-mention dropdowns all animate in with matched `opacity + scale(0.96 → 1)` and correct transform-origins (top-left / top-right / bottom-left respectively) — no more popping.
+  - Scroll-to-bottom button fades + translates with `whileHover: 1.05 / whileTap: 0.92` press feedback.
+  - Typing indicator cross-fades smoothly with the first streaming token instead of flashing in then being replaced.
+
+- **Chat-open compression now applies across the whole app, not just Home.** When the AI chat opens on desktop, the content panel compresses to ~half width. Previously only Home adjusted its grids; Clients and Finance kept showing squished desktop tables. Now:
+  - `.content-panel.chat-open` overrides `md:grid-cols-*` / `lg:grid-cols-*` to `1fr`, `md:col-span-*` / `lg:col-span-*` to `span 1`, and `md:flex-row` / `lg:flex-row` to `column` — HomePage KPI grid and all other multi-column layouts collapse cleanly.
+  - `md:hidden` / `lg:hidden` elements inside the panel are revealed, and `hidden md:block/grid/flex` / `hidden lg:block/grid/flex` elements are hidden, so ClientList swaps its desktop table for mobile cards and TransactionList does the same swap when rendered in-flow.
+  - Rule excludes `[class~="fixed"]` so mobile chrome (`mobile-top-bar`, `mobile-bottom-bar`, mobile FAB) keeps honoring the viewport — opening chat on desktop no longer leaks the mobile top bar / bottom nav / FAB into the desktop view.
+
+- **Personal Preferences editor — refined UX.** Added placeholder guidance, a "Clear" button with confirmation, an overwrite-confirm on import (so accidentally dropping in a file can't silently wipe existing content), and tightened the file-size limit from 50KB → 10KB. New i18n keys: `settings.preferences.placeholder / .clear / .saved / .overwriteConfirm / .clearConfirm`.
+
 ## [2.43.0] - 2026-04-14
 
 ### Changed

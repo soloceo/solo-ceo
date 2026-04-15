@@ -259,6 +259,9 @@ export default function SettingsPage() {
           handleAvatarUpload={handleAvatarUpload}
           clearAvatar={clearAvatar}
           handleSave={handleSave}
+          savePreferences={(value) => {
+            saveAppSetting('PERSONAL_PREFERENCES', value).catch(() => { /* queued offline */ });
+          }}
           getField={getProfileField}
           setField={(field, value) => setProfileField(field as keyof typeof PROFILE_SYNC_KEYS, value)}
         />
