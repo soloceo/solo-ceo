@@ -537,12 +537,20 @@ function seedData(db: Database) {
   // id=2
   db.run(`INSERT INTO clients (name, industry, plan_tier, status, brand_context, mrr, payment_method, billing_type, subscription_start_date, subscription_timeline) VALUES (?,?,?,?,?,?,?,?,?,?)`,
     ['Atlas Architecture', '建筑设计', 'Professional', 'Active', 'Minimal, premium, monochrome palette', 1500, 'manual', 'subscription', sixWeeksAgo, JSON.stringify([{ type: 'start', date: sixWeeksAgo }])]);
-  // id=3
-  db.run(`INSERT INTO clients (name, industry, plan_tier, status, brand_context, mrr, payment_method, billing_type, project_fee) VALUES (?,?,?,?,?,?,?,?,?)`,
-    ['Limelight Studios', '摄影工作室', '', 'Active', 'Fresh, natural, artistic aesthetic', 0, 'manual', 'project', 4800]);
-  // id=4 — won from lead "Timber & Co", recently onboarded
-  db.run(`INSERT INTO clients (name, industry, plan_tier, status, brand_context, mrr, payment_method, billing_type, project_fee) VALUES (?,?,?,?,?,?,?,?,?)`,
-    ['Timber & Co', '家居家具', '', 'Active', 'Natural, handcrafted, warm aesthetic', 0, 'manual', 'project', 6000]);
+  // id=3 — Ontario HST 13% exclusive (invoice shows tax line separately)
+  db.run(`INSERT INTO clients (name, industry, plan_tier, status, brand_context, mrr, payment_method, billing_type, project_fee, tax_mode, tax_rate) VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+    ['Limelight Studios', '摄影工作室', '', 'Active', 'Fresh, natural, artistic aesthetic', 0, 'manual', 'project', 4800, 'exclusive', 13]);
+  // id=4 — won from lead "Timber & Co", HST 13% inclusive (tax baked into quoted price)
+  db.run(`INSERT INTO clients (name, industry, plan_tier, status, brand_context, mrr, payment_method, billing_type, project_fee, tax_mode, tax_rate) VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+    ['Timber & Co', '家居家具', '', 'Active', 'Natural, handcrafted, warm aesthetic', 0, 'manual', 'project', 6000, 'inclusive', 13]);
+
+  // id=5 — Paused subscriber (seasonal bistro; paused early this month after 3 full months)
+  const threeMonthsAgo = (() => { const d = new Date(now); d.setMonth(d.getMonth() - 3); return fmt(d); })();
+  // Pause must fall within current month (not prior) — sync treats the month of a pause event as already paused.
+  const pausedThisMonth = fmt(addDays(now, -10));
+  db.run(`INSERT INTO clients (name, industry, plan_tier, status, brand_context, mrr, payment_method, billing_type, subscription_start_date, paused_at, subscription_timeline) VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+    ['Harbor Bistro', '餐饮连锁', 'Professional', 'Paused', 'Nautical, weathered wood, seafood-forward', 1500, 'auto', 'subscription', threeMonthsAgo, pausedThisMonth,
+      JSON.stringify([{ type: 'start', date: threeMonthsAgo }, { type: 'pause', date: pausedThisMonth }])]);
 
   // ── Tasks — work scope (8 — cover all kanban columns, tied to real clients) ──
   // client_id links tasks back to clients.id: Nova Media=1, Atlas=2, Limelight=3, Timber & Co=4.
@@ -597,19 +605,19 @@ function seedData(db: Database) {
   // ── Finance Transactions — income sources tied to actual clients ──
   // NOTE: Subscription income is NOT seeded here — syncClientSubscriptionLedger()
   // auto-generates subscription transactions from client MRR + timeline data.
-  // Project milestone income (tied to Limelight Studios) — client_id=3
+  // Project milestone income (tied to Limelight Studios) — client_id=3, HST 13% exclusive
   // finance_transactions IDs 1-4 are these income rows; milestones below back-reference them.
-  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date, status, source, client_id, client_name) VALUES (?,?,?,?,?,?,?,?,?)`,
-    ['income', 1920, '项目收入', 'Limelight Studios官网设计 · 首付款40%', `${lastMonth}-18`, '已完成', 'milestone', 3, 'Limelight Studios']);
-  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date, status, source, client_id, client_name) VALUES (?,?,?,?,?,?,?,?,?)`,
-    ['income', 2880, '项目收入', 'Limelight Studios官网设计 · 尾款60%', nextWeek, '待收款 (应收)', 'milestone', 3, 'Limelight Studios']);
-  // Manual income (consultancy from Timber & Co — client_id=4)
-  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date, status, source, client_id, client_name) VALUES (?,?,?,?,?,?,?,?,?)`,
-    ['income', 800, '咨询收入', 'Timber & Co品牌诊断咨询', threeDaysAgo, '已完成', 'manual', 4, 'Timber & Co']);
-  // Project fee (Timber & Co new project deposit — client_id=4)
-  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date, status, source, client_id, client_name) VALUES (?,?,?,?,?,?,?,?,?)`,
-    ['income', 2400, '项目收入', 'Timber & Co产品画册 · 首付款40%', fiveDaysAgo, '已完成', 'milestone', 4, 'Timber & Co']);
-  // Expenses (realistic North American freelancer costs in USD)
+  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date, status, source, client_id, client_name, tax_mode, tax_rate, tax_amount) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+    ['income', 1920, '项目收入', 'Limelight Studios官网设计 · 首付款40%', `${lastMonth}-18`, '已完成', 'milestone', 3, 'Limelight Studios', 'exclusive', 13, 249.60]);
+  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date, status, source, client_id, client_name, tax_mode, tax_rate, tax_amount) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+    ['income', 2880, '项目收入', 'Limelight Studios官网设计 · 尾款60%', nextWeek, '待收款 (应收)', 'milestone', 3, 'Limelight Studios', 'exclusive', 13, 374.40]);
+  // Manual income (consultancy from Timber & Co — client_id=4, HST 13% inclusive)
+  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date, status, source, client_id, client_name, tax_mode, tax_rate, tax_amount) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+    ['income', 800, '咨询收入', 'Timber & Co品牌诊断咨询', threeDaysAgo, '已完成', 'manual', 4, 'Timber & Co', 'inclusive', 13, 92.04]);
+  // Project fee (Timber & Co new project deposit — client_id=4, HST 13% inclusive)
+  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date, status, source, client_id, client_name, tax_mode, tax_rate, tax_amount) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+    ['income', 2400, '项目收入', 'Timber & Co产品画册 · 首付款40%', fiveDaysAgo, '已完成', 'milestone', 4, 'Timber & Co', 'inclusive', 13, 276.11]);
+  // Expenses — diverse categories reflecting a real freelance operation
   db.run(`INSERT INTO finance_transactions (type, amount, category, description, date) VALUES (?,?,?,?,?)`,
     ['expense', 15, '软件订阅', 'Figma Professional 月费', `${m}-02`]);
   db.run(`INSERT INTO finance_transactions (type, amount, category, description, date) VALUES (?,?,?,?,?)`,
@@ -618,6 +626,14 @@ function seedData(db: Database) {
     ['expense', 45, '办公支出', '打印 + 快递费', yesterday]);
   db.run(`INSERT INTO finance_transactions (type, amount, category, description, date) VALUES (?,?,?,?,?)`,
     ['expense', 32, '软件订阅', 'Notion + 域名续费', threeDaysAgo]);
+  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date) VALUES (?,?,?,?,?)`,
+    ['expense', 280, '房租', '共享办公月费 — The Workhaus', `${m}-01`]);
+  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date) VALUES (?,?,?,?,?)`,
+    ['expense', 95, '餐饮', '商务午餐 — Nova Media 月度对齐', twoDaysAgo]);
+  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date) VALUES (?,?,?,?,?)`,
+    ['expense', 42, '交通', 'Uber + 停车 — Atlas 客户现场沟通', yesterday]);
+  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date) VALUES (?,?,?,?,?)`,
+    ['expense', 400, '外包支出', '摄影外包 — Timber & Co 产品图拍摄', fiveDaysAgo]);
 
   // ── Payment Milestones (2 projects with milestone tracking) ──
   // finance_tx_id back-references rows created above (IDs 1/2/4 — id=3 is the standalone consultancy).
@@ -633,7 +649,8 @@ function seedData(db: Database) {
   db.run(`INSERT INTO payment_milestones (client_id, label, amount, percentage, due_date, status, sort_order) VALUES (?,?,?,?,?,?,?)`,
     [4, '尾款 60%', 3600, 60, twoWeeksLater, 'pending', 2]);
 
-  // ── Client Subscription Ledger (MRR history — 2 months) ──
+  // ── Client Subscription Ledger (MRR history) ──
+  // Nova Media + Atlas — active, 2 months of history (matches start dates above)
   db.run(`INSERT OR IGNORE INTO client_subscription_ledger (client_id, client_name, plan_tier, amount, ledger_month) VALUES (?,?,?,?,?)`,
     [1, 'Nova Media', 'Enterprise', 2500, lastMonth]);
   db.run(`INSERT OR IGNORE INTO client_subscription_ledger (client_id, client_name, plan_tier, amount, ledger_month) VALUES (?,?,?,?,?)`,
@@ -642,6 +659,17 @@ function seedData(db: Database) {
     [1, 'Nova Media', 'Enterprise', 2500, m]);
   db.run(`INSERT OR IGNORE INTO client_subscription_ledger (client_id, client_name, plan_tier, amount, ledger_month) VALUES (?,?,?,?,?)`,
     [2, 'Atlas Architecture', 'Professional', 1500, m]);
+  // Harbor Bistro — 3 months of active billing before pausing (no current-month entry)
+  const monthKeyOffset = (n: number) => {
+    const d = new Date(now); d.setMonth(d.getMonth() - n);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+  };
+  db.run(`INSERT OR IGNORE INTO client_subscription_ledger (client_id, client_name, plan_tier, amount, ledger_month) VALUES (?,?,?,?,?)`,
+    [5, 'Harbor Bistro', 'Professional', 1500, monthKeyOffset(3)]);
+  db.run(`INSERT OR IGNORE INTO client_subscription_ledger (client_id, client_name, plan_tier, amount, ledger_month) VALUES (?,?,?,?,?)`,
+    [5, 'Harbor Bistro', 'Professional', 1500, monthKeyOffset(2)]);
+  db.run(`INSERT OR IGNORE INTO client_subscription_ledger (client_id, client_name, plan_tier, amount, ledger_month) VALUES (?,?,?,?,?)`,
+    [5, 'Harbor Bistro', 'Professional', 1500, lastMonth]);
 
   // ── Activity Log (tell a story of recent work) ──
   const mins = (n: number) => new Date(now.getTime() - n * 60000).toISOString();
@@ -659,6 +687,9 @@ function seedData(db: Database) {
     ['lead', 'created', '新增线索：Harvest Organics', '来源：Google搜索', mins(1440)]);
   db.run(`INSERT INTO activity_log (entity_type, action, title, detail, created_at) VALUES (?,?,?,?,?)`,
     ['lead', 'created', '新增线索：Greenfield Coffee', '来源：Instagram DM', mins(2880)]);
+  // 10 days ago: 10 × 24 × 60 = 14400 mins — Harbor Bistro subscription paused
+  db.run(`INSERT INTO activity_log (entity_type, action, title, detail, created_at) VALUES (?,?,?,?,?)`,
+    ['client', 'updated', '客户订阅暂停：Harbor Bistro', 'Professional · $1,500/mo · 客户申请季节性暂停', mins(14400)]);
 
   // ── Content Drafts (4 — AI-assisted content for social/email) ──
   db.run(`INSERT INTO content_drafts (topic, platform, language, content) VALUES (?,?,?,?)`,
