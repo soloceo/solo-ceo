@@ -25,8 +25,13 @@ async function flush() {
   if (!Object.keys(batch).length) return;
   try {
     await api.post('/api/settings', batch);
-  } catch {
-    // Silently fail — localStorage is the primary store, cloud sync is best-effort
+  } catch (e) {
+    // Silently fail in production — localStorage is the primary store,
+    // cloud sync is best-effort. Surface in dev so misconfigured endpoints
+    // don't quietly drop preference changes.
+    if (import.meta.env.DEV) {
+      console.warn('[settings-sync] flush failed, keys:', Object.keys(batch), e);
+    }
   }
 }
 

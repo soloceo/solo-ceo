@@ -2,6 +2,8 @@
  * Generic CSV export utility.
  * Converts an array of objects to CSV and triggers download.
  */
+import { todayDateKey } from "./date-utils";
+
 export function exportCSV(data: Record<string, any>[], filename: string, columns?: { key: string; label: string }[]) {
   if (!data.length) return;
 
@@ -20,8 +22,9 @@ export function exportCSV(data: Record<string, any>[], filename: string, columns
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = url;
-  a.download = `${filename}-${new Date().toISOString().slice(0, 10)}.csv`;
+  // Filename date uses user's configured timezone (not UTC) so midnight
+  // exports don't show "yesterday" in the filename.
+  a.download = `${filename}-${todayDateKey()}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }

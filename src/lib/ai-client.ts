@@ -13,6 +13,17 @@ export const AI_KEY_MAP: Record<string, string> = {
   openai: "openai_api_key",
 };
 
+/**
+ * Default model IDs per cloud provider.
+ * Centralized so upgrades only need to change one line instead of hunting
+ * through callJSON / callText / streamChat / testApiKey.
+ */
+const MODEL_IDS = {
+  claude: "claude-sonnet-4-6",
+  openai: "gpt-4.1-mini",
+  gemini: "gemini-2.5-flash",
+} as const;
+
 // ── Device-level AI provider (localStorage) ──────────────────
 
 const LS_PROVIDER = "solo_ai_provider";
@@ -127,7 +138,7 @@ async function callJSON(provider: AIProvider, apiKey: string, systemPrompt: stri
 
   if (provider === "gemini") {
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IDS.gemini}:generateContent`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
@@ -155,7 +166,7 @@ async function callJSON(provider: AIProvider, apiKey: string, systemPrompt: stri
         "anthropic-dangerous-direct-browser-access": "true",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
+        model: MODEL_IDS.claude,
         max_tokens: 1024,
         temperature: 0,
         system: systemPrompt,
@@ -174,7 +185,7 @@ async function callJSON(provider: AIProvider, apiKey: string, systemPrompt: stri
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
-      model: "gpt-4.1-mini",
+      model: MODEL_IDS.openai,
       response_format: { type: "json_object" },
       messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userText }],
       max_tokens: 512,
@@ -226,7 +237,7 @@ async function callText(provider: AIProvider, apiKey: string, systemPrompt: stri
 
   if (provider === "gemini") {
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IDS.gemini}:generateContent`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
@@ -252,7 +263,7 @@ async function callText(provider: AIProvider, apiKey: string, systemPrompt: stri
         "anthropic-dangerous-direct-browser-access": "true",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
+        model: MODEL_IDS.claude,
         max_tokens: 1024,
         temperature: 0.2,
         system: systemPrompt,
@@ -269,7 +280,7 @@ async function callText(provider: AIProvider, apiKey: string, systemPrompt: stri
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
-      model: "gpt-4.1-mini",
+      model: MODEL_IDS.openai,
       messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userText }],
       max_tokens: 1024,
       temperature: 0.2,
@@ -435,7 +446,7 @@ export async function streamChat(
   } else if (provider === "openai") {
     url = "https://api.openai.com/v1/chat/completions";
     headers = { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` };
-    body = JSON.stringify({ model: "gpt-4.1-mini", messages: buildOpenAIMessages(messages), stream: true, max_tokens: 16384 });
+    body = JSON.stringify({ model: MODEL_IDS.openai, messages: buildOpenAIMessages(messages), stream: true, max_tokens: 16384 });
   } else if (provider === "claude") {
     url = "https://api.anthropic.com/v1/messages";
     headers = {
@@ -445,10 +456,10 @@ export async function streamChat(
       "anthropic-dangerous-direct-browser-access": "true",
     };
     const sysMsg = messages.find(m => m.role === "system")?.content || "";
-    body = JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 16384, system: sysMsg, messages: buildClaudeMessages(messages), stream: true });
+    body = JSON.stringify({ model: MODEL_IDS.claude, max_tokens: 16384, system: sysMsg, messages: buildClaudeMessages(messages), stream: true });
   } else if (provider === "gemini") {
     const sysMsg = messages.find(m => m.role === "system")?.content || "";
-    url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse`;
+    url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IDS.gemini}:streamGenerateContent?alt=sse`;
     headers = { "Content-Type": "application/json", "x-goog-api-key": apiKey };
     body = JSON.stringify({
       system_instruction: { parts: [{ text: sysMsg }] },
@@ -949,7 +960,7 @@ export async function testApiKey(provider: AIProvider, apiKey: string): Promise<
     }
     if (provider === "gemini") {
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IDS.gemini}:generateContent`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
@@ -971,7 +982,7 @@ export async function testApiKey(provider: AIProvider, apiKey: string): Promise<
           "anthropic-dangerous-direct-browser-access": "true",
         },
         body: JSON.stringify({
-          model: "claude-sonnet-4-6",
+          model: MODEL_IDS.claude,
           max_tokens: 5,
           messages: [{ role: "user", content: "Say OK" }],
         }),
@@ -983,7 +994,7 @@ export async function testApiKey(provider: AIProvider, apiKey: string): Promise<
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
         body: JSON.stringify({
-          model: "gpt-4.1-mini",
+          model: MODEL_IDS.openai,
           messages: [{ role: "user", content: "Say OK" }],
           max_tokens: 5,
         }),
