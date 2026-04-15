@@ -369,6 +369,9 @@ function initSchema(db: Database) {
     )`,
     `ALTER TABLE clients ADD COLUMN drive_folder_url TEXT DEFAULT ''`,
     `ALTER TABLE clients ADD COLUMN subscription_timeline TEXT DEFAULT '[]'`,
+    // Parity with supabase schema — /api/clients GET selects these columns explicitly
+    `ALTER TABLE clients ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP`,
+    `ALTER TABLE clients ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP`,
     `ALTER TABLE tasks ADD COLUMN client_id INTEGER`,
     // soft_deleted columns for offline/online consistency
     `ALTER TABLE leads ADD COLUMN soft_deleted INTEGER DEFAULT 0`,
