@@ -20,7 +20,7 @@ const figmaStyle: StyleDefinition = {
   descKey: 'settings.style.figmaDesc',
   order: 3,
   preview: {
-    accent: '#0c8ce9',
+    accent: '#4285f4',
     card: {
       border: 'none',
       borderRadius: '12px',
@@ -83,7 +83,7 @@ const figmaStyle: StyleDefinition = {
       '--opacity-disabled':      '0.35',
       '--opacity-active-press':  '0.7',
       '--focus-outline-width':   '2px',
-      '--focus-outline-color':   '#0c8ce9',
+      '--focus-outline-color':   '#4285f4',
 
       // ── Glass — very subtle ──
       '--backdrop-blur':         'blur(16px) saturate(120%)',
@@ -105,7 +105,7 @@ const figmaStyle: StyleDefinition = {
 
       // ── Input — flat, border only, no shadow ──
       '--input-shadow':          'none',
-      '--input-focus-border':    '#0c8ce9',
+      '--input-focus-border':    '#4285f4',
       '--input-focus-shadow':    'none',
       '--select-shadow':         'none',
 
@@ -118,7 +118,7 @@ const figmaStyle: StyleDefinition = {
       '--kpi-label-font-size':   '11px',
       '--tab-font-size':         '14px',
       '--tab-active-font-weight': 'var(--font-weight-semibold)',
-      '--tab-active-bg':         '#0c8ce9',
+      '--tab-active-bg':         '#4285f4',
       '--tab-active-color':      '#ffffff',
       '--tab-active-border':     'transparent',
 
@@ -159,14 +159,14 @@ const figmaStyle: StyleDefinition = {
       '--color-text-quaternary': '#aaaaaa',
       '--color-text-on-color':   '#ffffff',
 
-      // ── Accent — Figma blue (matches Figma's primary action color) ──
-      '--color-accent':          '#0c8ce9',
-      '--color-accent-hover':    '#0a73c4',
-      '--color-accent-tint':     'rgba(12,140,233,0.08)',
+      // ── Accent — Google blue (matches Figma's primary action color) ──
+      '--color-accent':          '#4285f4',
+      '--color-accent-hover':    '#3367d6',
+      '--color-accent-tint':     'rgba(66,133,244,0.08)',
       '--color-brand-text':      '#ffffff',
 
       // ── Semantic — neutral, monochrome-friendly ──
-      '--color-blue':            '#0c8ce9',
+      '--color-blue':            '#4285f4',
       '--color-green':           '#14ae5c',
       '--color-orange':          '#f24822',
       '--color-purple':          '#9747ff',
@@ -177,7 +177,7 @@ const figmaStyle: StyleDefinition = {
       '--color-danger':          '#f24822',
       '--color-danger-light':    'rgba(242,72,34,0.06)',
       '--color-danger-tint':     'rgba(242,72,34,0.06)',
-      '--color-info':            '#0c8ce9',
+      '--color-info':            '#4285f4',
 
       // ── Borders — barely there ──
       '--color-border-primary':             'rgba(0,0,0,0.08)',
@@ -258,7 +258,7 @@ const figmaStyle: StyleDefinition = {
       '--opacity-disabled':      '0.35',
       '--opacity-active-press':  '0.7',
       '--focus-outline-width':   '2px',
-      '--focus-outline-color':   '#56b0f0',
+      '--focus-outline-color':   '#8ab4f8',
 
       // ── Glass ──
       '--backdrop-blur':         'blur(16px) saturate(120%)',
@@ -280,7 +280,7 @@ const figmaStyle: StyleDefinition = {
 
       // ── Input — flat ──
       '--input-shadow':          'none',
-      '--input-focus-border':    '#56b0f0',
+      '--input-focus-border':    '#8ab4f8',
       '--input-focus-shadow':    'none',
       '--select-shadow':         'none',
 
@@ -293,7 +293,7 @@ const figmaStyle: StyleDefinition = {
       '--kpi-label-font-size':   '11px',
       '--tab-font-size':         '14px',
       '--tab-active-font-weight': 'var(--font-weight-semibold)',
-      '--tab-active-bg':         '#56b0f0',
+      '--tab-active-bg':         '#8ab4f8',
       '--tab-active-color':      '#000000',
       '--tab-active-border':     'transparent',
 
@@ -334,14 +334,14 @@ const figmaStyle: StyleDefinition = {
       '--color-text-quaternary': '#555555',
       '--color-text-on-color':   '#000000',
 
-      // ── Accent — Figma blue (lighter for dark-mode contrast) ──
-      '--color-accent':          '#56b0f0',
-      '--color-accent-hover':    '#78c3f5',
-      '--color-accent-tint':     'rgba(86,176,240,0.1)',
+      // ── Accent — Google blue (lighter for dark-mode contrast) ──
+      '--color-accent':          '#8ab4f8',
+      '--color-accent-hover':    '#aecbfa',
+      '--color-accent-tint':     'rgba(138,180,248,0.1)',
       '--color-brand-text':      '#000000',
 
       // ── Semantic — lighter for dark mode ──
-      '--color-blue':            '#56b0f0',
+      '--color-blue':            '#8ab4f8',
       '--color-green':           '#4ecb71',
       '--color-orange':          '#f57b5c',
       '--color-purple':          '#b07cff',
@@ -352,7 +352,7 @@ const figmaStyle: StyleDefinition = {
       '--color-danger':          '#f57b5c',
       '--color-danger-light':    'rgba(245,123,92,0.1)',
       '--color-danger-tint':     'rgba(245,123,92,0.1)',
-      '--color-info':            '#56b0f0',
+      '--color-info':            '#8ab4f8',
 
       // ── Borders — barely there ──
       '--color-border-primary':             'rgba(255,255,255,0.1)',
