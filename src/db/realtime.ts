@@ -44,12 +44,10 @@ export function startRealtime() {
       'postgres_changes',
       { event: '*', schema: 'public', table },
       (payload) => {
-        // Invalidate SWR cache so refetch gets fresh data (not stale cache)
+        // Invalidate SWR cache so refetch gets fresh data (not stale cache).
+        // invalidateForMutation already cascades to /api/dashboard internally.
         const apiPath = TABLE_API_PATH[table];
-        if (apiPath) {
-          invalidateForMutation(apiPath);
-          invalidateForMutation('/api/dashboard'); // dashboard aggregates all tables
-        }
+        if (apiPath) invalidateForMutation(apiPath);
 
         window.dispatchEvent(
           new CustomEvent('supabase-change', {

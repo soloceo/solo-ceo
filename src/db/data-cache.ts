@@ -70,6 +70,12 @@ export function cacheToResponse(entry: CacheEntry): Response {
   });
 }
 
+/** Delete a cache entry AND bump its version so in-flight revalidations are rejected */
+function invalidatePath(path: string): void {
+  cache.delete(path);
+  nextVer(path);
+}
+
 /**
  * Invalidate cache entries that a mutation might affect.
  * E.g. POST /api/tasks → invalidate /api/tasks
@@ -80,25 +86,27 @@ export function invalidateForMutation(path: string): void {
   const segments = path.split('/');
   const basePath = segments.length >= 3 ? segments.slice(0, 3).join('/') : path;
 
+  // Collect first (don't mutate while iterating cache.keys())
+  const toInvalidate = new Set<string>();
   for (const key of cache.keys()) {
     if (key === path || key === basePath || key.startsWith(basePath + '/') || key.startsWith(basePath + '?')) {
-      cache.delete(key);
-      nextVer(key); // bump version so in-flight background fetches become stale
+      toInvalidate.add(key);
     }
   }
 
-  // Also invalidate /api/finance/report when finance mutates
+  // Cross-resource cascades — add even if not currently cached so the version
+  // bump still happens (prevents in-flight stale fetches from overwriting).
   if (basePath === '/api/finance') {
-    cache.delete('/api/finance/report');
+    toInvalidate.add('/api/finance/report');
   }
-  // Milestone mutations affect finance too
   if (basePath === '/api/milestones' || path.includes('/milestones')) {
-    cache.delete('/api/finance');
-    cache.delete('/api/finance/report');
+    toInvalidate.add('/api/finance');
+    toInvalidate.add('/api/finance/report');
   }
-
   // Dashboard aggregates all data — always invalidate on any mutation
-  cache.delete('/api/dashboard');
+  toInvalidate.add('/api/dashboard');
+
+  for (const key of toInvalidate) invalidatePath(key);
 }
 
 /** Dispatch event so pages know to re-render with fresh data */

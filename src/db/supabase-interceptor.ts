@@ -8,7 +8,7 @@
  */
 import { handleSupabaseRequest } from './supabase-api';
 import { initDb, handleApiRequest } from './api';
-import { enqueue, startOfflineQueueListener } from './offline-queue';
+import { enqueue } from './offline-queue';
 import { initSyncManager } from './sync-manager';
 import { supabase } from './supabase-client';
 import { cacheGet, cacheSet, cacheToResponse, isFresh, invalidateForMutation, notifyUpdate, clearCache, cacheVersion } from './data-cache';
@@ -95,29 +95,25 @@ async function handleLocally(
 }
 
 // ── Handle via Supabase ───────────────────────────────────────────
+// Note: no internal fallback — exceptions propagate so callers can decide
+// whether to enqueue (mutations) or silently fall back to local (reads).
 
 async function handleViaSupabase(
   method: string,
   path: string,
   body: Record<string, unknown>,
 ): Promise<Response> {
-  try {
-    const { status, data } = await handleSupabaseRequest(method, path, body);
-    if (path === '/api/finance/report' && status === 200) {
-      return new Response(data as string, {
-        status: 200,
-        headers: { 'Content-Type': 'text/html; charset=utf-8' },
-      });
-    }
-    return new Response(JSON.stringify(data), {
-      status,
-      headers: { 'Content-Type': 'application/json' },
+  const { status, data } = await handleSupabaseRequest(method, path, body);
+  if (path === '/api/finance/report' && status === 200) {
+    return new Response(data as string, {
+      status: 200,
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
     });
-  } catch (e: unknown) {
-    console.error('[SupabaseAPI]', method, path, e);
-    // Fall back to local on Supabase errors
-    return handleLocally(method, path, body);
   }
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
 }
 
 // ── Public entry ──────────────────────────────────────────────────
@@ -128,9 +124,6 @@ export async function installSupabaseInterceptor(): Promise<void> {
 
   // Always init local sql.js DB for offline support
   await initDb();
-
-  // Start listening for online events (lightweight fallback)
-  startOfflineQueueListener();
 
   // Initialize the sync manager — handles:
   //   - Replay on auth ready (cold start)
@@ -161,10 +154,22 @@ export async function installSupabaseInterceptor(): Promise<void> {
     // ── Mutations: invalidate cache, then proceed ──
     if (method !== 'GET') {
       invalidateForMutation(path);
+
+      // Try Supabase first when online + authenticated.
+      // 2xx/3xx → return to UI.
+      // 4xx    → real application error (RLS/validation/auth) — return to UI, do NOT enqueue (replay would fail the same way).
+      // 5xx or thrown exception → Supabase unavailable → fall through to local+enqueue.
       if (isOnline() && isAuthenticated()) {
-        return await handleViaSupabase(method, path, body);
+        try {
+          const resp = await handleViaSupabase(method, path, body);
+          if (resp.status < 500) return resp;
+          console.warn('[Interceptor] Supabase mutation returned', resp.status, '— falling back to local+queue:', method, path);
+        } catch (e) {
+          console.warn('[Interceptor] Supabase mutation threw — falling back to local+queue:', method, path, e);
+        }
       }
-      // Handle locally first, then enqueue with localId for POST operations
+
+      // Offline, unauthed, or Supabase unavailable → local write + enqueue for later replay.
       const localResponse = await handleLocally(method, path, body);
       let localId: number | undefined;
       if (method === 'POST') {
@@ -185,11 +190,20 @@ export async function installSupabaseInterceptor(): Promise<void> {
 
     // Helper: fetch fresh data, cache it, and return/notify.
     // Captures version at fetch start so stale responses (from before a mutation) are rejected.
+    // Reads are resilient: if Supabase fails, silently fall back to local — GETs don't need enqueue.
     const fetchFresh = async (source: 'supabase' | 'local'): Promise<Response> => {
       const ver = cacheVersion(path); // snapshot version before fetch
-      const resp = source === 'supabase'
-        ? await handleViaSupabase(method, path, body)
-        : await handleLocally(method, path, body);
+      let resp: Response;
+      if (source === 'supabase') {
+        try {
+          resp = await handleViaSupabase(method, path, body);
+        } catch (e) {
+          console.warn('[Interceptor] Supabase GET failed — using local:', path, e);
+          resp = await handleLocally(method, path, body);
+        }
+      } else {
+        resp = await handleLocally(method, path, body);
+      }
       const ct = resp.headers.get('Content-Type') || 'application/json';
       const clone = resp.clone();
       clone.text().then((text) => {

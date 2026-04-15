@@ -1069,7 +1069,7 @@ export async function handleApiRequest(
       const vals: unknown[] = [];
       if (body.label !== undefined) { sets.push('label=?'); vals.push(str(body.label, 255)); }
       if (body.due_date !== undefined) { sets.push('due_date=?'); vals.push(str(body.due_date, 10)); }
-      if (body.paid_date !== undefined) { sets.push('paid_date=?'); vals.push(str(body.paid_date, 16)); }
+      if (body.paid_date !== undefined) { sets.push('paid_date=?'); vals.push(str(body.paid_date, 10)); }
       if (body.payment_method !== undefined) { sets.push('payment_method=?'); vals.push(str(body.payment_method, 50)); }
       if (body.status !== undefined) { sets.push('status=?'); vals.push(enumVal(body.status, VALID_MS_STATUSES, 'pending')); }
       if (body.invoice_number !== undefined) { sets.push('invoice_number=?'); vals.push(str(body.invoice_number, 100)); }
@@ -1088,7 +1088,7 @@ export async function handleApiRequest(
         if (msRow?.finance_tx_id) {
           const updates: string[] = [];
           const uVals: unknown[] = [];
-          if (body.paid_date !== undefined) { updates.push('date=?'); uVals.push(body.paid_date); }
+          if (body.paid_date !== undefined) { updates.push('date=?'); uVals.push(str(body.paid_date, 10)); }
           if (body.amount !== undefined) {
             const newAmt = Number(body.amount) || 0;
             updates.push('amount=?'); uVals.push(newAmt);

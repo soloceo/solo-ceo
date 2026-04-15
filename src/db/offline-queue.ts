@@ -194,6 +194,30 @@ function extractResponseId(data: unknown): number | undefined {
   return undefined;
 }
 
+/**
+ * After a POST creates a cloud entity, rewrite all pending queue entries
+ * in IndexedDB to reference the new cloud ID instead of the local one.
+ *
+ * This makes the queue self-consistent across sessions — if the browser
+ * crashes or the user closes the tab mid-replay, any remaining ops already
+ * carry the correct cloud IDs when the next session picks up.
+ */
+async function persistRemap(localId: number, remoteId: number): Promise<void> {
+  const oneMap = new Map([[localId, remoteId]]);
+  const currentOps = await getAllOps();
+  for (const op of currentOps) {
+    const newPath = remapPath(op.path, oneMap);
+    const newBody = remapBody(op.body, oneMap);
+    if (newPath !== op.path || newBody !== op.body) {
+      try {
+        await updateOp({ ...op, path: newPath, body: newBody });
+      } catch (e) {
+        console.warn('[offline-queue] persistRemap failed for op', op.id, e);
+      }
+    }
+  }
+}
+
 // ── Replay queue ──────────────────────────────────────────────────
 
 export function replayQueue(): Promise<{ replayed: number; failed: number }> {
@@ -256,10 +280,14 @@ async function performReplay(): Promise<{ replayed: number; failed: number }> {
       const batch = isPost ? [ordered[i]] : ordered.slice(i, i + BATCH_SIZE).filter(op => op.method !== 'POST');
       const results = await Promise.allSettled(
         batch.map(async (op) => {
-          // Apply ID remapping before sending to Supabase
+          // Apply ID remapping before sending to Supabase.
+          // Mutate the in-memory op so that any later updateOp() (on retry)
+          // persists the remapped values instead of rolling back to local IDs.
           const mappedPath = remapPath(op.path, idMap);
           const mappedBody = remapBody(op.body, idMap);
-          const result = await handleSupabaseRequest(op.method, mappedPath, mappedBody);
+          if (mappedPath !== op.path) op.path = mappedPath;
+          if (mappedBody !== op.body) op.body = mappedBody;
+          const result = await handleSupabaseRequest(op.method, op.path, op.body);
           return { op, result };
         })
       );
@@ -269,10 +297,13 @@ async function performReplay(): Promise<{ replayed: number; failed: number }> {
           const { op, result } = r.value;
           if (result.status < 400) {
             // Success — if this was a POST with a localId, record the mapping
+            // AND persist the remap so that remaining queue entries survive
+            // a browser crash / session end.
             if (op.method === 'POST' && op.localId != null) {
               const remoteId = extractResponseId(result.data);
               if (remoteId != null) {
                 idMap.set(op.localId, remoteId);
+                await persistRemap(op.localId, remoteId);
               }
             }
             await removeOp(op.id);
@@ -284,10 +315,10 @@ async function performReplay(): Promise<{ replayed: number; failed: number }> {
             await updateOp(op);
             failed++;
           } else {
-            // Permanent 4xx client error (400, 403, 404, 422…) — no retry
-            op.retryCount = MAX_RETRIES;
-            op.failReason = `HTTP ${result.status} (permanent)`;
-            await updateOp(op);
+            // Permanent 4xx client error (400, 403, 404, 422…) — no retry.
+            // Remove from queue immediately so the pendingOps badge drops and
+            // the next replay cycle doesn't re-warn the user about the same op.
+            await removeOp(op.id);
             dispatchQueueWarning(`离线操作失败(${result.status})：${op.method} ${op.path}`);
             failed++;
           }
@@ -310,19 +341,5 @@ async function performReplay(): Promise<{ replayed: number; failed: number }> {
   return { replayed, failed };
 }
 
-// ── Auto-replay on online event ──────────────────────────────────
-// Note: The sync-manager now handles the `online` event and
-// visibilitychange triggers. This listener is kept as a fallback.
-
-let listening = false;
-
-export function startOfflineQueueListener() {
-  if (listening) return;
-  listening = true;
-
-  // The sync-manager's initSyncManager() is the primary trigger.
-  // This is a lightweight fallback that just logs.
-  window.addEventListener('online', () => {
-    // Online event detected — sync-manager handles replay
-  });
-}
+// Note: auto-replay triggers (online event, visibilitychange, auth-ready)
+// are handled entirely by sync-manager.ts — see initSyncManager().

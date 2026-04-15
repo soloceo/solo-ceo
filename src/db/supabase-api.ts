@@ -807,7 +807,7 @@ export async function handleSupabaseRequest(
       if (body.status !== undefined) msPatch.status = enumVal(body.status, VALID_MS_STATUSES, 'pending');
       if (body.invoice_number !== undefined) msPatch.invoice_number = str(body.invoice_number, 100);
       if (body.note !== undefined) msPatch.note = str(body.note, 1000);
-      if (body.paid_date !== undefined) msPatch.paid_date = str(body.paid_date, 16);
+      if (body.paid_date !== undefined) msPatch.paid_date = str(body.paid_date, 10);
       if (body.sort_order !== undefined) msPatch.sort_order = body.sort_order ?? 0;
       if (body.project_id !== undefined) msPatch.project_id = body.project_id;
       if (Object.keys(msPatch).length === 0) return ok({ success: true });
@@ -821,7 +821,7 @@ export async function handleSupabaseRequest(
         const { data: msRow } = await supabase.from('payment_milestones').select('finance_tx_id').eq('id', id).eq('user_id', userId).single();
         if (msRow?.finance_tx_id) {
           const txPatch: Record<string, unknown> = {};
-          if (body.paid_date !== undefined) txPatch.date = str(body.paid_date, 16);
+          if (body.paid_date !== undefined) txPatch.date = str(body.paid_date, 10);
           if (body.amount !== undefined) {
             const newAmt = Number(body.amount) || 0;
             txPatch.amount = newAmt;

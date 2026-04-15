@@ -55,7 +55,12 @@ async function pullCloudToLocal(): Promise<void> {
       // Fetch all rows from Supabase (RLS filters by user_id)
       const { data: rows, error } = await supabase.from(table).select('*');
       if (error || !rows) continue;
-      // Skip DELETE+INSERT if cloud returned 0 rows — prevents accidental data wipe
+      // Skip DELETE+INSERT if cloud returned 0 rows — prevents accidental data wipe.
+      // Known limitation: if the user legitimately cleared all rows elsewhere,
+      // this cold-start pull won't propagate the deletion to local. Realtime
+      // postgres_changes covers live deletes while the tab is active, so this
+      // only affects users who delete-all on device A then open device B fresh.
+      // TODO: add last_sync_at / per-table cursor to enable safe diff pulls.
       if (rows.length === 0) continue;
 
       // Get local column names via PRAGMA
