@@ -59,7 +59,7 @@ bootstrap().catch((err) => {
   const root = document.getElementById('root');
   if (root) {
     const wrap = document.createElement('div');
-    wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:system-ui;color:#666;gap:12px'; /* fallback: CSS vars not available */
+    wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;height:100dvh;font-family:system-ui;color:#666;gap:12px'; /* fallback: CSS vars not available */
     const p1 = document.createElement('p');
     p1.style.fontSize = '16px';
     p1.textContent = 'App failed to load';

@@ -2880,7 +2880,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                           {editingMsgIndex === i ? (
                             <div className="w-full min-w-0 sm:min-w-[280px]">
                               <textarea
-                                className="w-full rounded-2xl px-3 sm:px-4 py-3 text-[14px] leading-relaxed resize-none border-0 outline-none"
+                                className="w-full rounded-2xl px-3 sm:px-4 py-3 text-[16px] lg:text-[14px] leading-relaxed resize-none border-0 outline-none"
                                 style={{ background: "var(--color-bg-secondary)", color: "var(--color-text-primary)", minHeight: 60, border: "1px solid var(--color-line-secondary)" }}
                                 value={editingMsgText}
                                 onChange={e => setEditingMsgText(e.target.value)}
@@ -3084,7 +3084,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                     onPaste={handlePaste}
                     placeholder={pendingAttachments.length ? (lang === "zh" ? "描述图片或提问..." : "Describe the image or ask...") : isGroupConv ? (lang === "zh" ? "输入消息... (@ 可指定 Agent)" : "Type a message... (@ to mention agent)") : t("ai.chat.placeholder")}
                     rows={1}
-                    className="w-full px-4 pt-3 pb-1 text-[14px] resize-none bg-transparent border-0 outline-none"
+                    className="w-full px-4 pt-3 pb-1 text-[16px] lg:text-[14px] resize-none bg-transparent border-0 outline-none"
                     style={{ maxHeight: 120, minHeight: 24, color: "var(--color-text-primary)" }}
                     disabled={isStreamingHere}
                   />

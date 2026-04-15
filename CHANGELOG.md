@@ -3,6 +3,12 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.44.2] - 2026-04-15
+
+### Fixed
+- **iOS Safari — AI chat input no longer zooms the page when tapped.** Both the main chat textarea and the inline edit-message textarea used `text-[14px]` without the `.input-base` class, so the global mobile anti-zoom rule (`font-size: max(16px, 1em)`) didn't apply. On iPhone Safari, tapping into the chat input would zoom the page in and leave it stuck at the zoomed level. Fixed by bumping to `text-[16px] lg:text-[14px]` — mobile gets 16px (zoom-safe), desktop keeps 14px.
+- **Pre-mount fallback screens — switched to dynamic viewport height.** `ErrorBoundary` and the bootstrap fatal-error fallback now use `height: 100dvh` instead of `100vh`, so the fallback UI sits correctly within the visible area on iOS Safari (which excludes the URL bar from `dvh` but includes it in `vh`).
+
 ## [2.44.1] - 2026-04-14
 
 ### Fixed
