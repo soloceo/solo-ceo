@@ -176,7 +176,7 @@ export default function FinancePage() {
   }, []);
 
   const fetchClients = useCallback(async () => {
-    try { const d = await api.get<{ id: number; name: string }[]>("/api/clients"); setClientList(Array.isArray(d) ? d : []); } catch { /* client list unavailable */ }
+    try { const d = await api.get<{ id: number; name: string }[]>("/api/clients"); setClientList(Array.isArray(d) ? d : []); } catch (e) { console.warn('[FinancePage] fetchClients', e); }
   }, []);
 
   useEffect(() => { void Promise.all([fetchFinance(), fetchClients()]); }, [fetchFinance, fetchClients]);
@@ -430,10 +430,11 @@ export default function FinancePage() {
     const { provider, apiKey } = aiConfig;
 
     setAiParsing(true);
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
     try {
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('AI parsing timeout')), 15000)
-      );
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error('AI parsing timeout')), 15000);
+      });
       const parsed = await Promise.race([parseExpense(text, financeTab, lang, provider, apiKey), timeoutPromise]);
       const isIncome = financeTab === "business" && (parsed.category === "收入" || parsed.category === "Income");
       await api.post("/api/finance", {
@@ -454,6 +455,7 @@ export default function FinancePage() {
       console.warn('[FinancePage] handleAiRecord', e);
       showToast(t("money.ai.error"));
     } finally {
+      if (timeoutId) clearTimeout(timeoutId);
       setAiParsing(false);
     }
   };
