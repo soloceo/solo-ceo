@@ -174,6 +174,10 @@ function App() {
   useEffect(() => {
     if (!user) return;
     const fetchBadges = async () => {
+      // Skip polling while the tab is hidden — avoids wasted bandwidth and
+      // quota (dashboard endpoint fans out across several Supabase queries).
+      // A fresh fetch runs on visibilitychange below when the tab comes back.
+      if (document.hidden) return;
       try {
         const data = await api.get<any>("/api/dashboard");
         if (!data || typeof data !== 'object') return;
@@ -192,9 +196,16 @@ function App() {
       }
     };
     fetchBadges();
-    // Refresh every 60s
+    // Refresh every 60s (no-op while hidden — see fetchBadges guard above)
     const interval = setInterval(fetchBadges, 60_000);
-    return () => clearInterval(interval);
+    // Refresh immediately when the tab becomes visible again so badges
+    // aren't stale for up to 60s after returning from background.
+    const onVisible = () => { if (!document.hidden) fetchBadges(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [user]);
 
   /* ── Mobile header menu ── */
@@ -269,7 +280,11 @@ function App() {
       const yesterday = dateToKey(new Date(Date.now() - 86400000));
       if (s.lastDate === today || s.lastDate === yesterday) return s.count || 0;
     } catch (e) {
-      // streak parse failed — return 0
+      // Corrupted localStorage entry — surface in dev so we notice migration
+      // regressions; in prod silently reset to 0 rather than blowing up the UI.
+      if (import.meta.env.DEV) {
+        console.warn('[App] protocol streak parse failed, resetting to 0:', e);
+      }
     }
     return 0;
   }, [protocolStreakRaw]);

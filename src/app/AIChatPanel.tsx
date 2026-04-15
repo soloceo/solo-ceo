@@ -120,23 +120,44 @@ function saveConversationsLocal(convs: Conversation[]) {
 
 /** Sync a single conversation to the API (debounced per conversation) */
 const pendingSyncs = new Map<string, ReturnType<typeof setTimeout>>();
+/** Hold the latest conversation snapshot per id so flush can run without the
+ *  caller re-supplying it. Debounced updates overwrite; flush drains this map. */
+const pendingConvs = new Map<string, Conversation>();
+
+async function writeConvToAPI(conv: Conversation) {
+  const trimmed = trimConv(conv);
+  try {
+    await api.put(`/api/conversations/${conv.id}`, {
+      title: trimmed.title,
+      messages: trimmed.messages,
+      agent_id: trimmed.agentId,
+      agent_ids: trimmed.agentIds || [],
+      updated_at: new Date().toISOString(),
+    });
+  } catch { /* offline — localStorage is the fallback */ }
+}
+
 function syncConversationToAPI(conv: Conversation) {
   // Debounce per conversation — wait 1.5s after last change before saving
   const existing = pendingSyncs.get(conv.id);
   if (existing) clearTimeout(existing);
-  pendingSyncs.set(conv.id, setTimeout(async () => {
+  pendingConvs.set(conv.id, conv);
+  pendingSyncs.set(conv.id, setTimeout(() => {
     pendingSyncs.delete(conv.id);
-    const trimmed = trimConv(conv);
-    try {
-      await api.put(`/api/conversations/${conv.id}`, {
-        title: trimmed.title,
-        messages: trimmed.messages,
-        agent_id: trimmed.agentId,
-        agent_ids: trimmed.agentIds || [],
-        updated_at: new Date().toISOString(),
-      });
-    } catch { /* offline — localStorage is the fallback */ }
+    const latest = pendingConvs.get(conv.id);
+    pendingConvs.delete(conv.id);
+    if (latest) void writeConvToAPI(latest);
   }, 1500));
+}
+
+/** Flush all pending debounced syncs immediately. Call on unmount so the last
+ *  edit before closing the panel / navigating away isn't lost. */
+function flushPendingSyncs() {
+  for (const timer of pendingSyncs.values()) clearTimeout(timer);
+  pendingSyncs.clear();
+  const convs = Array.from(pendingConvs.values());
+  pendingConvs.clear();
+  for (const conv of convs) void writeConvToAPI(conv);
 }
 
 function generateId(): string {
@@ -1045,11 +1066,18 @@ function cleanToolGarbage(text: string): string {
 
 /** Try to extract a tool_call JSON from the AI response text */
 function parseToolCall(text: string): ToolCall | null {
+  // Direct parse path — only warn on failure if the text *looks* like JSON,
+  // otherwise this fires on every plain-text reply and floods the console.
+  const trimmed = text.trim();
+  const looksJsonLike = trimmed.startsWith("{") || trimmed.startsWith("[");
   try {
-    // Try direct parse
-    const direct = JSON.parse(text.trim());
+    const direct = JSON.parse(trimmed);
     if (direct?.tool_call?.name) return direct.tool_call;
-  } catch { /* not pure JSON */ }
+  } catch (e) {
+    if (looksJsonLike && import.meta.env.DEV) {
+      console.warn('[AIChat] tool_call direct parse failed:', e, trimmed.slice(0, 200));
+    }
+  }
 
   // Try extracting from markdown code fence
   const fenceMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
@@ -1057,7 +1085,11 @@ function parseToolCall(text: string): ToolCall | null {
     try {
       const parsed = JSON.parse(fenceMatch[1].trim());
       if (parsed?.tool_call?.name) return parsed.tool_call;
-    } catch { /* skip */ }
+    } catch (e) {
+      if (import.meta.env.DEV) {
+        console.warn('[AIChat] tool_call fenced parse failed:', e, fenceMatch[1].slice(0, 200));
+      }
+    }
   }
 
   // Try extracting any {"tool_call": ...} block (greedy to catch nested objects)
@@ -1066,7 +1098,11 @@ function parseToolCall(text: string): ToolCall | null {
     try {
       const parsed = JSON.parse(jsonMatch[0]);
       if (parsed?.tool_call?.name) return parsed.tool_call;
-    } catch { /* skip */ }
+    } catch (e) {
+      if (import.meta.env.DEV) {
+        console.warn('[AIChat] tool_call narrow regex parse failed:', e, jsonMatch[0].slice(0, 200));
+      }
+    }
   }
 
   // Fallback: broader regex for any {"tool_call": {...}} pattern
@@ -1075,7 +1111,11 @@ function parseToolCall(text: string): ToolCall | null {
     try {
       const parsed = JSON.parse(broadMatch[0]);
       if (parsed?.tool_call?.name) return parsed.tool_call;
-    } catch { /* skip */ }
+    } catch (e) {
+      if (import.meta.env.DEV) {
+        console.warn('[AIChat] tool_call broad regex parse failed:', e, broadMatch[0].slice(0, 200));
+      }
+    }
   }
 
   return null;
@@ -1393,9 +1433,13 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
   }, []);
   useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
 
-  // Abort any in-flight streaming request on unmount
+  // Abort any in-flight streaming request on unmount, and flush any debounced
+  // conversation syncs so the last edit before unmount isn't dropped.
   useEffect(() => {
-    return () => { abortRef.current?.abort(); };
+    return () => {
+      abortRef.current?.abort();
+      flushPendingSyncs();
+    };
   }, []);
 
   // Load conversations from API on mount (merge with localStorage cache)
@@ -1780,7 +1824,10 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
         }));
         continue;
       }
-      const safety = TOOL_SAFETY[toolCall.name] || "write";
+      // Security: unknown tool names default to "destructive" (never auto-execute).
+      // If a model hallucinates / mis-spells a tool name, we must require explicit
+      // user confirmation rather than silently treating it as a safe write.
+      const safety = TOOL_SAFETY[toolCall.name] ?? "destructive";
       const isRead = safety === "read";
 
       // Extract any text the agent wrote BEFORE the tool call JSON

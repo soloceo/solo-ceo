@@ -428,6 +428,12 @@ export const TOOLS = {
       if (a.needs) updates.needs = a.needs;
       if (a.source) updates.source = a.source;
       if (a.website) updates.website = a.website;
+      // `name` is the match key, not a mutable field — if the AI passes only
+      // `{name}` the update payload is empty. Reject explicitly instead of
+      // silently "succeeding" so the user can retry with real changes.
+      if (Object.keys(updates).length === 0) {
+        return { success: false, message: "No fields to update. Provide at least one of: industry, needs, source, website" };
+      }
       await api.put(`/api/leads/${lead.id}`, updates);
       invalidate(ctx, "/api/leads");
       return { success: true, message: `Lead "${lead.name}" updated` };
@@ -512,12 +518,18 @@ export const TOOLS = {
       const amt = Number(a.amount);
       if (!a.amount || !isFinite(amt) || amt <= 0) return { success: false, message: "Missing or invalid amount" };
       if (!a.description) return { success: false, message: "Missing required field: description" };
+      // Whitelist `type` — the DB has no CHECK constraint, so an AI that
+      // hallucinates e.g. "refund" would otherwise pollute the ledger.
+      const type = (a.type as string) || "expense";
+      if (type !== "income" && type !== "expense") {
+        return { success: false, message: `Invalid type "${type}". Allowed: income, expense` };
+      }
       const isPersonal = a.scope === "personal";
       const scopeKey = isPersonal ? "personal" : "business";
       const allowedCats = FINANCE_CATEGORIES[scopeKey];
       const defaultCat = isPersonal
-        ? (a.type === "income" ? "个人其他" : "餐饮")
-        : (a.type === "income" ? "收入" : "其他支出");
+        ? (type === "income" ? "个人其他" : "餐饮")
+        : (type === "income" ? "收入" : "其他支出");
       let category = typeof a.category === "string" && a.category.trim() ? a.category.trim() : defaultCat;
       if (!allowedCats.includes(category)) {
         return {
@@ -526,7 +538,7 @@ export const TOOLS = {
         };
       }
       const body: Record<string, unknown> = {
-        type: a.type || "expense",
+        type,
         amount: amt,
         description: a.description,
         date: a.date || todayDateKey(),
@@ -537,7 +549,7 @@ export const TOOLS = {
       };
       await api.post("/api/finance", body);
       invalidate(ctx, "/api/finance", "/api/dashboard");
-      return { success: true, message: `${a.type === "income" ? "Income" : "Expense"} of ${ctx.currencySymbol}${amt} recorded` };
+      return { success: true, message: `${type === "income" ? "Income" : "Expense"} of ${ctx.currencySymbol}${amt} recorded` };
     },
     confirm(a, lang, sym) {
       const isZh = lang === "zh";
