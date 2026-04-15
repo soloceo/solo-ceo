@@ -545,22 +545,24 @@ function seedData(db: Database) {
     ['Timber & Co', '家居家具', '', 'Active', 'Natural, handcrafted, warm aesthetic', 0, 'manual', 'project', 6000]);
 
   // ── Tasks — work scope (8 — cover all kanban columns, tied to real clients) ──
+  // client_id links tasks back to clients.id: Nova Media=1, Atlas=2, Limelight=3, Timber & Co=4.
+  // OceanBlu Tech stays unlinked (still a lead in "proposal" column).
+  db.run(`INSERT INTO tasks (title, client, client_id, priority, due, column, scope) VALUES (?,?,?,?,?,?,?)`,
+    ['设计Nova Media 4月社交媒体套图', 'Nova Media', 1, 'High', today, 'inProgress', 'work']);
+  db.run(`INSERT INTO tasks (title, client, client_id, priority, due, column, scope) VALUES (?,?,?,?,?,?,?)`,
+    ['更新Atlas Architecture品牌指南V2.0', 'Atlas Architecture', 2, 'High', yesterday, 'inProgress', 'work']);
+  db.run(`INSERT INTO tasks (title, client, client_id, priority, due, column, scope) VALUES (?,?,?,?,?,?,?)`,
+    ['交付Limelight Studios官网设计终稿', 'Limelight Studios', 3, 'High', today, 'review', 'work']);
   db.run(`INSERT INTO tasks (title, client, priority, due, column, scope) VALUES (?,?,?,?,?,?)`,
-    ['设计Nova Media 4月社交媒体套图', 'Nova Media', 'High', today, 'inProgress', 'work']);
-  db.run(`INSERT INTO tasks (title, client, priority, due, column, scope) VALUES (?,?,?,?,?,?)`,
-    ['更新Atlas Architecture品牌指南V2.0', 'Atlas Architecture', 'High', yesterday, 'inProgress', 'work']);
-  db.run(`INSERT INTO tasks (title, client, priority, due, column, scope) VALUES (?,?,?,?,?,?)`,
-    ['交付Limelight Studios官网设计终稿', 'Limelight Studios', 'High', today, 'review', 'work']);
-  db.run(`INSERT INTO tasks (title, client, priority, due, column, scope) VALUES (?,?,?,?,?,?)`,
-    ['制作OceanBlu Tech Logo提案（3套方案）', '', 'Medium', dayAfterTomorrow, 'todo', 'work']);
-  db.run(`INSERT INTO tasks (title, client, priority, due, column, scope) VALUES (?,?,?,?,?,?)`,
-    ['设计Nova Media短视频封面模板', 'Nova Media', 'Medium', nextWeek, 'todo', 'work']);
-  db.run(`INSERT INTO tasks (title, client, priority, due, column, scope) VALUES (?,?,?,?,?,?)`,
-    ['Timber & Co产品画册排版', 'Timber & Co', 'Medium', tenDaysLater, 'todo', 'work']);
-  db.run(`INSERT INTO tasks (title, client, priority, due, column, scope) VALUES (?,?,?,?,?,?)`,
-    ['制作Atlas Architecture季度汇报PPT', 'Atlas Architecture', 'Low', twoWeeksLater, 'todo', 'work']);
-  db.run(`INSERT INTO tasks (title, client, priority, due, column, scope) VALUES (?,?,?,?,?,?)`,
-    ['归档Nova Media 3月交付物', 'Nova Media', 'Low', '', 'done', 'work']);
+    ['制作OceanBlu Tech Logo提案（3套方案）', 'OceanBlu Tech', 'Medium', dayAfterTomorrow, 'todo', 'work']);
+  db.run(`INSERT INTO tasks (title, client, client_id, priority, due, column, scope) VALUES (?,?,?,?,?,?,?)`,
+    ['设计Nova Media短视频封面模板', 'Nova Media', 1, 'Medium', nextWeek, 'todo', 'work']);
+  db.run(`INSERT INTO tasks (title, client, client_id, priority, due, column, scope) VALUES (?,?,?,?,?,?,?)`,
+    ['Timber & Co产品画册排版', 'Timber & Co', 4, 'Medium', tenDaysLater, 'todo', 'work']);
+  db.run(`INSERT INTO tasks (title, client, client_id, priority, due, column, scope) VALUES (?,?,?,?,?,?,?)`,
+    ['制作Atlas Architecture季度汇报PPT', 'Atlas Architecture', 2, 'Low', twoWeeksLater, 'todo', 'work']);
+  db.run(`INSERT INTO tasks (title, client, client_id, priority, due, column, scope) VALUES (?,?,?,?,?,?,?)`,
+    ['归档Nova Media 3月交付物', 'Nova Media', 1, 'Low', '', 'done', 'work']);
 
   // ── Tasks — personal scope (4) ──
   db.run(`INSERT INTO tasks (title, priority, due, column, scope) VALUES (?,?,?,?,?)`,
@@ -595,17 +597,18 @@ function seedData(db: Database) {
   // ── Finance Transactions — income sources tied to actual clients ──
   // NOTE: Subscription income is NOT seeded here — syncClientSubscriptionLedger()
   // auto-generates subscription transactions from client MRR + timeline data.
-  // Project milestone income (tied to Limelight Studios)
-  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date, status, source) VALUES (?,?,?,?,?,?,?)`,
-    ['income', 1920, '项目收入', 'Limelight Studios官网设计 · 首付款40%', `${lastMonth}-18`, '已完成', 'milestone']);
-  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date, status, source) VALUES (?,?,?,?,?,?,?)`,
-    ['income', 2880, '项目收入', 'Limelight Studios官网设计 · 尾款60%', nextWeek, '待收款 (应收)', 'milestone']);
-  // Manual income (consultancy from won lead)
-  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date, status, source) VALUES (?,?,?,?,?,?,?)`,
-    ['income', 800, '咨询收入', 'Timber & Co品牌诊断咨询', threeDaysAgo, '已完成', 'manual']);
-  // Project fee (Timber & Co new project deposit)
-  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date, status, source) VALUES (?,?,?,?,?,?,?)`,
-    ['income', 2400, '项目收入', 'Timber & Co产品画册 · 首付款40%', fiveDaysAgo, '已完成', 'milestone']);
+  // Project milestone income (tied to Limelight Studios) — client_id=3
+  // finance_transactions IDs 1-4 are these income rows; milestones below back-reference them.
+  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date, status, source, client_id, client_name) VALUES (?,?,?,?,?,?,?,?,?)`,
+    ['income', 1920, '项目收入', 'Limelight Studios官网设计 · 首付款40%', `${lastMonth}-18`, '已完成', 'milestone', 3, 'Limelight Studios']);
+  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date, status, source, client_id, client_name) VALUES (?,?,?,?,?,?,?,?,?)`,
+    ['income', 2880, '项目收入', 'Limelight Studios官网设计 · 尾款60%', nextWeek, '待收款 (应收)', 'milestone', 3, 'Limelight Studios']);
+  // Manual income (consultancy from Timber & Co — client_id=4)
+  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date, status, source, client_id, client_name) VALUES (?,?,?,?,?,?,?,?,?)`,
+    ['income', 800, '咨询收入', 'Timber & Co品牌诊断咨询', threeDaysAgo, '已完成', 'manual', 4, 'Timber & Co']);
+  // Project fee (Timber & Co new project deposit — client_id=4)
+  db.run(`INSERT INTO finance_transactions (type, amount, category, description, date, status, source, client_id, client_name) VALUES (?,?,?,?,?,?,?,?,?)`,
+    ['income', 2400, '项目收入', 'Timber & Co产品画册 · 首付款40%', fiveDaysAgo, '已完成', 'milestone', 4, 'Timber & Co']);
   // Expenses (realistic North American freelancer costs in USD)
   db.run(`INSERT INTO finance_transactions (type, amount, category, description, date) VALUES (?,?,?,?,?)`,
     ['expense', 15, '软件订阅', 'Figma Professional 月费', `${m}-02`]);
@@ -617,14 +620,16 @@ function seedData(db: Database) {
     ['expense', 32, '软件订阅', 'Notion + 域名续费', threeDaysAgo]);
 
   // ── Payment Milestones (2 projects with milestone tracking) ──
+  // finance_tx_id back-references rows created above (IDs 1/2/4 — id=3 is the standalone consultancy).
+  // Timber & Co tail (3600) has no matching finance_tx yet since it's future/pending.
   // Limelight Studios project — 1 paid + 1 pending
-  db.run(`INSERT INTO payment_milestones (client_id, label, amount, percentage, due_date, status, sort_order) VALUES (?,?,?,?,?,?,?)`,
-    [3, '首付款 40%', 1920, 40, `${lastMonth}-18`, 'paid', 1]);
-  db.run(`INSERT INTO payment_milestones (client_id, label, amount, percentage, due_date, status, sort_order) VALUES (?,?,?,?,?,?,?)`,
-    [3, '尾款 60%', 2880, 60, nextWeek, 'pending', 2]);
+  db.run(`INSERT INTO payment_milestones (client_id, label, amount, percentage, due_date, status, sort_order, finance_tx_id) VALUES (?,?,?,?,?,?,?,?)`,
+    [3, '首付款 40%', 1920, 40, `${lastMonth}-18`, 'paid', 1, 1]);
+  db.run(`INSERT INTO payment_milestones (client_id, label, amount, percentage, due_date, status, sort_order, finance_tx_id) VALUES (?,?,?,?,?,?,?,?)`,
+    [3, '尾款 60%', 2880, 60, nextWeek, 'pending', 2, 2]);
   // Timber & Co project — deposit paid, final pending
-  db.run(`INSERT INTO payment_milestones (client_id, label, amount, percentage, due_date, status, sort_order) VALUES (?,?,?,?,?,?,?)`,
-    [4, '首付款 40%', 2400, 40, fiveDaysAgo, 'paid', 1]);
+  db.run(`INSERT INTO payment_milestones (client_id, label, amount, percentage, due_date, status, sort_order, finance_tx_id) VALUES (?,?,?,?,?,?,?,?)`,
+    [4, '首付款 40%', 2400, 40, fiveDaysAgo, 'paid', 1, 4]);
   db.run(`INSERT INTO payment_milestones (client_id, label, amount, percentage, due_date, status, sort_order) VALUES (?,?,?,?,?,?,?)`,
     [4, '尾款 60%', 3600, 60, twoWeeksLater, 'pending', 2]);
 
@@ -654,6 +659,28 @@ function seedData(db: Database) {
     ['lead', 'created', '新增线索：Harvest Organics', '来源：Google搜索', mins(1440)]);
   db.run(`INSERT INTO activity_log (entity_type, action, title, detail, created_at) VALUES (?,?,?,?,?)`,
     ['lead', 'created', '新增线索：Greenfield Coffee', '来源：Instagram DM', mins(2880)]);
+
+  // ── Content Drafts (4 — AI-assisted content for social/email) ──
+  db.run(`INSERT INTO content_drafts (topic, platform, language, content) VALUES (?,?,?,?)`,
+    ['订阅制设计服务的三个核心优势', 'LinkedIn', 'zh',
+      '为什么越来越多的北美SaaS公司选择订阅制设计服务？\n\n1. 可预测的成本结构 — 固定月费，告别按项目询价的反复扯皮\n2. 持续的品牌一致性 — 同一设计师跟进所有素材，风格不漂移\n3. 敏捷响应 — 24-48小时内交付，不再等一周起\n\n如果你正在规划品牌视觉升级，不妨考虑这种模式。欢迎私信交流。']);
+  db.run(`INSERT INTO content_drafts (topic, platform, language, content) VALUES (?,?,?,?)`,
+    ['OceanBlu Tech Logo 提案跟进邮件', 'Email', 'en',
+      'Hi [Name],\n\nFollowing up on the 3-concept logo proposal I sent last week for OceanBlu Tech. Happy to walk through any of the directions in a 20-min call this week — Tue/Wed afternoons work well for me.\n\nAlso attaching two additional color variations for Concept 2 based on your earlier note about wanting something that reads well on both light and dark SaaS dashboards.\n\nLet me know what resonates.\n\nBest,\nMing']);
+  db.run(`INSERT INTO content_drafts (topic, platform, language, content) VALUES (?,?,?,?)`,
+    ['最近交付的 Limelight Studios 官网案例', 'Instagram', 'zh',
+      '刚交付 @limelightstudios 的官网终稿 ✨\n\n关键词：自然光、手作质感、留白。整站只用了 3 种字号和 2 套色板，克制但有层次。\n\n作品集更新中，Link in bio 👀\n\n#brandidentity #webdesign #设计师日常 #独立工作室']);
+  db.run(`INSERT INTO content_drafts (topic, platform, language, content) VALUES (?,?,?,?)`,
+    ['Greenfield Coffee 首次联络话术', 'Email', 'zh',
+      '你好 [姓名]，\n\n在 Instagram 看到你们最近的新店开业，氛围很棒。注意到 VI 延展到门店空间时几处细节还有优化空间（比如外摆菜单的视觉层级、杯套字体与主 Logo 的呼应），想交流一下是否有品牌升级的计划。\n\n我是 Ming，在多伦多经营 Ming Design Studio，主做品牌视觉。做过 3 家本地餐饮品牌的 VI + 门店视觉，可以发你参考案例。\n\n如果有兴趣，这周五下午有空聊 15 分钟吗？\n\n祝好，\nMing']);
+
+  // ── Today Focus Manual (3 events pinned to today — show focus board is active) ──
+  db.run(`INSERT INTO today_focus_manual (focus_date, type, title, note) VALUES (?,?,?,?)`,
+    [today, '深度工作', '交付 Limelight Studios 官网终稿', '上午 2 小时专注排期，不开会不回消息']);
+  db.run(`INSERT INTO today_focus_manual (focus_date, type, title, note) VALUES (?,?,?,?)`,
+    [today, '客户沟通', '回访 Atlas Architecture Q1 交付总结', '下午 15:00，视频会议 30 分钟']);
+  db.run(`INSERT INTO today_focus_manual (focus_date, type, title, note) VALUES (?,?,?,?)`,
+    [today, '业务推进', 'OceanBlu Tech 提案跟进', '发送补充邮件 + 2 个色板变体']);
 }
 
 // ── Bulk sync helpers ──────────────────────────────────────────────────────
