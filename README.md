@@ -32,7 +32,7 @@ Solo CEO is a web-based workspace built for **solo entrepreneurs, freelancers, a
 
 ## AI
 
-All AI features work with **Gemini, Claude, OpenAI, and DeepSeek** — bring your own API key.
+All AI features work with **Gemini, Claude, OpenAI, DeepSeek** (bring your own API key) — plus **Ollama** and **LM Studio** for fully local models.
 
 - **AI Chat** — Ask questions about your business data; answers are context-aware based on the current page
 - **AI Bookkeeping** — Type "lunch $20" and it auto-parses category, amount, and date
@@ -56,17 +56,17 @@ Solo CEO ships with a dual-layer theme engine: **7 color palettes** and **5 visu
 | Forest | Green | Natural earth tones |
 | Midnight | Indigo | Deep and immersive |
 | Mono | Gray | Pure black and white |
-| Google | Google Blue | Authentic Google Workspace |
+| Carbon | IBM Blue | IBM Carbon Gray 10–100 neutrals |
 
 ### Visual Styles
 
 | Style | Character |
 |-------|-----------|
-| **Classic** | Rounded corners, soft shadows, clean lines |
-| **Neo Brutal** | Bold 2px borders, hard offset shadows, high contrast |
-| **Glass** | Frosted blur, translucent surfaces, layered depth |
-| **HUD** | Cockpit glow, monospace type, scanline texture, terminal aesthetic |
-| **Material** | Borderless elevation, MD3 shape scale, Google-spec state layers |
+| **Default** | Notion-inspired flat — rounded corners, subtle shadows, tokens-only |
+| **Cal** | Cal.com-inspired — calm modern SaaS, 12px radius, gentle hover lift |
+| **Figma** | Figma-inspired — crisp 8px radius, tight borders, editorial palette |
+| **Neobrutalism** | Bold 2px borders, hard offset shadows, high contrast, punchy hover |
+| **Carbon** | IBM Carbon — 0px radius everywhere, Plex Sans/Mono, 2px inset focus ring |
 
 Every combination works in both light and dark mode. All 5 styles include dedicated overrides for every component in the app, including the AI Chat panel.
 
