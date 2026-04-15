@@ -369,9 +369,10 @@ function initSchema(db: Database) {
     )`,
     `ALTER TABLE clients ADD COLUMN drive_folder_url TEXT DEFAULT ''`,
     `ALTER TABLE clients ADD COLUMN subscription_timeline TEXT DEFAULT '[]'`,
-    // Parity with supabase schema — /api/clients GET selects these columns explicitly
+    // Parity with supabase schema — GET handlers select these columns explicitly
     `ALTER TABLE clients ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP`,
     `ALTER TABLE clients ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP`,
+    `ALTER TABLE leads ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP`,
     `ALTER TABLE tasks ADD COLUMN client_id INTEGER`,
     // soft_deleted columns for offline/online consistency
     `ALTER TABLE leads ADD COLUMN soft_deleted INTEGER DEFAULT 0`,
@@ -511,7 +512,9 @@ function seedData(db: Database) {
   db.run(`INSERT INTO leads (name, industry, needs, website, column, aiDraft, source) VALUES (?,?,?,?,?,?,?)`,
     ['Bright Path Academy', '在线教育', '官网改版 + 课程详情页模板设计', 'brightpathacademy.com', 'contacted', '', '朋友介绍']);
   db.run(`INSERT INTO leads (name, industry, needs, website, column, aiDraft, source) VALUES (?,?,?,?,?,?,?)`,
-    ['OceanBlu Tech', 'SaaS', 'Logo设计 + 品牌手册 + 产品官网', 'oceanblu.io', 'proposal', '', 'LinkedIn']);
+    ['OceanBlu Tech', 'SaaS', 'Logo设计 + 品牌手册 + 产品官网', 'oceanblu.io', 'proposal',
+      '【提案初稿 — AI 生成】\n\n主题：OceanBlu Tech 品牌视觉升级方案\n\n核心判断：\nOceanBlu 是做数据可视化 SaaS 的，目标客户是中型 B2B 企业的数据团队。他们当前官网用了深蓝渐变+紫色霓虹的配色，感觉偏消费级产品，和「严肃、可信赖」的数据工具定位有落差。建议整体视觉向「现代专业、极简克制」方向调整。\n\n三个方向：\n1. Nautical Minimal — 保留海洋意向但大幅降饱和，主色改为深海蓝 (#0F3A5F) + 象牙白，辅助色用一抹珊瑚红做强调。Logo 用单色几何浪型，抽象但可识别。\n2. Data-First — 完全去掉海洋隐喻，回到抽象几何。主色炭灰 (#1C1E20) + 电子蓝 (#3B82F6)，Logo 用数据节点连线造型，呼应产品功能。\n3. Trust Blue — 走保守路线，单色深蓝 + 大量留白，Logo 用衬线字标，品牌气质偏金融/咨询公司，适合打大客户市场。\n\n交付范围：\n- Logo 主标 + 变体（含应用在 SaaS Dashboard 的适配版本）\n- 品牌手册 28 页（色彩、字体、间距、版式、图标、数据可视化规范）\n- 产品官网设计 8 页（首页、产品、定价、案例、关于、博客、登录、文档）\n\n时间 & 投入：\n- 方向确认：1 周（3 个概念方向出整体 mood + logo 草稿）\n- 定稿 + 规范手册：3 周\n- 官网设计：4 周（分首页 → 其余页面两批交付）\n- 总工期：8 周，总报价 $12,000 USD（首付 40% / 中期 30% / 尾款 30%）\n\n下一步：建议本周或下周约 30 分钟视频会议对齐方向，我会先把三套概念做成 Figma 可交互 mood board 便于共同决策。',
+      'LinkedIn']);
   db.run(`INSERT INTO leads (name, industry, needs, website, column, aiDraft, source) VALUES (?,?,?,?,?,?,?)`,
     ['Timber & Co', '家居家具', '产品画册 + 电商详情页', 'timberandco.ca', 'won', '', '老客户转介绍']);
   db.run(`INSERT INTO leads (name, industry, needs, website, column, aiDraft, source) VALUES (?,?,?,?,?,?,?)`,
