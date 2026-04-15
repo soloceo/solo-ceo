@@ -126,7 +126,8 @@ export default function AgentTestPanel({ open, onClose, agent }: Props) {
         }
         return copy;
       });
-    } catch {
+    } catch (e) {
+      console.warn('[AgentTestPanel] streamChat', e);
       setMessages(prev => {
         const copy = [...prev];
         const last = copy[copy.length - 1];

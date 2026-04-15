@@ -56,12 +56,16 @@ export default function AISection({ settings, save }: AISectionProps) {
 
   // Try to discover Ollama models on mount
   useEffect(() => {
-    fetchOllamaModels(ollamaUrl).then(m => { if (m.length) setOllamaModels(m); });
+    fetchOllamaModels(ollamaUrl)
+      .then(m => { if (m.length) setOllamaModels(m); })
+      .catch((e) => { console.warn('[AISection] fetchOllamaModels', e); });
   }, [ollamaUrl]);
 
   // Try to discover LM Studio models on mount
   useEffect(() => {
-    fetchLMStudioModels(lmsUrl).then(m => { if (m.length) setLmsModels(m); });
+    fetchLMStudioModels(lmsUrl)
+      .then(m => { if (m.length) setLmsModels(m); })
+      .catch((e) => { console.warn('[AISection] fetchLMStudioModels', e); });
   }, [lmsUrl]);
 
   const selectProvider = (provider: AIProvider | "") => {

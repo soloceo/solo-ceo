@@ -26,7 +26,7 @@ export default function PlanSection({ showToast }: PlanSectionProps) {
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [form, setForm] = useState({ name: "", price: "", deliverySpeed: "", features: "" });
 
-  const fetchPlans = async () => { try { const data = await api.get<Plan[]>("/api/plans"); if (Array.isArray(data)) setPlans(data); } catch (e) { /* API error, silent fallback */ } };
+  const fetchPlans = async () => { try { const data = await api.get<Plan[]>("/api/plans"); if (Array.isArray(data)) setPlans(data); } catch (e) { console.warn('[PlanSection] fetchPlans', e); } };
   useEffect(() => { fetchPlans(); }, []);
 
   const openEdit = (p: Plan) => { let parsed: string[] = []; try { parsed = JSON.parse(p.features || "[]"); } catch { parsed = []; } setEditing(p); setForm({ name: p.name, price: String(p.price || 0), deliverySpeed: p.deliverySpeed || "", features: parsed.join("\n") }); };
