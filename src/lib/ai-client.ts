@@ -18,7 +18,7 @@ export const AI_KEY_MAP: Record<string, string> = {
  * Centralized so upgrades only need to change one line instead of hunting
  * through callJSON / callText / streamChat / testApiKey.
  */
-const MODEL_IDS = {
+export const MODEL_IDS = {
   claude: "claude-sonnet-4-6",
   openai: "gpt-4.1-mini",
   gemini: "gemini-2.5-flash",

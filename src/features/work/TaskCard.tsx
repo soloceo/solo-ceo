@@ -136,13 +136,21 @@ export const TaskCard = React.memo(function TaskCard({
                 const isOverdue = task.due < today;
                 const isToday = task.due === today;
                 const dueCls = isOverdue ? "badge-danger" : isToday ? "badge-warning" : "";
+                // Preserve any time component (YYYY-MM-DDThh:mm) when the
+                // user changes the date — a <input type="date"> only emits
+                // YYYY-MM-DD, which would otherwise drop the scheduled time.
+                const timePart = task.due.length > 10 ? task.due.slice(10) : "";
                 return (
                   <label className={`badge text-[13px] cursor-pointer relative ${dueCls}`}>
                     <Clock size={12} /> {fmtDate(task.due!, lang)}
                     <input
                       type="date"
                       value={task.due?.slice(0, 10)}
-                      onChange={(e) => { e.stopPropagation(); onDueChange(task.id, e.target.value); }}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        const newDate = e.target.value;
+                        onDueChange(task.id, newDate ? newDate + timePart : "");
+                      }}
                       className="absolute inset-0 opacity-0 cursor-pointer"
                       style={{ width: "100%", height: "100%" }}
                     />

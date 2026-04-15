@@ -4,7 +4,7 @@ import { api } from "../../lib/api";
 import { useT } from "../../i18n/context";
 import { useAppSettings } from "../../hooks/useAppSettings";
 import { useUIStore } from "../../store/useUIStore";
-import { getAIConfig, getOllamaConfig } from "../../lib/ai-client";
+import { getAIConfig, getOllamaConfig, MODEL_IDS } from "../../lib/ai-client";
 import type { Task } from "./TaskCard";
 
 interface WorkMemoListProps {
@@ -134,14 +134,27 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
 
   const toggleTask = (task: Task) => {
     const newColumn = task.column === "done" ? "todo" : "done";
-    api.put(`/api/tasks/${task.id}`, { column: newColumn }).then(() => onRefresh()).catch(() => {});
+    api.put(`/api/tasks/${task.id}`, { column: newColumn })
+      .then(() => onRefresh())
+      .catch((e) => {
+        if (import.meta.env.DEV) console.warn('[WorkMemoList] toggleTask failed', e);
+        showToast(t("common.updateFailed"));
+      });
   };
 
   const [removingId, setRemovingId] = useState<number | null>(null);
   const deleteTask = (id: number) => {
     setRemovingId(id);
     setTimeout(() => {
-      api.del(`/api/tasks/${id}`).then(() => { setRemovingId(null); onRefresh(); }).catch(() => {});
+      api.del(`/api/tasks/${id}`)
+        .then(() => { setRemovingId(null); onRefresh(); })
+        .catch((e) => {
+          // Reset the "removing" animation state — otherwise the row stays
+          // visually half-faded with no way to retry.
+          setRemovingId(null);
+          if (import.meta.env.DEV) console.warn('[WorkMemoList] deleteTask failed', e);
+          showToast(t("common.deleteFailed"));
+        });
     }, 250);
   };
 
@@ -162,7 +175,12 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
     const task = memoTasks.find(t => t.id === editingId);
     if (!task) return;
     setEditingId(null);
-    api.put(`/api/tasks/${editingId}`, { title: editTitle.trim(), due: buildDue(editDate, editTime) }).then(() => onRefresh()).catch(() => {});
+    api.put(`/api/tasks/${editingId}`, { title: editTitle.trim(), due: buildDue(editDate, editTime) })
+      .then(() => onRefresh())
+      .catch((e) => {
+        if (import.meta.env.DEV) console.warn('[WorkMemoList] saveEdit failed', e);
+        showToast(t("common.saveFailed"));
+      });
   };
 
   const cancelEdit = () => {
@@ -186,7 +204,12 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
       column: "todo",
       priority: "Medium",
       ...(due ? { due } : {}),
-    }).then(() => onRefresh()).catch(() => {});
+    })
+      .then(() => onRefresh())
+      .catch((e) => {
+        if (import.meta.env.DEV) console.warn('[WorkMemoList] addMemo failed', e);
+        showToast(t("common.saveFailed"));
+      });
   };
 
   const addMemoByAi = async () => {
@@ -219,7 +242,7 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
       if (provider === "openai") {
         const r = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-          body: JSON.stringify({ model: "gpt-4o-mini", messages: [{ role: "system", content: sysPrompt }, { role: "user", content: text }], temperature: 0 }),
+          body: JSON.stringify({ model: MODEL_IDS.openai, messages: [{ role: "system", content: sysPrompt }, { role: "user", content: text }], temperature: 0 }),
           signal,
         });
         const d = await r.json();
@@ -227,13 +250,13 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
       } else if (provider === "claude") {
         const r = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST", headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-          body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 200, system: sysPrompt, messages: [{ role: "user", content: text }] }),
+          body: JSON.stringify({ model: MODEL_IDS.claude, max_tokens: 200, system: sysPrompt, messages: [{ role: "user", content: text }] }),
           signal,
         });
         const d = await r.json();
         result = JSON.parse(d.content[0].text);
       } else if (provider === "gemini") {
-        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`, {
+        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IDS.gemini}:generateContent`, {
           method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
           body: JSON.stringify({ contents: [{ parts: [{ text: `${sysPrompt}\n\nUser: ${text}` }] }] }),
           signal,
