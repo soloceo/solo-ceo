@@ -31,6 +31,8 @@ import { calcTaxAmount, catLabel, STATUS_I18N } from "../../lib/tax";
 import { todayDateKey } from "../../lib/date-utils";
 import { parseExpense, getAIConfig, type AIProvider } from "../../lib/ai-client";
 import { useAppSettings } from "../../hooks/useAppSettings";
+import { celebrate } from "../../lib/celebrate";
+import { TabPill } from "../../components/ui/TabPill";
 const FinanceChart = React.lazy(() => import("./FinanceChart"));
 import { StatCard, TxRow, VirtualTxList } from "./TransactionList";
 
@@ -404,6 +406,8 @@ export default function FinancePage() {
       } else {
         await api.post("/api/finance", txData);
         showToast(t("money.toast.added"));
+        // Celebrate new income — a revenue moment worth marking
+        if (isIncome) celebrate("won");
       }
       setShowPanel(false);
       fetchFinance();
@@ -448,6 +452,7 @@ export default function FinancePage() {
         tax_rate: 0,
         tax_amount: 0,
       });
+      if (isIncome) celebrate("won");
       showToast(`✓ ${t("money.ai.recorded").replace("{desc}", parsed.description).replace("{amount}", `$${parsed.amount}`)}`);
       setAiInput("");
       fetchFinance();
@@ -548,7 +553,7 @@ export default function FinancePage() {
 
       {/* ── Tabs + Actions row ── */}
       <div className="flex items-center gap-2 mb-2">
-        <div className="page-tabs" role="tablist">
+        <div className="page-tabs" role="tablist" data-motion-pill>
           {(["business", "personal"] as const).map((tab) => (
             <button
               key={tab}
@@ -558,8 +563,11 @@ export default function FinancePage() {
               role="tab"
               aria-selected={financeTab === tab}
             >
-              {tab === "business" ? <Building2 size={13} /> : <UserIcon size={13} />}
-              {tab === "business" ? t("money.tab.business") : t("money.tab.personal")}
+              {financeTab === tab && <TabPill groupId="finance-scope" />}
+              <span className="inline-flex items-center gap-1.5">
+                {tab === "business" ? <Building2 size={13} /> : <UserIcon size={13} />}
+                {tab === "business" ? t("money.tab.business") : t("money.tab.personal")}
+              </span>
             </button>
           ))}
         </div>
@@ -859,8 +867,12 @@ export default function FinancePage() {
             <motion.div
               initial={{ x: isMobile ? 0 : "100%", y: isMobile ? "100%" : 0 }}
               animate={{ x: 0, y: 0 }}
-              exit={{ x: isMobile ? 0 : "100%", y: isMobile ? "100%" : 0 }}
-              transition={{ duration: 0.35, ease: [0.25, 1, 0.5, 1] }}
+              exit={{
+                x: isMobile ? 0 : "100%",
+                y: isMobile ? "100%" : 0,
+                transition: { duration: 0.28, ease: [0.32, 0, 0.67, 0] },
+              }}
+              transition={{ type: "spring", stiffness: 360, damping: 36, mass: 0.9 }}
               role="dialog"
               aria-modal="true"
               aria-label="Transaction form"
@@ -894,7 +906,7 @@ export default function FinancePage() {
               <form id="finance-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto overflow-x-hidden p-5 space-y-3 ios-scroll">
                 {/* Scope toggle — only for new records */}
                 {!editingTx && (
-                  <div className="page-tabs" role="tablist" style={{ marginBottom: 4 }}>
+                  <div className="page-tabs" role="tablist" data-motion-pill style={{ marginBottom: 4 }}>
                     {(["business", "personal"] as const).map((tab) => (
                       <button
                         key={tab}
@@ -914,6 +926,7 @@ export default function FinancePage() {
                         role="tab"
                         aria-selected={financeTab === tab}
                       >
+                        {financeTab === tab && <TabPill groupId="finance-form-scope" />}
                         {tab === "business" ? <Building2 size={13} /> : <UserIcon size={13} />}
                         {tab === "business" ? t("money.tab.business") : t("money.tab.personal")}
                       </button>

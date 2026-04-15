@@ -104,7 +104,7 @@ export function KnowledgeBaseSection() {
     <>
       <section>
         {/* ── Compact dual-row card ── */}
-        <div className="card overflow-hidden">
+        <div className="card card-glow overflow-hidden">
           {/* Row 1: Daily Protocol */}
           <button
             onClick={() => toggle("protocol")}

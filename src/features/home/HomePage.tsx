@@ -17,6 +17,7 @@ import { BarChart3 } from "lucide-react";
 import { api } from "../../lib/api";
 import PeepIllustration from "../../components/ui/PeepIllustration";
 import type { PeepName } from "../../components/ui/PeepIllustration";
+import { TabPill } from "../../components/ui/TabPill";
 
 const WidgetGrid = lazy(() => import("./widgets/WidgetGrid"));
 
@@ -119,7 +120,7 @@ export default function HomePage() {
       <div className="page-stack">
         {/* ── Header: Greeting card with peep bust ── */}
         <div
-          className="card relative overflow-hidden p-4"
+          className="card card-glow relative overflow-hidden p-4"
           style={{ minHeight: 100 }}
         >
           {/* Left: greeting text */}
@@ -153,16 +154,19 @@ export default function HomePage() {
         <KnowledgeBaseSection />
 
         {/* ── Panel Tabs ── */}
-        <div className="page-tabs">
+        <div className="page-tabs" data-motion-pill>
           {(["dashboard", "widgets"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setHomeView(tab)}
               data-active={homeView === tab}
             >
-              {tab === "dashboard"
-                ? t("home.tab.dashboard")
-                : t("home.tab.widgets")}
+              {homeView === tab && <TabPill groupId="home-view" />}
+              <span>
+                {tab === "dashboard"
+                  ? t("home.tab.dashboard")
+                  : t("home.tab.widgets")}
+              </span>
             </button>
           ))}
         </div>

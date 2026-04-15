@@ -8,6 +8,8 @@ import { useLeadAI } from "./useLeadAI";
 import type { LeadAnalysis } from "./useLeadAI";
 import { exportCSV } from "../../lib/csv-export";
 import { todayDateKey } from "../../lib/date-utils";
+import { celebrate } from "../../lib/celebrate";
+import { TabPill } from "../../components/ui/TabPill";
 import {
   DndContext, DragOverlay, closestCorners,
   PointerSensor, useSensor, useSensors, useDroppable,
@@ -260,7 +262,10 @@ export function LeadsView() {
     const [moved] = src.splice(s.index, 1); moved.column = d.droppableId as ColId; dst.splice(d.index, 0, moved);
     const prev = { ...leads };
     setLeads({ ...leads, [s.droppableId]: src, [d.droppableId]: dst });
-    try { await api.put(`/api/leads/${moved.id}`, { column: d.droppableId }); } catch { showToast(t("common.updateFailed")); setLeads(prev); }
+    try {
+      await api.put(`/api/leads/${moved.id}`, { column: d.droppableId });
+      if (d.droppableId === "won") celebrate("won");
+    } catch { showToast(t("common.updateFailed")); setLeads(prev); }
   };
 
   const convertLead = async () => {
@@ -269,6 +274,7 @@ export function LeadsView() {
       const mrrVal = parseFloat(convertForm.mrr); const projVal = parseFloat(convertForm.project_fee);
       await api.post(`/api/leads/${editId}/convert`, { plan_tier: convertForm.plan_tier, status: convertForm.status, mrr: isNaN(mrrVal) ? 0 : mrrVal, subscription_start_date: convertForm.subscription_start_date, billing_type: convertForm.billing_type, project_fee: isNaN(projVal) ? 0 : projVal });
       setShowConvert(false); setShowPanel(false); showToast(t("pipeline.convert.success")); fetchLeads();
+      celebrate("milestone");
     } catch { showToast(t("pipeline.convert.failed")); }
     finally { setConverting(false); }
   };
@@ -276,9 +282,12 @@ export function LeadsView() {
   return (
     <>
       <div className="flex items-center gap-2 mb-2 flex-wrap">
-        <div className="page-tabs">
+        <div className="page-tabs" data-motion-pill>
           {([["vertical", <LayoutGrid size={14} key="v" />, "Board view"], ["horizontal", <AlignJustify size={14} key="h" />, "List view"]] as const).map(([m, icon, label]) => (
-            <button key={m} onClick={() => setViewMode(m)} data-active={viewMode === m} aria-label={label}>{icon}</button>
+            <button key={m} onClick={() => setViewMode(m)} data-active={viewMode === m} aria-label={label}>
+              {viewMode === m && <TabPill groupId="leads-view" />}
+              <span className="inline-flex">{icon}</span>
+            </button>
           ))}
         </div>
         <button onClick={() => setShowFunnel(f => !f)} className={`btn-ghost compact gap-1 ${showFunnel ? "ring-1" : ""}`} style={showFunnel ? { color: "var(--color-accent)", borderColor: "var(--color-accent)" } : undefined}>
@@ -357,7 +366,9 @@ export function LeadsView() {
             const allLeads = Object.values(leads).flat();
             const lead = allLeads.find((l: Lead) => l.id === id);
             if (!lead) return;
+            const wasWon = lead.column === "won";
             await api.put(`/api/leads/${id}`, { column: col }); fetchLeads();
+            if (col === "won" && !wasWon) celebrate("won");
           } catch { showToast(t("pipeline.toast.moveFailed")); }
         }} />
       )}
@@ -370,8 +381,12 @@ export function LeadsView() {
             <motion.div
               initial={{ x: isMobile ? 0 : "100%", y: isMobile ? "100%" : 0 }}
               animate={{ x: 0, y: 0 }}
-              exit={{ x: isMobile ? 0 : "100%", y: isMobile ? "100%" : 0 }}
-              transition={{ duration: 0.35, ease: [0.25, 1, 0.5, 1] }}
+              exit={{
+                x: isMobile ? 0 : "100%",
+                y: isMobile ? "100%" : 0,
+                transition: { duration: 0.28, ease: [0.32, 0, 0.67, 0] },
+              }}
+              transition={{ type: "spring", stiffness: 360, damping: 36, mass: 0.9 }}
               role="dialog"
               aria-modal="true"
               aria-label="Lead detail"

@@ -45,7 +45,8 @@ import { UserMenu } from "./UserMenu";
 import { SyncIndicator } from "./SyncIndicator";
 import PeepIllustration from "../components/ui/PeepIllustration";
 import { useClickOutside } from "./useClickOutside";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
+import { initMouseEffects } from "../lib/mouse-effects";
 
 /* ── Lazy page imports ─────────────────────────────────────────── */
 const HomePage = lazy(() => import("../features/home/HomePage"));
@@ -97,14 +98,26 @@ type NavBadges = {
 /* ── Content renderer ──────────────────────────────────────────── */
 const Content = React.memo(({ activeTab }: { activeTab: string }) => {
   const Page = TAB_MAP[activeTab]?.component ?? HomePage;
+  // AnimatePresence swaps page content with spring physics on tab change —
+  // `mode="wait"` ensures the outgoing page finishes before the incoming one mounts,
+  // so there's no double-stacked layout jank during Suspense boundaries.
   return (
-    <PageErrorBoundary key={activeTab} pageName={activeTab}>
-      <Suspense fallback={<PageSkeleton />}>
-        <div className="page-enter">
-          <Page />
-        </div>
-      </Suspense>
-    </PageErrorBoundary>
+    <AnimatePresence mode="wait" initial={false}>
+      <motion.div
+        key={activeTab}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -6 }}
+        transition={{ type: "spring", stiffness: 380, damping: 32, mass: 0.6 }}
+        style={{ width: "100%", height: "100%" }}
+      >
+        <PageErrorBoundary key={activeTab} pageName={activeTab}>
+          <Suspense fallback={<PageSkeleton />}>
+            <Page />
+          </Suspense>
+        </PageErrorBoundary>
+      </motion.div>
+    </AnimatePresence>
   );
 });
 
@@ -152,6 +165,13 @@ function App() {
   useEffect(() => {
     if (mainScrollRef.current) mainScrollRef.current.scrollTop = 0;
   }, [activeTab]);
+
+  /* ── Premium pointer-driven effects (spotlight + border glow).
+        Idempotent — internal flag short-circuits if already initialized.
+        Self-guards against reduced-motion and touch devices. ── */
+  useEffect(() => {
+    initMouseEffects();
+  }, []);
 
   /* ── Publish sidebar state to body so the portaled AI chat panel
         can position itself next to the sidebar (chat sits between
@@ -809,7 +829,7 @@ const SidebarItem = React.memo(function SidebarItem({
     <button
       onClick={() => onClick(id)}
       aria-current={active ? "page" : undefined}
-      className={`group relative flex items-center select-none cursor-pointer rounded-[var(--radius-6)] text-[15px] ${expanded ? "gap-2 px-2 py-1.5" : "justify-center w-9 h-9 mx-auto"}`}
+      className={`group relative nav-glow flex items-center select-none cursor-pointer rounded-[var(--radius-6)] text-[15px] ${expanded ? "gap-2 px-2 py-1.5" : "justify-center w-9 h-9 mx-auto"}`}
       style={{
         color: active ? "var(--color-text-primary)" : "var(--color-text-tertiary)",
         fontWeight: active ? "var(--font-weight-semibold)" : "var(--font-weight-normal)",

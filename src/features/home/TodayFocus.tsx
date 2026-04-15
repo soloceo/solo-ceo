@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { Check, ChevronRight as ArrowRight, ChevronDown, DollarSign, Package, Settings, Clock, AlertTriangle, StickyNote, User } from "lucide-react";
 import { useT } from "../../i18n/context";
 import { useUIStore } from "../../store/useUIStore";
@@ -95,7 +96,7 @@ export function TodayFocus({
 
   return (
     <section>
-      <div className="card overflow-hidden">
+      <div className="card card-glow overflow-hidden">
         {/* Header (inside card) */}
         <div className="px-4 pt-4 pb-2">
           <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)" } as React.CSSProperties}>
@@ -129,9 +130,26 @@ export function TodayFocus({
                 </div>
               )}
               <div className="flex flex-col">
-                {dueVisible.map((item) => (
-                  <FocusRow key={item.key} item={item} badge={badgeConfig(item.type)} onNavigate={() => handleNavigate(item)} urgency={item.isOverdue ? "overdue" : "today"} lang={lang} />
-                ))}
+                <AnimatePresence initial={true} mode="popLayout">
+                  {dueVisible.map((item, i) => (
+                    <motion.div
+                      key={item.key}
+                      layout
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 360,
+                        damping: 30,
+                        mass: 0.7,
+                        delay: i * 0.035,
+                      }}
+                    >
+                      <FocusRow item={item} badge={badgeConfig(item.type)} onNavigate={() => handleNavigate(item)} urgency={item.isOverdue ? "overdue" : "today"} lang={lang} />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
               {showAiHeader && (
                 <div className="flex items-center gap-1.5 px-4 pt-3 pb-1.5">
@@ -141,9 +159,26 @@ export function TodayFocus({
                 </div>
               )}
               <div className="flex flex-col">
-                {aiVisible.map((item) => (
-                  <FocusRow key={item.key} item={item} badge={badgeConfig(item.type)} onNavigate={() => handleNavigate(item)} lang={lang} />
-                ))}
+                <AnimatePresence initial={true} mode="popLayout">
+                  {aiVisible.map((item, i) => (
+                    <motion.div
+                      key={item.key}
+                      layout
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 360,
+                        damping: 30,
+                        mass: 0.7,
+                        delay: (dueVisible.length + i) * 0.035,
+                      }}
+                    >
+                      <FocusRow item={item} badge={badgeConfig(item.type)} onNavigate={() => handleNavigate(item)} lang={lang} />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
             </>
           );

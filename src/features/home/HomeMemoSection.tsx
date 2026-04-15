@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useId } from "react";
+import { motion } from "motion/react";
 import { Plus, Check, ChevronLeft, ChevronRight, Trash2, X, Calendar, Send, Loader2, Briefcase, User } from "lucide-react";
 import { api } from "../../lib/api";
 import { useT } from "../../i18n/context";
@@ -65,6 +66,9 @@ function ScopeToggle({ value, onChange, lang, size = "sm" }: {
   const py = size === "sm" ? "py-0.5" : "py-1";
   const text = size === "sm" ? "text-[11px]" : "text-[12px]";
   const iconSize = size === "sm" ? 10 : 12;
+  // Unique per-instance id so the motion pill's layoutId doesn't collide when
+  // this component is rendered multiple times (AI input row + manual add form).
+  const instanceId = useId();
   return (
     <div
       className="inline-flex items-center rounded-[var(--radius-6)] shrink-0"
@@ -72,26 +76,50 @@ function ScopeToggle({ value, onChange, lang, size = "sm" }: {
     >
       <button
         onClick={() => onChange("work-memo")}
-        className={`inline-flex items-center gap-1 px-2 ${py} ${text} rounded-[var(--radius-4)] transition-all`}
+        className={`relative inline-flex items-center gap-1 px-2 ${py} ${text} rounded-[var(--radius-4)] transition-colors`}
         style={{
+          isolation: "isolate",
           fontWeight: "var(--font-weight-semibold)",
-          background: value === "work-memo" ? "var(--color-bg-primary)" : "transparent",
           color: value === "work-memo" ? "var(--color-accent)" : "var(--color-text-quaternary)",
-          boxShadow: value === "work-memo" ? "var(--shadow-low)" : "none",
         }}
       >
+        {value === "work-memo" && (
+          <motion.span
+            layoutId={`memo-scope-pill-${instanceId}`}
+            aria-hidden="true"
+            className="absolute inset-0 rounded-[var(--radius-4)]"
+            style={{
+              background: "var(--color-bg-primary)",
+              boxShadow: "var(--shadow-low)",
+              zIndex: -1,
+            }}
+            transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.6 }}
+          />
+        )}
         <Briefcase size={iconSize} /> {lang === "zh" ? "工作" : "Work"}
       </button>
       <button
         onClick={() => onChange("personal")}
-        className={`inline-flex items-center gap-1 px-2 ${py} ${text} rounded-[var(--radius-4)] transition-all`}
+        className={`relative inline-flex items-center gap-1 px-2 ${py} ${text} rounded-[var(--radius-4)] transition-colors`}
         style={{
+          isolation: "isolate",
           fontWeight: "var(--font-weight-semibold)",
-          background: value === "personal" ? "var(--color-bg-primary)" : "transparent",
           color: value === "personal" ? "var(--color-info)" : "var(--color-text-quaternary)",
-          boxShadow: value === "personal" ? "var(--shadow-low)" : "none",
         }}
       >
+        {value === "personal" && (
+          <motion.span
+            layoutId={`memo-scope-pill-${instanceId}`}
+            aria-hidden="true"
+            className="absolute inset-0 rounded-[var(--radius-4)]"
+            style={{
+              background: "var(--color-bg-primary)",
+              boxShadow: "var(--shadow-low)",
+              zIndex: -1,
+            }}
+            transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.6 }}
+          />
+        )}
         <User size={iconSize} /> {lang === "zh" ? "个人" : "Me"}
       </button>
     </div>
@@ -331,7 +359,7 @@ export function HomeMemoSection() {
 
   return (
     <section>
-      <div className="card overflow-hidden">
+      <div className="card card-glow overflow-hidden">
         {/* ── Section header (inside card) ── */}
         <div className="flex items-center justify-between px-4 pt-4 pb-2">
           <div className="flex items-center gap-2">

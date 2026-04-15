@@ -13,6 +13,8 @@ import { useUIStore } from "../../store/useUIStore";
 import { KanbanBoard, SwimlaneView, type ColDef } from "./KanbanBoard";
 import { TaskDetail, type TaskForm } from "./TaskDetail";
 import type { Task } from "./TaskCard";
+import { celebrate } from "../../lib/celebrate";
+import { TabPill } from "../../components/ui/TabPill";
 
 type TaskMap = Record<string, Task[]>;
 
@@ -130,6 +132,8 @@ export default function WorkPage() {
       setTasks({ ...tasks, [s.droppableId]: src, [d.droppableId]: dst });
       try {
         await api.put(`/api/tasks/${moved.id}`, { column: d.droppableId });
+        // Celebrate when a task crosses into "done" — the completion moment
+        if (d.droppableId === "done" && s.droppableId !== "done") celebrate("won");
       } catch (e) {
         console.warn('[WorkPage] onDragEnd', e);
         showToast(t("common.updateFailed"));
@@ -254,8 +258,12 @@ export default function WorkPage() {
   };
 
   const handleMove = async (id: number, col: string) => {
+    // Detect cross-column-to-done BEFORE the refetch so we can celebrate
+    const allTasks: Task[] = (Object.values(tasks) as Task[][]).flat();
+    const prevCol = allTasks.find((tk) => tk.id === id)?.column;
     try {
       await api.put(`/api/tasks/${id}`, { column: col });
+      if (col === "done" && prevCol !== "done") celebrate("won");
       fetchTasks();
     } catch (e) {
       console.warn('[WorkPage] handleMove', e);
@@ -321,7 +329,7 @@ export default function WorkPage() {
             <option value="Low">{t("work.filter.low")}</option>
           </select>
         </div>
-        <div className="page-tabs" role="tablist">
+        <div className="page-tabs" role="tablist" data-motion-pill>
           {([
             ["vertical", <LayoutGrid size={14} />, "Board view"],
             ["horizontal", <AlignJustify size={14} />, "List view"],
@@ -334,7 +342,8 @@ export default function WorkPage() {
               aria-selected={viewMode === mode}
               aria-label={label}
             >
-              {icon}
+              {viewMode === mode && <TabPill groupId="work-view" />}
+              <span className="inline-flex">{icon}</span>
             </button>
           ))}
         </div>

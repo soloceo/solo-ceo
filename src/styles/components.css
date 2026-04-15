@@ -39,18 +39,27 @@
     background: var(--color-bg-primary);
     border: var(--border-width) solid var(--color-border-translucent);
     border-radius: var(--radius-base);
-    transition: background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+    /* Spring-ish cubic-bezier (overshoot) — feels closer to a physical material than a flat ease. */
+    transition:
+      background 220ms cubic-bezier(0.34, 1.32, 0.64, 1),
+      transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1),
+      box-shadow 220ms cubic-bezier(0.34, 1.32, 0.64, 1),
+      border-color 220ms cubic-bezier(0.34, 1.32, 0.64, 1);
     box-shadow: var(--shadow-interactive);
+    will-change: transform;
   }
   @media (hover: hover) {
     .card-interactive:hover {
       background: var(--color-bg-secondary);
       box-shadow: var(--shadow-interactive-hover);
-      transform: translate(var(--translate-hover-x), var(--translate-hover-y));
+      /* Lift a touch higher than the original token for a more noticeable "rise" */
+      transform: translate3d(0, calc(var(--translate-hover-y, -1px) - 1px), 0);
     }
   }
   .card-interactive:active {
     background: var(--color-bg-tertiary);
+    transform: translate3d(0, 0, 0) scale(0.992);
+    transition-duration: 90ms;
   }
 
   /* ── Page layouts ──────────────────────────────────────────── */
@@ -102,6 +111,19 @@
     color: var(--color-text-secondary);
     background: var(--color-bg-tertiary);
   }
+  /* When using the TabPill motion indicator, the pill provides background/border —
+     suppress the CSS-only highlight so it doesn't double-paint during the spring.
+     `isolation: isolate` creates a stacking context so the TabPill's `z-index: -1`
+     is contained (without it, the pill would fall behind the page background). */
+  .page-tabs[data-motion-pill] > button {
+    position: relative;
+    isolation: isolate;
+  }
+  .page-tabs[data-motion-pill] > button[data-active="true"] {
+    background: transparent;
+    border-color: transparent;
+  }
+
   .page-tabs > button[data-active="true"] {
     color: var(--tab-active-color);
     font-weight: var(--tab-active-font-weight);
@@ -188,7 +210,10 @@
     height: var(--button-height);
     cursor: pointer;
     box-shadow: var(--shadow-interactive);
-    transition: background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+    transition:
+      background var(--transition-fast),
+      transform var(--transition-fast),
+      box-shadow var(--transition-fast);
     text-transform: var(--text-transform-button);
     letter-spacing: var(--letter-spacing-button);
   }
@@ -825,5 +850,159 @@
   background: var(--color-bg-tertiary);
   border: var(--border-width) solid transparent;
   border-radius: var(--radius-base);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Premium pointer-driven effects
+   Powered by /lib/mouse-effects.ts — JS sets CSS custom properties
+   (--mx, --my as 0-100%), CSS does the visual work (GPU-composited).
+   Effects: spotlight tint (::before) + border glow (::after) — always
+   paired so every element with the tint also gets the ring.
+   All wrapped in (hover: hover) so touch devices get nothing extra.
+   ══════════════════════════════════════════════════════════════════ */
+@layer utilities {
+  /* — Spotlight tint — Soft accent-colored radial gradient that follows
+     the cursor. Sits ON TOP of card content with pointer-events: none and
+     low opacity, so it gently warms the area around the cursor without
+     blocking interactions or washing out text. */
+  .card-interactive,
+  .card-glow,
+  .stat-card,
+  .widget-card,
+  .nav-glow,
+  .sidebar-glass {
+    position: relative;
+  }
+  .card-interactive::before,
+  .card-glow::before,
+  .stat-card::before,
+  .widget-card::before,
+  .nav-glow::before,
+  .sidebar-glass::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(
+      240px circle at var(--mx, 50%) var(--my, 50%),
+      color-mix(in srgb, var(--color-accent) 12%, transparent),
+      transparent 65%
+    );
+    opacity: 0;
+    transition: opacity 240ms ease;
+    pointer-events: none;
+  }
+  /* Nav buttons are small (≈36px) — tighten the spotlight so the gradient
+     actually fits inside the button and lifts to a stronger tint. */
+  .nav-glow::before {
+    background: radial-gradient(
+      90px circle at var(--mx, 50%) var(--my, 50%),
+      color-mix(in srgb, var(--color-accent) 18%, transparent),
+      transparent 70%
+    );
+  }
+  @media (hover: hover) {
+    .card-interactive:hover::before,
+    .card-glow:hover::before,
+    .stat-card:hover::before,
+    .widget-card:hover::before,
+    .nav-glow:hover::before,
+    .sidebar-glass:hover::before {
+      opacity: 1;
+    }
+  }
+
+  /* — Border glow — Cursor-following gradient border via mask compositing.
+     The padding-box vs content-box mask trick punches out the inside,
+     leaving only a 1px ring that glows brighter near the cursor.
+     PAIRED WITH SPOTLIGHT: every element that gets the ::before spotlight
+     tint also gets this ::after border ring. Size/strength varies per class
+     to match the element scale, but both effects are always on together. */
+  .card-interactive::after,
+  .card-glow::after,
+  .stat-card::after,
+  .widget-card::after,
+  .nav-glow::after,
+  .sidebar-glass::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+            mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 240ms ease;
+    pointer-events: none;
+  }
+  .card-glow::after {
+    background: radial-gradient(
+      200px circle at var(--mx, 50%) var(--my, 50%),
+      color-mix(in srgb, var(--color-accent) 70%, transparent),
+      transparent 55%
+    );
+  }
+  /* Generic interactive card / stat / widget — medium radius default. */
+  .card-interactive::after,
+  .stat-card::after,
+  .widget-card::after {
+    background: radial-gradient(
+      180px circle at var(--mx, 50%) var(--my, 50%),
+      color-mix(in srgb, var(--color-accent) 65%, transparent),
+      transparent 60%
+    );
+  }
+  /* Nav buttons are small — tighten the border gradient so a 1px ring
+     actually traces the button edges near the cursor. */
+  .nav-glow::after {
+    background: radial-gradient(
+      70px circle at var(--mx, 50%) var(--my, 50%),
+      color-mix(in srgb, var(--color-accent) 75%, transparent),
+      transparent 55%
+    );
+  }
+  /* Sidebar is tall + narrow: a slightly wider radius feels natural travelling
+     along the vertical edge; slightly softer (60%) to avoid a harsh hot-spot. */
+  .sidebar-glass::after {
+    background: radial-gradient(
+      260px circle at var(--mx, 50%) var(--my, 50%),
+      color-mix(in srgb, var(--color-accent) 60%, transparent),
+      transparent 60%
+    );
+  }
+  @media (hover: hover) {
+    .card-interactive:hover::after,
+    .card-glow:hover::after,
+    .stat-card:hover::after,
+    .widget-card:hover::after,
+    .nav-glow:hover::after,
+    .sidebar-glass:hover::after {
+      opacity: 1;
+    }
+  }
+
+}
+
+/* — Reduced motion — disable everything. The JS script also bails out
+   on (prefers-reduced-motion: reduce), but belt-and-braces. */
+@media (prefers-reduced-motion: reduce) {
+  .card-interactive::before,
+  .card-interactive::after,
+  .card-glow::before,
+  .card-glow::after,
+  .stat-card::before,
+  .stat-card::after,
+  .widget-card::before,
+  .widget-card::after,
+  .nav-glow::before,
+  .nav-glow::after,
+  .sidebar-glass::before,
+  .sidebar-glass::after { transition: none; opacity: 0 !important; }
 }
 

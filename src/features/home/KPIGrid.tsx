@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
+import { motion } from "motion/react";
 import { TrendingUp, Users, Briefcase, User, Target, Check, Edit2 } from "lucide-react";
 import { useCountUp } from "../../hooks/useCountUp";
 import { useT } from "../../i18n/context";
 import { useAppSettings } from "../../hooks/useAppSettings";
+import { celebrate } from "../../lib/celebrate";
 
 interface KPIGridProps {
   monthlyIncome: number;
@@ -23,6 +25,15 @@ export function KPIGrid({ monthlyIncome, todayIncome, clientsCount, leadsCount, 
   const animClients = useCountUp(clientsCount);
   const animWork = useCountUp(workTasks);
   const animPersonal = useCountUp(personalTasks);
+
+  // Pop key — bumps whenever monthly income increases (not on edits/decreases).
+  // The motion.span keyed off this re-mounts and replays its spring-in.
+  const prevIncomeRef = useRef(monthlyIncome);
+  const [incomePopKey, setIncomePopKey] = useState(0);
+  useEffect(() => {
+    if (monthlyIncome > prevIncomeRef.current) setIncomePopKey((k) => k + 1);
+    prevIncomeRef.current = monthlyIncome;
+  }, [monthlyIncome]);
 
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
@@ -56,6 +67,21 @@ export function KPIGrid({ monthlyIncome, todayIncome, clientsCount, leadsCount, 
   const achieved = monthlyIncome >= goal;
   const diff = Math.abs(monthlyIncome - goal);
 
+  // Celebrate the moment the user first crosses their monthly goal.
+  // Guarded by a ref so a re-render (or loading flip) doesn't refire.
+  const celebratedGoalRef = useRef(false);
+  useEffect(() => {
+    if (!hasGoal || !loaded || loading) return;
+    if (achieved && !celebratedGoalRef.current) {
+      celebratedGoalRef.current = true;
+      celebrate("milestone");
+    }
+    // If the user edits their goal upward and drops back below, allow re-celebration.
+    if (!achieved && celebratedGoalRef.current) {
+      celebratedGoalRef.current = false;
+    }
+  }, [achieved, hasGoal, loaded, loading]);
+
   const statusText = !hasGoal
     ? ""
     : achieved
@@ -70,7 +96,7 @@ export function KPIGrid({ monthlyIncome, todayIncome, clientsCount, leadsCount, 
     <div className="flex flex-col" style={{ gap: 16 }}>
       {/* ── Hero metric — Monthly Income + Goal ── */}
       <div
-        className="card p-4"
+        className="card card-glow p-4"
         style={{ background: "var(--color-bg-panel)" }}
       >
         {/* Top row: label + actions */}
@@ -88,16 +114,20 @@ export function KPIGrid({ monthlyIncome, todayIncome, clientsCount, leadsCount, 
           </div>
           <div className="flex items-center gap-2">
             {hasGoal && (
-              <span
+              <motion.span
                 className="text-[12px] tabular-nums px-2 py-0.5 rounded-[var(--radius-4)]"
                 style={{
                   background: "var(--color-bg-tertiary)",
                   color: achieved ? "var(--color-success)" : "var(--color-text-secondary)",
                   fontWeight: "var(--font-weight-bold)",
                 } as React.CSSProperties}
+                animate={achieved ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+                transition={achieved
+                  ? { duration: 1.6, repeat: Infinity, ease: "easeInOut" }
+                  : { duration: 0.2 }}
               >
                 {percentage}%
-              </span>
+              </motion.span>
             )}
             {editing ? (
               <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
@@ -135,9 +165,16 @@ export function KPIGrid({ monthlyIncome, todayIncome, clientsCount, leadsCount, 
 
         {/* Income amount — larger, bolder */}
         <div className="flex items-baseline gap-2.5">
-          <div className="text-[32px] tabular-nums tracking-tight" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)", lineHeight: 1.1 } as React.CSSProperties}>
+          <motion.div
+            key={incomePopKey}
+            initial={incomePopKey === 0 ? false : { scale: 0.92 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 420, damping: 14 }}
+            className="text-[32px] tabular-nums tracking-tight"
+            style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-bold)", lineHeight: 1.1, transformOrigin: "left center" } as React.CSSProperties}
+          >
             {loading ? "—" : `$${animIncome.toLocaleString()}`}
-          </div>
+          </motion.div>
           {hasGoal && !loading && (
             <span className="text-[15px] tabular-nums" style={{ color: "var(--color-text-quaternary)" }}>
               / ${goal.toLocaleString()}
@@ -183,7 +220,7 @@ export function KPIGrid({ monthlyIncome, todayIncome, clientsCount, leadsCount, 
           { icon: Briefcase, color: "var(--color-text-tertiary)", label: t("home.kpi.workTasks"), value: animWork, sub: null, subColor: "" },
           { icon: User, color: "var(--color-text-tertiary)", label: t("home.kpi.personalTasks"), value: animPersonal, sub: null, subColor: "" },
         ].map((kpi, i) => (
-          <div key={i} className="card p-4">
+          <div key={i} className="card card-glow p-4">
             <div className="flex items-center gap-1.5 mb-2">
               <kpi.icon size={13} style={{ color: kpi.color }} />
               <span className="text-[11px] " style={{ color: "var(--color-text-quaternary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>

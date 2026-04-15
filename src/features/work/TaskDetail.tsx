@@ -156,12 +156,16 @@ export function TaskDetail({ open, onClose, editTask, columns, defaultColumn, cl
             style={{ zIndex: "var(--layer-dialog-overlay)", background: "var(--color-overlay-primary)", backdropFilter: "blur(2px) saturate(180%)", WebkitBackdropFilter: "blur(2px) saturate(180%)" }}
             onClick={onClose}
           />
-          {/* Panel */}
+          {/* Panel — spring-in from edge (right on desktop, bottom on mobile) */}
           <motion.div
             initial={{ x: isMobile ? 0 : "100%", y: isMobile ? "100%" : 0 }}
             animate={{ x: 0, y: 0 }}
-            exit={{ x: isMobile ? 0 : "100%", y: isMobile ? "100%" : 0 }}
-            transition={{ duration: 0.35, ease: [0.25, 1, 0.5, 1] }}
+            exit={{
+              x: isMobile ? 0 : "100%",
+              y: isMobile ? "100%" : 0,
+              transition: { duration: 0.28, ease: [0.32, 0, 0.67, 0] },
+            }}
+            transition={{ type: "spring", stiffness: 360, damping: 36, mass: 0.9 }}
             role="dialog"
             aria-modal="true"
             aria-label="Task detail"

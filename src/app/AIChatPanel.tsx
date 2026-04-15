@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { X, Send, Loader2, Trash2, Copy, Check, Settings, Plus, ChevronDown, MessagesSquare, Zap, CheckCircle2, XCircle, Square, Paperclip, Image as ImageIcon, Pencil, RotateCcw, MoreHorizontal, Download, ArrowDown, Eraser } from "lucide-react";
 import PeepIllustration from "../components/ui/PeepIllustration";
+import { TabPill } from "../components/ui/TabPill";
 import { motion, AnimatePresence } from "motion/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -1125,6 +1126,7 @@ function parseToolCall(text: string): ToolCall | null {
 
 function ToolConfirmCard({
   confirm,
+  confirmKey,
   onConfirm,
   onReject,
   onUpdateArgs,
@@ -1133,6 +1135,7 @@ function ToolConfirmCard({
   result,
 }: {
   confirm: ToolConfirmInfo;
+  confirmKey: string | number;
   onConfirm: () => void;
   onReject: () => void;
   onUpdateArgs?: (args: Record<string, unknown>) => void;
@@ -1182,7 +1185,7 @@ function ToolConfirmCard({
           <span className="text-[12px]" style={{ color: "var(--color-text-tertiary)" }}>
             {t("ai.chat.scope")}
           </span>
-          <div className="page-tabs" style={{ fontSize: "var(--font-size-xs)" }}>
+          <div className="page-tabs" data-motion-pill style={{ fontSize: "var(--font-size-xs)" }}>
             {(["business", "personal"] as const).map(s => {
               const isMemo = confirm.args.scope === "work-memo";
               const isActive = isTask
@@ -1212,6 +1215,7 @@ function ToolConfirmCard({
                   className="px-2 py-1"
                   style={{ fontSize: "var(--font-size-xs)" }}
                 >
+                  {isActive && <TabPill groupId={`ai-scope-${confirmKey}`} />}
                   {s === "business" ? t("ai.chat.scopeBusiness") : t("ai.chat.scopePersonal")}
                 </button>
               );
@@ -2841,6 +2845,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                     {msg.toolConfirm ? (
                       <ToolConfirmCard
                         confirm={msg.toolConfirm}
+                        confirmKey={`${activeConvId ?? "c"}-${i}`}
                         onConfirm={() => handleToolConfirm(i)}
                         onReject={() => handleToolReject(i)}
                         onUpdateArgs={(newArgs) => {
