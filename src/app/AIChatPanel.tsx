@@ -3067,8 +3067,8 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                   </motion.div>
                 )}
                 </AnimatePresence>
-                {/* Unified input container */}
-                <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid var(--color-line-secondary)", background: "var(--color-bg-secondary)" }}>
+                {/* Unified input container — spotlight + flowing-edge glow */}
+                <div className="ai-input-glow rounded-2xl overflow-hidden" style={{ border: "1px solid var(--color-line-secondary)", background: "var(--color-bg-secondary)" }}>
                   {/* Attachment preview inside container */}
                   {pendingAttachments.length > 0 && (
                     <div className="flex gap-2 px-3 pt-3 flex-wrap">
