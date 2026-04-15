@@ -95,10 +95,7 @@ export function KPIGrid({ monthlyIncome, todayIncome, clientsCount, leadsCount, 
   return (
     <div className="flex flex-col" style={{ gap: 16 }}>
       {/* ── Hero metric — Monthly Income + Goal ── */}
-      <div
-        className="card card-glow p-4"
-        style={{ background: "var(--color-bg-panel)" }}
-      >
+      <div className="card card-glow p-4">
         {/* Top row: label + actions */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
