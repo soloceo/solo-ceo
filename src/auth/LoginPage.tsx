@@ -69,7 +69,7 @@ export default function LoginPage() {
   return (
     <div
       className="relative flex min-h-[100dvh] flex-col lg:flex-row"
-      style={{ background: 'var(--color-bg-primary)', WebkitAppRegion: 'drag' } as React.CSSProperties}
+      style={{ background: 'var(--color-bg-primary)', WebkitAppRegion: 'drag', justifyContent: 'safe center' } as React.CSSProperties}
     >
       {/* Language toggle — top right */}
       <button
@@ -101,7 +101,7 @@ export default function LoginPage() {
 
       {/* ═══ Right panel — form ═══ */}
       <div
-        className="flex flex-1 items-start lg:items-center justify-center px-6 pt-8 pb-10 lg:px-12 lg:w-[55%] lg:min-h-screen"
+        className="flex items-start lg:flex-1 lg:items-center justify-center px-6 pt-4 pb-8 lg:px-12 lg:pt-8 lg:pb-10 lg:w-[55%] lg:min-h-screen"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
         <div className="w-full max-w-[360px]">
