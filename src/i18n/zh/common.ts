@@ -65,6 +65,7 @@ export const common = {
   "app.cmdFooter.select": "选择",
   "app.cmdFooter.close": "关闭",
   "app.pwa.newVersion": "发现新版本",
+  "app.pwa.updating": "正在更新…",
   "app.pwa.update": "立即更新",
   "app.reminder.title": "一人CEO · 提醒",
   "app.reminder.tasksDue": "{n} 个任务已到期或即将到期",
