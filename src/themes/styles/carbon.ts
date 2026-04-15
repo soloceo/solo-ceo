@@ -21,6 +21,7 @@ const carbonStyle: StyleDefinition = {
   descKey: 'settings.style.carbonDesc',
   order: 4,
   preview: {
+    accent: '#0f62fe',
     card: {
       border: '1px solid #e0e0e0',
       borderRadius: '0px',

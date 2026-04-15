@@ -26,7 +26,7 @@ interface FinanceChartProps {
 
 export default function FinanceChart({ chartData, isMobile, t }: FinanceChartProps) {
   return (
-    <div className="card p-4 mb-4">
+    <div className="card card-glow p-4 mb-4">
       <div className="flex items-center justify-between mb-3">
         <div>
           <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("money.chart.title")}</h3>

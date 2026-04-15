@@ -7,6 +7,28 @@ export type TabId = "home" | "work" | "leads" | "clients" | "finance" | "setting
 type ViewMode = "vertical" | "horizontal";
 type ThemeMode = "light" | "dark" | "auto";
 
+/**
+ * Quick-create intent types. Pages match on `type` and open their create panel.
+ * Mapping to their host tab lives in QUICK_CREATE_TAB_MAP below.
+ */
+export type QuickCreateType = "lead" | "task" | "client" | "transaction" | "biz-transaction";
+
+/** Type → target tab. `null` means "keep current tab" (e.g., pressing "N" on home → task panel). */
+const QUICK_CREATE_TAB_MAP: Record<QuickCreateType, TabId | null> = {
+  lead: "leads",
+  task: "work",
+  client: "clients",
+  transaction: "finance",
+  "biz-transaction": "finance",
+};
+
+interface PendingQuickCreate {
+  type: QuickCreateType;
+  /** Monotonic token — guarantees a fresh value even when the same type is fired twice
+   *  in a row, so a reactive useEffect on this field re-fires and the target page opens. */
+  token: number;
+}
+
 interface UIState {
   activeTab: TabId;
   sidebarExpanded: boolean;
@@ -30,6 +52,15 @@ interface UIState {
   toastActionLabel: string;
   toastId: number;
 
+  /**
+   * Durable pending intent from the quick-create FAB / command palette / "N" shortcut.
+   * Replaces the old fire-and-forget `quick-create` CustomEvent, which lost events when
+   * the target page was still being lazy-loaded. Pages read this reactively in a useEffect
+   * and consume via `clearPendingQuickCreate` — works whether the page is already mounted
+   * or has yet to finish its chunk fetch.
+   */
+  pendingQuickCreate: PendingQuickCreate | null;
+
   setActiveTab: (tab: TabId) => void;
   toggleSidebar: () => void;
   /** @deprecated — use setThemeMode instead */
@@ -43,7 +74,14 @@ interface UIState {
   setSalesViewMode: (mode: ViewMode) => void;
   showToast: (msg: string, duration?: number, action?: { label: string; fn: () => void }) => void;
   clearToast: () => void;
+  /** Set a pending quick-create intent. Also switches to the target tab (unless `opts.keepTab`),
+   *  so the handoff is atomic — no window between tab change and intent set. */
+  setPendingQuickCreate: (type: QuickCreateType, opts?: { keepTab?: boolean }) => void;
+  clearPendingQuickCreate: () => void;
 }
+
+// Monotonic token for pending quick-create intents. Module-scoped so it survives store resets.
+let quickCreateTokenCounter = 0;
 
 // Monotonic toast ID to prevent stale timer clearing wrong toast
 let toastCounter = 0;

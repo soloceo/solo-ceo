@@ -649,7 +649,7 @@ export default function FinancePage() {
             <FinanceChart chartData={chartData} isMobile={isMobile} t={t} />
           </React.Suspense>
 
-          <div className="card p-4 flex-1 min-h-0">
+          <div className="card card-glow p-4 flex-1 min-h-0">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("money.recent.title")}</h3>
               <button onClick={() => setShowAll(true)} className="btn-ghost compact">
@@ -727,7 +727,7 @@ export default function FinancePage() {
             <FinanceChart chartData={chartData} isMobile={isMobile} t={t} />
           </React.Suspense>
 
-          <div className="card p-4 flex-1 min-h-0">
+          <div className="card card-glow p-4 flex-1 min-h-0">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{t("money.recent.title")}</h3>
               <button onClick={() => setShowAll(true)} className="btn-ghost compact">

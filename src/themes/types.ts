@@ -227,6 +227,10 @@ export interface ThemeDefinition {
 
 /** How a style renders its preview thumbnail in the picker */
 export interface StylePreview {
+  /** Style's signature accent color (light-mode hex) used in the picker
+   *  preview so each card shows its own brand color regardless of the
+   *  currently applied theme. */
+  accent: string;
   card: {
     border: string;
     borderRadius: string;

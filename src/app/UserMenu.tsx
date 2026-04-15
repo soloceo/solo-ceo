@@ -67,7 +67,7 @@ export function UserMenu({
         title={isExpanded ? undefined : operatorDisplayName}
         aria-expanded={userMenuOpen}
         aria-haspopup="true"
-        className={`flex items-center w-full rounded-[var(--radius-6)] py-1.5 transition-colors hover:bg-[var(--color-bg-tertiary)] ${
+        className={`nav-glow flex items-center w-full rounded-[var(--radius-6)] py-1.5 transition-colors hover:bg-[var(--color-bg-tertiary)] ${
           isExpanded ? "gap-2 px-2" : "justify-center"
         }`}
       >

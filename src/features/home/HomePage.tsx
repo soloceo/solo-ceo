@@ -55,7 +55,7 @@ function greetingPeep(): PeepName {
   if (h < 6) return "reflecting";        // late night — contemplative
   if (h < 12) return "coffee";           // morning — coffee run
   if (h < 14) return "astro";              // noon — space explorer
-  if (h < 18) return "looking-ahead";    // afternoon — planning ahead
+  if (h < 18) return "growth";           // afternoon — momentum building
   return "new-beginnings";               // evening — relax with a book
 }
 

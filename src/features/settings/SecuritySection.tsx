@@ -69,7 +69,7 @@ export default function SecuritySection() {
   return (
     <section>
       <SectionLabel>{t("settings.accountSecurity")}</SectionLabel>
-      <div className="card overflow-hidden">
+      <div className="card card-glow overflow-hidden">
         {/* Collapsible header */}
         <button
           onClick={() => setExpanded(!expanded)}

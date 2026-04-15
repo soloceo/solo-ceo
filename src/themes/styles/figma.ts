@@ -20,6 +20,7 @@ const figmaStyle: StyleDefinition = {
   descKey: 'settings.style.figmaDesc',
   order: 3,
   preview: {
+    accent: '#0c8ce9',
     card: {
       border: 'none',
       borderRadius: '12px',
@@ -82,7 +83,7 @@ const figmaStyle: StyleDefinition = {
       '--opacity-disabled':      '0.35',
       '--opacity-active-press':  '0.7',
       '--focus-outline-width':   '2px',
-      '--focus-outline-color':   '#000000',
+      '--focus-outline-color':   '#0c8ce9',
 
       // ── Glass — very subtle ──
       '--backdrop-blur':         'blur(16px) saturate(120%)',
@@ -104,7 +105,7 @@ const figmaStyle: StyleDefinition = {
 
       // ── Input — flat, border only, no shadow ──
       '--input-shadow':          'none',
-      '--input-focus-border':    '#000000',
+      '--input-focus-border':    '#0c8ce9',
       '--input-focus-shadow':    'none',
       '--select-shadow':         'none',
 
@@ -117,7 +118,7 @@ const figmaStyle: StyleDefinition = {
       '--kpi-label-font-size':   '11px',
       '--tab-font-size':         '14px',
       '--tab-active-font-weight': 'var(--font-weight-semibold)',
-      '--tab-active-bg':         '#000000',
+      '--tab-active-bg':         '#0c8ce9',
       '--tab-active-color':      '#ffffff',
       '--tab-active-border':     'transparent',
 
@@ -158,10 +159,10 @@ const figmaStyle: StyleDefinition = {
       '--color-text-quaternary': '#aaaaaa',
       '--color-text-on-color':   '#ffffff',
 
-      // ── Accent — pure black (DESIGN.md: "the sole color of the interface") ──
-      '--color-accent':          '#000000',
-      '--color-accent-hover':    '#333333',
-      '--color-accent-tint':     'rgba(0,0,0,0.06)',
+      // ── Accent — Figma blue (matches Figma's primary action color) ──
+      '--color-accent':          '#0c8ce9',
+      '--color-accent-hover':    '#0a73c4',
+      '--color-accent-tint':     'rgba(12,140,233,0.08)',
       '--color-brand-text':      '#ffffff',
 
       // ── Semantic — neutral, monochrome-friendly ──
@@ -257,7 +258,7 @@ const figmaStyle: StyleDefinition = {
       '--opacity-disabled':      '0.35',
       '--opacity-active-press':  '0.7',
       '--focus-outline-width':   '2px',
-      '--focus-outline-color':   '#ffffff',
+      '--focus-outline-color':   '#56b0f0',
 
       // ── Glass ──
       '--backdrop-blur':         'blur(16px) saturate(120%)',
@@ -279,7 +280,7 @@ const figmaStyle: StyleDefinition = {
 
       // ── Input — flat ──
       '--input-shadow':          'none',
-      '--input-focus-border':    '#ffffff',
+      '--input-focus-border':    '#56b0f0',
       '--input-focus-shadow':    'none',
       '--select-shadow':         'none',
 
@@ -292,7 +293,7 @@ const figmaStyle: StyleDefinition = {
       '--kpi-label-font-size':   '11px',
       '--tab-font-size':         '14px',
       '--tab-active-font-weight': 'var(--font-weight-semibold)',
-      '--tab-active-bg':         '#ffffff',
+      '--tab-active-bg':         '#56b0f0',
       '--tab-active-color':      '#000000',
       '--tab-active-border':     'transparent',
 
@@ -333,10 +334,10 @@ const figmaStyle: StyleDefinition = {
       '--color-text-quaternary': '#555555',
       '--color-text-on-color':   '#000000',
 
-      // ── Accent — pure white (inverted from light mode) ──
-      '--color-accent':          '#ffffff',
-      '--color-accent-hover':    '#cccccc',
-      '--color-accent-tint':     'rgba(255,255,255,0.08)',
+      // ── Accent — Figma blue (lighter for dark-mode contrast) ──
+      '--color-accent':          '#56b0f0',
+      '--color-accent-hover':    '#78c3f5',
+      '--color-accent-tint':     'rgba(86,176,240,0.1)',
       '--color-brand-text':      '#000000',
 
       // ── Semantic — lighter for dark mode ──

@@ -20,6 +20,7 @@ const calStyle: StyleDefinition = {
   descKey: 'settings.style.calDesc',
   order: 2,
   preview: {
+    accent: '#292929',
     card: {
       border: 'none',
       borderRadius: '8px',

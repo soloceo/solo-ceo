@@ -45,7 +45,7 @@ export default function ProfileSection({
 
   return (
     <section>
-      <div className="card p-4 space-y-4">
+      <div className="card card-glow p-4 space-y-4">
         {/* Row 1: Avatar + Name */}
         <div className="flex items-center gap-4">
           {/* Avatar with camera overlay */}
@@ -309,7 +309,7 @@ function PreferencesBlock({ getField, setField, savePreferences }: {
   const overLimit = byteCount > MAX_PREF_SIZE;
 
   return (
-    <div className="card p-4 space-y-4 mt-4">
+    <div className="card card-glow p-4 space-y-4 mt-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-[15px] font-semibold flex items-center gap-1.5" style={{ color: 'var(--color-text-primary)' }}>

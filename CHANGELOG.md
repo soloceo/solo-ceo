@@ -3,6 +3,33 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.46.0] - 2026-04-15
+
+### Added
+- **Cursor-driven spotlight + edge ring now covers Finance, Settings, and the user-menu button.** The pointer-aware glow introduced in 2.45.0 on Home/Work/Clients surfaces now extends to:
+  - Finance page — the Cash Flow Trend chart and Recent Transactions list (both income and expense tabs).
+  - Every Settings module — Profile, Account, Security, Plan, Appearance, AI, and Custom Agents cards.
+  - Sidebar user-menu button (operator avatar / 李明) — uses the smaller `.nav-glow` variant sized for ~36px controls so the ring/spotlight fits the button instead of the card defaults.
+- **`useUIStore.pendingQuickCreate` — durable quick-create intent (store plumbing, no UI surface yet).** New typed state + `setPendingQuickCreate` / `clearPendingQuickCreate` actions, each pending intent carries a monotonic token so consumers re-fire on the same type in succession. Designed to replace the fire-and-forget `quick-create` CustomEvent that dropped events when the target page was still lazy-loading. Wiring the FAB / command palette / `N` shortcut through this API will land in a follow-up.
+
+### Changed
+- **Figma style renamed to "Google+Figma" in the style picker.** i18n key unchanged (`settings.style.figma`); just the display string now reflects the hybrid influence.
+- **Figma style — black interactive chrome swapped for signature Figma blue** (`#0c8ce9` light / `#56b0f0` dark). Accent color, focus outline, input focus border, and active tab background all move to blue. The card/background neutrals remain pure white/black; only interactive accents change.
+- **Style picker previews now render each style's own signature color**, not the currently-applied theme's accent. Previously the picker's internal preview bars/chips used live `var(--color-accent)`, so selecting any theme made all five preview cards re-colorize to that theme — defeating the point (users couldn't see at a glance that Neo Brutal is pink, Cal is black, Carbon is IBM blue, etc.). New static `accent` field on `StylePreview` holds each style's light-mode brand hex (Classic `#f5c518`, Neo Brutal `#e84393`, Cal `#292929`, Google+Figma `#0c8ce9`, Carbon `#0f62fe`). Bottom-chip accent opacity bumped from `0.12` → `0.35` so lighter accents read clearly on the card background. Outer selected-card ring still uses `var(--color-accent)` — that's intentional, since it indicates the applied state.
+- **Afternoon home-page peep swapped to `growth`.** Previously a `growth` peep (cross-legged, reading) sat at the bottom of the expanded sidebar and `looking-ahead` played the afternoon slot on the HomePage greeting card. The sidebar illustration is gone, and `growth` now plays the afternoon slot — one peep, surfaced where it belongs.
+
+### Fixed
+- **QuickCreateMenu — menu no longer closes before `onClick` fires.** The outside-click dismiss was racing the menu item click, so some quick-create taps (New Task / New Client / New Lead / New Expense from the FAB) silently did nothing. Delay order now keeps the click through to the handler.
+- **Offline↔online schema parity.** sql.js offline mirror was missing `clients.created_at` / `clients.updated_at` and `leads.updated_at` columns that exist on the Supabase side; added with defaults + backfill on DB open so sync comparisons line up. Demo seed also gains an AI draft on the proposal-stage lead so empty-state doesn't greet fresh-install users who open the proposal panel.
+- **Demo seed — coverage gaps closed.** Linked tasks/finance/milestones to real clients, added content drafts and focus events, added a paused client / HST tax case / broader expense mix so the offline demo is no longer a toy dataset.
+
+## [2.45.0] - 2026-04-15
+
+### Added
+- **Pointer-driven spotlight + animated edge ring.** New `src/lib/mouse-effects.ts` runs a single rAF-throttled `pointermove` listener and writes `--mx` / `--my` CSS custom properties (as percentages) on the element under the cursor, for anything matching `.card-interactive, .card-glow, .stat-card, .widget-card, .nav-glow, .sidebar-glass, .ai-chat-panel`. CSS does all the rendering via `::before` (radial-gradient tint) and `::after` (`mask-composite: exclude` 1px border ring), so the main thread stays idle — JS only sets two CSS vars. Guards: `(prefers-reduced-motion: reduce)` and `(hover: hover)`. Applied to sidebar, AI chat panel, home KPI + widget cards, work Kanban cards, leads board cards, and clients list rows.
+- **Confetti celebrations.** New `src/lib/celebrate.ts` (wraps `canvas-confetti`, dynamic-imported so it stays out of the main bundle). Fires on sales wins, milestone completions, and streak achievements. Respects `prefers-reduced-motion`.
+- **Animated tab pill.** New `src/components/ui/TabPill.tsx` — shared-layout Motion pill for `.page-tabs` segmented controls (Work: work/personal, Finance: income/expense, Home: Dashboard/Widgets).
+
 ## [2.44.2] - 2026-04-15
 
 ### Fixed

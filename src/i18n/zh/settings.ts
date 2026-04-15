@@ -115,7 +115,7 @@ export const settings = {
   "settings.style.neobrutalismDesc": "粗边框·硬阴影",
   "settings.style.cal": "Cal",
   "settings.style.calDesc": "层叠阴影·极简克制",
-  "settings.style.figma": "Figma",
+  "settings.style.figma": "Google+Figma",
   "settings.style.figmaDesc": "药丸圆角·极简扁平",
   "settings.style.carbon": "Carbon",
   "settings.style.carbonDesc": "直角矩形·IBM Plex",

@@ -11,6 +11,7 @@ const defaultStyle: StyleDefinition = {
   descKey: 'settings.style.defaultDesc',
   order: 0,
   preview: {
+    accent: '#f5c518',
     card: {
       border: '1px solid var(--color-border-secondary)',
       borderRadius: '8px',

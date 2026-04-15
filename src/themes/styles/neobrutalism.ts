@@ -19,6 +19,7 @@ const neobrutalismStyle: StyleDefinition = {
   descKey: 'settings.style.neobrutalismDesc',
   order: 1,
   preview: {
+    accent: '#e84393',
     card: {
       border: '2px solid var(--color-text-primary)',
       borderRadius: '3px',

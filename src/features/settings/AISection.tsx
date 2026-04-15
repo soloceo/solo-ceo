@@ -127,7 +127,7 @@ export default function AISection({ settings, save }: AISectionProps) {
   return (
     <section id="settings-ai">
       <h3 className="section-label mb-3">{t("settings.ai")}</h3>
-      <div className="card overflow-hidden divide-y divide-[var(--color-line-secondary)]">
+      <div className="card card-glow overflow-hidden divide-y divide-[var(--color-line-secondary)]">
         {/* ── Cloud providers ── */}
         {CLOUD_PROVIDERS.map(({ id, label, model, keyName, applyUrl }) => {
           const currentKey = localKeys[keyName] || "";

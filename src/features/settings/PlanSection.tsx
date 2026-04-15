@@ -75,7 +75,7 @@ export default function PlanSection({ showToast }: PlanSectionProps) {
         </button>
       </div>
 
-      <div className="card overflow-hidden divide-y divide-[var(--color-line-secondary)]">
+      <div className="card card-glow overflow-hidden divide-y divide-[var(--color-line-secondary)]">
         {plans.length === 0 && (
           <div className="p-6 text-center">
             <PeepIllustration name="plants" size={100} />
@@ -115,7 +115,7 @@ export default function PlanSection({ showToast }: PlanSectionProps) {
 
       {/* Edit/Add form */}
       {editing && (
-        <div className="card p-4 mt-3 space-y-3">
+        <div className="card card-glow p-4 mt-3 space-y-3">
           <div className="flex items-center justify-between">
             <div className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
               {editing === "new" ? t("common.add") : t("common.edit")}

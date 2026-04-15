@@ -138,7 +138,7 @@ export default function AgentSection() {
         </div>
       </div>
 
-      <div className="card p-4 space-y-3">
+      <div className="card card-glow p-4 space-y-3">
         <p className="text-[13px]" style={{ color: 'var(--color-text-tertiary)' }}>
           {t('settings.agents.desc')}
         </p>

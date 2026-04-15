@@ -87,7 +87,7 @@ export default function AppearanceSection({ themeMode, setThemeMode, styleId, se
   return (
     <section>
       <SectionLabel>{t("settings.appearance")}</SectionLabel>
-      <div className="card overflow-hidden divide-y divide-[var(--color-line-secondary)]">
+      <div className="card card-glow overflow-hidden divide-y divide-[var(--color-line-secondary)]">
 
         {/* Theme mode — 3-way segmented control */}
         <div className="flex items-center justify-between px-4 py-3">
@@ -133,7 +133,7 @@ export default function AppearanceSection({ themeMode, setThemeMode, styleId, se
           <div className="grid grid-cols-2 gap-3 mb-5">
             {styles.map((s) => {
               const isActive = styleId === s.id;
-              const { card, elements } = s.preview;
+              const { accent, card, elements } = s.preview;
               return (
                 <button
                   key={s.id}
@@ -144,7 +144,10 @@ export default function AppearanceSection({ themeMode, setThemeMode, styleId, se
                     border: isActive ? '2px solid var(--color-accent)' : '2px solid var(--color-border-primary)',
                   }}
                 >
-                  {/* Preview area — driven by style.preview config */}
+                  {/* Preview area — driven by style.preview config.
+                      Uses each style's own `accent` so users can see the
+                      signature color of every style, not whatever theme
+                      is currently applied. */}
                   <div
                     className="relative w-full h-14 mb-2.5 overflow-hidden"
                     style={{
@@ -156,9 +159,9 @@ export default function AppearanceSection({ themeMode, setThemeMode, styleId, se
                   >
                     {elements.accentShape === 'chip-row' ? (
                       <>
-                        <div className="absolute top-2 left-2.5" style={{ height: 10, width: 28, background: 'var(--color-accent)', borderRadius: elements.accentRadius }} />
+                        <div className="absolute top-2 left-2.5" style={{ height: 10, width: 28, background: accent, borderRadius: elements.accentRadius }} />
                         <div className="absolute bottom-2 left-2.5 flex gap-1">
-                          <div style={{ width: 20, height: 6, background: 'var(--color-accent)', opacity: 0.12, borderRadius: elements.textLineRadius }} />
+                          <div style={{ width: 20, height: 6, background: accent, opacity: 0.35, borderRadius: elements.textLineRadius }} />
                           <div style={{ width: 16, height: 6, background: 'var(--color-text-primary)', opacity: 0.08, borderRadius: elements.textLineRadius }} />
                           <div style={{ width: 18, height: 6, background: 'var(--color-text-primary)', opacity: 0.08, borderRadius: elements.textLineRadius }} />
                         </div>
@@ -167,7 +170,7 @@ export default function AppearanceSection({ themeMode, setThemeMode, styleId, se
                       <>
                         <div
                           className="absolute top-2 left-2.5 right-2.5"
-                          style={{ height: 5, background: 'var(--color-accent)', borderRadius: elements.accentRadius }}
+                          style={{ height: 5, background: accent, borderRadius: elements.accentRadius }}
                         />
                         <div className="absolute bottom-2 left-2.5 flex flex-col gap-1">
                           <div style={{ width: 32, height: 3, background: 'var(--color-text-primary)', opacity: 0.5, borderRadius: elements.textLineRadius }} />

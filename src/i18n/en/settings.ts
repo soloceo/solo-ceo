@@ -115,7 +115,7 @@ export const settings = {
   "settings.style.neobrutalismDesc": "Bold borders · Hard shadows",
   "settings.style.cal": "Cal",
   "settings.style.calDesc": "Layered shadows · Monochrome",
-  "settings.style.figma": "Figma",
+  "settings.style.figma": "Google+Figma",
   "settings.style.figmaDesc": "Pill geometry · Minimal depth",
   "settings.style.carbon": "Carbon",
   "settings.style.carbonDesc": "Sharp rectangles · IBM Plex",

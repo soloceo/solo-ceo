@@ -24,7 +24,7 @@ export default function AccountSection({ user, isOnline, pendingOps, signOut }: 
   return (
     <section>
       <SectionLabel>{t("settings.cloudSync")}</SectionLabel>
-      <div className="card overflow-hidden divide-y divide-[var(--color-line-secondary)]">
+      <div className="card card-glow overflow-hidden divide-y divide-[var(--color-line-secondary)]">
 
         {/* Account info */}
         {user && (
