@@ -878,7 +878,8 @@
   .stat-card::before,
   .widget-card::before,
   .nav-glow::before,
-  .sidebar-glass::before {
+  .sidebar-glass::before,
+  .ai-chat-panel::before {
     content: '';
     position: absolute;
     inset: 0;
@@ -901,13 +902,23 @@
       transparent 70%
     );
   }
+  /* AI chat panel is large (full-height overlay up to 1280px wide) — expand
+     the spotlight so it reads at panel scale without being washed out. */
+  .ai-chat-panel::before {
+    background: radial-gradient(
+      320px circle at var(--mx, 50%) var(--my, 50%),
+      color-mix(in srgb, var(--color-accent) 12%, transparent),
+      transparent 65%
+    );
+  }
   @media (hover: hover) {
     .card-interactive:hover::before,
     .card-glow:hover::before,
     .stat-card:hover::before,
     .widget-card:hover::before,
     .nav-glow:hover::before,
-    .sidebar-glass:hover::before {
+    .sidebar-glass:hover::before,
+    .ai-chat-panel:hover::before {
       opacity: 1;
     }
   }
@@ -923,7 +934,8 @@
   .stat-card::after,
   .widget-card::after,
   .nav-glow::after,
-  .sidebar-glass::after {
+  .sidebar-glass::after,
+  .ai-chat-panel::after {
     content: '';
     position: absolute;
     inset: 0;
@@ -976,13 +988,24 @@
       transparent 60%
     );
   }
+  /* AI chat panel is the largest surface — widen the ring-radius so the glow
+     reaches the edges from most cursor positions; tint matches card-glow
+     prominence (70%) for a premium feel on the overlay. */
+  .ai-chat-panel::after {
+    background: radial-gradient(
+      280px circle at var(--mx, 50%) var(--my, 50%),
+      color-mix(in srgb, var(--color-accent) 70%, transparent),
+      transparent 55%
+    );
+  }
   @media (hover: hover) {
     .card-interactive:hover::after,
     .card-glow:hover::after,
     .stat-card:hover::after,
     .widget-card:hover::after,
     .nav-glow:hover::after,
-    .sidebar-glass:hover::after {
+    .sidebar-glass:hover::after,
+    .ai-chat-panel:hover::after {
       opacity: 1;
     }
   }
@@ -1003,7 +1026,9 @@
   .nav-glow::before,
   .nav-glow::after,
   .sidebar-glass::before,
-  .sidebar-glass::after { transition: none; opacity: 0 !important; }
+  .sidebar-glass::after,
+  .ai-chat-panel::before,
+  .ai-chat-panel::after { transition: none; opacity: 0 !important; }
 }
 
 
