@@ -86,12 +86,16 @@ export function useLeadAI(lang: string) {
     if (!allLeads.length) return;
     setBatchAnalyzing(true);
     const results: Record<number, LeadAnalysis> = {};
+    let failed = 0;
     for (const lead of allLeads) {
       if (!mountedRef.current) break; // stop if component unmounted
       try {
         const result = await analyzeLeadQuality(lead, lang, config.provider, config.apiKey, businessDescription);
         results[lead.id] = result;
-      } catch { /* skip failed */ }
+      } catch (e) {
+        failed++;
+        console.warn('[useLeadAI] batch analyze skip', lead.id, e);
+      }
     }
     if (mountedRef.current) {
       setLeadScores(prev => ({ ...prev, ...results }));

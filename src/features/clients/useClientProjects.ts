@@ -75,7 +75,7 @@ export function useClientProjects() {
     const total = projectList
       .filter(p => p.status === 'active')
       .reduce((s, p) => s + Number(p.project_fee || 0), 0);
-    try { await api.put(`/api/clients/${clientId}`, { project_fee: total }); } catch { /* non-critical */ }
+    try { await api.put(`/api/clients/${clientId}`, { project_fee: total }); } catch (e) { console.warn('[useClientProjects] syncClientFee', e); }
   }, []);
 
   const saveProject = useCallback(async (clientId: number, onDone?: () => void) => {

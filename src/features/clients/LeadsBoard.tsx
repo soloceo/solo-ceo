@@ -253,13 +253,14 @@ export function LeadsView() {
   const onDragEnd = async (result: DragResult) => {
     if (!result.destination) return;
     const { source: s, destination: d } = result as { source: DragResult["source"]; destination: NonNullable<DragResult["destination"]> };
-    if (s.droppableId !== d.droppableId) {
-      const src = [...leads[s.droppableId as ColId]], dst = [...leads[d.droppableId as ColId]];
-      const [moved] = src.splice(s.index, 1); moved.column = d.droppableId as ColId; dst.splice(d.index, 0, moved);
-      const prev = { ...leads };
-      setLeads({ ...leads, [s.droppableId]: src, [d.droppableId]: dst });
-      try { await api.put(`/api/leads/${moved.id}`, { column: d.droppableId }); } catch { showToast(t("common.updateFailed")); setLeads(prev); }
-    } else { const col = [...leads[s.droppableId as ColId]]; const [moved] = col.splice(s.index, 1); col.splice(d.index, 0, moved); setLeads({ ...leads, [s.droppableId]: col }); }
+    // Same-column reorder is not persisted (leads table has no sort_order), so skip
+    // the local state change too — it would be lost on next refetch and looks buggy.
+    if (s.droppableId === d.droppableId) return;
+    const src = [...leads[s.droppableId as ColId]], dst = [...leads[d.droppableId as ColId]];
+    const [moved] = src.splice(s.index, 1); moved.column = d.droppableId as ColId; dst.splice(d.index, 0, moved);
+    const prev = { ...leads };
+    setLeads({ ...leads, [s.droppableId]: src, [d.droppableId]: dst });
+    try { await api.put(`/api/leads/${moved.id}`, { column: d.droppableId }); } catch { showToast(t("common.updateFailed")); setLeads(prev); }
   };
 
   const convertLead = async () => {

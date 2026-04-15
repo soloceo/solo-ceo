@@ -53,6 +53,7 @@ export function useMilestones(clientId: number | null, projectFee: number, proje
   const [msForm, setMsForm] = useState(EMPTY_MS);
   const [savingMs, setSavingMs] = useState(false);
   const editMsRef = useRef<MilestoneRow | null>(null);
+  const editPaidRef = useRef<MilestoneRow | null>(null);
 
   const fetchMilestones = useCallback(async (cid: number) => {
     setMsLoading(true);
@@ -163,6 +164,7 @@ export function useMilestones(clientId: number | null, projectFee: number, proje
   /** Open edit panel for a paid milestone */
   const openEditPaid = useCallback((ms: MilestoneRow) => {
     setEditPaidId(ms.id);
+    editPaidRef.current = ms;
     setEditPaidDate(ms.paid_date || "");
     setEditPaidMethod(ms.payment_method || "bank_transfer");
     setEditPaidAmount(String(ms.amount || ""));
@@ -173,13 +175,25 @@ export function useMilestones(clientId: number | null, projectFee: number, proje
     if (!editPaidId) return;
     try {
       const amt = parseFloat(editPaidAmount);
-      await api.put(`/api/milestones/${editPaidId}`, {
-        paid_date: editPaidDate,
-        payment_method: editPaidMethod,
-        amount: isNaN(amt) ? undefined : amt,
-      });
+      const newAmount = isNaN(amt) ? undefined : amt;
+      // Rule 13: only send changed fields to avoid stale-data overwrites
+      const orig = editPaidRef.current;
+      const patch: Record<string, unknown> = {};
+      if (orig) {
+        if (editPaidDate !== (orig.paid_date || "")) patch.paid_date = editPaidDate;
+        if (editPaidMethod !== (orig.payment_method || "")) patch.payment_method = editPaidMethod;
+        if (newAmount !== undefined && newAmount !== (orig.amount ?? 0)) patch.amount = newAmount;
+      } else {
+        patch.paid_date = editPaidDate;
+        patch.payment_method = editPaidMethod;
+        if (newAmount !== undefined) patch.amount = newAmount;
+      }
+      if (Object.keys(patch).length > 0) {
+        await api.put(`/api/milestones/${editPaidId}`, patch);
+      }
       showToast(t("pipeline.milestones.saved"));
       setEditPaidId(null);
+      editPaidRef.current = null;
       if (clientId) fetchMilestones(clientId);
     } catch (e) {
       console.warn('[useMilestones] saveEditPaid', e);
