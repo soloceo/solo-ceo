@@ -74,6 +74,13 @@ export function QuickCreateMenu({ setActiveTab }: QuickCreateMenuProps) {
           role="menu"
           data-open={quickCreateOpen}
           className="fixed w-48 py-1 overflow-hidden popover-spring origin-top-left"
+          // The menu is portaled to document.body, so it is NOT a descendant
+          // of quickCreateRef. Without this, useClickOutside's document-level
+          // mousedown listener fires FIRST, closes the menu, and unmounts the
+          // <button> before React's onClick can run — navigation is lost.
+          // Stopping propagation here keeps the event from reaching document.
+          onMouseDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
           style={{
             ...menuStyle,
             background: "var(--color-bg-primary)",
