@@ -97,7 +97,7 @@ function ActivityWidget() {
         setRawItems(items);
         prevCountRef.current = items.length;
       })
-      .catch(() => { /* activity load failed */ });
+      .catch((e) => { console.warn('[ActivityWidget] fetchActivity', e); });
   }, []);
 
   useEffect(() => {

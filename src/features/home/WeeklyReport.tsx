@@ -32,7 +32,7 @@ export function WeeklyReport({ open, onClose }: WeeklyReportProps) {
     setLoading(true);
     api.get<ReportData>("/api/weekly-report")
       .then(setData)
-      .catch(() => { /* weekly report load failed */ })
+      .catch((e) => { console.warn('[WeeklyReport] loadReport', e); })
       .finally(() => setLoading(false));
   }, [open]);
 

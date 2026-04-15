@@ -37,7 +37,7 @@ function MiniCalendarWidget() {
       try {
         const data = await api.get<Task[]>("/api/tasks");
         if (!cancelled && Array.isArray(data)) setTasks(data.filter((t: Task) => t.due));
-      } catch {}
+      } catch (e) { console.warn('[MiniCalendarWidget] fetchTasks', e); }
     })();
     return () => { cancelled = true; };
   }, []);
