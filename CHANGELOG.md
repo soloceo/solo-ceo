@@ -3,6 +3,20 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.44.1] - 2026-04-14
+
+### Fixed
+- **Sync reliability — closed several silent data-loss paths.** Data layer audit tightened the offline↔online sync seam: offline queue now remaps server IDs back onto pending operations after replay (prevents stale local IDs lingering); settings cache invalidation fires on every write path (stale cache after profile edits fixed); silent `catch {}` blocks across the data layer replaced with scoped `console.warn('[module] action', e)` so failures are visible instead of swallowed.
+- **Settings profile save — toast now reflects the actual API result.** Previously the "Saved" toast fired the instant you clicked save, regardless of whether the network request succeeded. Now the success toast waits for the POST to resolve, and a `common.saveFailed` toast fires if it rejects. Same pattern applied to avatar upload/remove.
+- **Form accessibility — screen readers now announce input errors.** `Input`, `TextArea`, and `Select` components now link their error span to the control via `aria-invalid` + `aria-describedby`. Previously the red error text rendered visually but was disconnected from the field for assistive tech.
+- **Dynamic imports — failed chunk loads no longer surface as unhandled promise rejections.** `PeepIllustration` (lazy SVG) and `i18n/context` (lazy EN bundle) both add `.catch()` branches. Offline first-visit users switching language, or CDN flakes while loading an illustration, now log a tidy `console.warn` instead of a red unhandled rejection.
+- **Work page — stale AI model IDs + double-diff on task edit.** Removed hardcoded model IDs that drifted from the central registry; fixed a double-diff computation that sent redundant fields on task update.
+
+### Changed
+- **Error-logging convention unified across the codebase.** All `catch {}` / `catch (e) {}` blocks in feature modules (home, work, clients, finance, settings, UI components) converted to `console.warn('[Component] action', e)` with enough context to locate the source without opening a debugger.
+- **AI model IDs centralized.** `src/lib/ai-client.ts` is now the single source of truth for all model ID strings; individual features (work breakdown, lead scoring, content generation) no longer hold their own copies. Updating a model ID in one place updates everywhere.
+- **i18n — two misplaced keys moved to the correct file.** `settings.knowledgeLibrary` and `settings.knowledge.progress` now live in `en/settings.ts` (matching the zh side); previously they sat in `en/clients.ts` — no runtime impact (all shards merge into a flat dict) but `grep` now finds them where you'd expect.
+
 ## [2.44.0] - 2026-04-14
 
 ### Changed
