@@ -39,7 +39,9 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   // Load English translations on demand
   useEffect(() => {
     if (lang === "en" && !enLoaded) {
-      loadEn().then(() => forceUpdate((n) => n + 1));
+      loadEn()
+        .then(() => forceUpdate((n) => n + 1))
+        .catch((e) => console.warn('[i18n] loadEn', e));
     }
   }, [lang]);
 
@@ -47,7 +49,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!enLoaded) {
       // Use requestIdleCallback if available, otherwise setTimeout
-      const load = () => loadEn();
+      const load = () => { loadEn().catch((e) => console.warn('[i18n] preloadEn', e)); };
       if ('requestIdleCallback' in window) {
         window.requestIdleCallback(load);
       } else {
@@ -61,7 +63,9 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     try { localStorage.setItem(STORAGE_KEY, l); } catch { /* quota exceeded */ }
     window.dispatchEvent(new CustomEvent("language-changed", { detail: l }));
     if (l === "en" && !enLoaded) {
-      loadEn().then(() => forceUpdate((n) => n + 1));
+      loadEn()
+        .then(() => forceUpdate((n) => n + 1))
+        .catch((e) => console.warn('[i18n] loadEn', e));
     }
   }, []);
 

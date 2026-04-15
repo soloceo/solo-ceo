@@ -1,4 +1,6 @@
 export const settings = {
+  "settings.knowledgeLibrary": "Knowledge Library",
+  "settings.knowledge.progress": "{done}/{total} mastered",
   "create.pageTitle": "Create",
   "create.platform.twitter": "Twitter",
   "create.platform.linkedin": "LinkedIn",

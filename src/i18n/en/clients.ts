@@ -20,8 +20,6 @@ export const clients = {
   "pipeline.emailsHint": "4 outreach templates in Chinese + English. Click to expand, one-click copy.",
   "pipeline.scripts": "Scripts",
   "pipeline.scriptsHint": "6 common objection-handling scripts in both languages, with pricing reference.",
-  "settings.knowledgeLibrary": "Knowledge Library",
-  "settings.knowledge.progress": "{done}/{total} mastered",
   "pipeline.pageTitle": "Clients",
   "pipeline.leads": "Leads",
   "pipeline.clients": "Clients",
