@@ -100,14 +100,114 @@ export function getAIConfig(settings: Record<string, string> | null): { provider
   return { provider, apiKey };
 }
 
+/* ── Local-model helpers ──────────────────────────────────
+ * Reasoning models served via Ollama/LM Studio (DeepSeek-R1, QwQ, Qwen3,
+ * some Gemma variants) emit <think>…</think> blocks inline in content
+ * even when think:false is sent. Cloud providers handle this structurally:
+ * Claude via `thinking_delta` events, Gemini via `part.thought`. Local
+ * models leak the raw tags into the UI — we strip them here. */
+
+/** Strip <think>…</think> blocks from a complete string (non-streaming). */
+function stripThinkTags(text: string): string {
+  return text.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+}
+
+/** Streaming <think>…</think> filter — handles tag boundaries that span
+ *  chunks. Call `.process(chunk)` on each delta; emits only non-thinking
+ *  text. Call `.flush()` when the stream ends to drain any held buffer. */
+class ThinkFilter {
+  private inside = false;
+  private held = ""; // tail that might be a partial tag
+  private static readonly OPEN = "<think>";
+  private static readonly CLOSE = "</think>";
+
+  process(chunk: string): string {
+    const text = this.held + chunk;
+    this.held = "";
+    let out = "";
+    let i = 0;
+    const len = text.length;
+
+    while (i < len) {
+      if (this.inside) {
+        const end = text.indexOf(ThinkFilter.CLOSE, i);
+        if (end === -1) {
+          // Hold up to (CLOSE.length - 1) tail chars in case a partial `</think` spans the next chunk
+          this.held = text.slice(Math.max(i, len - ThinkFilter.CLOSE.length + 1));
+          return out;
+        }
+        this.inside = false;
+        i = end + ThinkFilter.CLOSE.length;
+      } else {
+        const start = text.indexOf(ThinkFilter.OPEN, i);
+        if (start === -1) {
+          // Hold up to (OPEN.length - 1) tail chars for partial `<think`
+          const safe = Math.max(i, len - ThinkFilter.OPEN.length + 1);
+          out += text.slice(i, safe);
+          this.held = text.slice(safe);
+          return out;
+        }
+        out += text.slice(i, start);
+        this.inside = true;
+        i = start + ThinkFilter.OPEN.length;
+      }
+    }
+    return out;
+  }
+
+  /** Drain any held tail at stream end. If we're still inside a think block
+   *  (malformed stream — no closing tag), drop it. Otherwise emit the tail. */
+  flush(): string {
+    const out = this.inside ? "" : this.held;
+    this.held = "";
+    this.inside = false;
+    return out;
+  }
+}
+
+/** Normalize a local-server error into a message users can act on. */
+async function localError(res: Response, serverLabel: string, url: string, model: string): Promise<Error> {
+  let detail = "";
+  try {
+    const body = await res.json();
+    detail = (body?.error || body?.message || "").toString();
+  } catch { /* non-JSON response */ }
+
+  if (res.status === 404) {
+    return new Error(`${serverLabel}: model "${model}" not found. Open Settings → AI and pick a model that's installed.`);
+  }
+  if (res.status === 0 || res.status >= 500) {
+    return new Error(`${serverLabel} error ${res.status}${detail ? ` — ${detail}` : ""}. The local server may have crashed or run out of memory.`);
+  }
+  return new Error(`${serverLabel} error ${res.status}${detail ? ` — ${detail}` : ` at ${url}`}`);
+}
+
+/** Wrap a fetch that targets a local model server with a clear connection error. */
+async function localFetch(url: string, init: RequestInit, serverLabel: string): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch (e) {
+    // Browser fetch throws a TypeError for network failures, CORS blocks, and refused connections alike.
+    // Surface a single actionable message that covers the three common causes.
+    const hint = serverLabel === "Ollama"
+      ? `Cannot reach Ollama at ${url.split("/api/")[0]}. Start it with \`ollama serve\` and set \`OLLAMA_ORIGINS=*\` so the browser can connect.`
+      : `Cannot reach LM Studio at ${url.split("/v1/")[0]}. Make sure the local server is running and CORS is allowed.`;
+    throw new Error(hint + (e instanceof Error && e.message ? ` (${e.message})` : ""));
+  }
+}
+
 /* ── Low-level API callers ──────────────────────────────── */
 
-/** Safely extract JSON from AI output (handles markdown fences, leading text) */
+/** Safely extract JSON from AI output (handles markdown fences, leading text,
+ *  and <think>…</think> reasoning blocks from local models). */
 function extractJSON(text: string): any {
+  // Strip reasoning blocks first — otherwise the `{...}` fallback below can
+  // greedily match across thinking text that happens to contain braces.
+  const cleaned = stripThinkTags(text);
   // Try direct parse first
-  try { return JSON.parse(text); } catch {}
+  try { return JSON.parse(cleaned); } catch {}
   // Strip markdown fences
-  const stripped = text.replace(/```json\n?|\n?```/g, "").trim();
+  const stripped = cleaned.replace(/```json\n?|\n?```/g, "").trim();
   try { return JSON.parse(stripped); } catch {}
   // Extract first {...} block
   const match = stripped.match(/\{[\s\S]*\}/);
@@ -119,7 +219,8 @@ function extractJSON(text: string): any {
 async function callJSON(provider: AIProvider, apiKey: string, systemPrompt: string, userText: string): Promise<any> {
   if (provider === "ollama") {
     const { url, model } = getOllamaConfig();
-    const res = await fetch(`${url}/api/chat`, {
+    const endpoint = `${url}/api/chat`;
+    const res = await localFetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -127,20 +228,25 @@ async function callJSON(provider: AIProvider, apiKey: string, systemPrompt: stri
         messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userText }],
         format: "json",
         stream: false,
-        think: false,
-        options: { temperature: 0 },
+        think: false,                     // suppress thinking on models that honor it
+        keep_alive: "30m",                // keep model resident between quick calls
+        options: {
+          temperature: 0,
+          num_ctx: 8192,                  // default is 2048 — too small for system+user prompts
+        },
       }),
-    });
-    if (!res.ok) throw new Error(`Ollama error: ${res.status}`);
+    }, "Ollama");
+    if (!res.ok) throw await localError(res, "Ollama", endpoint, model);
     const data = await res.json();
     const text = data.message?.content;
-    if (!text) throw new Error("Empty Ollama response");
-    return extractJSON(text);
+    if (!text) throw new Error("Empty Ollama response (model may have returned only thinking tokens)");
+    return extractJSON(text); // extractJSON strips <think> tags before parsing
   }
 
   if (provider === "lmstudio") {
     const { url, model } = getLMStudioConfig();
-    const res = await fetch(`${url}/v1/chat/completions`, {
+    const endpoint = `${url}/v1/chat/completions`;
+    const res = await localFetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -150,8 +256,8 @@ async function callJSON(provider: AIProvider, apiKey: string, systemPrompt: stri
         temperature: 0,
         stream: false,
       }),
-    });
-    if (!res.ok) throw new Error(`LM Studio error: ${res.status}`);
+    }, "LM Studio");
+    if (!res.ok) throw await localError(res, "LM Studio", endpoint, model);
     const data = await res.json();
     const text = data.choices?.[0]?.message?.content;
     if (!text) throw new Error("Empty LM Studio response");
@@ -228,7 +334,8 @@ async function callJSON(provider: AIProvider, apiKey: string, systemPrompt: stri
 async function callText(provider: AIProvider, apiKey: string, systemPrompt: string, userText: string): Promise<string> {
   if (provider === "ollama") {
     const { url, model } = getOllamaConfig();
-    const res = await fetch(`${url}/api/chat`, {
+    const endpoint = `${url}/api/chat`;
+    const res = await localFetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -236,16 +343,19 @@ async function callText(provider: AIProvider, apiKey: string, systemPrompt: stri
         messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userText }],
         stream: false,
         think: false,
+        keep_alive: "30m",
+        options: { num_ctx: 8192 },
       }),
-    });
-    if (!res.ok) throw new Error(`Ollama error: ${res.status}`);
+    }, "Ollama");
+    if (!res.ok) throw await localError(res, "Ollama", endpoint, model);
     const data = await res.json();
-    return data.message?.content || "";
+    return stripThinkTags(data.message?.content || "");
   }
 
   if (provider === "lmstudio") {
     const { url, model } = getLMStudioConfig();
-    const res = await fetch(`${url}/v1/chat/completions`, {
+    const endpoint = `${url}/v1/chat/completions`;
+    const res = await localFetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -254,10 +364,10 @@ async function callText(provider: AIProvider, apiKey: string, systemPrompt: stri
         temperature: 0.2,
         stream: false,
       }),
-    });
-    if (!res.ok) throw new Error(`LM Studio error: ${res.status}`);
+    }, "LM Studio");
+    if (!res.ok) throw await localError(res, "LM Studio", endpoint, model);
     const data = await res.json();
-    return data.choices?.[0]?.message?.content || "";
+    return stripThinkTags(data.choices?.[0]?.message?.content || "");
   }
 
   if (provider === "gemini") {
@@ -439,10 +549,14 @@ export async function streamChat(
       model: cfg.model,
       messages: buildOllamaMessages(messages),
       stream: true,
-      think: false,  // Disable extended thinking (prevents hallucinations in reasoning mode)
-      options: { temperature: 0.2 },
+      think: false,                       // suppress structured thinking on models that honor it
+      keep_alive: "30m",                  // keep model resident — avoids 30–60s cold starts between chats
+      options: {
+        temperature: 0.2,
+        num_ctx: 8192,                    // default 2048 silently truncates system+history+user
+      },
     };
-    // Pass native tools for function calling (supported by gemma4, qwen, llama3.1, etc.)
+    // Pass native tools for function calling (supported by gemma, qwen, llama3.1, etc.)
     if (nativeTools && nativeTools.length > 0) {
       (reqBody.options as Record<string, unknown>).temperature = 0;
       reqBody.tools = nativeTools.map(t => ({
@@ -511,8 +625,30 @@ export async function streamChat(
     throw new Error(`Unsupported provider: ${provider}`);
   }
 
-  const res = await fetch(url, { method: "POST", headers, body, signal });
-  if (!res.ok) throw new Error(`AI error: ${res.status}`);
+  // For local providers we need to handle `fetch` network errors specially
+  // (server-not-running / CORS / refused connection all throw TypeError).
+  const isLocal = provider === "ollama" || provider === "lmstudio";
+  let res: Response;
+  try {
+    res = await fetch(url, { method: "POST", headers, body, signal });
+  } catch (e) {
+    if (isLocal) {
+      const base = url.split(provider === "ollama" ? "/api/" : "/v1/")[0];
+      const hint = provider === "ollama"
+        ? `Cannot reach Ollama at ${base}. Start it with \`ollama serve\` and set \`OLLAMA_ORIGINS=*\` so the browser can connect.`
+        : `Cannot reach LM Studio at ${base}. Make sure the local server is running and CORS is allowed.`;
+      throw new Error(hint + (e instanceof Error && e.message ? ` (${e.message})` : ""));
+    }
+    throw e;
+  }
+  if (!res.ok) {
+    if (isLocal) {
+      const serverLabel = provider === "ollama" ? "Ollama" : "LM Studio";
+      const model = provider === "ollama" ? getOllamaConfig().model : getLMStudioConfig().model;
+      throw await localError(res, serverLabel, url, model);
+    }
+    throw new Error(`AI error: ${res.status}`);
+  }
   if (!res.body) throw new Error("No response body");
 
   const reader = res.body.getReader();
@@ -521,6 +657,21 @@ export async function streamChat(
   let buffer = "";
   let truncated = false;
   const parsedToolCalls: NativeToolCall[] = [];
+
+  // <think>…</think> filter — only for local models (cloud providers handle
+  // reasoning structurally via thinking_delta / part.thought / etc.)
+  const thinkFilter = isLocal ? new ThinkFilter() : null;
+
+  /** Emit a text delta to `onChunk` and accumulate into `full`, transparently
+   *  stripping <think>…</think> blocks for local providers. */
+  const emit = (chunk: string) => {
+    if (!chunk) return;
+    const out = thinkFilter ? thinkFilter.process(chunk) : chunk;
+    if (out) {
+      full += out;
+      onChunk(out);
+    }
+  };
 
   // Helper to parse native tool calls from Ollama response
   const parseOllamaToolCalls = (toolCalls: unknown[]) => {
@@ -538,6 +689,16 @@ export async function streamChat(
 
   if (provider === "ollama") {
     // ── Ollama native format: JSON lines (not SSE) ──
+    const handleOllamaLine = (json: Record<string, unknown>) => {
+      // Text content — routed through emit() which strips <think>…</think>
+      const msg = json.message as Record<string, unknown> | undefined;
+      if (typeof msg?.content === "string") emit(msg.content);
+      // Native tool calls (arguments already parsed as object in native API)
+      if (Array.isArray(msg?.tool_calls)) parseOllamaToolCalls(msg.tool_calls);
+      // Final chunk carries the stop reason — Ollama sets done_reason: "length"
+      // when the response was cut off at the model's context or output limit.
+      if (json.done === true && json.done_reason === "length") truncated = true;
+    };
     try {
       while (true) {
         const { done, value } = await reader.read();
@@ -548,22 +709,12 @@ export async function streamChat(
         for (const line of lines) {
           const trimmed = line.trim();
           if (!trimmed) continue;
-          try {
-            const json = JSON.parse(trimmed);
-            // Text content (skip thinking tokens — they appear in json.message.thinking)
-            if (json.message?.content) { full += json.message.content; onChunk(json.message.content); }
-            // Native tool calls (arguments already parsed as object in native API)
-            if (Array.isArray(json.message?.tool_calls)) parseOllamaToolCalls(json.message.tool_calls);
-          } catch { /* skip unparseable */ }
+          try { handleOllamaLine(JSON.parse(trimmed)); } catch { /* skip unparseable */ }
         }
       }
       // Flush remaining buffer
       if (buffer.trim()) {
-        try {
-          const json = JSON.parse(buffer.trim());
-          if (json.message?.content) { full += json.message.content; onChunk(json.message.content); }
-          if (Array.isArray(json.message?.tool_calls)) parseOllamaToolCalls(json.message.tool_calls);
-        } catch { /* skip */ }
+        try { handleOllamaLine(JSON.parse(buffer.trim())); } catch { /* skip */ }
       }
     } catch (err) {
       if ((err as Error).name === "AbortError") return { text: full, truncated: true };
@@ -581,11 +732,11 @@ export async function streamChat(
       if (!trimmed.startsWith("data: ")) return;
       try {
         const json = JSON.parse(trimmed.slice(6));
-        // OpenAI format
+        // OpenAI / LM Studio format
         const finish = json.choices?.[0]?.finish_reason;
         if (finish === "length") truncated = true;
         const delta = json.choices?.[0]?.delta;
-        if (delta?.content) { full += delta.content; onChunk(delta.content); return; }
+        if (delta?.content) { emit(delta.content); return; }
         // OpenAI native tool calls (streamed in delta.tool_calls)
         if (Array.isArray(delta?.tool_calls)) {
           for (const tc of delta.tool_calls) {
@@ -599,7 +750,7 @@ export async function streamChat(
         // Claude format
         if (json.type === "content_block_delta") {
           const text = json.delta?.text;
-          if (text) { full += text; onChunk(text); return; }
+          if (text) { emit(text); return; }
         }
         if (json.type === "message_delta" && json.delta?.stop_reason === "max_tokens") truncated = true;
         // Gemini format
@@ -610,7 +761,7 @@ export async function streamChat(
         if (geminiParts) {
           for (const part of geminiParts) {
             if (part.thought) continue; // skip thinking/reasoning tokens
-            if (part.text) { full += part.text; onChunk(part.text); }
+            if (part.text) emit(part.text);
           }
           return;
         }
@@ -642,6 +793,16 @@ export async function streamChat(
       } catch {
         parsedToolCalls.push({ name: tc.name, args: {} });
       }
+    }
+  }
+
+  // Drain any tail held by the <think> filter (partial tag at stream end).
+  // If we're still inside a think block with no closing tag, flush() drops it.
+  if (thinkFilter) {
+    const tail = thinkFilter.flush();
+    if (tail) {
+      full += tail;
+      onChunk(tail);
     }
   }
 
