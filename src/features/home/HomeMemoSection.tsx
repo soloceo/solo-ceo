@@ -6,7 +6,7 @@ import { useT } from "../../i18n/context";
 import PeepIllustration from "../../components/ui/PeepIllustration";
 import { useAppSettings } from "../../hooks/useAppSettings";
 import { useUIStore } from "../../store/useUIStore";
-import { getAIConfig, getOllamaConfig } from "../../lib/ai-client";
+import { getAIConfig, getOllamaConfig, MODEL_IDS } from "../../lib/ai-client";
 import { useRealtimeRefresh } from "../../hooks/useRealtimeRefresh";
 import type { Task } from "../work/TaskCard";
 
@@ -315,11 +315,15 @@ export function HomeMemoSection() {
         });
         result = JSON.parse((await r.json()).choices[0].message.content);
       } else if (provider === "claude") {
+        // Opus 4.7: no temperature, effort "low" for fast JSON extraction.
+        // Response content may include thinking blocks — find the text block.
         const r = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST", headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-          body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 200, system: sysPrompt, messages: [{ role: "user", content: text }] }),
+          body: JSON.stringify({ model: MODEL_IDS.claude, max_tokens: 200, system: sysPrompt, messages: [{ role: "user", content: text }], output_config: { effort: "low" } }),
         });
-        result = JSON.parse((await r.json()).content[0].text);
+        const d = await r.json();
+        const txt = Array.isArray(d.content) ? (d.content.find((b: { type: string; text?: string }) => b?.type === "text")?.text || "") : "";
+        result = JSON.parse(txt);
       } else if (provider === "gemini") {
         const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`, {
           method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },

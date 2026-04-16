@@ -17,12 +17,34 @@ export const AI_KEY_MAP: Record<string, string> = {
  * Default model IDs per cloud provider.
  * Centralized so upgrades only need to change one line instead of hunting
  * through callJSON / callText / streamChat / testApiKey.
+ *
+ * ── Claude Opus 4.7 notes ──────────────────────────────────────────
+ * - Sampling parameters (temperature, top_p, top_k) are REMOVED on 4.7 and
+ *   return a 400 if sent. All Claude request bodies below omit them.
+ * - Adaptive thinking (`thinking: {type: "adaptive"}`) replaces the old
+ *   `budget_tokens` API — the model decides when and how much to think.
+ *   Enabled on text/chat paths where quality matters; omitted on JSON
+ *   extraction paths where deterministic fast output matters more.
+ * - `output_config.effort` ("low" | "medium" | "high" | "max") tunes the
+ *   cost/quality tradeoff. We use "medium" for short text, "high" for chat.
+ * - Response parsers look up the text block by `.type === "text"` instead
+ *   of `content[0]` so adaptive thinking blocks (present but empty text on
+ *   4.7 by default) are transparently skipped.
  */
 export const MODEL_IDS = {
-  claude: "claude-sonnet-4-6",
+  claude: "claude-opus-4-7",
   openai: "gpt-4.1-mini",
   gemini: "gemini-2.5-flash",
 } as const;
+
+/** Extract the text string from a Claude `messages` response content array.
+ *  Safe across 4.7 adaptive thinking (which adds `thinking` blocks that sit
+ *  next to the text block) — we find the first `text` block explicitly. */
+function claudeText(content: Array<{ type: string; text?: string }> | undefined): string {
+  if (!Array.isArray(content)) return "";
+  const block = content.find((b) => b?.type === "text");
+  return block?.text || "";
+}
 
 // ── Device-level AI provider (localStorage) ──────────────────
 
@@ -157,6 +179,9 @@ async function callJSON(provider: AIProvider, apiKey: string, systemPrompt: stri
   }
 
   if (provider === "claude") {
+    // Opus 4.7: temperature removed (would 400); no thinking — JSON extraction
+    // benefits from fast deterministic output, not reasoning. Effort "low"
+    // keeps preamble/output terse — this is structured extraction.
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -168,14 +193,14 @@ async function callJSON(provider: AIProvider, apiKey: string, systemPrompt: stri
       body: JSON.stringify({
         model: MODEL_IDS.claude,
         max_tokens: 1024,
-        temperature: 0,
         system: systemPrompt,
         messages: [{ role: "user", content: userText }],
+        output_config: { effort: "low" },
       }),
     });
     if (!res.ok) throw new Error(`Claude API error: ${res.status}`);
     const data = await res.json();
-    const text = data.content?.[0]?.text;
+    const text = claudeText(data.content);
     if (!text) throw new Error("Empty Claude response");
     return extractJSON(text);
   }
@@ -254,6 +279,9 @@ async function callText(provider: AIProvider, apiKey: string, systemPrompt: stri
   }
 
   if (provider === "claude") {
+    // Opus 4.7: temperature removed. Adaptive thinking helps email/content
+    // writing quality; effort "medium" is a reasonable cost/quality point
+    // for short-text generation (outreach emails, etc.).
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -265,14 +293,15 @@ async function callText(provider: AIProvider, apiKey: string, systemPrompt: stri
       body: JSON.stringify({
         model: MODEL_IDS.claude,
         max_tokens: 1024,
-        temperature: 0.2,
         system: systemPrompt,
         messages: [{ role: "user", content: userText }],
+        thinking: { type: "adaptive" },
+        output_config: { effort: "medium" },
       }),
     });
     if (!res.ok) throw new Error(`Claude API error: ${res.status}`);
     const data = await res.json();
-    return data.content?.[0]?.text || "";
+    return claudeText(data.content);
   }
 
   // OpenAI
@@ -448,6 +477,10 @@ export async function streamChat(
     headers = { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` };
     body = JSON.stringify({ model: MODEL_IDS.openai, messages: buildOpenAIMessages(messages), stream: true, max_tokens: 16384 });
   } else if (provider === "claude") {
+    // Opus 4.7: temperature removed. Adaptive thinking + effort "high" gives
+    // the chat surface the quality users expect from the flagship model;
+    // thinking_delta events are filtered out below so reasoning stays
+    // invisible (Opus 4.7 ships empty thinking text by default anyway).
     url = "https://api.anthropic.com/v1/messages";
     headers = {
       "Content-Type": "application/json",
@@ -456,7 +489,15 @@ export async function streamChat(
       "anthropic-dangerous-direct-browser-access": "true",
     };
     const sysMsg = messages.find(m => m.role === "system")?.content || "";
-    body = JSON.stringify({ model: MODEL_IDS.claude, max_tokens: 16384, system: sysMsg, messages: buildClaudeMessages(messages), stream: true });
+    body = JSON.stringify({
+      model: MODEL_IDS.claude,
+      max_tokens: 16384,
+      system: sysMsg,
+      messages: buildClaudeMessages(messages),
+      stream: true,
+      thinking: { type: "adaptive" },
+      output_config: { effort: "high" },
+    });
   } else if (provider === "gemini") {
     const sysMsg = messages.find(m => m.role === "system")?.content || "";
     url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IDS.gemini}:streamGenerateContent?alt=sse`;

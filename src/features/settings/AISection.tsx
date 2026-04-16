@@ -16,7 +16,7 @@ interface AISectionProps {
 
 const CLOUD_PROVIDERS: { id: AIProvider; label: string; model: string; keyName: string; applyUrl: string }[] = [
   { id: "gemini", label: "Gemini", model: "gemini-2.5-flash", keyName: "gemini_api_key", applyUrl: "https://aistudio.google.com/apikey" },
-  { id: "claude", label: "Claude", model: "claude-sonnet-4-6", keyName: "claude_api_key", applyUrl: "https://console.anthropic.com/settings/keys" },
+  { id: "claude", label: "Claude", model: "claude-opus-4-7", keyName: "claude_api_key", applyUrl: "https://console.anthropic.com/settings/keys" },
   { id: "openai", label: "OpenAI", model: "gpt-4.1-mini", keyName: "openai_api_key", applyUrl: "https://platform.openai.com/api-keys" },
 ];
 

@@ -248,13 +248,16 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
         const d = await r.json();
         result = JSON.parse(d.choices[0].message.content);
       } else if (provider === "claude") {
+        // Opus 4.7: no temperature (would 400), effort "low" for fast JSON extraction.
+        // content[] may include thinking blocks — find the text block explicitly.
         const r = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST", headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-          body: JSON.stringify({ model: MODEL_IDS.claude, max_tokens: 200, system: sysPrompt, messages: [{ role: "user", content: text }] }),
+          body: JSON.stringify({ model: MODEL_IDS.claude, max_tokens: 200, system: sysPrompt, messages: [{ role: "user", content: text }], output_config: { effort: "low" } }),
           signal,
         });
         const d = await r.json();
-        result = JSON.parse(d.content[0].text);
+        const txt = Array.isArray(d.content) ? (d.content.find((b: { type: string; text?: string }) => b?.type === "text")?.text || "") : "";
+        result = JSON.parse(txt);
       } else if (provider === "gemini") {
         const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IDS.gemini}:generateContent`, {
           method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
