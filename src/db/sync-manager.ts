@@ -50,18 +50,29 @@ function dispatchSyncToast(message: string, type: 'info' | 'success' | 'warning'
 async function pullCloudToLocal(): Promise<void> {
   const db = await getDb();
 
+  const failedTables: string[] = [];
   for (const table of PULL_TABLES) {
     try {
       // Fetch all rows from Supabase (RLS filters by user_id)
       const { data: rows, error } = await supabase.from(table).select('*');
-      if (error || !rows) continue;
+      if (error) {
+        // Surface the specific error so "sync quietly stops working" becomes
+        // debuggable from the browser console instead of needing a repro.
+        console.warn(`[SyncManager] Pull error for ${table}:`, error);
+        failedTables.push(table);
+        continue;
+      }
+      if (!rows) continue;
       // Skip DELETE+INSERT if cloud returned 0 rows — prevents accidental data wipe.
       // Known limitation: if the user legitimately cleared all rows elsewhere,
       // this cold-start pull won't propagate the deletion to local. Realtime
       // postgres_changes covers live deletes while the tab is active, so this
       // only affects users who delete-all on device A then open device B fresh.
       // TODO: add last_sync_at / per-table cursor to enable safe diff pulls.
-      if (rows.length === 0) continue;
+      if (rows.length === 0) {
+        console.debug(`[SyncManager] ${table} returned 0 rows — keeping local copy`);
+        continue;
+      }
 
       // Get local column names via PRAGMA
       const colInfo = all(db, `PRAGMA table_info("${table}")`);
@@ -92,9 +103,11 @@ async function pullCloudToLocal(): Promise<void> {
       } catch (insertErr) {
         try { exec(db, 'ROLLBACK'); } catch { /* already rolled back */ }
         console.warn(`[SyncManager] Failed to write ${table} locally:`, insertErr);
+        failedTables.push(table);
       }
     } catch (e) {
       console.warn(`[SyncManager] Failed to pull ${table}:`, e);
+      failedTables.push(table);
     }
   }
 
@@ -103,6 +116,12 @@ async function pullCloudToLocal(): Promise<void> {
 
   // Invalidate SWR cache so components fetch fresh data
   clearCache();
+
+  // One aggregated toast instead of spamming the user per-table. Only shown when
+  // at least one table actually failed — successful syncs stay silent as before.
+  if (failedTables.length > 0) {
+    dispatchSyncToast(`${failedTables.length} 张表同步失败：${failedTables.join(', ')}`, 'warning');
+  }
 }
 
 // ── Pull cloud state into components ─────────────────────────────
@@ -131,11 +150,18 @@ export function triggerFullSync(): Promise<void> {
 }
 
 async function performFullSync(): Promise<void> {
-  // Check auth
+  // Check auth. Previously both the no-session branch and the thrown-error
+  // branch were silent — sync would appear to run (status flips to idle)
+  // while actually doing nothing, which matches the "data stopped syncing
+  // but UI says OK" symptom users have reported.
   try {
     const { data } = await supabase.auth.getSession();
-    if (!data.session) return;
-  } catch {
+    if (!data.session) {
+      console.warn('[SyncManager] Skipping sync: no active session');
+      return;
+    }
+  } catch (authErr) {
+    console.warn('[SyncManager] Skipping sync: getSession threw', authErr);
     return;
   }
 
@@ -166,7 +192,10 @@ async function performFullSync(): Promise<void> {
 
     dispatchSyncStatus('idle', { pending: remaining });
   } catch (e) {
-    // Sync failed — will retry on next trigger
+    // Sync failed — will retry on next trigger. Log + toast so users and
+    // devs stop having to guess whether a failure actually occurred.
+    console.error('[SyncManager] performFullSync failed:', e);
+    dispatchSyncToast('同步失败，将稍后重试', 'warning');
     const remaining = await getQueueLength().catch(() => 0);
     dispatchSyncStatus('idle', { pending: remaining });
   } finally {

@@ -46,29 +46,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let subscriptionRef: { unsubscribe: () => void } | null = null;
 
-    // Get initial session — with timeout + error handling for offline
+    // The original code read `loading` inside the timeout callback to decide whether
+    // to force offline mode, but the closure captures the initial `loading=true` and
+    // never updates. A local `resolved` flag is authoritative regardless of React state.
+    let resolved = false;
     const sessionTimeout = setTimeout(() => {
-      // If getSession hasn't resolved in 6s, we're likely offline or on slow network
-      if (loading) {
-        setOfflineMode(true);
-        setLoading(false);
-      }
+      if (resolved) return;
+      resolved = true;
+      setOfflineMode(true);
+      setLoading(false);
     }, 6000);
 
     supabase.auth.getSession()
       .then(({ data: { session: s } }) => {
         clearTimeout(sessionTimeout);
+        if (resolved) return;
+        resolved = true;
         setSession(s);
         setUser(s?.user ?? null);
-        // If offline and no session, enable offline mode instead of blocking
         if (!s && !navigator.onLine) {
           setOfflineMode(true);
         }
         setLoading(false);
       })
-      .catch((err) => {
+      .catch(() => {
         clearTimeout(sessionTimeout);
-        // Offline fallback: allow app to work with local data
+        if (resolved) return;
+        resolved = true;
         setOfflineMode(true);
         setLoading(false);
       });
@@ -169,11 +173,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('solo-ceo-countdowns');
     localStorage.removeItem('solo-ceo-countdown');
     localStorage.removeItem('solo-ceo-energy-v3');
-    // Clear today-focus-skipped keys (date-based, clear all matching)
+    // Clear date-keyed and user-keyed markers in one pass
     try {
       const keys = Object.keys(localStorage);
       for (const k of keys) {
         if (k.startsWith('today-focus-skipped-')) localStorage.removeItem(k);
+        // Per-user agent-seed markers (`solo_agents_seeded:<userId>`). Leaving
+        // these around meant a subsequent signed-in user would inherit the
+        // previous user's "already seeded" flag if their userId happened to
+        // collide with a legacy key, and they cluttered storage indefinitely.
+        if (k === 'solo_agents_seeded' || k.startsWith('solo_agents_seeded:')) localStorage.removeItem(k);
       }
     } catch { /* localStorage access may fail in some contexts */ }
   }, []);

@@ -275,9 +275,18 @@ async function performReplay(): Promise<{ replayed: number; failed: number }> {
     const ordered = [...posts, ...rest];
 
     const BATCH_SIZE = 5;
-    for (let i = 0; i < ordered.length; i += (ordered[i]?.method === 'POST' ? 1 : BATCH_SIZE)) {
-      const isPost = ordered[i]?.method === 'POST';
-      const batch = isPost ? [ordered[i]] : ordered.slice(i, i + BATCH_SIZE).filter(op => op.method !== 'POST');
+    // Iterate with explicit progress so a malformed queue entry can't stall the
+    // loop. Previously the step size was computed from `ordered[i]?.method`,
+    // and if that evaluated to undefined the loop would keep revisiting the
+    // same index — a real risk during concurrent removeOp/updateOp calls.
+    let i = 0;
+    while (i < ordered.length) {
+      const cur = ordered[i];
+      if (!cur) { i++; continue; }
+      const isPost = cur.method === 'POST';
+      const batch = isPost ? [cur] : ordered.slice(i, i + BATCH_SIZE).filter(op => op.method !== 'POST');
+      const step = isPost ? 1 : Math.max(batch.length, 1);
+      i += step;
       const results = await Promise.allSettled(
         batch.map(async (op) => {
           // Apply ID remapping before sending to Supabase.
