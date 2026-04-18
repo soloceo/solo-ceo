@@ -18,6 +18,8 @@ import { useUIStore } from "../../store/useUIStore";
 import { Skeleton } from "../../components/ui";
 import { FL } from "./LeadsBoard";
 import { STATUS_I18N, catLabel, TX_STATUS } from "../../lib/tax";
+import { formatMoney } from "../../lib/format";
+import { useSettingsStore } from "../../store/useSettingsStore";
 import { todayDateKey } from "../../lib/date-utils";
 import { useMilestones, PAYMENT_METHODS } from "./useMilestones";
 import type { MilestoneRow } from "./useMilestones";
@@ -83,7 +85,8 @@ const createEmptyClient = () => ({
    CLIENTS VIEW
    ══════════════════════════════════════════════════════════════════ */
 export function ClientsView() {
-  const { t } = useT();
+  const { t, lang } = useT();
+  const currency = useSettingsStore((s) => s.currency) || 'USD';
   const [clients, setClients] = useState<ClientRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPanel, setShowPanel] = useState(false);
@@ -335,7 +338,7 @@ export function ClientsView() {
             <div className="stat-card anim-appear"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-4)]" style={{ background: "var(--color-bg-tertiary)" }}><PlayCircle size={16} style={{ color: "var(--color-text-tertiary)" }} /></div><span className="text-[13px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("common.active")}</span></div><span className="text-[18px] tabular-nums tracking-tight" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{activeN}</span></div>
             <div className="stat-card anim-appear"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-4)]" style={{ background: "var(--color-bg-tertiary)" }}><PauseCircle size={16} style={{ color: "var(--color-text-tertiary)" }} /></div><span className="text-[13px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("common.paused")}</span></div><span className="text-[18px] tabular-nums tracking-tight" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{pausedN}</span></div>
             <div className="stat-card anim-appear"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-4)]" style={{ background: "var(--color-bg-tertiary)" }}><Layers size={16} style={{ color: "var(--color-text-tertiary)" }} /></div><span className="text-[13px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("pipeline.clients.contractTotal")}</span></div><span className="text-[18px] tabular-nums tracking-tight" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>${contractTotal.toLocaleString()}</span></div>
-            <div className="stat-card anim-appear"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-4)]" style={{ background: "var(--color-bg-tertiary)" }}><CircleCheck size={16} style={{ color: "var(--color-text-tertiary)" }} /></div><span className="text-[13px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("pipeline.clients.totalReceived")}</span></div><span className="text-[18px] tabular-nums tracking-tight" style={{ color: "var(--color-success)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>${totalReceived.toLocaleString()}</span></div>
+            <div className="stat-card anim-appear"><div className="flex items-center gap-2 mb-1"><div className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-4)]" style={{ background: "var(--color-bg-tertiary)" }}><CircleCheck size={16} style={{ color: "var(--color-text-tertiary)" }} /></div><span className="text-[13px]" style={{ color: "var(--color-text-tertiary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{t("pipeline.clients.totalReceived")}</span></div><span className="text-[18px] tabular-nums tracking-tight" style={{ color: "var(--color-success)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{formatMoney(totalReceived, currency, lang)}</span></div>
           </div>
 
           <div className="space-y-2 mb-3">
@@ -383,10 +386,10 @@ export function ClientsView() {
                     {c.contact_name && <div className="text-[13px] mt-0.5 truncate" style={{ color: "var(--color-text-secondary)" }}>{c.contact_name}{c.contact_phone ? ` · ${c.contact_phone}` : ""}</div>}
                     <div className="text-[13px] mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
                       {c.billing_type === "project"
-                        ? <>{t("pipeline.clients.billingProject")} · {t("pipeline.clients.contract")} <strong style={{ color: "var(--color-text-primary)" }}>${Number(c.project_fee || 0).toLocaleString()}</strong></>
-                        : <>{plan} · <strong style={{ color: "var(--color-text-primary)" }}>${Number(c.mrr || 0).toLocaleString()}</strong>{t("pipeline.clients.perMonth")}</>
+                        ? <>{t("pipeline.clients.billingProject")} · {t("pipeline.clients.contract")} <strong style={{ color: "var(--color-text-primary)" }}>{formatMoney(c.project_fee, currency, lang)}</strong></>
+                        : <>{plan} · <strong style={{ color: "var(--color-text-primary)" }}>{formatMoney(c.mrr, currency, lang)}</strong>{t("pipeline.clients.perMonth")}</>
                       }
-                      {(() => { const cR = tx.finTxs.filter((r: FinanceTransaction) => r.type === "income" && (r.status || TX_STATUS.COMPLETED) === TX_STATUS.COMPLETED && r.client_id === c.id).reduce((s: number, r: FinanceTransaction) => s + Number(r.amount || 0), 0); return cR > 0 ? <> · <span style={{ color: "var(--color-success)" }}>{t("pipeline.clients.received")} ${cR.toLocaleString()}</span></> : null; })()}
+                      {(() => { const cR = tx.finTxs.filter((r: FinanceTransaction) => r.type === "income" && (r.status || TX_STATUS.COMPLETED) === TX_STATUS.COMPLETED && r.client_id === c.id).reduce((s: number, r: FinanceTransaction) => s + Number(r.amount || 0), 0); return cR > 0 ? <> · <span style={{ color: "var(--color-success)" }}>{t("pipeline.clients.received")} {formatMoney(cR, currency, lang)}</span></> : null; })()}
                       {c.tax_mode && c.tax_mode !== "none" && <> · <span style={{ color: "var(--color-accent)" }}>{c.tax_mode === "exclusive" ? t("money.form.taxExclBtn") : t("money.form.taxIncl")} {c.tax_rate}%</span></>}
                     </div>
                   </div>
@@ -420,9 +423,9 @@ export function ClientsView() {
                       <td className="px-4 py-3"><span className="badge">{c.billing_type === "project" ? "—" : plan}</span></td>
                       <td className="px-4 py-3"><span className={`badge ${c.status === "Active" ? "badge-success" : "badge-warning"}`}>{c.status === "Active" ? t("common.active") : t("common.paused")}</span></td>
                       <td className="px-4 py-3 tabular-nums" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-                        <div>${c.billing_type === "project" ? Number(c.project_fee || 0).toLocaleString() : Number(c.lifetimeRevenue || 0).toLocaleString()}</div>
-                        {(() => { const cReceived = tx.finTxs.filter((r: FinanceTransaction) => r.type === "income" && (r.status || TX_STATUS.COMPLETED) === TX_STATUS.COMPLETED && r.client_id === c.id).reduce((s: number, r: FinanceTransaction) => s + Number(r.amount || 0), 0); return cReceived > 0 ? <div className="text-[13px]" style={{ color: "var(--color-success)" }}>{t("pipeline.clients.received")} ${cReceived.toLocaleString()}</div> : null; })()}
-                        {c.billing_type === "subscription" && <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>${Number(c.mrr || 0).toLocaleString()}{t("pipeline.clients.perMonth")}</div>}
+                        <div>{formatMoney(Number(c.billing_type === "project" ? c.project_fee : c.lifetimeRevenue) || 0, currency, lang)}</div>
+                        {(() => { const cReceived = tx.finTxs.filter((r: FinanceTransaction) => r.type === "income" && (r.status || TX_STATUS.COMPLETED) === TX_STATUS.COMPLETED && r.client_id === c.id).reduce((s: number, r: FinanceTransaction) => s + Number(r.amount || 0), 0); return cReceived > 0 ? <div className="text-[13px]" style={{ color: "var(--color-success)" }}>{t("pipeline.clients.received")} {formatMoney(cReceived, currency, lang)}</div> : null; })()}
+                        {c.billing_type === "subscription" && <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{formatMoney(c.mrr, currency, lang)}{t("pipeline.clients.perMonth")}</div>}
                       </td>
                       <td className="px-4 py-3 text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{c.subscription_start_date || String(c.joined_at || "").split("T")[0] || "—"}</td>
                       <td className="px-4 py-3">{c.tax_mode && c.tax_mode !== "none" ? <span className="badge badge-accent">{c.tax_mode === "exclusive" ? t("money.form.taxExclBtn") : t("money.form.taxIncl")} {c.tax_rate}%</span> : <span style={{ color: "var(--color-text-secondary)" }}>—</span>}</td>
@@ -733,7 +736,7 @@ export function ClientsView() {
                                     <span className="badge text-[13px]" style={{ background: "var(--color-success-light)", color: "var(--color-success)" }}>{t("pipeline.projects.status.active")}</span>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <span className="text-[15px] tabular-nums" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>${Number(p.project_fee || 0).toLocaleString()}</span>
+                                    <span className="text-[15px] tabular-nums" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{formatMoney(p.project_fee, currency, lang)}</span>
                                     <button type="button" onClick={e => { e.stopPropagation(); proj.openEditForm(p); }} className="btn-icon-sm" aria-label={t("common.edit")}><Edit2 size={14} /></button>
                                     <button type="button" onClick={e => { e.stopPropagation(); setDeleteProjectId(p.id); }} className="btn-icon-sm" style={{ color: "var(--color-danger)" }} aria-label={t("common.delete")}><Trash2 size={14} /></button>
                                   </div>
@@ -765,7 +768,7 @@ export function ClientsView() {
                                           <span className="text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{p.name}</span>
                                           <span className="badge text-[13px]" style={p.status === "completed" ? { background: "color-mix(in srgb, var(--color-blue) 12%, transparent)", color: "var(--color-blue)" } : { background: "color-mix(in srgb, var(--color-text-secondary) 12%, transparent)", color: "var(--color-text-secondary)" }}>{t(`pipeline.projects.status.${p.status}`)}</span>
                                         </div>
-                                        <span className="text-[15px] tabular-nums" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>${Number(p.project_fee || 0).toLocaleString()}</span>
+                                        <span className="text-[15px] tabular-nums" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{formatMoney(p.project_fee, currency, lang)}</span>
                                       </div>
                                       <div className="flex items-center gap-2 mt-1 text-[13px]" style={{ color: "var(--color-text-secondary)" }}>
                                         {p.project_start_date && <span>{p.project_start_date}</span>}
@@ -868,7 +871,7 @@ export function ClientsView() {
                                 <div>
                                   <div className="flex items-center justify-between mb-2">
                                     <span className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>
-                                      {ms.filteredMilestones.filter((m: MilestoneRow) => m.status === "paid").length}/{ms.filteredMilestones.length} {t("pipeline.milestones.status.paid").toLowerCase()} · ${paidAmt.toLocaleString()} / ${totalAmt.toLocaleString()}
+                                      {ms.filteredMilestones.filter((m: MilestoneRow) => m.status === "paid").length}/{ms.filteredMilestones.length} {t("pipeline.milestones.status.paid").toLowerCase()} · {formatMoney(paidAmt, currency, lang)} / {formatMoney(totalAmt, currency, lang)}
                                     </span>
                                     <span className="text-[13px] tabular-nums" style={{ color: pct === 100 ? "var(--color-success)" : "var(--color-accent)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{pct}%</span>
                                   </div>
@@ -901,13 +904,13 @@ export function ClientsView() {
                                       <div className="text-right">
                                         {(() => {
                                           const mAmt = Number(msItem.amount || 0);
-                                          if (pTaxMode === "none" || !pTaxRate) return <span className="text-[15px] tabular-nums" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>${mAmt.toLocaleString()}</span>;
+                                          if (pTaxMode === "none" || !pTaxRate) return <span className="text-[15px] tabular-nums" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{formatMoney(mAmt, currency, lang)}</span>;
                                           const mTax = pTaxMode === "exclusive" ? Math.round(mAmt * pTaxRate / 100 * 100) / 100 : Math.round(mAmt * pTaxRate / (100 + pTaxRate) * 100) / 100;
                                           const total = pTaxMode === "exclusive" ? mAmt + mTax : mAmt;
                                           const base = pTaxMode === "inclusive" ? mAmt - mTax : mAmt;
                                           return <>
-                                            <span className="text-[15px] tabular-nums" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>${total.toLocaleString()}</span>
-                                            <div className="text-[12px] tabular-nums" style={{ color: "var(--color-text-tertiary)" }}>{pTaxMode === "exclusive" ? `${t("pipeline.milestones.amountPreTax")} $${base.toLocaleString()} + ${t("finance.tax")} $${mTax.toLocaleString()}` : `${t("pipeline.milestones.amountPreTax")} $${base.toLocaleString()} · ${t("finance.tax")} $${mTax.toLocaleString()}`}</div>
+                                            <span className="text-[15px] tabular-nums" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{formatMoney(total, currency, lang)}</span>
+                                            <div className="text-[12px] tabular-nums" style={{ color: "var(--color-text-tertiary)" }}>{pTaxMode === "exclusive" ? `${t("pipeline.milestones.amountPreTax")} ${formatMoney(base, currency, lang)} + ${t("finance.tax")} ${formatMoney(mTax, currency, lang)}` : `${t("pipeline.milestones.amountPreTax")} ${formatMoney(base, currency, lang)} · ${t("finance.tax")} ${formatMoney(mTax, currency, lang)}`}</div>
                                           </>;
                                         })()}
                                       </div>
@@ -969,7 +972,7 @@ export function ClientsView() {
                                       return (
                                         <div className="rounded-[var(--radius-4)] px-3 py-2 flex items-center justify-between text-[13px]" style={{ background: "var(--color-bg-tertiary)", color: "var(--color-text-secondary)" }}>
                                           <span>{t("finance.tax")} ({pTaxRate}% {pTaxMode === "exclusive" ? t("pipeline.milestones.taxExclusive") : t("pipeline.milestones.taxInclusive")})</span>
-                                          <span className="tabular-nums">{t("pipeline.milestones.amountPreTax")} ${base.toLocaleString()} + ${t("finance.tax")} ${msTax.toLocaleString()} = ${total.toLocaleString()}</span>
+                                          <span className="tabular-nums">{t("pipeline.milestones.amountPreTax")} {formatMoney(base, currency, lang)} + {t("finance.tax")} {formatMoney(msTax, currency, lang)} = {formatMoney(total, currency, lang)}</span>
                                         </div>
                                       );
                                     })()}
@@ -1029,7 +1032,7 @@ export function ClientsView() {
                                       <>
                                         <div className="flex items-center justify-between text-[13px]" style={{ color: "var(--color-text-secondary)" }}>
                                           <span>{t("finance.tax")} ({pTaxRate}% {pTaxMode === "exclusive" ? t("pipeline.milestones.taxExclusive") : t("pipeline.milestones.taxInclusive")})</span>
-                                          <span className="tabular-nums">${taxAmt.toLocaleString()}</span>
+                                          <span className="tabular-nums">{formatMoney(taxAmt, currency, lang)}</span>
                                         </div>
                                         <div className="flex items-center justify-between text-[13px] pt-1 border-t" style={{ color: "var(--color-text-primary)", borderColor: "var(--color-border-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
                                           <span>{t("pipeline.tx.total")}</span>
@@ -1075,7 +1078,7 @@ export function ClientsView() {
                                   return (
                                     <div className="rounded-[var(--radius-4)] px-3 py-2 flex items-center justify-between text-[13px]" style={{ background: "var(--color-bg-tertiary)", color: "var(--color-text-secondary)" }}>
                                       <span>{t("finance.tax")} ({pTaxRate}% {pTaxMode === "exclusive" ? t("pipeline.milestones.taxExclusive") : t("pipeline.milestones.taxInclusive")})</span>
-                                      <span className="tabular-nums">{t("pipeline.milestones.amountPreTax")} ${base.toLocaleString()} + ${t("finance.tax")} ${epTax.toLocaleString()} = ${total.toLocaleString()}</span>
+                                      <span className="tabular-nums">{t("pipeline.milestones.amountPreTax")} {formatMoney(base, currency, lang)} + {t("finance.tax")} {formatMoney(epTax, currency, lang)} = {formatMoney(total, currency, lang)}</span>
                                     </div>
                                   );
                                 })()}
@@ -1141,9 +1144,9 @@ export function ClientsView() {
                       const expense = tx.clientTxs.filter((r: FinanceTransaction) => r.type === "expense" && (r.status || TX_STATUS.COMPLETED) === TX_STATUS.COMPLETED).reduce((s: number, r: FinanceTransaction) => { const a = Number(r.amount || 0); const t2 = Number(r.tax_amount || 0); return s + ((r.tax_mode || 'none') === 'exclusive' ? a + t2 : a); }, 0);
                       return (
                         <div className="flex items-center gap-3 text-[13px]" style={{ fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
-                          <span style={{ color: "var(--color-success)" }}>{t("pipeline.tx.received")} ${received.toLocaleString()}{receivedTax > 0 ? ` (+${t("finance.tax")} $${receivedTax.toLocaleString()})` : ""}</span>
+                          <span style={{ color: "var(--color-success)" }}>{t("pipeline.tx.received")} {formatMoney(received, currency, lang)}{receivedTax > 0 ? ` (+${t("finance.tax")} ${formatMoney(receivedTax, currency, lang)})` : ""}</span>
                           {pending > 0 && <span style={{ color: "var(--color-warning)" }}>{t("pipeline.tx.pending")} ${pending.toLocaleString()}</span>}
-                          {expense > 0 && <span style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.tx.expense")} ${expense.toLocaleString()}</span>}
+                          {expense > 0 && <span style={{ color: "var(--color-text-secondary)" }}>{t("pipeline.tx.expense")} {formatMoney(expense, currency, lang)}</span>}
                         </div>
                       );
                     })()}
@@ -1166,7 +1169,7 @@ export function ClientsView() {
                                     <span className="text-[15px] tabular-nums shrink-0" style={{ color: isInc ? "var(--color-success)" : "var(--color-text-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>
                                       {isInc ? "+" : "-"}${displayAmt.toLocaleString()}
                                     </span>
-                                    {txTax > 0 && <span className="text-[13px] tabular-nums shrink-0" style={{ color: "var(--color-text-secondary)" }}>{txMode === "exclusive" ? `+${t("finance.tax")} $${txTax.toLocaleString()}` : txMode === "inclusive" ? `${t("finance.taxIncluded")} $${txTax.toLocaleString()}` : ""}</span>}
+                                    {txTax > 0 && <span className="text-[13px] tabular-nums shrink-0" style={{ color: "var(--color-text-secondary)" }}>{txMode === "exclusive" ? `+${t("finance.tax")} ${formatMoney(txTax, currency, lang)}` : txMode === "inclusive" ? `${t("finance.taxIncluded")} ${formatMoney(txTax, currency, lang)}` : ""}</span>}
                                   </>);
                                 })()}
                                 <span className="text-[15px] truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{txItem.description || txItem.desc}</span>
@@ -1260,9 +1263,9 @@ export function ClientsView() {
                               const base = tx.txForm.taxMode === "inclusive" ? amt - tax : amt;
                               return (
                                 <div className="rounded-[var(--radius-6)] p-3 text-[13px] tabular-nums" style={{ background: "var(--color-bg-tertiary)", border: "1px solid var(--color-border-primary)" }}>
-                                  <div className="flex justify-between"><span style={{ color: "var(--color-text-secondary)" }}>{tx.txForm.taxMode === "inclusive" ? t("pipeline.tx.baseAmount") : t("pipeline.tx.amount")}</span><span style={{ color: "var(--color-text-primary)" }}>${base.toLocaleString()}</span></div>
-                                  <div className="flex justify-between"><span style={{ color: "var(--color-text-secondary)" }}>{t("finance.tax")} ({rate}%)</span><span style={{ color: "var(--color-text-primary)" }}>${tax.toLocaleString()}</span></div>
-                                  <div className="flex justify-between border-t pt-1 mt-1" style={{ borderColor: "var(--color-border-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}><span style={{ color: "var(--color-text-primary)" }}>{t("pipeline.tx.total")}</span><span style={{ color: "var(--color-success)" }}>${total.toLocaleString()}</span></div>
+                                  <div className="flex justify-between"><span style={{ color: "var(--color-text-secondary)" }}>{tx.txForm.taxMode === "inclusive" ? t("pipeline.tx.baseAmount") : t("pipeline.tx.amount")}</span><span style={{ color: "var(--color-text-primary)" }}>{formatMoney(base, currency, lang)}</span></div>
+                                  <div className="flex justify-between"><span style={{ color: "var(--color-text-secondary)" }}>{t("finance.tax")} ({rate}%)</span><span style={{ color: "var(--color-text-primary)" }}>{formatMoney(tax, currency, lang)}</span></div>
+                                  <div className="flex justify-between border-t pt-1 mt-1" style={{ borderColor: "var(--color-border-primary)", fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}><span style={{ color: "var(--color-text-primary)" }}>{t("pipeline.tx.total")}</span><span style={{ color: "var(--color-success)" }}>{formatMoney(total, currency, lang)}</span></div>
                                 </div>
                               );
                             })()}

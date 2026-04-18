@@ -9,6 +9,7 @@ import {
   CartesianGrid,
   Tooltip,
 } from "recharts";
+import { formatMoney, getCurrencySymbol } from "../../lib/format";
 
 export interface ChartDataPoint {
   month: string;
@@ -22,9 +23,14 @@ interface FinanceChartProps {
   chartData: ChartDataPoint[];
   isMobile: boolean;
   t: (k: string) => string;
+  /** Currency code (USD / CNY / …). Defaults to USD for callers that don't pass it yet. */
+  currency?: string;
+  /** UI language — forwarded to Intl for number grouping. */
+  lang?: string;
 }
 
-export default function FinanceChart({ chartData, isMobile, t }: FinanceChartProps) {
+export default function FinanceChart({ chartData, isMobile, t, currency = 'USD', lang = 'en' }: FinanceChartProps) {
+  const sym = getCurrencySymbol(currency, lang);
   return (
     <div className="card card-glow p-4 mb-4">
       <div className="flex items-center justify-between mb-3">
@@ -44,10 +50,10 @@ export default function FinanceChart({ chartData, isMobile, t }: FinanceChartPro
             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-primary)" />
             {/* Recharts SVG tick requires numeric fontSize — CSS vars not supported */}
             <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--color-text-secondary)" }} tickLine={false} axisLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: "var(--color-text-secondary)" }} tickLine={false} axisLine={false} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
+            <YAxis tick={{ fontSize: 11, fill: "var(--color-text-secondary)" }} tickLine={false} axisLine={false} tickFormatter={(v: number) => `${sym}${(v / 1000).toFixed(0)}k`} />
             <Tooltip
               contentStyle={{ background: "var(--color-bg-primary)", border: "1px solid var(--color-border-primary)", borderRadius: "var(--radius-8)", fontSize: "var(--font-size-xs)" }}
-              formatter={(value, name) => [`$${Number(value).toLocaleString()}`, name === "income" ? t("money.chart.revenue") : name === "expense" ? t("money.chart.expense") : t("money.chart.net")]}
+              formatter={(value, name) => [formatMoney(Number(value), currency, lang), name === "income" ? t("money.chart.revenue") : name === "expense" ? t("money.chart.expense") : t("money.chart.net")]}
               labelFormatter={(label) => `${label}${t("money.monthSuffix")}`}
             />
             <Bar dataKey="income" fill="var(--color-success)" radius={[3, 3, 0, 0]} opacity={0.8} isAnimationActive />

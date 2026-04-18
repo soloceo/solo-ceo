@@ -28,6 +28,8 @@ import {
 import { api } from "../../lib/api";
 import PeepIllustration from "../../components/ui/PeepIllustration";
 import { calcTaxAmount, catLabel, STATUS_I18N, TX_STATUS } from "../../lib/tax";
+import { formatMoney } from "../../lib/format";
+import { useSettingsStore } from "../../store/useSettingsStore";
 import { todayDateKey } from "../../lib/date-utils";
 import { parseExpense, getAIConfig, type AIProvider } from "../../lib/ai-client";
 import { useAppSettings } from "../../hooks/useAppSettings";
@@ -86,6 +88,7 @@ const createEmptyForm = () => ({
    ═══════════════════════════════════════════════════════════════════ */
 export default function FinancePage() {
   const { t, lang } = useT();
+  const currency = useSettingsStore((s) => s.currency) || 'USD';
   const showToast = useUIStore((s) => s.showToast);
   const setActiveTab = useUIStore((s) => s.setActiveTab);
   const isMobile = useIsMobile();
@@ -430,7 +433,7 @@ export default function FinancePage() {
         tax_amount: 0,
       });
       if (isIncome) celebrate("won");
-      showToast(`✓ ${t("money.ai.recorded").replace("{desc}", parsed.description).replace("{amount}", `$${parsed.amount}`)}`);
+      showToast(`✓ ${t("money.ai.recorded").replace("{desc}", parsed.description).replace("{amount}", formatMoney(parsed.amount, currency, lang))}`);
       setAiInput("");
       fetchFinance();
     } catch (e) {
@@ -499,10 +502,7 @@ export default function FinancePage() {
   };
 
   /* ── Format helpers ── */
-  const fmtAmt = (amt: number) => {
-    const abs = Math.abs(amt);
-    return `${amt >= 0 ? "+" : "-"}$${abs.toLocaleString()}`;
-  };
+  const fmtAmt = (amt: number) => formatMoney(amt, currency, lang, { showSign: true });
 
   const fmtAmtColor = (amt: number) =>
     amt >= 0 ? "var(--color-success)" : "var(--color-danger)";
@@ -585,36 +585,36 @@ export default function FinancePage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
             <StatCard
               label={t("money.stat.completedRevenue")}
-              value={`$${stats.totalIncome.toLocaleString()}`}
-              sub={`${t("finance.thisMonth")} $${stats.monthIncome.toLocaleString()}${stats.totalTax > 0 ? ` · ${t("finance.inclTax")}` : ""}`}
+              value={formatMoney(stats.totalIncome, currency, lang)}
+              sub={`${t("finance.thisMonth")} ${formatMoney(stats.monthIncome, currency, lang)}${stats.totalTax > 0 ? ` · ${t("finance.inclTax")}` : ""}`}
               icon={<TrendingUp size={16} />}
               color="var(--color-success)"
             />
             <StatCard
               label={t("money.stat.completedExpense")}
-              value={`$${stats.totalExpense.toLocaleString()}`}
-              sub={`${t("finance.thisMonth")} $${stats.monthExpense.toLocaleString()}`}
+              value={formatMoney(stats.totalExpense, currency, lang)}
+              sub={`${t("finance.thisMonth")} ${formatMoney(stats.monthExpense, currency, lang)}`}
               icon={<TrendingDown size={16} />}
               color="var(--color-danger)"
             />
             <StatCard
               label={t("money.stat.netProfit")}
-              value={stats.netProfit < 0 ? `-$${Math.abs(stats.netProfit).toLocaleString()}` : `$${stats.netProfit.toLocaleString()}`}
+              value={formatMoney(stats.netProfit, currency, lang)}
               sub={`${t("money.stat.margin")} ${stats.margin}%`}
               icon={<Wallet size={16} />}
               color={stats.netProfit >= 0 ? "var(--color-success)" : "var(--color-danger)"}
             />
             <StatCard
               label={t("money.stat.receivable")}
-              value={`$${stats.receivable.toLocaleString()}`}
-              sub={stats.payable > 0 ? `${t("money.st.payable")} $${stats.payable.toLocaleString()}` : ""}
+              value={formatMoney(stats.receivable, currency, lang)}
+              sub={stats.payable > 0 ? `${t("money.st.payable")} ${formatMoney(stats.payable, currency, lang)}` : ""}
               icon={<AlertCircle size={16} />}
               color="var(--color-warning)"
             />
             {stats.totalTax > 0 && (
               <StatCard
                 label={t("finance.totalTax")}
-                value={`$${stats.totalTax.toLocaleString()}`}
+                value={formatMoney(stats.totalTax, currency, lang)}
                 sub=""
                 icon={<Receipt size={16} />}
                 color="var(--color-text-secondary)"
@@ -686,14 +686,14 @@ export default function FinancePage() {
           <div className="grid grid-cols-2 gap-3 mb-4">
             <StatCard
               label={t("money.stat.monthExpense")}
-              value={`$${personalStats.monthTotal.toLocaleString()}`}
+              value={formatMoney(personalStats.monthTotal, currency, lang)}
               sub=""
               icon={<TrendingDown size={16} />}
               color="var(--color-danger)"
             />
             <StatCard
               label={t("money.stat.dailyAvg")}
-              value={`$${Math.round(personalStats.dailyAvg).toLocaleString()}`}
+              value={formatMoney(Math.round(personalStats.dailyAvg), currency, lang)}
               sub=""
               icon={<Wallet size={16} />}
               color="var(--color-text-secondary)"
@@ -701,7 +701,7 @@ export default function FinancePage() {
           </div>
 
           <React.Suspense fallback={<div className="card p-4 mb-4 h-[200px] skeleton-bone rounded-[var(--radius-12)]" />}>
-            <FinanceChart chartData={chartData} isMobile={isMobile} t={t} />
+            <FinanceChart chartData={chartData} isMobile={isMobile} t={t} currency={currency} lang={lang} />
           </React.Suspense>
 
           <div className="card card-glow p-4 flex-1 min-h-0">

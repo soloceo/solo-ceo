@@ -9,7 +9,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { catLabel, STATUS_I18N } from "../../lib/tax";
-import { fmtDate } from "../../lib/format";
+import { fmtDate, formatMoney } from "../../lib/format";
+import { useSettingsStore } from "../../store/useSettingsStore";
 
 /* ── Types ── */
 interface TxRecord {
@@ -55,6 +56,7 @@ export const TxRow = React.memo(function TxRow({ tx, t, lang, fmtAmt, fmtAmtColo
   tx: TxRecord; t: (k: string) => string; lang?: string; fmtAmt: (n: number) => string; fmtAmtColor: (n: number) => string;
   onEdit: () => void; onDelete: () => void; isSystem: boolean; expanded?: boolean; onClientClick?: (name: string) => void;
 }) {
+  const currency = useSettingsStore((s) => s.currency) || 'USD';
   const rawAmt = Number(tx.amount || 0);
   const tax = Math.abs(Number(tx.tax_amount || 0));
   const isIncome = tx.type === "income";
@@ -102,7 +104,7 @@ export const TxRow = React.memo(function TxRow({ tx, t, lang, fmtAmt, fmtAmtColo
           <span className="text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{catLabel(tx.category || "", t)}</span>
           <div className="text-right">
             <span className="text-[15px] tabular-nums" style={{ color: fmtAmtColor(amt), fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{fmtAmt(amt)}</span>
-            {tax > 0 && <div className="text-[12px] tabular-nums" style={{ color: "var(--color-text-tertiary)" }}>{taxMode === "exclusive" ? `${t("finance.tax")} $${tax.toLocaleString()} · ${t("pipeline.tx.total")} $${(rawAmt + tax).toLocaleString()}` : `${t("pipeline.milestones.amountPreTax")} $${(rawAmt - tax).toLocaleString()} · ${t("finance.tax")} $${tax.toLocaleString()}`}</div>}
+            {tax > 0 && <div className="text-[12px] tabular-nums" style={{ color: "var(--color-text-tertiary)" }}>{taxMode === "exclusive" ? `${t("finance.tax")} ${formatMoney(tax, currency, lang)} · ${t("pipeline.tx.total")} ${formatMoney(rawAmt + tax, currency, lang)}` : `${t("pipeline.milestones.amountPreTax")} ${formatMoney(rawAmt - tax, currency, lang)} · ${t("finance.tax")} ${formatMoney(tax, currency, lang)}`}</div>}
           </div>
           <span className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{stLabel(tx.status || "", t)}</span>
           <div className="flex gap-1">{actionBtns}</div>
@@ -121,7 +123,7 @@ export const TxRow = React.memo(function TxRow({ tx, t, lang, fmtAmt, fmtAmtColo
           </div>
           <div className="text-right shrink-0">
             <div className="text-[15px] tabular-nums" style={{ color: fmtAmtColor(amt), fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{fmtAmt(amt)}</div>
-            {tax > 0 && <div className="text-[12px] tabular-nums" style={{ color: "var(--color-text-tertiary)" }}>{taxMode === "exclusive" ? `${t("finance.tax")} $${tax.toLocaleString()} · ${t("pipeline.tx.total")} $${(rawAmt + tax).toLocaleString()}` : `${t("pipeline.milestones.amountPreTax")} $${(rawAmt - tax).toLocaleString()} · ${t("finance.tax")} $${tax.toLocaleString()}`}</div>}
+            {tax > 0 && <div className="text-[12px] tabular-nums" style={{ color: "var(--color-text-tertiary)" }}>{taxMode === "exclusive" ? `${t("finance.tax")} ${formatMoney(tax, currency, lang)} · ${t("pipeline.tx.total")} ${formatMoney(rawAmt + tax, currency, lang)}` : `${t("pipeline.milestones.amountPreTax")} ${formatMoney(rawAmt - tax, currency, lang)} · ${t("finance.tax")} ${formatMoney(tax, currency, lang)}`}</div>}
             <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{stLabel(tx.status || "", t)}</div>
           </div>
           {isSystem ? <span className="p-1" style={{ color: "var(--color-text-secondary)" }}><Lock size={16} /></span> : <span className="p-1" style={{ color: "var(--color-text-secondary)", opacity: 0.4 }}><ChevronRight size={16} /></span>}
@@ -147,7 +149,7 @@ export const TxRow = React.memo(function TxRow({ tx, t, lang, fmtAmt, fmtAmtColo
       </div>
       <div className="text-right shrink-0">
         <div className="text-[15px] tabular-nums" style={{ color: fmtAmtColor(amt), fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{fmtAmt(amt)}</div>
-        {tax > 0 && <div className="text-[12px] tabular-nums" style={{ color: "var(--color-text-tertiary)" }}>{taxMode === "exclusive" ? `${t("finance.tax")} $${tax.toLocaleString()} · ${t("pipeline.tx.total")} $${(rawAmt + tax).toLocaleString()}` : `${t("pipeline.milestones.amountPreTax")} $${(rawAmt - tax).toLocaleString()} · ${t("finance.tax")} $${tax.toLocaleString()}`}</div>}
+        {tax > 0 && <div className="text-[12px] tabular-nums" style={{ color: "var(--color-text-tertiary)" }}>{taxMode === "exclusive" ? `${t("finance.tax")} ${formatMoney(tax, currency, lang)} · ${t("pipeline.tx.total")} ${formatMoney(rawAmt + tax, currency, lang)}` : `${t("pipeline.milestones.amountPreTax")} ${formatMoney(rawAmt - tax, currency, lang)} · ${t("finance.tax")} ${formatMoney(tax, currency, lang)}`}</div>}
         <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{stLabel(tx.status || "", t)}</div>
       </div>
       <div className="flex gap-1 shrink-0">{actionBtns}</div>

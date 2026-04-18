@@ -12,6 +12,7 @@ import { useAppSettings } from "../hooks/useAppSettings";
 import { useUIStore } from "../store/useUIStore";
 import { api } from "../lib/api";
 import { todayDateKey } from "../lib/date-utils";
+import { getCurrencySymbol } from "../lib/format";
 import { useSettingsStore } from "../store/useSettingsStore";
 import {
   getAIConfig,
@@ -1723,7 +1724,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
 
     // Build system prompt for THIS agent
     const useNativeTools = aiConfig.provider === "ollama" || aiConfig.provider === "lmstudio";
-    const sym = currency === "CNY" ? "¥" : "$";
+    const sym = getCurrencySymbol(currency, lang);
     const systemPrompt = buildSystemPrompt(dashboard, pageContext, activeTab, lang, operatorName, businessDesc, currency, agent, isGroup, useNativeTools, personalPreferences);
 
     // Build chat history — skip cancelled tool confirmations, prefix group agent names
@@ -2149,7 +2150,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
 
     setExecutingTool(true);
     try {
-      const sym = currency === "CNY" ? "¥" : "$";
+      const sym = getCurrencySymbol(currency, lang);
       const result = await executeTool({ name: msg.toolConfirm.toolName, args: msg.toolConfirm.args }, sym);
       updateConversations(prev => prev.map(c => {
         if (c.id !== activeConvId) return c;
@@ -2864,7 +2865,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                             const msgs = [...c.messages];
                             const m = msgs[i];
                             if (!m?.toolConfirm) return c;
-                            const updated = buildConfirmInfo({ name: m.toolConfirm.toolName, args: newArgs }, lang, currency === "CNY" ? "¥" : "$");
+                            const updated = buildConfirmInfo({ name: m.toolConfirm.toolName, args: newArgs }, lang, getCurrencySymbol(currency, lang));
                             msgs[i] = { ...m, toolConfirm: updated };
                             return { ...c, messages: msgs };
                           }));
