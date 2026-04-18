@@ -47,8 +47,8 @@ export default function FinanceChart({ chartData, isMobile, t }: FinanceChartPro
             <YAxis tick={{ fontSize: 11, fill: "var(--color-text-secondary)" }} tickLine={false} axisLine={false} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
             <Tooltip
               contentStyle={{ background: "var(--color-bg-primary)", border: "1px solid var(--color-border-primary)", borderRadius: "var(--radius-8)", fontSize: "var(--font-size-xs)" }}
-              formatter={(value: number, name: string) => [`$${value.toLocaleString()}`, name === "income" ? t("money.chart.revenue") : name === "expense" ? t("money.chart.expense") : t("money.chart.net")]}
-              labelFormatter={(label: string) => `${label}${t("money.monthSuffix")}`}
+              formatter={(value, name) => [`$${Number(value).toLocaleString()}`, name === "income" ? t("money.chart.revenue") : name === "expense" ? t("money.chart.expense") : t("money.chart.net")]}
+              labelFormatter={(label) => `${label}${t("money.monthSuffix")}`}
             />
             <Bar dataKey="income" fill="var(--color-success)" radius={[3, 3, 0, 0]} opacity={0.8} isAnimationActive />
             <Bar dataKey="expense" fill="var(--color-danger)" radius={[3, 3, 0, 0]} opacity={0.8} isAnimationActive />

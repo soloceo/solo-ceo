@@ -5,3 +5,12 @@ database.sqlite
 .DS_Store
 .claude/settings.local.json
 .claude/worktrees/
+.claude/skills/
+
+# Project-scoped AI skills (installed via `npx skills add`)
+.agents/
+skills-lock.json
+
+# Review byproducts (cloned reference repo, local screenshots)
+agency-agents/
+design-review/

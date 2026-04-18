@@ -31,11 +31,8 @@ const prioLabel: Record<string, { zh: string; en: string; color: string }> = {
   Low: { zh: "低", en: "L", color: "var(--color-success)" },
 };
 
-interface ColDef {
-  id: string;
-  title: string;
-  color: string;
-}
+import type { ColDef } from "./types";
+export type { ColDef };
 
 interface TaskCardProps {
   task: Task;

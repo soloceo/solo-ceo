@@ -16,14 +16,9 @@ import type { Task } from "./TaskCard";
 import { celebrate } from "../../lib/celebrate";
 import { TabPill } from "../../components/ui/TabPill";
 
-type TaskMap = Record<string, Task[]>;
+import type { ClientItem } from "../../lib/types/client";
 
-interface ClientItem {
-  id: number;
-  name: string;
-  company_name?: string;
-  [key: string]: unknown;
-}
+type TaskMap = Record<string, Task[]>;
 
 const WORK_TABLES = ["tasks"] as const;
 
@@ -331,8 +326,8 @@ export default function WorkPage() {
         </div>
         <div className="page-tabs" role="tablist" data-motion-pill>
           {([
-            ["vertical", <LayoutGrid size={14} />, "Board view"],
-            ["horizontal", <AlignJustify size={14} />, "List view"],
+            ["vertical", <LayoutGrid key="v-icon" size={14} />, "Board view"],
+            ["horizontal", <AlignJustify key="h-icon" size={14} />, "List view"],
           ] as [string, React.ReactNode, string][]).map(([mode, icon, label]) => (
             <button
               key={mode}

@@ -3,12 +3,11 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 import fs from 'fs';
-import {defineConfig, loadEnv} from 'vite';
+import {defineConfig} from 'vite';
 
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
 
-export default defineConfig(({mode}) => {
-  const env = loadEnv(mode, '.', '');
+export default defineConfig(() => {
   return {
     test: {
       include: ['src/**/*.test.ts'],
@@ -36,8 +35,19 @@ export default defineConfig(({mode}) => {
           ],
         },
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+          // SVG peep illustrations (~1.7MB raw) moved from precache → runtime cache:
+          // first visit downloads ~40% less, and swapping illustrations later won't
+          // force every client to re-download the full precache manifest.
+          globPatterns: ['**/*.{js,css,html,ico,png}'],
           runtimeCaching: [
+            {
+              urlPattern: /\.svg$/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'static-svg',
+                expiration: { maxEntries: 80, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              },
+            },
             {
               urlPattern: /^https:\/\/.*supabase\.co\/.*/i,
               handler: 'NetworkFirst',
@@ -59,13 +69,21 @@ export default defineConfig(({mode}) => {
       chunkSizeWarningLimit: 400,
       rollupOptions: {
         output: {
-          manualChunks: {
-            'vendor-react': ['react', 'react-dom'],
-            'vendor-supabase': ['@supabase/supabase-js'],
-            'vendor-recharts': ['recharts'],
-            'vendor-dnd': ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
-            'vendor-motion': ['motion'],
-            'vendor-cmdk': ['cmdk'],
+          // The object form of manualChunks collapses silently when an entry's
+          // module is also directly imported by another chunk's entry — which is
+          // exactly what happened to `vendor-react` (generated an empty file while
+          // ~130KB gzip of react + react-dom ended up in the main index bundle).
+          // The function form runs per-module and is race-free.
+          manualChunks(id: string) {
+            if (id.includes('/node_modules/react/') ||
+                id.includes('/node_modules/react-dom/') ||
+                id.includes('/node_modules/scheduler/')) return 'vendor-react';
+            if (id.includes('/node_modules/@supabase/')) return 'vendor-supabase';
+            if (id.includes('/node_modules/recharts')) return 'vendor-recharts';
+            if (id.includes('/node_modules/@dnd-kit/')) return 'vendor-dnd';
+            if (id.includes('/node_modules/motion')) return 'vendor-motion';
+            if (id.includes('/node_modules/cmdk')) return 'vendor-cmdk';
+            return undefined;
           },
         },
       },

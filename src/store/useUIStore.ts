@@ -110,6 +110,7 @@ export const useUIStore = create<UIState>()(
       toastAction: null,
       toastActionLabel: "",
       toastId: 0,
+      pendingQuickCreate: null,
 
       setActiveTab: (tab) => set({ activeTab: tab }),
       toggleSidebar: () => set((s) => ({ sidebarExpanded: !s.sidebarExpanded })),
@@ -164,6 +165,15 @@ export const useUIStore = create<UIState>()(
         clearTimeout(toastTimer);
         set({ toastMessage: "", toastAction: null, toastActionLabel: "", toastId: 0 });
       },
+
+      setPendingQuickCreate: (type, opts) => {
+        const token = ++quickCreateTokenCounter;
+        const targetTab = QUICK_CREATE_TAB_MAP[type];
+        const patch: Partial<UIState> = { pendingQuickCreate: { type, token } };
+        if (!opts?.keepTab && targetTab) patch.activeTab = targetTab;
+        set(patch);
+      },
+      clearPendingQuickCreate: () => set({ pendingQuickCreate: null }),
     }),
     {
       name: "solo-ceo-ui",

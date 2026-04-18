@@ -1,9 +1,5 @@
 import React, { Suspense, lazy, useEffect, useRef, useState, useMemo } from "react";
 import {
-  Home as HomeIcon,
-  ClipboardList,
-  Users,
-  Wallet,
   Settings as SettingsIcon,
   Loader2,
   Moon,
@@ -12,11 +8,9 @@ import {
   PanelLeftClose,
   PanelLeft,
   Search,
-  CheckCircle2,
-  AlertTriangle,
-  Info,
   Plus,
   UserPlus,
+  Users,
   FileText,
   ListTodo,
   LogOut,
@@ -30,15 +24,14 @@ import { useT } from "../i18n/context";
 import { useAuth } from "../auth/AuthProvider";
 import LoginPage from "../auth/LoginPage";
 import { startRealtime, stopRealtime } from "../db/realtime";
-import { PageErrorBoundary } from "../components/PageErrorBoundary";
 import { OfflineBanner } from "../components/OfflineBanner";
-import { Avatar, PageSkeleton, GlobalToast } from "../components/ui";
-import { useUIStore } from "../store/useUIStore";
+import { Avatar, GlobalToast } from "../components/ui";
+import { useUIStore, type TabId } from "../store/useUIStore";
 import { useSettingsStore, PROFILE_SYNC_KEYS } from "../store/useSettingsStore";
 import { useWidgetStore } from "../features/home/widgets/useWidgetStore";
 import { todayDateKey, dateToKey } from "../lib/date-utils";
 import { api } from "../lib/api";
-import { CommandPalette } from "./CommandPalette";
+const CommandPalette = lazy(() => import("./CommandPalette").then((m) => ({ default: m.CommandPalette })));
 import { QuickCreateMenu } from "./QuickCreateMenu";
 const AIChatPanel = lazy(() => import("./AIChatPanel").then(m => ({ default: m.AIChatPanel })));
 import { UserMenu } from "./UserMenu";
@@ -46,79 +39,11 @@ import { SyncIndicator } from "./SyncIndicator";
 import { useClickOutside } from "./useClickOutside";
 import { motion, AnimatePresence } from "motion/react";
 import { initMouseEffects } from "../lib/mouse-effects";
-
-/* ── Lazy page imports ─────────────────────────────────────────── */
-const HomePage = lazy(() => import("../features/home/HomePage"));
-const WorkPage = lazy(() => import("../features/work/WorkPage"));
-const LeadsPage = lazy(() => import("../features/clients/LeadsPage"));
-const ClientListPage = lazy(() => import("../features/clients/ClientListPage"));
-const FinancePage = lazy(() => import("../features/finance/FinancePage"));
-const SettingsPage = lazy(() => import("../features/settings/SettingsPage"));
-
-/* ── Tab definitions ───────────────────────────────────────────── */
-type TabId = "home" | "work" | "leads" | "clients" | "finance" | "settings";
-
-interface TabDef {
-  id: TabId;
-  labelKey: string;
-  icon: React.ReactNode;
-  component: React.LazyExoticComponent<React.ComponentType>;
-  shortcut?: string;         // keyboard shortcut hint
-  badgeKey?: string;          // key in NavBadges
-}
-
-const MAIN_TABS: TabDef[] = [
-  { id: "home", labelKey: "nav.home", icon: <HomeIcon size={16} aria-hidden="true" />, component: HomePage, shortcut: "1" },
-  { id: "leads",   labelKey: "nav.leads",   icon: <UserPlus size={16} aria-hidden="true" />,  component: LeadsPage,      shortcut: "2" },
-  { id: "work", labelKey: "nav.work", icon: <ClipboardList size={16} aria-hidden="true" />, component: WorkPage, shortcut: "3" },
-  { id: "clients", labelKey: "nav.clients", icon: <Users size={16} aria-hidden="true" />,     component: ClientListPage, shortcut: "4" },
-  { id: "finance", labelKey: "nav.finance", icon: <Wallet size={16} aria-hidden="true" />,    component: FinancePage,    shortcut: "5", badgeKey: "monthIncome" },
-];
-
-const SETTINGS_TAB: TabDef = {
-  id: "settings", labelKey: "nav.settings", icon: <SettingsIcon size={16} aria-hidden="true" />, component: SettingsPage,
-};
-
-const ALL_TABS = [...MAIN_TABS, SETTINGS_TAB];
-const TAB_MAP = Object.fromEntries(ALL_TABS.map((t) => [t.id, t]));
-
-/* ── Badge counts type ─────────────────────────────────────────── */
-type NavBadges = {
-  tasks: number;
-  todoCount: number;
-  inProgressCount: number;
-  leads: number;
-  leadsNew: number;
-  leadsContacted: number;
-  leadsProposal: number;
-  monthIncome: number;
-};
-
-/* ── Content renderer ──────────────────────────────────────────── */
-const Content = React.memo(({ activeTab }: { activeTab: string }) => {
-  const Page = TAB_MAP[activeTab]?.component ?? HomePage;
-  // AnimatePresence swaps page content with spring physics on tab change —
-  // `mode="wait"` ensures the outgoing page finishes before the incoming one mounts,
-  // so there's no double-stacked layout jank during Suspense boundaries.
-  return (
-    <AnimatePresence mode="wait" initial={false}>
-      <motion.div
-        key={activeTab}
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -6 }}
-        transition={{ type: "spring", stiffness: 380, damping: 32, mass: 0.6 }}
-        style={{ width: "100%", height: "100%" }}
-      >
-        <PageErrorBoundary key={activeTab} pageName={activeTab}>
-          <Suspense fallback={<PageSkeleton />}>
-            <Page />
-          </Suspense>
-        </PageErrorBoundary>
-      </motion.div>
-    </AnimatePresence>
-  );
-});
+import { MAIN_TABS, SETTINGS_TAB, ALL_TABS, TAB_MAP, Content, type NavBadges } from "./tabs";
+import { PageErrorBoundary } from "../components/PageErrorBoundary";
+import { SidebarItem } from "./SidebarItem";
+import { MobileNavItem } from "./MobileNavItem";
+import { SyncToast } from "./SyncToast";
 
 /* ══════════════════════════════════════════════════════════════════
    App — Linear-identical layout
@@ -129,6 +54,7 @@ function App() {
 
   const activeTab = useUIStore((s) => s.activeTab);
   const setActiveTab = useUIStore((s) => s.setActiveTab);
+  const commandPaletteOpen = useUIStore((s) => s.commandPaletteOpen);
   const sidebarExpanded = useUIStore((s) => s.sidebarExpanded);
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
   const themeMode = useUIStore((s) => s.themeMode);
@@ -343,6 +269,14 @@ function App() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      // ⌘K / Ctrl+K — lives here (instead of inside CommandPalette) so the palette
+      // can be lazy-loaded and the shortcut still works before it mounts.
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        const s = useUIStore.getState();
+        s.setCommandPaletteOpen(!s.commandPaletteOpen);
+        return;
+      }
       // Don't trigger when typing in inputs or editable areas
       const el = e.target as HTMLElement;
       const tag = el?.tagName;
@@ -492,7 +426,7 @@ function App() {
               label={t(tab.labelKey)}
               active={activeTab === tab.id}
               expanded={isExpanded}
-              onClick={setActiveTab}
+              onClick={() => setActiveTab(tab.id)}
               badge={tab.badgeKey ? badges[tab.badgeKey as keyof NavBadges] : undefined}
               badgeSegments={undefined}
             />
@@ -793,7 +727,11 @@ function App() {
         )}
       </div>
 
-      <CommandPalette />
+      {commandPaletteOpen && (
+        <Suspense fallback={null}>
+          <CommandPalette />
+        </Suspense>
+      )}
       <PageErrorBoundary pageName="ai-chat">
         <Suspense fallback={null}>
           <AIChatPanel open={aiChatOpen} onClose={() => setAIChatOpen(false)} />
@@ -805,165 +743,5 @@ function App() {
   );
 }
 
-/* ── Sidebar item — with badge segments ────────────────────────── */
-interface BadgeSegment { count: number; color: string; }
-
-const SidebarItem = React.memo(function SidebarItem({
-  id, icon, label, active, expanded, onClick, badge, badgeSegments,
-}: {
-  id: string; icon: React.ReactNode; label: string; active: boolean; expanded: boolean;
-  onClick: (id: string) => void; badge?: number; badgeSegments?: BadgeSegment[];
-}) {
-  // No native title — we use a custom tooltip for collapsed state
-  const hasSegments = badgeSegments && badgeSegments.some(s => s.count > 0);
-
-  return (
-    <button
-      onClick={() => onClick(id)}
-      aria-current={active ? "page" : undefined}
-      className={`group relative nav-glow flex items-center select-none cursor-pointer rounded-[var(--radius-6)] text-[15px] ${expanded ? "gap-2 px-2 py-1.5" : "justify-center w-9 h-9 mx-auto"}`}
-      style={{
-        color: active ? "var(--color-text-primary)" : "var(--color-text-tertiary)",
-        fontWeight: active ? "var(--font-weight-semibold)" : "var(--font-weight-normal)",
-        border: "1px solid transparent",
-        transition: "color 0.15s var(--ease-ios), font-weight 0.15s var(--ease-ios)",
-      } as React.CSSProperties}
-      onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "var(--color-bg-tertiary)"; }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = ""; }}
-    >
-      {active && (
-        <motion.div
-          layoutId="sidebar-indicator"
-          className="sidebar-indicator absolute inset-0 rounded-[var(--radius-6)]"
-          style={{ background: "var(--color-bg-tertiary)" }}
-          transition={{ type: "spring", stiffness: 400, damping: 30 }}
-        />
-      )}
-      <span className="shrink-0 relative z-10" style={{ color: active ? "var(--color-text-primary)" : "var(--color-text-quaternary)" }}>
-        {icon}
-        {/* Collapsed badge dot */}
-        {!expanded && (hasSegments || (badge !== undefined && badge > 0)) && (
-          <span
-            className="absolute -top-0.5 -right-0.5 w-[6px] h-[6px] rounded-full"
-            style={{ background: "var(--color-text-quaternary)" }}
-          />
-        )}
-      </span>
-      {/* Collapsed tooltip — shows on hover */}
-      {!expanded && (
-        <span className="absolute left-full ml-2 px-2 py-1 text-[13px] whitespace-nowrap rounded-[var(--radius-4)] opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity"
-          style={{ background: "var(--color-text-primary)", color: "var(--color-bg-primary)", fontWeight: "var(--font-weight-medium)", boxShadow: "var(--shadow-medium)", zIndex: "var(--layer-header)" } as React.CSSProperties}>
-          {label}
-        </span>
-      )}
-      {expanded && (
-        <>
-          <span className="relative z-10 whitespace-nowrap truncate flex-1 min-w-0 text-left">{label}</span>
-          {/* Segmented badge: colored pills */}
-          {hasSegments ? (
-            <span className="flex items-center gap-1">
-              {badgeSegments!.map((seg, i) => seg.count > 0 && (
-                <span
-                  key={i}
-                  className="flex items-center justify-center rounded-full text-[10px] tabular-nums"
-                  style={{
-                    minWidth: 18, height: 18, padding: "0 5px",
-                    background: seg.color, color: "var(--color-text-on-color)",
-                    fontWeight: "var(--font-weight-bold)", lineHeight: 1,
-                  } as React.CSSProperties}
-                >
-                  {seg.count > 99 ? "99+" : seg.count}
-                </span>
-              ))}
-            </span>
-          ) : badge !== undefined && badge > 0 ? (
-            <span
-              className="text-[13px] tabular-nums"
-              style={{ color: "var(--color-text-quaternary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
-            >
-              {badge > 99 ? "99+" : badge}
-            </span>
-          ) : null}
-        </>
-      )}
-    </button>
-  );
-});
-
-/* ── Mobile nav item ───────────────────────────────────────────── */
-const MobileNavItem = React.memo(function MobileNavItem({
-  id, icon, label, active, onClick,
-}: {
-  id: string; icon: React.ReactNode; label: string; active: boolean; onClick: (id: string) => void;
-}) {
-  return (
-    <button
-      onClick={() => onClick(id)}
-      aria-current={active ? "page" : undefined}
-      className={`relative flex-1 flex flex-col items-center justify-center gap-1 select-none rounded-full py-1.5 min-h-[44px] press-feedback`}
-      style={{
-        color: active ? "var(--color-accent)" : "var(--color-text-quaternary)",
-        transition: "color var(--duration-normal) var(--ease-ios), transform var(--duration-fast) var(--ease-ios-bounce)",
-      } as React.CSSProperties}
-    >
-      {active && (
-        <motion.div
-          layoutId="mobile-tab-indicator"
-          className="mobile-tab-indicator absolute inset-0 rounded-full"
-          style={{ background: "var(--color-accent-tint)" }}
-          transition={{ type: "spring", stiffness: 400, damping: 30 }}
-        />
-      )}
-      <span className="relative z-10">{icon}</span>
-      <span className="relative z-10 text-[13px]" style={{ fontWeight: active ? "var(--font-weight-semibold)" : "var(--font-weight-medium)" } as React.CSSProperties}>{label}</span>
-    </button>
-  );
-});
-
-/* ── Toast ──────────────────────────────────────────────────────── */
-function SyncToast() {
-  const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
-
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const { message, type } = (e as CustomEvent).detail || {};
-      if (message) {
-        setToast({ message, type });
-        setTimeout(() => setToast(null), 3500);
-      }
-    };
-    window.addEventListener("sync-toast", handler);
-    return () => window.removeEventListener("sync-toast", handler);
-  }, []);
-
-  if (!toast) return null;
-
-  const icon =
-    toast.type === "success" ? <CheckCircle2 size={14} style={{ color: "var(--color-green)" }} /> :
-    toast.type === "warning" ? <AlertTriangle size={14} style={{ color: "var(--color-warning)" }} /> :
-    <Info size={14} style={{ color: "var(--color-accent)" }} />;
-
-  return (
-    <div
-      role="status"
-      aria-live="polite"
-      className="fixed left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2.5 text-[15px]"
-      style={{
-        top: "max(env(safe-area-inset-top, 0px), 16px)",
-        zIndex: "var(--layer-toasts)",
-        fontWeight: "var(--font-weight-medium)",
-        background: "var(--color-bg-primary)",
-        border: "1px solid var(--color-border-primary)",
-        borderRadius: "var(--radius-8)",
-        color: "var(--color-text-primary)",
-        boxShadow: "var(--shadow-medium)",
-        animation: "fade-in-down 0.2s var(--ease-out-quad)",
-      } as React.CSSProperties}
-    >
-      {icon}
-      {toast.message}
-    </div>
-  );
-}
 
 export default App;

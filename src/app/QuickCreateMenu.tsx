@@ -9,10 +9,11 @@ import {
 } from "lucide-react";
 import { useT } from "../i18n/context";
 import { useClickOutside } from "./useClickOutside";
+import type { TabId } from "../store/useUIStore";
 
 /* Quick-create FAB — navigate to page (no form) */
 export interface QuickCreateMenuProps {
-  setActiveTab: (tab: string) => void;
+  setActiveTab: (tab: TabId) => void;
 }
 
 export function QuickCreateMenu({ setActiveTab }: QuickCreateMenuProps) {
@@ -33,7 +34,7 @@ export function QuickCreateMenu({ setActiveTab }: QuickCreateMenuProps) {
     setQuickCreateOpen((p) => !p);
   };
 
-  const dispatchQuickCreate = (tab: string, type: string) => {
+  const dispatchQuickCreate = (tab: TabId, type: string) => {
     setActiveTab(tab);
     requestAnimationFrame(() => {
       setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type } })), 80);

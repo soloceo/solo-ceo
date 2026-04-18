@@ -4,6 +4,7 @@ import { useT } from "../i18n/context";
 import { Avatar } from "../components/ui";
 import { SyncIndicator } from "./SyncIndicator";
 import { useClickOutside } from "./useClickOutside";
+import type { TabId } from "../store/useUIStore";
 
 type ThemeMode = "light" | "dark" | "auto";
 
@@ -18,7 +19,7 @@ export interface UserMenuProps {
   user: { email?: string } | null;
   themeMode: ThemeMode;
   setThemeMode: (mode: ThemeMode) => void;
-  setActiveTab: (tab: string) => void;
+  setActiveTab: (tab: TabId) => void;
   onSignOut: () => void;
   onSignIn?: () => void;
 }

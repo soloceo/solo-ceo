@@ -85,7 +85,7 @@ interface SortableLeadCardProps {
 }
 
 interface LeadKanbanProps {
-  leads: Record<string, Lead[]>;
+  leads: Record<ColId, Lead[]>;
   columns: LeadColumn[];
   onDragEnd: (r: DragResult) => void;
   onAdd: (lead: Lead | null, col: ColId) => void;
@@ -96,7 +96,7 @@ interface LeadKanbanProps {
 }
 
 interface LeadSwimlaneProps {
-  leads: Record<string, Lead[]>;
+  leads: Record<ColId, Lead[]>;
   columns: LeadColumn[];
   onDragEnd: (r: DragResult) => void;
   onAdd: (lead: Lead | null, col: ColId) => void;
@@ -208,7 +208,7 @@ export function LeadsView() {
   const openPanel = (lead: Lead | null = null, col: ColId = "new") => {
     if (lead) {
       setEditId(lead.id);
-      const loaded = { id: lead.id, name: lead.name, industry: lead.industry, needs: lead.needs, website: lead.website || "", column: lead.column || col, source: lead.source || "" };
+      const loaded = { id: lead.id, name: lead.name, industry: lead.industry || "", needs: lead.needs || "", website: lead.website || "", column: (lead.column || col) as string, source: lead.source || "" };
       setForm(loaded);
       originalFormRef.current = loaded;
       ai.resetForPanel(lead.aiDraft || "");
@@ -359,9 +359,9 @@ export function LeadsView() {
           ))}
         </div>
       ) : viewMode === "vertical" ? (
-        <LeadKanban leads={leads as unknown as Record<string, Lead[]>} columns={LEAD_COLS} onDragEnd={onDragEnd} onAdd={openPanel} onEdit={openPanel} onDelete={(id: number) => setDeleteId(id)} emptyText={t("pipeline.emptyCol")} leadScores={ai.leadScores} />
+        <LeadKanban leads={leads} columns={LEAD_COLS} onDragEnd={onDragEnd} onAdd={openPanel} onEdit={openPanel} onDelete={(id: number) => setDeleteId(id)} emptyText={t("pipeline.emptyCol")} leadScores={ai.leadScores} />
       ) : (
-        <LeadSwimlane leads={leads as unknown as Record<string, Lead[]>} columns={LEAD_COLS} onDragEnd={onDragEnd} onAdd={openPanel} onEdit={openPanel} onDelete={(id: number) => setDeleteId(id)} emptyText={t("pipeline.emptyCol")} onMove={async (id: number, col: string) => {
+        <LeadSwimlane leads={leads} columns={LEAD_COLS} onDragEnd={onDragEnd} onAdd={openPanel} onEdit={openPanel} onDelete={(id: number) => setDeleteId(id)} emptyText={t("pipeline.emptyCol")} onMove={async (id: number, col: string) => {
           try {
             const allLeads = Object.values(leads).flat();
             const lead = allLeads.find((l: Lead) => l.id === id);

@@ -16,12 +16,8 @@ import { Plus } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useIsTouchPointer } from "../../hooks/useIsTouchPointer";
 import { TaskCard, type Task } from "./TaskCard";
-
-export interface ColDef {
-  id: string;
-  title: string;
-  color: string;
-}
+import type { ColDef } from "./types";
+export type { ColDef };
 
 interface KanbanBoardProps {
   columns: ColDef[];

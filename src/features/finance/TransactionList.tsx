@@ -142,7 +142,7 @@ export const TxRow = React.memo(function TxRow({ tx, t, lang, fmtAmt, fmtAmtColo
         </div>
         <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>
           {fmtDate(tx.date || "", lang || "zh")} · {catLabel(tx.category || "", t)}
-          {tx.client_name ? <>{" · "}<button className="cursor-pointer hover:underline bg-transparent border-0 p-0 text-[13px]" style={{ color: "var(--color-accent)", font: "inherit" }} onClick={(e) => { e.stopPropagation(); onClientClick?.(tx.client_name); }}>{tx.client_name}</button></> : ""}
+          {tx.client_name ? <>{" · "}<button className="cursor-pointer hover:underline bg-transparent border-0 p-0 text-[13px]" style={{ color: "var(--color-accent)", font: "inherit" }} onClick={(e) => { e.stopPropagation(); if (tx.client_name) onClientClick?.(tx.client_name); }}>{tx.client_name}</button></> : ""}
         </div>
       </div>
       <div className="text-right shrink-0">
@@ -173,7 +173,7 @@ export function VirtualTxList({ items, t, lang, fmtAmt, fmtAmtColor, onEdit, onD
       <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: "relative" }}>
         {rowVirtualizer.getVirtualItems().map(vRow => {
           const tx = items[vRow.index];
-          const isSystem = tx.source && tx.source !== 'manual';
+          const isSystem = !!(tx.source && tx.source !== 'manual');
           return (
             <div key={tx.id} data-index={vRow.index} ref={rowVirtualizer.measureElement} style={{ position: "absolute", top: 0, left: 0, width: "100%", transform: `translateY(${vRow.start}px)` }}>
               <TxRow

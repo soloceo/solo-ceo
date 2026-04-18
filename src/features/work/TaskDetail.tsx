@@ -7,12 +7,7 @@ import { useIsMobile } from "../../hooks/useIsMobile";
 import { dateToKey } from "../../lib/date-utils";
 import { Button } from "../../components/ui";
 import type { Task } from "./TaskCard";
-
-interface ColDef {
-  id: string;
-  title: string;
-  color: string;
-}
+import type { ColDef } from "./types";
 
 interface TaskDetailProps {
   open: boolean;

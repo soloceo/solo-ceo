@@ -8,7 +8,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "tsc --noEmit",
+    "lint": "tsc --noEmit && eslint .",
+    "lint:types": "tsc --noEmit",
+    "lint:js": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -34,12 +36,21 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@tailwindcss/vite": "^4.1.14",
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^22.14.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@types/sql.js": "^1.4.11",
     "@vitejs/plugin-react": "^5.0.4",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.5.0",
     "tailwindcss": "^4.1.14",
     "typescript": "~5.8.2",
+    "typescript-eslint": "^8.58.2",
     "vite": "^6.2.0",
     "vite-plugin-pwa": "^1.2.0",
     "vitest": "^4.1.2"
