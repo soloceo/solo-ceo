@@ -44,11 +44,13 @@ import { PageErrorBoundary } from "../components/PageErrorBoundary";
 import { SidebarItem } from "./SidebarItem";
 import { MobileNavItem } from "./MobileNavItem";
 import { SyncToast } from "./SyncToast";
+import { useHashRoute } from "./useHashRoute";
 
 /* ══════════════════════════════════════════════════════════════════
    App — Linear-identical layout
    ══════════════════════════════════════════════════════════════════ */
 function App() {
+  useHashRoute();
   const { user, loading: authLoading, offlineMode, signOut, exitOfflineMode } = useAuth();
   const { t } = useT();
 
