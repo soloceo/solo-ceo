@@ -156,20 +156,18 @@ export default function SettingsPage() {
   };
 
   useEffect(() => {
+    // Prime the queue-length badge on mount. sync-manager keeps the store
+    // value in sync from that point on, so we don't need a CustomEvent
+    // listener here anymore — `pendingOps` is read directly via the
+    // useSettingsStore hook above.
     getQueueLength().then(setPendingOps).catch(() => { /* offline — no queue available */ });
     const onOnline = () => setOnline(true);
     const onOffline = () => setOnline(false);
-    const onSyncStatus = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      setPendingOps(detail?.pending || 0);
-    };
     window.addEventListener('online', onOnline);
     window.addEventListener('offline', onOffline);
-    window.addEventListener('sync-status', onSyncStatus);
     return () => {
       window.removeEventListener('online', onOnline);
       window.removeEventListener('offline', onOffline);
-      window.removeEventListener('sync-status', onSyncStatus);
     };
   }, [setOnline, setPendingOps]);
 

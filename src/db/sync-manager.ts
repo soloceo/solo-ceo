@@ -10,6 +10,7 @@ import { supabase } from './supabase-client';
 import { replayQueue, getQueueLength } from './offline-queue';
 import { getDb, saveDb, all, run, exec } from './index';
 import { clearCache } from './data-cache';
+import { useSettingsStore } from '../store/useSettingsStore';
 
 // ── Sync tables — all mutable tables to pull from cloud ──────────
 const SYNC_TABLES = [
@@ -32,11 +33,17 @@ let lastSyncAt = 0;
 const MIN_SYNC_INTERVAL = 10_000; // minimum 10s between syncs
 
 // ── Dispatch helpers ─────────────────────────────────────────────
+// sync-status used to be broadcast via CustomEvent; it's now a Zustand
+// slice so all consumers (SyncIndicator, SettingsPage, App) subscribe
+// reactively and the value shows up in devtools.
+// sync-toast is still a CustomEvent because the SyncToast component
+// uses its own icon + variant scheme that doesn't round-trip through
+// the generic showToast toast shape. Lift when that toast API grows.
 
-function dispatchSyncStatus(status: string, extra?: Record<string, any>) {
-  window.dispatchEvent(new CustomEvent('sync-status', {
-    detail: { status, ...extra },
-  }));
+function dispatchSyncStatus(status: "idle" | "syncing", extra?: { pending?: number }) {
+  const settings = useSettingsStore.getState();
+  settings.setSyncStatus(status);
+  if (typeof extra?.pending === 'number') settings.setPendingOps(extra.pending);
 }
 
 function dispatchSyncToast(message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') {

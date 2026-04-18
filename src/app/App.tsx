@@ -80,9 +80,7 @@ function App() {
   const isOnline = useSettingsStore((s) => s.isOnline);
   const setOnline = useSettingsStore((s) => s.setOnline);
   const syncStatus = useSettingsStore((s) => s.syncStatus);
-  const setSyncStatus = useSettingsStore((s) => s.setSyncStatus);
   const pendingOps = useSettingsStore((s) => s.pendingOps);
-  const setPendingOps = useSettingsStore((s) => s.setPendingOps);
 
   const sidebarRef = useRef<HTMLElement>(null);
   const mainScrollRef = useRef<HTMLDivElement>(null);
@@ -209,24 +207,19 @@ function App() {
     return 0;
   }, [protocolStreakRaw]);
 
-  // Connection listeners
+  // Connection listeners. sync-status used to flow through a CustomEvent
+  // here — it now writes directly into useSettingsStore from sync-manager,
+  // and this component subscribes via `syncStatus` / `pendingOps` below.
   useEffect(() => {
     const goOnline = () => { setOnline(true); showToast(t("app.network.online")); };
     const goOffline = () => { setOnline(false); showToast(t("app.network.offline")); };
-    const onSync = (e: Event) => {
-      const { status, pending } = (e as CustomEvent).detail || {};
-      if (status) setSyncStatus(status);
-      if (typeof pending === "number") setPendingOps(pending);
-    };
     window.addEventListener("online", goOnline);
     window.addEventListener("offline", goOffline);
-    window.addEventListener("sync-status", onSync);
     return () => {
       window.removeEventListener("online", goOnline);
       window.removeEventListener("offline", goOffline);
-      window.removeEventListener("sync-status", onSync);
     };
-  }, [setOnline, setSyncStatus, setPendingOps, showToast, t]);
+  }, [setOnline, showToast, t]);
 
   // Programmatic nav
   useEffect(() => {

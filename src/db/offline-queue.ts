@@ -8,7 +8,7 @@
  *   - Other 4xx errors: permanent failure (kept for user review)
  *   - 5xx errors: retried
  *   - Stale ops older than 30 days: discarded with user notification
- *   - Failed ops notify user via sync-status event
+ *   - Failed ops notify user via a sync-toast warning
  */
 import { handleSupabaseRequest } from './supabase-api';
 
@@ -139,8 +139,13 @@ export async function clearQueue(): Promise<void> {
 
 function dispatchQueueWarning(message: string) {
   console.warn('[offline-queue]', message);
-  window.dispatchEvent(new CustomEvent('sync-status', {
-    detail: { warning: message, type: 'queue-failure' },
+  // Previously dispatched to the `sync-status` CustomEvent with a
+  // `{ warning, type: 'queue-failure' }` payload, but no consumer ever
+  // read that shape — App.tsx and SettingsPage only looked at `status` /
+  // `pending`. Surface via the sync-toast channel so failures are
+  // actually visible to the user.
+  window.dispatchEvent(new CustomEvent('sync-toast', {
+    detail: { message, type: 'warning' },
   }));
 }
 
