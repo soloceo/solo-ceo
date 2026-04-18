@@ -3,6 +3,56 @@
 All notable changes to Solo CEO are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
+## [2.47.0] - 2026-04-18
+
+Largest cleanup release since 2.40 — eleven focused commits, no user-facing visual changes, but several real and latent bugs (money precision, sync silent failures, UIStore missing state, AuthProvider stale closure, subscription timeline silent data loss) fixed along the way. Core tooling now enforces correctness instead of trusting convention: TypeScript `strict` is on, ESLint (flat config) wired into `npm run lint`, and the unit-test count grew from 52 → 99.
+
+### Added
+- **Hash-based routing.** Top-level tabs are URL-addressable (`#/home`, `#/finance`, …), shareable, bookmarkable, and the browser Back/Forward buttons navigate between tabs. Nested state (panel tabs, detail views) stays component-local for now, but the parser already tolerates `#/clients/42`-style trailing segments so a follow-up can deep-link without reworking the hook.
+- **Currency setting now drives the whole UI.** `settings.currency` had been silently ignored — `$` was hard-coded in 25+ places even though the Settings screen offered CNY / EUR / GBP / etc. New `formatMoney()` / `getCurrencySymbol()` helpers in `src/lib/format.ts` are `Intl`-backed, fall back to a symbol table for unknown codes, and handle NaN / null / string / signed inputs defensively. Every money render path (Finance page, FinanceChart, TransactionList, ClientList, AIChatPanel) reads `currency` from the store live.
+- **`useQuickCreateIntent(type, onTrigger)` hook.** Replaces the old `window.dispatchEvent(new CustomEvent('quick-create'))` + `setTimeout(100)` pattern that silently lost events when the target page's lazy chunk hadn't mounted. Pages just call the hook; the store's durable `pendingQuickCreate` slot delivers the intent atomically with the tab switch.
+- **`useCloudSettingsSync(user, onStreakLoaded)` hook.** App.tsx had a 33-line `useEffect` that fetched `/api/settings` and reached into seven stores + two localStorage keys from the middle of layout code; now a named hook with four internal bucket functions (`hydrateProfileFields` / `hydratePreferences` / `hydrateTheme` / `hydrateWidgets`).
+
+### Changed
+- **TypeScript `strict` mode enabled.** `tsconfig.json` gets `"strict": true`; ~30 real type-safety issues surfaced and were fixed.
+- **ESLint (flat config) wired into `npm run lint`.** `@eslint/js` + `typescript-eslint` + `eslint-plugin-react` + `eslint-plugin-react-hooks`. Lint currently green with warnings-only.
+- **`src/app/App.tsx` shrinks from 969 → ~720 lines** after extracting `SidebarItem.tsx`, `MobileNavItem.tsx`, `SyncToast.tsx`, `tabs.tsx`, `useCloudSettingsSync.ts`, and `useHashRoute.ts`.
+- **`src/db/api.ts` shrinks from 1927 → ~105 lines.** The `handleApiRequest` god function is now a dispatcher chain over 15 per-domain handler files (`leads`, `clients`, `milestones`, `tasks`, `plans`, `finance`, `content-drafts`, `today-focus`, `dashboard`, `weekly-report`, `agents`, `conversations`, `settings`, `server`) plus shared `schema.ts` + `seed.ts`. 24 new smoke tests cover the dispatcher wiring.
+- **Vite `manualChunks` rewritten in function form.** `vendor-react` was generating an empty chunk (the object form collided with static entry imports), so React + react-dom ended up inlined into the main bundle. Main `index-*.js` drops ~73 KB gzipped, and a returning visitor with a cached `vendor-react` now skips ~60 KB on future releases.
+- **PWA precache excludes SVG peeps.** `globPatterns` no longer includes `.svg`; illustrations move to runtime `CacheFirst`. Precache manifest: 4575 → 2484 KiB, entries 149 → 113.
+- **CommandPalette lazy-loaded.** ⌘K keyboard handler moved up to `App.tsx` so the shortcut works before the palette chunk has loaded; palette mounts on `commandPaletteOpen`.
+- **`useIsMobile` threshold aligned with Tailwind's `md:` (768 px).** Was 1024 (`lg:`), so viewports in the 768–1023 range rendered the desktop CSS layout while JS code branching on `useIsMobile` still believed it was on a phone. `MOBILE_BREAKPOINT` exported so future callers use the same constant. Implementation switched from resize + debounce to `matchMedia('change')`.
+- **`quick-create` CustomEvent channel retired.** Seven emit sites (FAB on desktop + mobile, keyboard `N`, command palette) and four consume sites (Finance / Leads / Work / Client pages) all moved to the store. Intents are visible in devtools as normal store transitions, and misspelling a `QuickCreateType` is now a compile error.
+- **`sync-status` CustomEvent channel retired.** sync-manager + offline-queue write directly into `useSettingsStore.setSyncStatus` / `setPendingOps`; App and SettingsPage drop their listeners and subscribe to the store. Queue warnings now surface as `sync-toast`s (previously dispatched with a shape nobody read).
+- **AuthProvider session race hardened.** The 6-second `getSession()` timeout callback read `loading` from a stale closure (always `true` from the initial render), so a successful session refresh that landed close to the 6-second mark could still flip the user into offline mode. Replaced with a local `resolved` flag. Signing out now also clears `solo_agents_seeded` / `solo_agents_seeded:*` localStorage markers.
+- **sync-manager error surface.** A Supabase fetch error used to be swallowed identically to an empty result (`if (error || !rows) continue`) — sync quietly stopped for that table with no UI hint. Errors now log via `console.warn`, aggregate into a single toast per cycle, and the top-level `catch` logs via `console.error` + warns the user instead of eating the exception.
+- **offline-queue batch loop.** The step size was computed from `ordered[i]?.method`, so if an entry became `undefined` mid-replay (concurrent `removeOp`) the index could stall → infinite loop. Rewritten as an explicit `while` with a guaranteed positive step.
+- **Shared modules extracted to eliminate drift:**
+  - `src/lib/types/finance.ts` — `FinanceTransaction` was declared three times with inconsistent `client_id` nullability; rows passed between modules silently lost the `null` case.
+  - `src/lib/types/client.ts` — same for `ClientItem`.
+  - `src/lib/subscription-timeline.ts` — sanitises the JSON column (malformed data previously triggered a silent soft-delete of every subscription ledger row on next sync); applied on both offline and online write paths.
+  - `src/lib/finance-report.ts` — HTML monthly-report template was duplicated in `db/handlers/finance.ts` and `db/supabase-api.ts`; CSS tweaks only have to be done once now.
+  - `src/lib/ai-client.ts :: parseMemo()` — HomeMemoSection previously hand-wrote a per-provider `fetch` for each of OpenAI / Claude / Gemini / Ollama and hard-coded `gpt-4o-mini` (drifted from `MODEL_IDS.openai = gpt-4.1-mini`); now a one-liner that picks up the canonical model.
+- **`TX_STATUS` constant** in `src/lib/tax.ts` replaces six hot sites that hard-coded the three canonical transaction status strings. One full-width vs half-width bracket typo would have silently broken a status filter.
+- **`db/api.ts :: exportAllData`** reuses `PROFILE_SYNC_KEYS` from `useSettingsStore` instead of maintaining its own `FIELD_MAP` (which had already drifted and silently dropped `personalPreferences`).
+
+### Fixed
+- **Money precision.** All twelve money / rate columns across seven tables (`clients.mrr` / `project_fee` / `tax_rate`, `plans.price`, `finance_transactions.amount` / `tax_rate` / `tax_amount`, `payment_milestones.amount` / `percentage`, `client_projects.project_fee` / `tax_rate`, `client_subscription_ledger.amount`) converted from `DOUBLE PRECISION` (IEEE-754 float) to `NUMERIC(14, 2)` or `NUMERIC(7, 4)` (exact decimal). Floating-point drift on accumulating sums was a real "off by one cent" bug factory. Migration `012_money_columns_to_numeric.sql`. Pre- and post-migration `SUM()`s match exactly across all eight money columns — no value lost.
+- **`today-focus` handler accepted arbitrary unbounded `type` values on `PUT`.** A non-string / object / huge-string `type` would land in the column as-is. Both `POST` and `PUT` now route `type` / `title` / `note` through `str()` with length caps matching other handlers.
+- **`subscription_timeline` wasn't JSON-validated on write.** Any non-array or malformed JSON silently fell through the reader's `[]` fallback and the ledger sync would soft-delete every existing subscription ledger row — a scary "my invoices disappeared" silent data loss. Sanitised via `sanitizeSubscriptionTimeline()` on both offline and online write paths.
+- **`solo_agents_seeded` localStorage marker** was global, not user-scoped — a second user signing in on the same device inherited the first user's "already seeded" flag and never got default agents. Key now carries `${user?.id || 'offline'}` suffix; signing out clears all matching entries.
+- **`UIState.pendingQuickCreate` and its two action members** were declared on the interface but never implemented. Strict mode caught it.
+- **`LeadsBoard` unsafe `as unknown as Record<string, Lead[]>` casts** removed; `LeadKanbanProps.leads` narrowed to `Record<ColId, Lead[]>`.
+- **AIChatPanel `streamOneAgentRef`** no longer uses `useRef<Fn>(null!)` (which lied to TypeScript about nullability); now `useRef<Fn | null>(null)` with a guard at the single call site.
+- **Recharts tooltip `Formatter` signature** updated for Recharts v3 (was typed against the v2 shape, producing a strict-mode error).
+- **Widget store `migrate` signature** updated to match Zustand persist's `persistedState: unknown` contract.
+
+### Removed
+- **`src/features/home/widgets/types.ts`** — dead file. `WidgetDef` was declared there with `icon: string` + `size` fields that nothing imported; the live definition in `WidgetRegistry.tsx` uses `icon: React.ReactNode` and no size.
+
+### Database
+- Migration `012_money_columns_to_numeric.sql` — applied to production 2026-04-18.
+
 ## [2.46.0] - 2026-04-15
 
 ### Added
