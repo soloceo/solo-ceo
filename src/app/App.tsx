@@ -27,8 +27,7 @@ import { startRealtime, stopRealtime } from "../db/realtime";
 import { OfflineBanner } from "../components/OfflineBanner";
 import { Avatar, GlobalToast } from "../components/ui";
 import { useUIStore, type TabId } from "../store/useUIStore";
-import { useSettingsStore, PROFILE_SYNC_KEYS } from "../store/useSettingsStore";
-import { useWidgetStore } from "../features/home/widgets/useWidgetStore";
+import { useSettingsStore } from "../store/useSettingsStore";
 import { todayDateKey, dateToKey } from "../lib/date-utils";
 import { api } from "../lib/api";
 const CommandPalette = lazy(() => import("./CommandPalette").then((m) => ({ default: m.CommandPalette })));
@@ -45,6 +44,7 @@ import { SidebarItem } from "./SidebarItem";
 import { MobileNavItem } from "./MobileNavItem";
 import { SyncToast } from "./SyncToast";
 import { useHashRoute } from "./useHashRoute";
+import { useCloudSettingsSync } from "./useCloudSettingsSync";
 
 /* ══════════════════════════════════════════════════════════════════
    App — Linear-identical layout
@@ -187,40 +187,10 @@ function App() {
     return () => stopRealtime();
   }, [user]);
 
-  // Sync operator profile
-  useEffect(() => {
-    if (!user) return;
-    api.get<Record<string, string>>("/api/settings")
-      .then((s) => {
-        // Always sync from server — use empty string if not set (prevents stale data from previous user)
-        setOperator(s.OPERATOR_NAME || '', s.OPERATOR_AVATAR || '');
-        // Sync all profile fields from cloud
-        const store = useSettingsStore.getState();
-        for (const [field, key] of Object.entries(PROFILE_SYNC_KEYS)) {
-          if (field === 'operatorName' || field === 'operatorAvatar') continue; // handled above
-          if (s[key] != null) store.setProfileField(field as keyof typeof PROFILE_SYNC_KEYS, s[key]);
-        }
-        if (s.CURRENCY) useSettingsStore.getState().setCurrency(s.CURRENCY);
-        if (s.TIMEZONE) useSettingsStore.getState().setTimezone(s.TIMEZONE);
-        if (s.protocol_streak) setProtocolStreakRaw(s.protocol_streak);
-        // Restore UI preferences from cloud
-        const ui = useUIStore.getState();
-        if (s.THEME_MODE && s.THEME_MODE !== ui.themeMode) ui.setThemeMode(s.THEME_MODE as "light" | "dark" | "auto");
-        if (s.STYLE_ID && s.STYLE_ID !== ui.styleId) ui.setStyleId(s.STYLE_ID);
-        if (s.PALETTE_ID && s.PALETTE_ID !== ui.paletteId) ui.setPaletteId(s.PALETTE_ID);
-        if (s.WIDGET_LAYOUT) try { useWidgetStore.getState().setLayout(JSON.parse(s.WIDGET_LAYOUT)); } catch {}
-        // Restore widget data from cloud (only if local is empty)
-        if (s.COUNTDOWNS && !localStorage.getItem("solo-ceo-countdowns")) {
-          try { localStorage.setItem("solo-ceo-countdowns", s.COUNTDOWNS); } catch {}
-        }
-        if (s.ENERGY_DATA && !localStorage.getItem("solo-ceo-energy-v3")) {
-          try { localStorage.setItem("solo-ceo-energy-v3", s.ENERGY_DATA); } catch {}
-        }
-      })
-      .catch((e) => {
-        // operator profile sync failed — non-critical
-      });
-  }, [user, setOperator]);
+  // Sync operator profile + preferences + theme + widgets from /api/settings.
+  // Behaviour lives in useCloudSettingsSync — App() just wires the streak
+  // handoff (which drives a local state value used by the streak memo below).
+  useCloudSettingsSync(user, setProtocolStreakRaw);
 
   const streak = useMemo(() => {
     try {
