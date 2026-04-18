@@ -26,6 +26,7 @@ import type { MilestoneRow } from "./useMilestones";
 import { useClientTransactions, TX_CATEGORIES, TX_STATUSES } from "./useClientTransactions";
 import type { FinanceTransaction } from "./useClientTransactions";
 import { useClientProjects } from "./useClientProjects";
+import { useQuickCreateIntent } from "../../app/useQuickCreateIntent";
 import type { ProjectRow } from "./useClientProjects";
 
 /* ── Type definitions ── */
@@ -141,15 +142,8 @@ export function ClientsView() {
     return () => window.removeEventListener("pull-refresh", handler);
   }, []);
 
-  /* ── FAB quick-create listener ── */
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      if (detail?.type === "client") openPanel();
-    };
-    window.addEventListener("quick-create", handler);
-    return () => window.removeEventListener("quick-create", handler);
-  }, []);
+  /* ── FAB quick-create listener (store-driven) ── */
+  useQuickCreateIntent("client", () => openPanel());
 
   useEffect(() => {
     const show = isMobile && showPanel;

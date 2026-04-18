@@ -33,6 +33,7 @@ import { useSettingsStore } from "../../store/useSettingsStore";
 import { todayDateKey } from "../../lib/date-utils";
 import { parseExpense, getAIConfig, type AIProvider } from "../../lib/ai-client";
 import { useAppSettings } from "../../hooks/useAppSettings";
+import { useQuickCreateIntent } from "../../app/useQuickCreateIntent";
 import { celebrate } from "../../lib/celebrate";
 import { TabPill } from "../../components/ui/TabPill";
 const FinanceChart = React.lazy(() => import("./FinanceChart"));
@@ -174,15 +175,11 @@ export default function FinancePage() {
     return () => { window.dispatchEvent(new CustomEvent("mobile-nav-visibility", { detail: { hidden: false } })); };
   }, [showPanel, showAll, isMobile]);
 
-  /* ── Quick Create listener ── */
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      if (detail?.type === "transaction" || detail?.type === "biz-transaction") { openPanel(); }
-    };
-    window.addEventListener("quick-create", handler);
-    return () => window.removeEventListener("quick-create", handler);
-  }, []);
+  /* ── Quick Create listener (store-driven) ── */
+  // Arrow-wrap so these references resolve lazily — openPanel is a `const`
+  // declared later in the render body and would otherwise hit the TDZ here.
+  useQuickCreateIntent("transaction", () => openPanel());
+  useQuickCreateIntent("biz-transaction", () => openPanel());
 
   /* ── Tab-filtered transactions ── */
   const tabTxs = useMemo(() => {

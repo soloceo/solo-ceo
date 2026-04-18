@@ -10,6 +10,7 @@ import { Skeleton } from "../../components/ui";
 import { useT } from "../../i18n/context";
 import { useRealtimeRefresh } from "../../hooks/useRealtimeRefresh";
 import { useUIStore } from "../../store/useUIStore";
+import { useQuickCreateIntent } from "../../app/useQuickCreateIntent";
 import { KanbanBoard, SwimlaneView, type ColDef } from "./KanbanBoard";
 import { TaskDetail, type TaskForm } from "./TaskDetail";
 import type { Task } from "./TaskCard";
@@ -102,16 +103,7 @@ export default function WorkPage() {
   usePullToRefresh(scrollRef, fetchTasks);
 
   /* ── Quick Create listener ── */
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      if (detail?.type === "task") {
-        openPanel(null, "todo");
-      }
-    };
-    window.addEventListener("quick-create", handler);
-    return () => window.removeEventListener("quick-create", handler);
-  }, []);
+  useQuickCreateIntent("task", () => openPanel(null, "todo"));
 
   /* ── Drag & Drop ── */
   const onDragEnd = async (result: { source: { droppableId: string; index: number }; destination?: { droppableId: string; index: number } | null }) => {

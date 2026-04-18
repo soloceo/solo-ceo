@@ -106,11 +106,11 @@ export function CommandPalette() {
   }, [query, searchData]);
 
   const go = (tab: string) => { setActiveTab(tab as TabId); setCommandPaletteOpen(false); };
-  const quickCreate = (type: string) => {
-    const tabMap: Record<string, string> = { task: "work", lead: "leads", transaction: "finance" };
-    setActiveTab((tabMap[type] || "home") as TabId);
+  const quickCreate = (type: "task" | "lead" | "transaction" | "client" | "biz-transaction") => {
     setCommandPaletteOpen(false);
-    setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type } })), 100);
+    // Store handles both the tab switch and the intent payload; the target
+    // page's useQuickCreateIntent picks it up on mount — no setTimeout race.
+    useUIStore.getState().setPendingQuickCreate(type);
   };
 
   const itemClass = "flex items-center gap-3 px-3 py-2 rounded-[var(--radius-6)] text-[15px] cursor-pointer transition-colors data-[selected=true]:bg-[var(--color-bg-tertiary)]";

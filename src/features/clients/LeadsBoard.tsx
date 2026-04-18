@@ -24,6 +24,7 @@ import { useRealtimeRefresh } from "../../hooks/useRealtimeRefresh";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import { useIsTouchPointer } from "../../hooks/useIsTouchPointer";
 import { useUIStore } from "../../store/useUIStore";
+import { useQuickCreateIntent } from "../../app/useQuickCreateIntent";
 import { Skeleton } from "../../components/ui";
 
 const LEADS_TABLES = ['leads', 'plans'] as const;
@@ -180,16 +181,8 @@ export function LeadsView() {
   }, [showPanel, showConvert, isMobile]);
 
   /* ── Quick create listener ── */
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      if (detail?.type === "lead") {
-        openPanel(null, "new");
-      }
-    };
-    window.addEventListener("quick-create", handler);
-    return () => window.removeEventListener("quick-create", handler);
-  }, []);
+  // Arrow wrap so the ref resolves lazily — openPanel is declared below.
+  useQuickCreateIntent("lead", () => openPanel(null, "new"));
 
   /* ── Navigate-to-entity listener (from TodayFocus) ── */
   useEffect(() => {

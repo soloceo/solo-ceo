@@ -166,13 +166,16 @@ function App() {
   /* ── AI Chat panel ── */
   const [aiChatOpen, setAIChatOpen] = useState(false);
 
-  // Reusable quick create items for both desktop and mobile
+  // Reusable quick create items for both desktop and mobile. Store handles
+  // the tab switch + pending intent atomically — no setTimeout race with
+  // the target page's lazy chunk.
+  const setPendingQuickCreate = useUIStore.getState().setPendingQuickCreate;
   const quickCreateItems = useMemo(() => [
-    { icon: <UserPlus size={14} aria-hidden="true" />, label: t("app.quickCreate.lead"), action: () => { setActiveTab("leads"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "lead" } })), 100); } },
-    { icon: <ListTodo size={14} aria-hidden="true" />, label: t("app.quickCreate.task"), action: () => { setActiveTab("work"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "task" } })), 100); } },
-    { icon: <Users size={14} aria-hidden="true" />, label: t("app.quickCreate.client"), action: () => { setActiveTab("clients"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "client" } })), 100); } },
-    { icon: <FileText size={14} aria-hidden="true" />, label: t("app.quickCreate.bizFinance"), action: () => { setActiveTab("finance"); setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type: "biz-transaction" } })), 100); } },
-  ], [t]);
+    { icon: <UserPlus size={14} aria-hidden="true" />, label: t("app.quickCreate.lead"), action: () => setPendingQuickCreate("lead") },
+    { icon: <ListTodo size={14} aria-hidden="true" />, label: t("app.quickCreate.task"), action: () => setPendingQuickCreate("task") },
+    { icon: <Users size={14} aria-hidden="true" />, label: t("app.quickCreate.client"), action: () => setPendingQuickCreate("client") },
+    { icon: <FileText size={14} aria-hidden="true" />, label: t("app.quickCreate.bizFinance"), action: () => setPendingQuickCreate("biz-transaction") },
+  ], [t, setPendingQuickCreate]);
 
   useClickOutside(fabMenuRef, () => setFabMenuOpen(false), fabMenuOpen);
   useClickOutside(mobileMenuRef, () => setMobileMenuOpen(false), mobileMenuOpen);
@@ -295,12 +298,15 @@ function App() {
         e.preventDefault();
         setActiveTab("settings");
       }
-      // N = quick create for current tab
+      // N = quick create for current tab. keepTab: true because the user
+      // is already on a tab that makes sense for this intent.
       if (e.key === "n" || e.key === "N") {
         e.preventDefault();
-        const typeMap: Record<string, string> = { home: "task", work: "task", leads: "lead", clients: "client", finance: "transaction" };
+        const typeMap: Record<string, "task" | "lead" | "client" | "transaction"> = {
+          home: "task", work: "task", leads: "lead", clients: "client", finance: "transaction",
+        };
         const type = typeMap[activeTabRef.current] || "task";
-        window.dispatchEvent(new CustomEvent("quick-create", { detail: { type } }));
+        useUIStore.getState().setPendingQuickCreate(type, { keepTab: true });
       }
     };
     document.addEventListener("keydown", handler);
@@ -386,7 +392,7 @@ function App() {
               <span className="flex-1 text-left truncate">{t("common.search")}</span>
               <kbd className="shrink-0 text-[10px] px-1 py-px rounded-[var(--radius-2)]" style={{ fontFamily: "inherit", color: "var(--color-text-quaternary)", background: "var(--color-bg-tertiary)", border: "1px solid var(--color-border-primary)" }}>⌘K</kbd>
             </button>
-            <QuickCreateMenu setActiveTab={setActiveTab} />
+            <QuickCreateMenu />
           </div>
         )}
 

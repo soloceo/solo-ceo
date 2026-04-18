@@ -9,14 +9,11 @@ import {
 } from "lucide-react";
 import { useT } from "../i18n/context";
 import { useClickOutside } from "./useClickOutside";
-import type { TabId } from "../store/useUIStore";
+import { useUIStore, type QuickCreateType } from "../store/useUIStore";
 
 /* Quick-create FAB — navigate to page (no form) */
-export interface QuickCreateMenuProps {
-  setActiveTab: (tab: TabId) => void;
-}
-
-export function QuickCreateMenu({ setActiveTab }: QuickCreateMenuProps) {
+export function QuickCreateMenu() {
+  const setPendingQuickCreate = useUIStore((s) => s.setPendingQuickCreate);
   const { t } = useT();
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
   const quickCreateRef = useRef<HTMLDivElement>(null);
@@ -34,18 +31,19 @@ export function QuickCreateMenu({ setActiveTab }: QuickCreateMenuProps) {
     setQuickCreateOpen((p) => !p);
   };
 
-  const dispatchQuickCreate = (tab: TabId, type: string) => {
-    setActiveTab(tab);
-    requestAnimationFrame(() => {
-      setTimeout(() => window.dispatchEvent(new CustomEvent("quick-create", { detail: { type } })), 80);
-    });
+  const dispatchQuickCreate = (type: QuickCreateType) => {
+    // Store drives both the tab switch AND the intent payload in one update,
+    // so the target page's useQuickCreateIntent hook fires atomically on
+    // mount — no more race between lazy-chunk loading and a fire-and-forget
+    // CustomEvent.
+    setPendingQuickCreate(type);
   };
 
   const quickCreateItems = [
-    { icon: <UserPlus size={14} aria-hidden="true" />, label: t("app.quickCreate.lead"), action: () => dispatchQuickCreate("leads", "lead") },
-    { icon: <ListTodo size={14} aria-hidden="true" />, label: t("app.quickCreate.task"), action: () => dispatchQuickCreate("work", "task") },
-    { icon: <Users size={14} aria-hidden="true" />, label: t("app.quickCreate.client"), action: () => dispatchQuickCreate("clients", "client") },
-    { icon: <FileText size={14} aria-hidden="true" />, label: t("app.quickCreate.bizFinance"), action: () => dispatchQuickCreate("finance", "biz-transaction") },
+    { icon: <UserPlus size={14} aria-hidden="true" />, label: t("app.quickCreate.lead"), action: () => dispatchQuickCreate("lead") },
+    { icon: <ListTodo size={14} aria-hidden="true" />, label: t("app.quickCreate.task"), action: () => dispatchQuickCreate("task") },
+    { icon: <Users size={14} aria-hidden="true" />, label: t("app.quickCreate.client"), action: () => dispatchQuickCreate("client") },
+    { icon: <FileText size={14} aria-hidden="true" />, label: t("app.quickCreate.bizFinance"), action: () => dispatchQuickCreate("biz-transaction") },
   ];
 
   return (
