@@ -25,10 +25,24 @@ const CATEGORY_I18N: Record<string, string> = {
   "个人其他": "money.cat.personalOther",
 };
 
+/**
+ * Canonical transaction status strings. Keep this as the single source of truth
+ * — the exact glyphs (full-width space + half-width parens) were inconsistent
+ * across FinancePage / ClientList / handlers before, which caused status-based
+ * filters to silently skip rows that differed by one character.
+ */
+export const TX_STATUS = {
+  COMPLETED: "已完成",
+  RECEIVABLE: "待收款 (应收)",
+  PAYABLE: "待支付 (应付)",
+} as const;
+
+export type TxStatus = (typeof TX_STATUS)[keyof typeof TX_STATUS];
+
 export const STATUS_I18N: Record<string, string> = {
-  "已完成": "money.st.completed",
-  "待收款 (应收)": "money.st.receivable",
-  "待支付 (应付)": "money.st.payable",
+  [TX_STATUS.COMPLETED]: "money.st.completed",
+  [TX_STATUS.RECEIVABLE]: "money.st.receivable",
+  [TX_STATUS.PAYABLE]: "money.st.payable",
 };
 
 export const catLabel = (cat: string, t: (k: string) => string) => {

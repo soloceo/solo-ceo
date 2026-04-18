@@ -46,18 +46,6 @@ export function CommandPalette() {
   const [searchData, setSearchData] = useState<{ tasks: any[]; clients: any[]; leads: any[]; finance: any[] } | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
-  // Global keyboard shortcut
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setCommandPaletteOpen(!commandPaletteOpen);
-      }
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [commandPaletteOpen, setCommandPaletteOpen]);
-
   // Fetch data once when palette opens (not on every keystroke)
   useEffect(() => {
     if (!commandPaletteOpen) { setQuery(""); setResults([]); setSearchData(null); return; }

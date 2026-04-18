@@ -11,6 +11,7 @@
 
 import { api } from "../../lib/api";
 import { todayDateKey } from "../../lib/date-utils";
+import { TX_STATUS } from "../../lib/tax";
 import { getAIConfig, generateOutreach } from "../../lib/ai-client";
 
 /* ── Types ────────────────────────────────────────────────── */
@@ -499,7 +500,7 @@ export const TOOLS = {
           category: { type: "string", description: "Category. Business: 收入/软件支出/外包支出/其他支出. Personal: 餐饮/交通/房租/娱乐/个人其他" },
           description: { type: "string", description: "Short description" },
           date: { type: "string", description: "Date in YYYY-MM-DD format" },
-          status: { type: "string", description: "Transaction status (default: 已完成)", enum: ["已完成", "待收款 (应收)", "待支付 (应付)"] },
+          status: { type: "string", description: "Transaction status (default: 已完成)", enum: [TX_STATUS.COMPLETED, TX_STATUS.RECEIVABLE, TX_STATUS.PAYABLE] },
         },
         required: ["type", "amount", "description"],
       },
@@ -530,7 +531,7 @@ export const TOOLS = {
       const defaultCat = isPersonal
         ? (type === "income" ? "个人其他" : "餐饮")
         : (type === "income" ? "收入" : "其他支出");
-      let category = typeof a.category === "string" && a.category.trim() ? a.category.trim() : defaultCat;
+      const category = typeof a.category === "string" && a.category.trim() ? a.category.trim() : defaultCat;
       if (!allowedCats.includes(category)) {
         return {
           success: false,
@@ -543,7 +544,7 @@ export const TOOLS = {
         description: a.description,
         date: a.date || todayDateKey(),
         category,
-        status: (a.status as string) || "已完成",
+        status: (a.status as string) || TX_STATUS.COMPLETED,
         source: "manual",
         scope: scopeKey,
       };

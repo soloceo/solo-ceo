@@ -2,32 +2,14 @@ import { useState, useMemo, useCallback, useRef } from "react";
 import { api } from "../../lib/api";
 import { useUIStore } from "../../store/useUIStore";
 import { useT } from "../../i18n/context";
-import { calcTaxAmount } from "../../lib/tax";
+import { calcTaxAmount, TX_STATUS } from "../../lib/tax";
 import { todayDateKey } from "../../lib/date-utils";
 
-interface FinanceTransaction {
-  id: number;
-  type: "income" | "expense";
-  source?: string;
-  source_id?: number;
-  amount: number;
-  category: string;
-  description: string;
-  desc?: string;
-  date: string;
-  status: string;
-  client_id?: number;
-  client_name?: string;
-  tax_mode: "none" | "exclusive" | "inclusive";
-  tax_rate: number;
-  tax_amount: number;
-  [key: string]: unknown;
-}
-
-export type { FinanceTransaction };
+export type { FinanceTransaction } from "../../lib/types/finance";
+import type { FinanceTransaction } from "../../lib/types/finance";
 
 const TX_CATEGORIES = ["收入", "软件支出", "外包支出", "其他支出"];
-const TX_STATUSES = ["已完成", "待收款 (应收)", "待支付 (应付)"];
+const TX_STATUSES = [TX_STATUS.COMPLETED, TX_STATUS.RECEIVABLE, TX_STATUS.PAYABLE];
 export { TX_CATEGORIES, TX_STATUSES };
 
 const createEmptyTx = () => ({
@@ -35,7 +17,7 @@ const createEmptyTx = () => ({
   desc: "",
   category: "收入",
   amount: "",
-  status: "已完成",
+  status: TX_STATUS.COMPLETED as string,
   taxMode: "none" as "none" | "exclusive" | "inclusive",
   taxRate: "",
 });
@@ -157,7 +139,7 @@ export function useClientTransactions(clientId: number | null) {
       desc: tx.description || tx.desc || "",
       category: tx.category,
       amount: String(Math.abs(tx.amount)),
-      status: tx.status || "已完成",
+      status: tx.status || TX_STATUS.COMPLETED,
       taxMode: tx.tax_mode || "none",
       taxRate: tx.tax_rate ? String(tx.tax_rate) : "",
     });

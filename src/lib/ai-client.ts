@@ -1127,6 +1127,33 @@ Return JSON only: {"title":"concise task name","steps":["step 1","step 2",...]}`
   return result;
 }
 
+/* ── Memo / Event Extraction ──────────────────────── */
+
+export interface ParsedMemo {
+  title: string;
+  due: string | null;
+}
+
+/**
+ * Extract a memo title + optional due date from free-form text.
+ * Replaces an older inline implementation in HomeMemoSection that hit each
+ * provider's API directly and hard-coded `gpt-4o-mini` — which drifted from
+ * MODEL_IDS.openai = "gpt-4.1-mini" and missed Claude's response-shape edge
+ * cases. Going through callJSON means new providers (lmstudio, ollama) and
+ * model upgrades only have to be done once.
+ */
+export async function parseMemo(
+  text: string, today: string, dayOfWeek: string,
+  provider: AIProvider, apiKey: string,
+): Promise<ParsedMemo> {
+  const sysPrompt = `You extract a memo/event from user input. Today is ${today} (${dayOfWeek}). Return JSON: {"title":"short title","due":"YYYY-MM-DD" or "YYYY-MM-DDThh:mm" or null}. Only JSON, no markdown.`;
+  const result = await callJSON(provider, apiKey, sysPrompt, text);
+  return {
+    title: typeof result.title === "string" && result.title.trim() ? result.title : text,
+    due: typeof result.due === "string" && result.due ? result.due : null,
+  };
+}
+
 /* ── API Key Test ──────────────────────────────── */
 
 /** Fetch installed models from Ollama */

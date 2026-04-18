@@ -6,6 +6,8 @@
 import { supabase } from './supabase-client';
 import { todayDateKey, dateToKey, monthKey, currentMonth } from '../lib/date-utils';
 import { str, enumVal } from '../lib/validate';
+import { sanitizeSubscriptionTimeline } from '../lib/subscription-timeline';
+import { renderFinanceReport } from '../lib/finance-report';
 
 // ── Types ─────────────────────────────────────────────────────────
 
@@ -521,7 +523,9 @@ export async function handleSupabaseRequest(
         subscription_start_date: str(subscription_start_date, 10), paused_at: str(paused_at, 10),
         resumed_at: str(resumed_at, 10), cancelled_at: str(cancelled_at, 10),
         mrr_effective_from: str(mrr_effective_from, 10) || str(subscription_start_date, 10),
-        subscription_timeline: subscription_timeline || JSON.stringify(subscription_start_date ? [{ type: 'start', date: subscription_start_date }] : []),
+        subscription_timeline: subscription_timeline
+          ? sanitizeSubscriptionTimeline(subscription_timeline)
+          : JSON.stringify(subscription_start_date ? [{ type: 'start', date: subscription_start_date }] : []),
         company_name: str(company_name, 255), contact_name: str(contact_name, 255),
         contact_email: str(contact_email, 320), contact_phone: str(contact_phone, 30),
         billing_type: bt, project_fee: project_fee || 0,
@@ -556,7 +560,7 @@ export async function handleSupabaseRequest(
       if (body.resumed_at !== undefined) patch.resumed_at = str(body.resumed_at, 10);
       if (body.cancelled_at !== undefined) patch.cancelled_at = str(body.cancelled_at, 10);
       if (body.mrr_effective_from !== undefined) patch.mrr_effective_from = str(body.mrr_effective_from, 10) || str(body.subscription_start_date, 10);
-      if (body.subscription_timeline !== undefined) patch.subscription_timeline = body.subscription_timeline || '[]';
+      if (body.subscription_timeline !== undefined) patch.subscription_timeline = sanitizeSubscriptionTimeline(body.subscription_timeline);
       if (body.company_name !== undefined) patch.company_name = str(body.company_name, 255);
       if (body.contact_name !== undefined) patch.contact_name = str(body.contact_name, 255);
       if (body.contact_email !== undefined) patch.contact_email = str(body.contact_email, 320);
@@ -1116,9 +1120,10 @@ export async function handleSupabaseRequest(
     const receivables = (receivablesRows || []).reduce((s: number, r: AmountRow) => s + Number(r.amount || 0), 0);
     const payables = (payablesRows || []).reduce((s: number, r: AmountRow) => s + Number(r.amount || 0), 0);
     const totalTax = (taxableRows || []).reduce((s: number, r: TaxAmountRow) => s + Number(r.tax_amount || 0), 0);
-    const esc = (s: string) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    const rows = (recentRows || []).map((t: FinanceTransactionRow) => { const taxInfo = Number(t.tax_amount || 0) > 0 ? ` (税$${Number(t.tax_amount).toLocaleString()})` : ''; return `<tr><td>${esc(t.date || '')}</td><td>${esc(t.description || '')}</td><td>${esc(t.category || '')}</td><td>${t.type === 'income' ? '+' : '-'}$${Number(t.amount || 0).toLocaleString()}${taxInfo}</td><td>${esc(t.status || '已完成')}</td></tr>`; }).join('');
-    const html = `<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"/><title>一人CEO - 财务月度报表</title><style>body{font-family:-apple-system,sans-serif;padding:32px;color:#18181b}h1{font-size:28px;margin:0 0 8px}p{color:#71717a;margin:0 0 24px}.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}.card{border:1px solid #e4e4e7;border-radius:16px;padding:16px}.label{font-size:12px;color:#71717a;margin-bottom:8px}.value{font-size:24px;font-weight:700}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 12px;border-bottom:1px solid #e4e4e7;font-size:12px}th{background:#f4f4f5;color:#52525b}</style></head><body><h1>财务月度报表</h1><p>一人CEO · 导出时间 ${new Date().toLocaleString('zh-CN')}</p><div class="grid"><div class="card"><div class="label">已完成收入</div><div class="value">$${completedIncome.toLocaleString()}</div></div><div class="card"><div class="label">已完成支出</div><div class="value">$${completedExpense.toLocaleString()}</div></div><div class="card"><div class="label">净利润</div><div class="value">$${(completedIncome - completedExpense).toLocaleString()}</div></div><div class="card"><div class="label">应收 / 应付</div><div class="value">$${receivables.toLocaleString()} / $${payables.toLocaleString()}</div></div><div class="card"><div class="label">税费合计</div><div class="value">$${totalTax.toLocaleString()}</div></div></div><table><thead><tr><th>日期</th><th>描述</th><th>分类</th><th>金额</th><th>状态</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
+    const html = renderFinanceReport({
+      completedIncome, completedExpense, receivables, payables, totalTax,
+      rows: (recentRows || []) as FinanceTransactionRow[],
+    });
     return { status: 200, data: html };
   }
 
@@ -1274,14 +1279,17 @@ export async function handleSupabaseRequest(
 
   if (path === '/api/today-focus/manual' && method === 'POST') {
     const { type, title, note } = body || {};
-    if (!title || !String(title).trim()) return err(400, 'title is required');
+    const cleanTitle = str(title, 500).trim();
+    if (!cleanTitle) return err(400, 'title is required');
+    const cleanType = str(type, 50) || '系统';
+    const cleanNote = str(note, 2000).trim();
     const focusDate = todayDateKey();
     const { data, error: e } = await supabase
       .from('today_focus_manual')
       .insert({
         user_id: userId,
-        focus_date: focusDate, type: type || '系统',
-        title: String(title).trim(), note: String(note || '').trim(),
+        focus_date: focusDate, type: cleanType,
+        title: cleanTitle, note: cleanNote,
       })
       .select('id')
       .single();
@@ -1294,7 +1302,7 @@ export async function handleSupabaseRequest(
         { onConflict: 'user_id,focus_date,focus_key' },
       );
     if (ue2) return err(500, ue2.message);
-    await logActivity(userId, 'today_focus', 'manual_created', `记录今日事件：${String(title).trim()}`, type ? `类型：${type}` : '', data.id);
+    await logActivity(userId, 'today_focus', 'manual_created', `记录今日事件：${cleanTitle}`, cleanType ? `类型：${cleanType}` : '', data.id);
     return ok({ success: true, id: data.id, focusKey });
   }
 
@@ -1303,9 +1311,9 @@ export async function handleSupabaseRequest(
     const id = Number(manualMatch[1]);
     if (method === 'PUT') {
       const patch: Record<string, unknown> = {};
-      if (body.type !== undefined) patch.type = body.type;
-      if (body.title !== undefined) patch.title = String(body.title).trim();
-      if (body.note !== undefined) patch.note = String(body.note || '').trim();
+      if (body.type !== undefined) patch.type = str(body.type, 50);
+      if (body.title !== undefined) patch.title = str(body.title, 500).trim();
+      if (body.note !== undefined) patch.note = str(body.note, 2000).trim();
       if (Object.keys(patch).length === 0) return ok({ success: true });
       const { error: e } = await supabase
         .from('today_focus_manual')

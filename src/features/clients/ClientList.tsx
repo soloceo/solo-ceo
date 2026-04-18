@@ -17,7 +17,7 @@ import { useIsMobile } from "../../hooks/useIsMobile";
 import { useUIStore } from "../../store/useUIStore";
 import { Skeleton } from "../../components/ui";
 import { FL } from "./LeadsBoard";
-import { STATUS_I18N, catLabel } from "../../lib/tax";
+import { STATUS_I18N, catLabel, TX_STATUS } from "../../lib/tax";
 import { todayDateKey } from "../../lib/date-utils";
 import { useMilestones, PAYMENT_METHODS } from "./useMilestones";
 import type { MilestoneRow } from "./useMilestones";
@@ -174,7 +174,7 @@ export function ClientsView() {
         if (c.resumed_at) tl.push({ type: "resume", date: c.resumed_at });
         if (c.cancelled_at) tl.push({ type: "cancel", date: c.cancelled_at });
       }
-      setForm({ name: c.name, company_name: c.company_name || "", contact_name: c.contact_name || "", contact_email: c.contact_email || "", contact_phone: c.contact_phone || "", billing_type: c.billing_type || "subscription", plan: c.plan_tier || c.plan, status: c.status, mrr: String(c.mrr).replace(/[^0-9.-]+/g, ""), project_fee: String(c.project_fee || "").replace(/[^0-9.-]+/g, ""), project_name: String(c.project_name || ""), subscription_start_date: tl[0]?.date || "", project_end_date: c.project_end_date || "", paused_at: c.paused_at || "", resumed_at: c.resumed_at || "", cancelled_at: c.cancelled_at || "", mrr_effective_from: tl[0]?.date || c.mrr_effective_from || "", tax_mode: (c.tax_mode || "none") as "none" | "exclusive" | "inclusive", tax_rate: String(c.tax_rate || ""), drive_folder_url: c.drive_folder_url || "", payment_method: (c.payment_method || "auto") as "auto" | "manual", timeline: tl });
+      setForm({ name: c.name, company_name: c.company_name || "", contact_name: c.contact_name || "", contact_email: c.contact_email || "", contact_phone: c.contact_phone || "", billing_type: c.billing_type || "subscription", plan: c.plan_tier || c.plan || "", status: c.status, mrr: String(c.mrr).replace(/[^0-9.-]+/g, ""), project_fee: String(c.project_fee || "").replace(/[^0-9.-]+/g, ""), project_name: String(c.project_name || ""), subscription_start_date: tl[0]?.date || "", project_end_date: c.project_end_date || "", paused_at: c.paused_at || "", resumed_at: c.resumed_at || "", cancelled_at: c.cancelled_at || "", mrr_effective_from: tl[0]?.date || c.mrr_effective_from || "", tax_mode: (c.tax_mode || "none") as "none" | "exclusive" | "inclusive", tax_rate: String(c.tax_rate || ""), drive_folder_url: c.drive_folder_url || "", payment_method: (c.payment_method || "auto") as "auto" | "manual", timeline: tl });
       if ((c.billing_type || "subscription") === "project") {
         proj.fetchProjects(c.id);
         ms.fetchMilestones(c.id);
@@ -286,7 +286,7 @@ export function ClientsView() {
   // 已到账 = 所有已完成收入（含订阅月付虚拟行 + 真实交易记录）
   const filteredIds = useMemo(() => new Set(filtered.map(c => c.id)), [filtered]);
   const totalReceived = tx.finTxs
-    .filter((r: FinanceTransaction) => r.type === "income" && (r.status || "已完成") === "已完成" && filteredIds.has(r.client_id))
+    .filter((r: FinanceTransaction) => r.type === "income" && (r.status || TX_STATUS.COMPLETED) === TX_STATUS.COMPLETED && r.client_id != null && filteredIds.has(r.client_id))
     .reduce((s: number, r: FinanceTransaction) => {
       const base = Number(r.amount || 0);
       const tax = Number(r.tax_amount || 0);
@@ -386,7 +386,7 @@ export function ClientsView() {
                         ? <>{t("pipeline.clients.billingProject")} · {t("pipeline.clients.contract")} <strong style={{ color: "var(--color-text-primary)" }}>${Number(c.project_fee || 0).toLocaleString()}</strong></>
                         : <>{plan} · <strong style={{ color: "var(--color-text-primary)" }}>${Number(c.mrr || 0).toLocaleString()}</strong>{t("pipeline.clients.perMonth")}</>
                       }
-                      {(() => { const cR = tx.finTxs.filter((r: FinanceTransaction) => r.type === "income" && (r.status || "已完成") === "已完成" && r.client_id === c.id).reduce((s: number, r: FinanceTransaction) => s + Number(r.amount || 0), 0); return cR > 0 ? <> · <span style={{ color: "var(--color-success)" }}>{t("pipeline.clients.received")} ${cR.toLocaleString()}</span></> : null; })()}
+                      {(() => { const cR = tx.finTxs.filter((r: FinanceTransaction) => r.type === "income" && (r.status || TX_STATUS.COMPLETED) === TX_STATUS.COMPLETED && r.client_id === c.id).reduce((s: number, r: FinanceTransaction) => s + Number(r.amount || 0), 0); return cR > 0 ? <> · <span style={{ color: "var(--color-success)" }}>{t("pipeline.clients.received")} ${cR.toLocaleString()}</span></> : null; })()}
                       {c.tax_mode && c.tax_mode !== "none" && <> · <span style={{ color: "var(--color-accent)" }}>{c.tax_mode === "exclusive" ? t("money.form.taxExclBtn") : t("money.form.taxIncl")} {c.tax_rate}%</span></>}
                     </div>
                   </div>
@@ -421,7 +421,7 @@ export function ClientsView() {
                       <td className="px-4 py-3"><span className={`badge ${c.status === "Active" ? "badge-success" : "badge-warning"}`}>{c.status === "Active" ? t("common.active") : t("common.paused")}</span></td>
                       <td className="px-4 py-3 tabular-nums" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
                         <div>${c.billing_type === "project" ? Number(c.project_fee || 0).toLocaleString() : Number(c.lifetimeRevenue || 0).toLocaleString()}</div>
-                        {(() => { const cReceived = tx.finTxs.filter((r: FinanceTransaction) => r.type === "income" && (r.status || "已完成") === "已完成" && r.client_id === c.id).reduce((s: number, r: FinanceTransaction) => s + Number(r.amount || 0), 0); return cReceived > 0 ? <div className="text-[13px]" style={{ color: "var(--color-success)" }}>{t("pipeline.clients.received")} ${cReceived.toLocaleString()}</div> : null; })()}
+                        {(() => { const cReceived = tx.finTxs.filter((r: FinanceTransaction) => r.type === "income" && (r.status || TX_STATUS.COMPLETED) === TX_STATUS.COMPLETED && r.client_id === c.id).reduce((s: number, r: FinanceTransaction) => s + Number(r.amount || 0), 0); return cReceived > 0 ? <div className="text-[13px]" style={{ color: "var(--color-success)" }}>{t("pipeline.clients.received")} ${cReceived.toLocaleString()}</div> : null; })()}
                         {c.billing_type === "subscription" && <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>${Number(c.mrr || 0).toLocaleString()}{t("pipeline.clients.perMonth")}</div>}
                       </td>
                       <td className="px-4 py-3 text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{c.subscription_start_date || String(c.joined_at || "").split("T")[0] || "—"}</td>
@@ -887,7 +887,7 @@ export function ClientsView() {
                             ) : (
                               <div className="space-y-2">
                                 {ms.filteredMilestones.map((msItem: MilestoneRow) => (
-                                  <div key={msItem.id} role="button" tabIndex={0} className="rounded-[var(--radius-6)] p-3 space-y-2 cursor-pointer transition-colors" style={{ background: "var(--color-bg-tertiary)", border: `1px solid ${msItem.status === "paid" ? "var(--color-success)" : "var(--color-border-primary)"}` }} onClick={() => { msItem.status === "paid" ? ms.openEditPaid(msItem) : ms.openEditForm(msItem); }} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); msItem.status === "paid" ? ms.openEditPaid(msItem) : ms.openEditForm(msItem); } }}>
+                                  <div key={msItem.id} role="button" tabIndex={0} className="rounded-[var(--radius-6)] p-3 space-y-2 cursor-pointer transition-colors" style={{ background: "var(--color-bg-tertiary)", border: `1px solid ${msItem.status === "paid" ? "var(--color-success)" : "var(--color-border-primary)"}` }} onClick={() => { if (msItem.status === "paid") ms.openEditPaid(msItem); else ms.openEditForm(msItem); }} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (msItem.status === "paid") ms.openEditPaid(msItem); else ms.openEditForm(msItem); } }}>
                                     <div className="flex items-center justify-between">
                                       <div className="flex items-center gap-2">
                                         {msItem.status === "paid" ? <CircleCheck size={16} style={{ color: "var(--color-success)" }} /> : msItem.status === "overdue" ? <AlertCircle size={16} style={{ color: "var(--color-danger)" }} /> : <Clock size={16} style={{ color: "var(--color-text-secondary)" }} />}
@@ -913,7 +913,7 @@ export function ClientsView() {
                                       </div>
                                     </div>
                                     <div className="flex items-center gap-3 text-[13px]" style={{ color: "var(--color-text-secondary)" }}>
-                                      {msItem.percentage > 0 && <span>{msItem.percentage}%</span>}
+                                      {(msItem.percentage ?? 0) > 0 && <span>{msItem.percentage}%</span>}
                                       {msItem.due_date && <span>{t("pipeline.milestones.dueDate")}: {msItem.due_date}</span>}
                                       {msItem.paid_date && <span>{t("pipeline.milestones.paidDate")}: {msItem.paid_date}</span>}
                                       {msItem.payment_method && <span>{t(`pipeline.milestones.method.${msItem.payment_method}`)}</span>}
@@ -1135,10 +1135,10 @@ export function ClientsView() {
 
                     {/* Summary bar */}
                     {tx.clientTxs.length > 0 && (() => {
-                      const received = tx.clientTxs.filter((r: FinanceTransaction) => r.type === "income" && (r.status || "已完成") === "已完成").reduce((s: number, r: FinanceTransaction) => s + Number(r.amount || 0), 0);
-                      const receivedTax = tx.clientTxs.filter((r: FinanceTransaction) => r.type === "income" && (r.status || "已完成") === "已完成").reduce((s: number, r: FinanceTransaction) => s + Number(r.tax_amount || 0), 0);
+                      const received = tx.clientTxs.filter((r: FinanceTransaction) => r.type === "income" && (r.status || TX_STATUS.COMPLETED) === TX_STATUS.COMPLETED).reduce((s: number, r: FinanceTransaction) => s + Number(r.amount || 0), 0);
+                      const receivedTax = tx.clientTxs.filter((r: FinanceTransaction) => r.type === "income" && (r.status || TX_STATUS.COMPLETED) === TX_STATUS.COMPLETED).reduce((s: number, r: FinanceTransaction) => s + Number(r.tax_amount || 0), 0);
                       const pending = tx.clientTxs.filter((r: FinanceTransaction) => (r.status || "").includes("应收")).reduce((s: number, r: FinanceTransaction) => { const a = Number(r.amount || 0); const t2 = Number(r.tax_amount || 0); return s + ((r.tax_mode || 'none') === 'exclusive' ? a + t2 : a); }, 0);
-                      const expense = tx.clientTxs.filter((r: FinanceTransaction) => r.type === "expense" && (r.status || "已完成") === "已完成").reduce((s: number, r: FinanceTransaction) => { const a = Number(r.amount || 0); const t2 = Number(r.tax_amount || 0); return s + ((r.tax_mode || 'none') === 'exclusive' ? a + t2 : a); }, 0);
+                      const expense = tx.clientTxs.filter((r: FinanceTransaction) => r.type === "expense" && (r.status || TX_STATUS.COMPLETED) === TX_STATUS.COMPLETED).reduce((s: number, r: FinanceTransaction) => { const a = Number(r.amount || 0); const t2 = Number(r.tax_amount || 0); return s + ((r.tax_mode || 'none') === 'exclusive' ? a + t2 : a); }, 0);
                       return (
                         <div className="flex items-center gap-3 text-[13px]" style={{ fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>
                           <span style={{ color: "var(--color-success)" }}>{t("pipeline.tx.received")} ${received.toLocaleString()}{receivedTax > 0 ? ` (+${t("finance.tax")} $${receivedTax.toLocaleString()})` : ""}</span>
@@ -1175,7 +1175,7 @@ export function ClientsView() {
                               {txItem.source === "subscription" && (txItem.status || "").includes("应收") && (
                                 <button onClick={() => tx.confirmReceipt(txItem.id)} className="btn-primary compact text-[13px]">{t("pipeline.tx.confirmReceipt")}</button>
                               )}
-                              {txItem.source === "subscription" && (txItem.status || "") === "已完成" && (
+                              {txItem.source === "subscription" && (txItem.status || "") === TX_STATUS.COMPLETED && (
                                 <button onClick={() => tx.undoReceipt(txItem.id)} className="btn-ghost compact text-[13px]" style={{ color: "var(--color-text-tertiary)" }}>
                                   <Undo2 size={13} className="mr-1" />{t("pipeline.tx.undoReceipt")}
                                 </button>
@@ -1192,9 +1192,9 @@ export function ClientsView() {
                               <span className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{txItem.date}</span>
                               <span className="badge text-[13px]">{catLabel(txItem.category, t)}</span>
                               <span className="badge text-[13px]" style={{
-                                background: (txItem.status || "已完成") === "已完成" ? "var(--color-success-light)" : (txItem.status || "").includes("应收") ? "var(--color-warning-light)" : "var(--color-danger-light)",
-                                color: (txItem.status || "已完成") === "已完成" ? "var(--color-success)" : (txItem.status || "").includes("应收") ? "var(--color-warning)" : "var(--color-danger)",
-                              }}>{stLabel(txItem.status || "已完成", t)}</span>
+                                background: (txItem.status || TX_STATUS.COMPLETED) === TX_STATUS.COMPLETED ? "var(--color-success-light)" : (txItem.status || "").includes("应收") ? "var(--color-warning-light)" : "var(--color-danger-light)",
+                                color: (txItem.status || TX_STATUS.COMPLETED) === TX_STATUS.COMPLETED ? "var(--color-success)" : (txItem.status || "").includes("应收") ? "var(--color-warning)" : "var(--color-danger)",
+                              }}>{stLabel(txItem.status || TX_STATUS.COMPLETED, t)}</span>
                               {txItem.source === "subscription" && <span className="badge text-[13px]" style={{ background: "color-mix(in srgb, var(--color-blue) 12%, transparent)", color: "var(--color-blue)" }}>{t("money.badge.subscription")}</span>}
                               {txItem.source === "milestone" && <span className="badge text-[13px]" style={{ background: "color-mix(in srgb, var(--color-orange) 12%, transparent)", color: "var(--color-orange)" }}>{t("money.badge.project")}</span>}
                             </div>

@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "motion/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useT } from "../i18n/context";
+import { useAuth } from "../auth/AuthProvider";
 import { useAppSettings } from "../hooks/useAppSettings";
 import { useUIStore } from "../store/useUIStore";
 import { api } from "../lib/api";
@@ -1272,6 +1273,7 @@ interface AIChatPanelProps {
 
 export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
   const { t, lang } = useT();
+  const { user, offlineMode } = useAuth();
   const { settings } = useAppSettings();
   const activeTab = useUIStore((s) => s.activeTab);
   const setActiveTab = useUIStore((s) => s.setActiveTab);
@@ -1315,10 +1317,13 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
     if (agentsLoading || seededOnceRef.current) return;
     seededOnceRef.current = true; // lock BEFORE async — no second entry possible
     const l = (lang as 'zh' | 'en') || 'en';
-    if (agents.length === 0 && !localStorage.getItem('solo_agents_seeded')) {
+    // Per-user flag so that signing out → signing in as another account still seeds
+    // defaults for the new user. Fall back to a shared key for offline/anonymous mode.
+    const seededKey = `solo_agents_seeded:${user?.id || (offlineMode ? 'offline' : 'anon')}`;
+    if (agents.length === 0 && !localStorage.getItem(seededKey)) {
       // True first-time user — seed defaults
       seedDefaults(l).then(() => {
-        try { localStorage.setItem('solo_agents_seeded', '1'); } catch { /* quota exceeded */ }
+        try { localStorage.setItem(seededKey, '1'); } catch { /* quota exceeded */ }
       }).catch((e) => {
         console.error('[Agent seed]', e);
         showToast(lang === 'zh' ? 'Agent 初始化失败，请刷新重试' : 'Agent setup failed, please refresh');
@@ -1405,7 +1410,10 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
   const [dashboard, setDashboard] = useState<Record<string, unknown> | null>(null);
   const [pageContext, setPageContext] = useState<Record<string, unknown> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
-  const streamOneAgentRef = useRef<(convId: string, agent: AgentConfig | null, aiConfig: { provider: string; apiKey: string }, abort: AbortController) => Promise<void>>(null!);
+  // Forward reference: the function is defined further down the component body but
+  // needs to be callable from a callback created earlier. Typed as nullable so TS
+  // forces a guard; the call site below guards before invoking.
+  const streamOneAgentRef = useRef<((convId: string, agent: AgentConfig | null, aiConfig: { provider: string; apiKey: string }, abort: AbortController) => Promise<void>) | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1964,6 +1972,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
       for (const agent of respondingAgents) {
         if (abort.signal.aborted) break;
         try {
+          if (!streamOneAgentRef.current) break;
           await streamOneAgentRef.current(convId, agent, aiConfig, abort);
         } catch (agentErr) {
           if ((agentErr as Error).name === "AbortError") break;

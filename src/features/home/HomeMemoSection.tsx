@@ -6,7 +6,7 @@ import { useT } from "../../i18n/context";
 import PeepIllustration from "../../components/ui/PeepIllustration";
 import { useAppSettings } from "../../hooks/useAppSettings";
 import { useUIStore } from "../../store/useUIStore";
-import { getAIConfig, getOllamaConfig, MODEL_IDS } from "../../lib/ai-client";
+import { getAIConfig, parseMemo } from "../../lib/ai-client";
 import { useRealtimeRefresh } from "../../hooks/useRealtimeRefresh";
 import type { Task } from "../work/TaskCard";
 
@@ -305,47 +305,12 @@ export function HomeMemoSection() {
     try {
       const today = toDateStr(new Date());
       const dayOfWeek = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][new Date().getDay()];
-      const sysPrompt = `You extract a memo/event from user input. Today is ${today} (${dayOfWeek}). Return JSON: {"title":"short title","due":"YYYY-MM-DD" or "YYYY-MM-DDThh:mm" or null}. Only JSON, no markdown.`;
-      let result: { title: string; due?: string | null } | null = null;
-
-      if (provider === "openai") {
-        const r = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-          body: JSON.stringify({ model: "gpt-4o-mini", messages: [{ role: "system", content: sysPrompt }, { role: "user", content: text }], temperature: 0 }),
-        });
-        result = JSON.parse((await r.json()).choices[0].message.content);
-      } else if (provider === "claude") {
-        // Opus 4.7: no temperature, effort "low" for fast JSON extraction.
-        // Response content may include thinking blocks — find the text block.
-        const r = await fetch("https://api.anthropic.com/v1/messages", {
-          method: "POST", headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-          body: JSON.stringify({ model: MODEL_IDS.claude, max_tokens: 200, system: sysPrompt, messages: [{ role: "user", content: text }], output_config: { effort: "low" } }),
-        });
-        const d = await r.json();
-        const txt = Array.isArray(d.content) ? (d.content.find((b: { type: string; text?: string }) => b?.type === "text")?.text || "") : "";
-        result = JSON.parse(txt);
-      } else if (provider === "gemini") {
-        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`, {
-          method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
-          body: JSON.stringify({ contents: [{ parts: [{ text: `${sysPrompt}\n\nUser: ${text}` }] }] }),
-        });
-        const raw = (await r.json()).candidates[0].content.parts[0].text.replace(/```json\n?|\n?```/g, "").trim();
-        result = JSON.parse(raw);
-      } else if (provider === "ollama") {
-        const { url, model } = getOllamaConfig();
-        const r = await fetch(`${url}/v1/chat/completions`, {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ model, messages: [{ role: "system", content: sysPrompt }, { role: "user", content: text }], response_format: { type: "json_object" }, stream: false }),
-        });
-        const raw = (await r.json()).choices?.[0]?.message?.content || "";
-        const match = raw.match(/\{[\s\S]*\}/);
-        result = match ? JSON.parse(match[0]) : JSON.parse(raw);
-      }
-
-      if (result) {
-        await api.post("/api/tasks", { title: result.title || text, scope: memoScope, column: "todo", priority: "Medium", ...(result.due ? { due: result.due } : {}) });
-        showToast(`✓ ${result.title || text}`);
-      }
+      const result = await parseMemo(text, today, dayOfWeek, provider, apiKey);
+      await api.post("/api/tasks", {
+        title: result.title, scope: memoScope, column: "todo", priority: "Medium",
+        ...(result.due ? { due: result.due } : {}),
+      });
+      showToast(`✓ ${result.title}`);
       setAiInput(""); fetchTasks();
     } catch {
       await api.post("/api/tasks", { title: text, scope: memoScope, column: "todo", priority: "Medium" });

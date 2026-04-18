@@ -27,7 +27,7 @@ import {
 
 import { api } from "../../lib/api";
 import PeepIllustration from "../../components/ui/PeepIllustration";
-import { calcTaxAmount, catLabel, STATUS_I18N } from "../../lib/tax";
+import { calcTaxAmount, catLabel, STATUS_I18N, TX_STATUS } from "../../lib/tax";
 import { todayDateKey } from "../../lib/date-utils";
 import { parseExpense, getAIConfig, type AIProvider } from "../../lib/ai-client";
 import { useAppSettings } from "../../hooks/useAppSettings";
@@ -37,31 +37,8 @@ const FinanceChart = React.lazy(() => import("./FinanceChart"));
 import { StatCard, TxRow, VirtualTxList } from "./TransactionList";
 
 /* ── Type definitions ── */
-interface FinanceTransaction {
-  id: number;
-  type: "income" | "expense";
-  source?: string;
-  source_id?: number;
-  amount: number;
-  category: string;
-  description: string;
-  desc?: string;
-  date: string;
-  status: string;
-  client_id?: number | null;
-  client_name?: string;
-  tax_mode: "none" | "exclusive" | "inclusive";
-  tax_rate: number;
-  tax_amount: number;
-  [key: string]: unknown;
-}
-
-interface ClientItem {
-  id: number;
-  name: string;
-  company_name?: string;
-  [key: string]: unknown;
-}
+import type { FinanceTransaction } from "../../lib/types/finance";
+import type { ClientItem } from "../../lib/types/client";
 
 /* ── Helpers ── */
 const stLabel = (st: string, t: (k: string) => string) => {
@@ -88,7 +65,7 @@ const PERSONAL_CATEGORIES_LIST = [
 ];
 const TX_CATEGORIES = [...BIZ_CATEGORIES, ...PERSONAL_CATEGORIES_LIST];
 const PERSONAL_CATEGORIES = new Set(PERSONAL_CATEGORIES_LIST);
-const TX_STATUSES = ["已完成", "待收款 (应收)", "待支付 (应付)"];
+const TX_STATUSES = [TX_STATUS.COMPLETED, TX_STATUS.RECEIVABLE, TX_STATUS.PAYABLE];
 // Categories that are treated as income (for amount sign and type determination)
 const INCOME_CATEGORIES = ["收入", "应收", "项目收入", "订阅收入", "咨询收入", "Income"];
 
@@ -97,7 +74,7 @@ const createEmptyForm = () => ({
   desc: "",
   category: BIZ_CATEGORIES[0], // "收入"
   amount: "",
-  status: TX_STATUSES[0], // "已完成"
+  status: TX_STATUSES[0] as string, // "已完成"
   taxMode: "none" as "none" | "exclusive" | "inclusive",
   taxRate: "",
   client_id: "" as string | number,
@@ -228,8 +205,8 @@ export default function FinancePage() {
 
       const expenseTotal = txMode === 'exclusive' ? amt + tax : amt;
 
-      if (tx.status === "待收款 (应收)") { receivable += (txMode === 'exclusive' ? amt + tax : amt); continue; }
-      if (tx.status === "待支付 (应付)") { payable += expenseTotal; continue; }
+      if (tx.status === TX_STATUS.RECEIVABLE) { receivable += (txMode === 'exclusive' ? amt + tax : amt); continue; }
+      if (tx.status === TX_STATUS.PAYABLE) { payable += expenseTotal; continue; }
 
       // Income: exclusive tax means client pays base + tax, so total received = amt + tax
       const incomeTotal = txMode === 'exclusive' ? amt + tax : amt;
@@ -282,7 +259,7 @@ export default function FinancePage() {
       if (!tx.date) continue;
       const m = tx.date.slice(0, 7);
       if (!months[m]) continue;
-      if (tx.status === "待收款 (应收)" || tx.status === "待支付 (应付)") continue;
+      if (tx.status === TX_STATUS.RECEIVABLE || tx.status === TX_STATUS.PAYABLE) continue;
       const amt = Math.abs(Number(tx.amount || 0));
       const tax = Math.abs(Number(tx.tax_amount || 0));
       const isIncome = tx.type === "income";
@@ -447,7 +424,7 @@ export default function FinancePage() {
         category: parsed.category,
         amount: isIncome ? parsed.amount : -parsed.amount,
         type: isIncome ? "income" : "expense",
-        status: "已完成",
+        status: TX_STATUS.COMPLETED,
         tax_mode: "none",
         tax_rate: 0,
         tax_amount: 0,
@@ -659,7 +636,7 @@ export default function FinancePage() {
             <div className="space-y-0">
               <AnimatePresence mode="popLayout">
               {recentTxs.map(tx => {
-                const isSystem = tx.source && tx.source !== 'manual';
+                const isSystem = !!(tx.source && tx.source !== 'manual');
                 return (
                   <motion.div key={tx.id} layout initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8, height: 0 }} transition={{ type: "spring", stiffness: 320, damping: 30 }}>
                   <TxRow tx={tx} t={t} fmtAmt={fmtAmt} fmtAmtColor={fmtAmtColor}
@@ -737,7 +714,7 @@ export default function FinancePage() {
             <div className="space-y-0">
               <AnimatePresence mode="popLayout">
               {recentTxs.map(tx => {
-                const isSystem = tx.source && tx.source !== 'manual';
+                const isSystem = !!(tx.source && tx.source !== 'manual');
                 return (
                   <motion.div key={tx.id} layout initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8, height: 0 }} transition={{ type: "spring", stiffness: 320, damping: 30 }}>
                   <TxRow tx={tx} t={t} fmtAmt={fmtAmt} fmtAmtColor={fmtAmtColor}
@@ -841,8 +818,8 @@ export default function FinancePage() {
               lang={lang}
               fmtAmt={fmtAmt}
               fmtAmtColor={fmtAmtColor}
-              onEdit={(tx: FinanceTransaction) => { if (!tx.source || tx.source === 'manual') openPanel(tx); }}
-              onDelete={(tx: FinanceTransaction) => { if (!tx.source || tx.source === 'manual') setDeleteId(tx.id); }}
+              onEdit={(tx) => { if (!tx.source || tx.source === 'manual') openPanel(tx as FinanceTransaction); }}
+              onDelete={(tx) => { if (!tx.source || tx.source === 'manual') setDeleteId(tx.id); }}
               onClientClick={() => setActiveTab("clients")}
             />
             {filteredTxs.length === 0 && (
