@@ -1,7 +1,47 @@
 import { Database } from "sql.js";
 import { run, get } from "./index";
 
+/**
+ * Detect whether the browser has a persisted Supabase session.
+ * If it does, the user has a real cloud account — we must NOT seed demo data,
+ * because sync-manager's "cloud returned 0 rows → skip" safety guard means
+ * the seed would stick permanently and could leak back up to the cloud via
+ * the next edit. Anonymous / "Skip login" users have no session → still seed.
+ *
+ * Checks both the modern Supabase key shape (`sb-<project-ref>-auth-token`)
+ * and the legacy `supabase.auth.token` key. Runs a coarse scan because the
+ * project ref is environment-specific.
+ */
+function hasPersistedSupabaseSession(): boolean {
+  if (typeof localStorage === 'undefined') return false;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k) continue;
+      if ((k.startsWith('sb-') && k.endsWith('-auth-token')) || k === 'supabase.auth.token') {
+        const v = localStorage.getItem(k);
+        if (!v) continue;
+        try {
+          const parsed = JSON.parse(v);
+          if (parsed?.access_token || parsed?.currentSession?.access_token) return true;
+        } catch { /* malformed — treat as absent */ }
+      }
+    }
+  } catch { /* storage quota / opaque origin — treat as absent */ }
+  return false;
+}
+
 export function seedData(db: Database) {
+  // ── Data-correctness guard ────────────────────────────────────────
+  // Cloud-authed user: their canonical data lives on the server. Seeding
+  // demo data here would contaminate their local mirror; sync's "0 rows →
+  // skip DELETE+INSERT" safety rule means that contamination would stick
+  // permanently and leak back to the cloud on the next edit. Anonymous
+  // users still get the full seed for the demo experience.
+  if (hasPersistedSupabaseSession()) {
+    console.info('[seedData] Cloud session detected — skipping demo seed.');
+    return;
+  }
   const countLeads = get(db, 'SELECT COUNT(*) as c FROM leads')?.c ?? 0;
   if (Number(countLeads) > 0) return; // Only seed once — if any data exists, skip all
 

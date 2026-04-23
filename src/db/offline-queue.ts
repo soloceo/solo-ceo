@@ -23,6 +23,13 @@ interface QueuedOp {
   /** Local ID returned by the offline handler for POST operations.
    *  Used during replay to remap references after Supabase assigns real IDs. */
   localId?: number;
+  /** Entity scope (resource name, e.g. "clients", "tasks", "projects").
+   *  Paired with `localId` to form a per-entity-type map key so local IDs from
+   *  different tables (which all auto-increment independently) can't collide.
+   *  Derived from the POST path at enqueue time.
+   *  Optional for backward compat with ops enqueued before this field existed —
+   *  those ops simply don't participate in downstream-reference remapping. */
+  localScope?: string;
 }
 
 const DB_NAME = 'soloceo-offline-queue';
@@ -57,12 +64,43 @@ function openQueueDb(): Promise<IDBDatabase> {
   });
 }
 
-export async function enqueue(method: string, path: string, body: Record<string, unknown>, localId?: number): Promise<void> {
+/**
+ * Derive a scope name from a POST path. The scope is the last non-numeric,
+ * non-"api" segment — e.g.
+ *   /api/clients                      → "clients"
+ *   /api/clients/42/milestones        → "milestones"
+ *   /api/clients/42/projects          → "projects"
+ *   /api/tasks                        → "tasks"
+ * Returns "unknown" when nothing sensible can be derived; such ops simply
+ * don't participate in cross-op reference remapping.
+ */
+export function pathToScope(path: string): string {
+  const parts = path.split('?')[0].split('/').filter(Boolean);
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const seg = parts[i];
+    if (seg !== 'api' && !/^\d+$/.test(seg)) return seg;
+  }
+  return 'unknown';
+}
+
+export async function enqueue(
+  method: string,
+  path: string,
+  body: Record<string, unknown>,
+  localId?: number,
+): Promise<void> {
   const db = await openQueueDb();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const entry: Record<string, unknown> = { method, path, body, timestamp: Date.now(), retryCount: 0 };
-    if (localId != null) entry.localId = localId;
+    if (localId != null) {
+      entry.localId = localId;
+      // Pair the local ID with its table scope so replay builds a
+      // Map<"scope:localId", remoteId> instead of a global Map<localId, remoteId>
+      // (which would collide across tables — every SQLite AUTOINCREMENT starts
+      // at 1, so client(1), project(1), task(1) would all share one key).
+      entry.localScope = pathToScope(path);
+    }
     tx.objectStore(STORE_NAME).add(entry);
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
@@ -150,37 +188,96 @@ function dispatchQueueWarning(message: string) {
 }
 
 // ── ID remapping helpers ─────────────────────────────────────────
+//
+// The remap uses a scoped-ID map: Map<"scope:localId", remoteId>. Scope is
+// the table/resource name (e.g. "clients", "tasks"). Since every SQLite
+// AUTOINCREMENT column starts at 1, client(id=1), project(id=1), task(id=1)
+// can all coexist — keying by "scope:localId" prevents cross-table collisions
+// that a bare Map<number, number> would conflate. Without this, replaying
+// two POSTs that both produced local id=1 would silently alias every future
+// reference to the second one.
+
+/** Map scope-key helper */
+const scopeKey = (scope: string, id: number) => `${scope}:${id}`;
+
+/**
+ * Map a foreign-key field name → the scope that ID resolves in.
+ * `source_id` is polymorphic — its scope depends on the row's `source` field.
+ * Returns null when the field can't be resolved (unknown or N/A type). */
+function fieldScope(field: string, body: Record<string, unknown>): string | null {
+  switch (field) {
+    case 'client_id':      return 'clients';
+    case 'project_id':     return 'projects';
+    case 'parent_id':      return 'tasks';    // only used on tasks
+    case 'finance_tx_id':  return 'finance';  // finance POSTs land at /api/finance
+    case 'source_id': {
+      // Polymorphic — inspect `source` to discover the target table.
+      const source = body.source;
+      if (source === 'milestone')    return 'milestones';
+      if (source === 'project_fee')  return 'projects';
+      // subscription/manual sources aren't remappable here; ledger rows aren't
+      // POSTed via the offline queue.
+      return null;
+    }
+    default: return null;
+  }
+}
 
 /** Body fields that may reference local IDs created during the same offline session */
 const REMAPPABLE_BODY_FIELDS = ['client_id', 'parent_id', 'source_id', 'project_id', 'finance_tx_id'];
 
 /**
  * Replace entity IDs in URL path segments using the idMap.
- * Matches patterns like `/api/clients/42/milestones` and remaps `42` → new ID.
- * Only remaps the numeric segment immediately after an entity name segment.
+ *
+ * Walks segments and, for each numeric segment, looks up the preceding
+ * non-numeric segment as its scope. For `/api/clients/42/milestones/7`:
+ *   - segment "42" sits after "clients" → lookup "clients:42"
+ *   - segment "7"  sits after "milestones" → lookup "milestones:7"
+ * This avoids the old bug where a bare `Map<number, number>` would remap the
+ * client ID and the milestone ID through the same key if they happened to be
+ * equal (common for fresh local DBs where both start at 1).
  */
-function remapPath(path: string, idMap: Map<number, number>): string {
+function remapPath(path: string, idMap: Map<string, number>): string {
   if (idMap.size === 0) return path;
-  // Split path into segments: ['', 'api', 'clients', '42', 'milestones']
-  return path.replace(/\/(\d+)(\/|$)/g, (_match, numStr, trailing) => {
-    const num = Number(numStr);
-    const mapped = idMap.get(num);
-    return mapped != null ? `/${mapped}${trailing}` : `/${numStr}${trailing}`;
-  });
+  const [pathPart, queryPart] = path.split('?');
+  const parts = pathPart.split('/');
+  let prevScope: string | null = null;
+  for (let i = 0; i < parts.length; i++) {
+    const seg = parts[i];
+    if (!seg) continue;
+    if (/^\d+$/.test(seg)) {
+      if (prevScope) {
+        const remote = idMap.get(scopeKey(prevScope, Number(seg)));
+        if (remote != null) parts[i] = String(remote);
+      }
+      // Numeric segments don't themselves become scope for the next one.
+      continue;
+    }
+    // Track the most recent non-numeric, non-"api" segment as the active scope
+    if (seg !== 'api') prevScope = seg;
+  }
+  return queryPart ? `${parts.join('/')}?${queryPart}` : parts.join('/');
 }
 
 /**
  * Replace local IDs in request body fields using the idMap.
+ * Looks up each known FK field under its correct scope — prevents a local
+ * client(id=1) from being remapped by a project(id=1) entry that happens to
+ * have been replayed first.
  * Returns a shallow copy if any field was remapped, otherwise the original body.
  */
-function remapBody(body: Record<string, unknown>, idMap: Map<number, number>): Record<string, unknown> {
+function remapBody(body: Record<string, unknown>, idMap: Map<string, number>): Record<string, unknown> {
   if (idMap.size === 0 || !body) return body;
   let changed = false;
   const result = { ...body };
   for (const field of REMAPPABLE_BODY_FIELDS) {
     const val = result[field];
-    if (typeof val === 'number' && idMap.has(val)) {
-      result[field] = idMap.get(val);
+    if (typeof val !== 'number') continue;
+    const scope = fieldScope(field, result);
+    if (!scope) continue;
+    const remote = idMap.get(scopeKey(scope, val));
+    if (remote != null) {
+      result[field] = remote;
       changed = true;
     }
   }
@@ -206,9 +303,13 @@ function extractResponseId(data: unknown): number | undefined {
  * This makes the queue self-consistent across sessions — if the browser
  * crashes or the user closes the tab mid-replay, any remaining ops already
  * carry the correct cloud IDs when the next session picks up.
+ *
+ * `scope` identifies which table the `localId` lives in so cross-table
+ * remaps (e.g. a project id=1 being applied to a client_id=1 reference)
+ * can't happen.
  */
-async function persistRemap(localId: number, remoteId: number): Promise<void> {
-  const oneMap = new Map([[localId, remoteId]]);
+async function persistRemap(scope: string, localId: number, remoteId: number): Promise<void> {
+  const oneMap = new Map<string, number>([[scopeKey(scope, localId), remoteId]]);
   const currentOps = await getAllOps();
   for (const op of currentOps) {
     const newPath = remapPath(op.path, oneMap);
@@ -240,9 +341,13 @@ async function performReplay(): Promise<{ replayed: number; failed: number }> {
     const ops = await getAllOps();
     if (!ops.length) return { replayed: 0, failed: 0 };
 
-    // Map from local (offline) IDs → remote (Supabase) IDs.
-    // Built up as POSTs are replayed sequentially.
-    const idMap = new Map<number, number>();
+    // Map from SCOPED local IDs → remote (Supabase) IDs.
+    // Key shape: "<scope>:<localId>" (e.g. "clients:1", "projects:1").
+    // Built up as POSTs are replayed sequentially. Scoping prevents
+    // cross-table collisions — without it, a client id=1 and a project id=1
+    // would share a key and the second POST's mapping would silently corrupt
+    // later references to the first.
+    const idMap = new Map<string, number>();
 
     const now = Date.now();
     // Pre-filter: discard stale and over-retried ops
@@ -310,14 +415,16 @@ async function performReplay(): Promise<{ replayed: number; failed: number }> {
         if (r.status === "fulfilled") {
           const { op, result } = r.value;
           if (result.status < 400) {
-            // Success — if this was a POST with a localId, record the mapping
-            // AND persist the remap so that remaining queue entries survive
-            // a browser crash / session end.
-            if (op.method === 'POST' && op.localId != null) {
+            // Success — if this was a POST with a localId + scope, record the
+            // scoped mapping AND persist it so remaining queue entries survive
+            // a browser crash / session end. Ops enqueued before localScope
+            // existed (older builds) are skipped for remapping — safer than
+            // falling back to the old cross-table-collision behavior.
+            if (op.method === 'POST' && op.localId != null && op.localScope) {
               const remoteId = extractResponseId(result.data);
               if (remoteId != null) {
-                idMap.set(op.localId, remoteId);
-                await persistRemap(op.localId, remoteId);
+                idMap.set(scopeKey(op.localScope, op.localId), remoteId);
+                await persistRemap(op.localScope, op.localId, remoteId);
               }
             }
             await removeOp(op.id);
