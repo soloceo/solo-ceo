@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../lib/api';
+import { APP_SETTINGS_SYNCED_EVENT } from '../lib/settings-events';
 
 /**
  * Shared cache for /api/settings — avoids duplicate calls
@@ -47,6 +48,15 @@ export function useAppSettings() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    const handleSynced = () => {
+      invalidateSettingsCache();
+      load();
+    };
+    window.addEventListener(APP_SETTINGS_SYNCED_EVENT, handleSynced);
+    return () => window.removeEventListener(APP_SETTINGS_SYNCED_EVENT, handleSynced);
+  }, [load]);
 
   const save = useCallback(async (key: string, value: string) => {
     try {

@@ -253,8 +253,12 @@ BEGIN
     ])
   LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', tbl);
+    EXECUTE format('DROP POLICY IF EXISTS "users_own_data_%1$s" ON %1$I', tbl);
     EXECUTE format(
-      'CREATE POLICY "users_own_data_%1$s" ON %1$I FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id)',
+      'CREATE POLICY "users_own_data_%1$s" ON %1$I
+         FOR ALL
+         USING ((SELECT auth.uid()) = user_id)
+         WITH CHECK ((SELECT auth.uid()) = user_id)',
       tbl
     );
   END LOOP;
@@ -284,6 +288,7 @@ BEGIN
       'payment_milestones'
     ])
   LOOP
+    EXECUTE format('DROP TRIGGER IF EXISTS trg_updated_at_%1$s ON %1$I', tbl);
     EXECUTE format(
       'CREATE TRIGGER trg_updated_at_%1$s BEFORE UPDATE ON %1$I FOR EACH ROW EXECUTE FUNCTION update_updated_at()',
       tbl

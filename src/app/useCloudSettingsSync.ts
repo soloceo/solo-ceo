@@ -3,6 +3,7 @@ import { api } from '../lib/api';
 import { useSettingsStore, PROFILE_SYNC_KEYS } from '../store/useSettingsStore';
 import { useUIStore } from '../store/useUIStore';
 import { useWidgetStore } from '../features/home/widgets/useWidgetStore';
+import { APP_SETTINGS_SYNCED_EVENT } from '../lib/settings-events';
 
 type User = { id?: string } | null | undefined;
 
@@ -28,8 +29,8 @@ export function useCloudSettingsSync(
     if (!user) return;
     let cancelled = false;
 
-    api.get<Record<string, string>>('/api/settings')
-      .then((s) => {
+    const load = () => {
+      api.get<Record<string, string>>('/api/settings').then((s) => {
         if (cancelled) return;
         hydrateProfileFields(s);
         hydratePreferences(s);
@@ -38,8 +39,15 @@ export function useCloudSettingsSync(
         if (s.protocol_streak) onStreakLoaded(s.protocol_streak);
       })
       .catch(() => { /* profile sync failed — non-critical */ });
+    };
 
-    return () => { cancelled = true; };
+    load();
+    window.addEventListener(APP_SETTINGS_SYNCED_EVENT, load);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener(APP_SETTINGS_SYNCED_EVENT, load);
+    };
     // onStreakLoaded is deliberately omitted: callers should pass a stable
     // setState setter; if they pass an inline arrow, we don't want to
     // re-fetch settings on every App render.

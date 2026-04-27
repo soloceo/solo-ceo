@@ -1,6 +1,3 @@
--- Migration 005: AI Conversations table for persistent chat storage
--- Stores conversation history per user with agent associations.
-
 CREATE TABLE IF NOT EXISTS ai_conversations (
   id              TEXT PRIMARY KEY,
   user_id         UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -16,7 +13,6 @@ CREATE TABLE IF NOT EXISTS ai_conversations (
 CREATE INDEX IF NOT EXISTS idx_ai_conversations_user
   ON ai_conversations (user_id) WHERE soft_deleted = false;
 
--- RLS policies (per-operation, matching project convention)
 ALTER TABLE ai_conversations ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "select_own_ai_conversations" ON ai_conversations
@@ -31,10 +27,8 @@ CREATE POLICY "update_own_ai_conversations" ON ai_conversations
 CREATE POLICY "delete_own_ai_conversations" ON ai_conversations
   FOR DELETE USING (auth.uid() = user_id);
 
--- Auto-update updated_at
 CREATE TRIGGER trg_updated_at_ai_conversations
   BEFORE UPDATE ON ai_conversations
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
--- Enable realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE ai_conversations;
+ALTER PUBLICATION supabase_realtime ADD TABLE ai_conversations;;

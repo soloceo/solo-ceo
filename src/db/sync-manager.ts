@@ -11,6 +11,7 @@ import { replayQueue, getQueueLength } from './offline-queue';
 import { getDb, saveDb, all, run, exec } from './index';
 import { clearCache } from './data-cache';
 import { useSettingsStore } from '../store/useSettingsStore';
+import { APP_SETTINGS_SYNCED_EVENT } from '../lib/settings-events';
 
 // ── Sync tables — all mutable tables to pull from cloud ──────────
 const SYNC_TABLES = [
@@ -58,6 +59,7 @@ async function pullCloudToLocal(): Promise<void> {
   const db = await getDb();
 
   const failedTables: string[] = [];
+  let appSettingsPulled = false;
   for (const table of PULL_TABLES) {
     try {
       // Fetch all rows from Supabase (RLS filters by user_id)
@@ -107,6 +109,7 @@ async function pullCloudToLocal(): Promise<void> {
         }
 
         exec(db, 'COMMIT');
+        if (table === 'app_settings') appSettingsPulled = true;
       } catch (insertErr) {
         try { exec(db, 'ROLLBACK'); } catch { /* already rolled back */ }
         console.warn(`[SyncManager] Failed to write ${table} locally:`, insertErr);
@@ -123,6 +126,9 @@ async function pullCloudToLocal(): Promise<void> {
 
   // Invalidate SWR cache so components fetch fresh data
   clearCache();
+  if (appSettingsPulled) {
+    window.dispatchEvent(new Event(APP_SETTINGS_SYNCED_EVENT));
+  }
 
   // One aggregated toast instead of spamming the user per-table. Only shown when
   // at least one table actually failed — successful syncs stay silent as before.
@@ -157,28 +163,32 @@ export function triggerFullSync(): Promise<void> {
 }
 
 async function performFullSync(): Promise<void> {
-  // Check auth. Previously both the no-session branch and the thrown-error
-  // branch were silent — sync would appear to run (status flips to idle)
-  // while actually doing nothing, which matches the "data stopped syncing
-  // but UI says OK" symptom users have reported.
+  let authenticated = false;
+
   try {
-    const { data } = await supabase.auth.getSession();
-    if (!data.session) {
+    // Check auth. Previously both the no-session branch and the thrown-error
+    // branch were silent — sync would appear to run (status flips to idle)
+    // while actually doing nothing, which matches the "data stopped syncing
+    // but UI says OK" symptom users have reported.
+    let session = null;
+    try {
+      const { data } = await supabase.auth.getSession();
+      session = data.session;
+    } catch (authErr) {
+      console.warn('[SyncManager] Skipping sync: getSession threw', authErr);
+      return;
+    }
+
+    if (!session) {
       console.warn('[SyncManager] Skipping sync: no active session');
       return;
     }
-  } catch (authErr) {
-    console.warn('[SyncManager] Skipping sync: getSession threw', authErr);
-    return;
-  }
-
-
-  try {
+    authenticated = true;
     const pending = await getQueueLength();
+    dispatchSyncStatus('syncing', { pending });
 
     // Step 1: Replay offline queue (push local → cloud)
     if (pending > 0) {
-      dispatchSyncStatus('syncing', { pending });
       const { replayed, failed } = await replayQueue();
 
       if (replayed > 0) {
@@ -207,7 +217,10 @@ async function performFullSync(): Promise<void> {
     dispatchSyncStatus('idle', { pending: remaining });
   } finally {
     syncPromise = null;
-    lastSyncAt = Date.now();
+    // A no-session cold start should not throttle the first real sync after
+    // the user signs in. Only successful auth checks count toward the sync
+    // interval; otherwise SIGNED_IN can be ignored for up to MIN_SYNC_INTERVAL.
+    if (authenticated) lastSyncAt = Date.now();
   }
 }
 
