@@ -5,7 +5,7 @@
  * Features:
  *   - Retry up to 3 times per operation (on next reconnect or visibility change)
  *   - 409 Conflict / 429 Rate-limited: retried (transient)
- *   - Other 4xx errors: permanent failure (kept for user review)
+ *   - Other 4xx errors: permanent failure (removed after notifying user)
  *   - 5xx errors: retried
  *   - Stale ops older than 30 days: discarded with user notification
  *   - Failed ops notify user via a sync-toast warning
@@ -32,13 +32,21 @@ interface QueuedOp {
   localScope?: string;
 }
 
+interface ReplayResult {
+  replayed: number;
+  /** Operations that remain queued and will retry later. */
+  failed: number;
+  /** Stale or permanently invalid operations removed from the queue. */
+  discarded: number;
+}
+
 const DB_NAME = 'soloceo-offline-queue';
 const STORE_NAME = 'ops';
 const MAX_RETRIES = 3;
 const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 /** HTTP status codes that are transient despite being 4xx — eligible for retry */
 const RETRYABLE_4XX = new Set([408, 409, 429]);
-let replayPromise: Promise<{ replayed: number; failed: number }> | null = null;
+let replayPromise: Promise<ReplayResult> | null = null;
 
 // ── IndexedDB helpers ─────────────────────────────────────────────
 
@@ -326,20 +334,21 @@ async function persistRemap(scope: string, localId: number, remoteId: number): P
 
 // ── Replay queue ──────────────────────────────────────────────────
 
-export function replayQueue(): Promise<{ replayed: number; failed: number }> {
+export function replayQueue(): Promise<ReplayResult> {
   if (replayPromise) return replayPromise;
   replayPromise = performReplay();
   return replayPromise;
 }
 
-async function performReplay(): Promise<{ replayed: number; failed: number }> {
+async function performReplay(): Promise<ReplayResult> {
 
   let replayed = 0;
   let failed = 0;
+  let discarded = 0;
 
   try {
     const ops = await getAllOps();
-    if (!ops.length) return { replayed: 0, failed: 0 };
+    if (!ops.length) return { replayed: 0, failed: 0, discarded: 0 };
 
     // Map from SCOPED local IDs → remote (Supabase) IDs.
     // Key shape: "<scope>:<localId>" (e.g. "clients:1", "projects:1").
@@ -359,13 +368,13 @@ async function performReplay(): Promise<{ replayed: number; failed: number }> {
         const ageDays = Math.round((now - op.timestamp) / 86400000);
         dispatchQueueWarning(`离线操作已过期(${ageDays}天)：${op.path}`);
         await removeOp(op.id);
-        failed++;
+        discarded++;
         continue;
       }
       if ((op.retryCount || 0) >= MAX_RETRIES) {
         permanentlyFailed.push(op);
         await removeOp(op.id);
-        failed++;
+        discarded++;
         continue;
       }
       validOps.push(op);
@@ -441,7 +450,7 @@ async function performReplay(): Promise<{ replayed: number; failed: number }> {
             // the next replay cycle doesn't re-warn the user about the same op.
             await removeOp(op.id);
             dispatchQueueWarning(`离线操作失败(${result.status})：${op.method} ${op.path}`);
-            failed++;
+            discarded++;
           }
         } else {
           // Promise rejected — network error, retry later
@@ -459,7 +468,7 @@ async function performReplay(): Promise<{ replayed: number; failed: number }> {
     replayPromise = null;
   }
 
-  return { replayed, failed };
+  return { replayed, failed, discarded };
 }
 
 // Note: auto-replay triggers (online event, visibilitychange, auth-ready)

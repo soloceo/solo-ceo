@@ -4,7 +4,8 @@
  * All platforms (Electron, iOS, Android, Web) use this single interceptor.
  * Priority:
  *   1. If online + authenticated → route through Supabase (supabase-api.ts)
- *   2. If offline → use local sql.js (api.ts) + queue for later replay
+ *   2. If authenticated but offline/Supabase unavailable → local sql.js + queue
+ *   3. If not authenticated → local-only, no queue (matches "skip login" copy)
  */
 import { handleSupabaseRequest } from './supabase-api';
 import { initDb, handleApiRequest } from './api';
@@ -43,8 +44,15 @@ function setupAuthCache() {
 
 setupAuthCache();
 
-function isAuthenticated(): boolean {
-  return _cachedAuthed;
+async function isAuthenticated(): Promise<boolean> {
+  if (_cachedAuthed) return true;
+  try {
+    const { data } = await supabase.auth.getSession();
+    _cachedAuthed = !!data.session;
+    return _cachedAuthed;
+  } catch {
+    return false;
+  }
 }
 
 /** Clear cached auth state on sign-out to prevent stale routing */
@@ -154,12 +162,13 @@ export async function installSupabaseInterceptor(): Promise<void> {
     // ── Mutations: invalidate cache, then proceed ──
     if (method !== 'GET') {
       invalidateForMutation(path);
+      const authed = await isAuthenticated();
 
       // Try Supabase first when online + authenticated.
       // 2xx/3xx → return to UI.
       // 4xx    → real application error (RLS/validation/auth) — return to UI, do NOT enqueue (replay would fail the same way).
       // 5xx or thrown exception → Supabase unavailable → fall through to local+enqueue.
-      if (isOnline() && isAuthenticated()) {
+      if (isOnline() && authed) {
         try {
           const resp = await handleViaSupabase(method, path, body);
           if (resp.status < 500) return resp;
@@ -169,19 +178,25 @@ export async function installSupabaseInterceptor(): Promise<void> {
         }
       }
 
-      // Offline, unauthed, or Supabase unavailable → local write + enqueue for later replay.
+      // Offline authenticated users get a local write + replay queue.
+      // Unauthenticated/offline-mode users are local-only: the login page copy
+      // promises that skipped-login data does not sync to cloud, and queueing
+      // those mutations caused noisy failures after the user later signed in.
       const localResponse = await handleLocally(method, path, body);
-      let localId: number | undefined;
-      if (method === 'POST') {
-        try {
-          const cloned = localResponse.clone();
-          const json = await cloned.json();
-          if (json && typeof json === 'object' && typeof json.id === 'number') {
-            localId = json.id;
-          }
-        } catch { /* response may not be JSON — skip localId extraction */ }
+
+      if (authed) {
+        let localId: number | undefined;
+        if (method === 'POST') {
+          try {
+            const cloned = localResponse.clone();
+            const json = await cloned.json();
+            if (json && typeof json === 'object' && typeof json.id === 'number') {
+              localId = json.id;
+            }
+          } catch { /* response may not be JSON — skip localId extraction */ }
+        }
+        enqueue(method, path, body, localId).catch((e) => console.warn("[Offline] Failed to enqueue:", e));
       }
-      enqueue(method, path, body, localId).catch((e) => console.warn("[Offline] Failed to enqueue:", e));
       return localResponse;
     }
 
@@ -212,7 +227,7 @@ export async function installSupabaseInterceptor(): Promise<void> {
       return resp;
     };
 
-    const online = isOnline() && isAuthenticated();
+    const online = isOnline() && await isAuthenticated();
 
     // If we have a cached response, return it immediately
     if (cached) {
