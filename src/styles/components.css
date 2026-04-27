@@ -811,6 +811,13 @@
 }
 
 /* ── Mobile bottom bar — color gradient + light frost ────────── */
+.mobile-bottom-bar {
+  /* iOS standalone PWAs can report an oversized bottom safe area, which
+     makes the tab bar float far above the home indicator. Keep a small,
+     capped cushion instead of inheriting the generic safe-area helper. */
+  padding-bottom: max(10px, min(env(safe-area-inset-bottom, 0px), 18px));
+}
+
 .mobile-bottom-bar::before {
   content: '';
   position: absolute;
@@ -1030,5 +1037,4 @@
   .ai-chat-panel::before,
   .ai-chat-panel::after { transition: none; opacity: 0 !important; }
 }
-
 

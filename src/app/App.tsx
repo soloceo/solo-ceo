@@ -615,7 +615,7 @@ function App() {
         {/* Mobile bottom row — nav + FAB side by side, independent */}
         {!hideMobileNav && (
           <div
-            className="md:hidden fixed left-0 right-0 z-[var(--layer-header)] flex items-center gap-2 mobile-bottom-bar pb-safe-half"
+            className="md:hidden fixed left-0 right-0 z-[var(--layer-header)] flex items-center gap-2 mobile-bottom-bar"
             style={{
               bottom: 0,
               paddingLeft: 20,
