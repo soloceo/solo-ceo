@@ -25,6 +25,7 @@ function isOnline(): boolean {
 // ── Auth status cache (sync, zero network calls) ─────────────────
 
 let _cachedAuthed = false;
+let _cachedUserId: string | null = null;
 let _authSub: { unsubscribe: () => void } | null = null;
 
 function setupAuthCache() {
@@ -33,31 +34,35 @@ function setupAuthCache() {
 
   const { data } = supabase.auth.onAuthStateChange((_event, session) => {
     _cachedAuthed = !!session;
+    _cachedUserId = session?.user?.id ?? null;
   });
   _authSub = data.subscription;
 
   // Init from localStorage — no network request
   supabase.auth.getSession().then(({ data }) => {
     _cachedAuthed = !!data.session;
+    _cachedUserId = data.session?.user?.id ?? null;
   }).catch(() => { /* auth check — silent in offline mode */ });
 }
 
 setupAuthCache();
 
-async function isAuthenticated(): Promise<boolean> {
-  if (_cachedAuthed) return true;
+async function getAuthenticatedUserId(): Promise<string | null> {
+  if (_cachedAuthed && _cachedUserId) return _cachedUserId;
   try {
     const { data } = await supabase.auth.getSession();
     _cachedAuthed = !!data.session;
-    return _cachedAuthed;
+    _cachedUserId = data.session?.user?.id ?? null;
+    return _cachedUserId;
   } catch {
-    return false;
+    return null;
   }
 }
 
 /** Clear cached auth state on sign-out to prevent stale routing */
 export function resetCachedAuth(): void {
   _cachedAuthed = false;
+  _cachedUserId = null;
   clearCache();
 }
 
@@ -162,17 +167,20 @@ export async function installSupabaseInterceptor(): Promise<void> {
     // ── Mutations: invalidate cache, then proceed ──
     if (method !== 'GET') {
       invalidateForMutation(path);
-      const authed = await isAuthenticated();
+      const authedUserId = await getAuthenticatedUserId();
 
       // Try Supabase first when online + authenticated.
       // 2xx/3xx → return to UI.
       // 4xx    → real application error (RLS/validation/auth) — return to UI, do NOT enqueue (replay would fail the same way).
-      // 5xx or thrown exception → Supabase unavailable → fall through to local+enqueue.
-      if (isOnline() && authed) {
+      // 5xx response → Supabase reached but rejected the mutation; return it
+      // instead of queueing a deterministic failure that will reappear on next launch.
+      // thrown exception → network/Supabase unavailable → fall through to local+enqueue.
+      if (isOnline() && authedUserId) {
         try {
           const resp = await handleViaSupabase(method, path, body);
           if (resp.status < 500) return resp;
-          console.warn('[Interceptor] Supabase mutation returned', resp.status, '— falling back to local+queue:', method, path);
+          console.warn('[Interceptor] Supabase mutation returned', resp.status, '— not queueing:', method, path);
+          return resp;
         } catch (e) {
           console.warn('[Interceptor] Supabase mutation threw — falling back to local+queue:', method, path, e);
         }
@@ -184,7 +192,7 @@ export async function installSupabaseInterceptor(): Promise<void> {
       // those mutations caused noisy failures after the user later signed in.
       const localResponse = await handleLocally(method, path, body);
 
-      if (authed) {
+      if (authedUserId) {
         let localId: number | undefined;
         if (method === 'POST') {
           try {
@@ -195,7 +203,7 @@ export async function installSupabaseInterceptor(): Promise<void> {
             }
           } catch { /* response may not be JSON — skip localId extraction */ }
         }
-        enqueue(method, path, body, localId).catch((e) => console.warn("[Offline] Failed to enqueue:", e));
+        enqueue(method, path, body, localId, authedUserId).catch((e) => console.warn("[Offline] Failed to enqueue:", e));
       }
       return localResponse;
     }
@@ -227,7 +235,7 @@ export async function installSupabaseInterceptor(): Promise<void> {
       return resp;
     };
 
-    const online = isOnline() && await isAuthenticated();
+    const online = isOnline() && !!await getAuthenticatedUserId();
 
     // If we have a cached response, return it immediately
     if (cached) {

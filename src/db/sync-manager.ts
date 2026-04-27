@@ -184,12 +184,13 @@ async function performFullSync(): Promise<void> {
       return;
     }
     authenticated = true;
+    const userId = session.user.id;
     const pending = await getQueueLength();
     dispatchSyncStatus('syncing', { pending });
 
     // Step 1: Replay offline queue (push local → cloud)
     if (pending > 0) {
-      const { replayed, failed } = await replayQueue();
+      const { replayed, failed } = await replayQueue(userId);
 
       if (replayed > 0) {
         dispatchSyncToast(`已同步 ${replayed} 条离线操作`, 'success');

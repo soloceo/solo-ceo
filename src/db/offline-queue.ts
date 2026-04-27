@@ -14,6 +14,8 @@ import { handleSupabaseRequest } from './supabase-api';
 
 interface QueuedOp {
   id: number;
+  /** Supabase auth user that created this queued mutation. */
+  userId?: string;
   method: string;
   path: string;
   body: Record<string, unknown>;
@@ -96,11 +98,13 @@ export async function enqueue(
   path: string,
   body: Record<string, unknown>,
   localId?: number,
+  userId?: string,
 ): Promise<void> {
   const db = await openQueueDb();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const entry: Record<string, unknown> = { method, path, body, timestamp: Date.now(), retryCount: 0 };
+    if (userId) entry.userId = userId;
     if (localId != null) {
       entry.localId = localId;
       // Pair the local ID with its table scope so replay builds a
@@ -334,13 +338,13 @@ async function persistRemap(scope: string, localId: number, remoteId: number): P
 
 // ── Replay queue ──────────────────────────────────────────────────
 
-export function replayQueue(): Promise<ReplayResult> {
+export function replayQueue(currentUserId?: string): Promise<ReplayResult> {
   if (replayPromise) return replayPromise;
-  replayPromise = performReplay();
+  replayPromise = performReplay(currentUserId);
   return replayPromise;
 }
 
-async function performReplay(): Promise<ReplayResult> {
+async function performReplay(currentUserId?: string): Promise<ReplayResult> {
 
   let replayed = 0;
   let failed = 0;
@@ -364,6 +368,16 @@ async function performReplay(): Promise<ReplayResult> {
     const permanentlyFailed: QueuedOp[] = [];
 
     for (const op of ops) {
+      // Queue entries created by older app versions did not carry a userId.
+      // They may have come from "skip login" mode, so replaying them after
+      // sign-in can cause the recurring "N operations failed" toast. Treat
+      // unowned or cross-user entries as stale local-only history.
+      if (!op.userId || (currentUserId && op.userId !== currentUserId)) {
+        console.warn('[offline-queue] discarded unowned queue op:', op.method, op.path);
+        await removeOp(op.id);
+        discarded++;
+        continue;
+      }
       if (now - op.timestamp > MAX_AGE_MS) {
         const ageDays = Math.round((now - op.timestamp) / 86400000);
         dispatchQueueWarning(`离线操作已过期(${ageDays}天)：${op.path}`);

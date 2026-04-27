@@ -86,6 +86,22 @@ describe('supabase interceptor offline queueing', () => {
     });
 
     expect(mocks.handleSupabaseRequest).not.toHaveBeenCalled();
-    expect(mocks.enqueue).toHaveBeenCalledWith('POST', '/api/tasks', { title: 'sync later' }, 42);
+    expect(mocks.enqueue).toHaveBeenCalledWith('POST', '/api/tasks', { title: 'sync later' }, 42, 'user-1');
+  });
+
+  it('does not enqueue mutations when Supabase returns an HTTP 500 response', async () => {
+    mocks.getSession.mockResolvedValue({ data: { session: { user: { id: 'user-1' } } } });
+    mocks.handleSupabaseRequest.mockResolvedValue({ status: 500, data: { error: 'remote schema error' } });
+    const { installSupabaseInterceptor } = await import('./supabase-interceptor');
+
+    await installSupabaseInterceptor();
+    const response = await window.fetch('/api/tasks', {
+      method: 'POST',
+      body: JSON.stringify({ title: 'do not queue deterministic failure' }),
+    });
+
+    expect(response.status).toBe(500);
+    expect(mocks.handleApiRequest).not.toHaveBeenCalled();
+    expect(mocks.enqueue).not.toHaveBeenCalled();
   });
 });

@@ -80,4 +80,17 @@ describe('sync manager', () => {
     expect(mocks.getQueueLength).toHaveBeenCalled();
     expect(mocks.supabase.from).toHaveBeenCalledWith('leads');
   });
+
+  it('replays the offline queue only for the signed-in user', async () => {
+    const signedInSession = { user: { id: 'user-1' } };
+    mocks.supabase.auth.getSession.mockResolvedValue({ data: { session: signedInSession } });
+    mocks.getQueueLength.mockResolvedValueOnce(3).mockResolvedValueOnce(0);
+    mocks.replayQueue.mockResolvedValue({ replayed: 0, failed: 0, discarded: 3 });
+
+    const { triggerFullSync } = await import('./sync-manager');
+
+    await triggerFullSync();
+
+    expect(mocks.replayQueue).toHaveBeenCalledWith('user-1');
+  });
 });
