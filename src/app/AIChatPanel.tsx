@@ -3055,7 +3055,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
               </AnimatePresence>
 
               {/* Input */}
-              <div className="shrink-0 px-3 sm:px-5 lg:px-5 pb-4 pt-2" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom, 0px))" }}>
+              <div className="shrink-0 px-3 sm:px-5 lg:px-5 pb-4 pt-2" style={{ paddingBottom: "max(16px, var(--safe-bottom-capped, 0px))" }}>
                 <div className="w-full">
                 {/* @mention dropdown */}
                 <AnimatePresence>

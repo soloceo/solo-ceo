@@ -9,8 +9,8 @@
   .dark .peep-illustration { filter: invert(1) brightness(0.88); }
 
   /* ── Safe-area helpers ─────────────────────────────────────── */
-  .pb-safe { padding-bottom: max(18px, env(safe-area-inset-bottom, 18px)); }
-  .pb-safe-half { padding-bottom: max(20px, env(safe-area-inset-bottom, 20px)); }
+  .pb-safe { padding-bottom: max(18px, var(--safe-bottom-capped)); }
+  .pb-safe-half { padding-bottom: max(20px, var(--safe-bottom-capped)); }
   .ios-scroll {
     overscroll-behavior: contain;
     scrollbar-width: none;
@@ -812,10 +812,7 @@
 
 /* ── Mobile bottom bar — color gradient + light frost ────────── */
 .mobile-bottom-bar {
-  /* iOS standalone PWAs can report an oversized bottom safe area, which
-     makes the tab bar float far above the home indicator. Keep a small,
-     capped cushion instead of inheriting the generic safe-area helper. */
-  padding-bottom: max(10px, min(env(safe-area-inset-bottom, 0px), 18px));
+  padding-bottom: var(--mobile-nav-bottom-padding);
 }
 
 .mobile-bottom-bar::before {
@@ -1037,4 +1034,3 @@
   .ai-chat-panel::before,
   .ai-chat-panel::after { transition: none; opacity: 0 !important; }
 }
-

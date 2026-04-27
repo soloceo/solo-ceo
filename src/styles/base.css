@@ -16,6 +16,12 @@
 
   --font-monospace: 'SF Mono', 'Menlo', ui-monospace, monospace;
 
+  /* iOS standalone PWAs can over-report the bottom safe area. Keep content
+     clear of the home indicator, but cap layout spacing so controls do not
+     float far above the bottom edge. */
+  --safe-bottom-capped: max(10px, min(env(safe-area-inset-bottom, 0px), 24px));
+  --mobile-nav-bottom-padding: max(10px, min(env(safe-area-inset-bottom, 0px), 18px));
+
 
   /* SF Pro standard weights */
   --font-weight-normal:   400;
