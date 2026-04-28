@@ -4,7 +4,7 @@ import { usePullToRefresh } from "../../hooks/usePullToRefresh";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import { exportCSV } from "../../lib/csv-export";
 import { useAppSettings } from "../../hooks/useAppSettings";
-import { parseWorkTask, getAIConfig, type AIProvider } from "../../lib/ai-client";
+import { parseWorkTask, getAIConfig } from "../../lib/ai-client";
 import { api } from "../../lib/api";
 import { Skeleton } from "../../components/ui";
 import { useT } from "../../i18n/context";
@@ -295,7 +295,7 @@ export default function WorkPage() {
 
   /* ── Progress stats (memoized) ── */
   const totalTasks = useMemo(() => (Object.values(tasks) as Task[][]).flat().length, [tasks]);
-  const counts = useMemo(() => COLS.map((c) => ({ ...c, count: (tasks[c.id] || []).length })), [tasks]);
+  const counts = useMemo(() => COLS.map((c) => ({ ...c, count: (tasks[c.id] || []).length })), [COLS, tasks]);
 
   /* ── Task toolbar + AI input + progress (task-related controls, above kanban) ── */
   const renderTaskControls = () => (

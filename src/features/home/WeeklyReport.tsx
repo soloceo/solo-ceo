@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { BarChart3, TrendingUp, TrendingDown, Users, UserPlus, CheckCircle2, X, DollarSign } from "lucide-react";
 import { useT } from "../../i18n/context";
-import { EmptyState } from "../../components/ui/EmptyState";
 import { api } from "../../lib/api";
 import PeepIllustration from "../../components/ui/PeepIllustration";
 

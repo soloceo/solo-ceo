@@ -214,7 +214,7 @@ export const settings = {
   "auth.switchToLogin": "Already have an account? Sign in",
   "auth.fillAll": "Please enter email and password",
   "auth.passwordMismatch": "Passwords do not match",
-  "auth.passwordTooShort": "Password must be at least 6 characters",
+  "auth.passwordTooShort": "Password must be at least 8 characters",
   "auth.checkEmail": "Success! Please check your email for a confirmation link",
   "auth.logoutBtn": "Sign Out",
   "auth.loggedInAs": "Signed in as: {email}",

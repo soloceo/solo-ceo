@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
       );
       subscriptionRef = subscription;
-    } catch (err) {
+    } catch {
       // Auth listener setup failed — app continues in offline mode
     }
 
@@ -156,35 +156,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     resetCachedUserId();
     resetCachedAuth();
 
-    // 2. Sign out from Supabase (revokes session)
-    await supabase.auth.signOut();
-
-    // 3. Clear all user-specific persisted state
+    // 2. Clear user-specific persisted state before the auth gate opens for
+    // the next account. These writes are local and keep sensitive data from
+    // lingering if Supabase sign-out is slow or fails.
     useSettingsStore.getState().resetForSignOut();
     useUIStore.setState({ activeTab: 'home', commandPaletteOpen: false });
     useUIStore.getState().clearToast();
     invalidateSettingsCache();
 
-    // 4. Clear offline data (prevents cross-user data leaks)
-    clearQueue().catch(() => {});
-    clearLocalDb().catch(() => {});
+    // 3. Clear local user data and old API response caches before revoking the
+    // session. Awaiting this prevents a quick account switch from seeing stale
+    // IndexedDB/sql.js/cache/localStorage data.
+    await Promise.allSettled([
+      clearQueue(),
+      clearLocalDb(),
+      clearBrowserUserCaches(),
+    ]);
 
-    // 5. Clear user-specific localStorage keys
-    localStorage.removeItem('solo-ceo-countdowns');
-    localStorage.removeItem('solo-ceo-countdown');
-    localStorage.removeItem('solo-ceo-energy-v3');
-    // Clear date-keyed and user-keyed markers in one pass
-    try {
-      const keys = Object.keys(localStorage);
-      for (const k of keys) {
-        if (k.startsWith('today-focus-skipped-')) localStorage.removeItem(k);
-        // Per-user agent-seed markers (`solo_agents_seeded:<userId>`). Leaving
-        // these around meant a subsequent signed-in user would inherit the
-        // previous user's "already seeded" flag if their userId happened to
-        // collide with a legacy key, and they cluttered storage indefinitely.
-        if (k === 'solo_agents_seeded' || k.startsWith('solo_agents_seeded:')) localStorage.removeItem(k);
-      }
-    } catch { /* localStorage access may fail in some contexts */ }
+    // 4. Clear user-specific localStorage keys.
+    clearUserLocalStorage();
+
+    // 5. Sign out from Supabase (revokes session)
+    await supabase.auth.signOut();
   }, []);
 
   const enterOfflineMode = useCallback(() => {
@@ -201,4 +194,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
+}
+
+function clearUserLocalStorage(): void {
+  try {
+    localStorage.removeItem('solo-ceo-countdowns');
+    localStorage.removeItem('solo-ceo-countdown');
+    localStorage.removeItem('solo-ceo-energy-v3');
+    localStorage.removeItem('solo_dismissed_agent_templates');
+
+    // Clear date-keyed, user-keyed, and AI chat/provider keys in one pass.
+    // `solo_ai_*` includes conversations, active chat ids, device AI provider,
+    // local model endpoints, and locally stored BYOK provider keys.
+    const keys = Object.keys(localStorage);
+    for (const k of keys) {
+      if (k.startsWith('today-focus-skipped-')) localStorage.removeItem(k);
+      if (k === 'solo_agents_seeded' || k.startsWith('solo_agents_seeded:')) localStorage.removeItem(k);
+      if (k.startsWith('solo_ai_')) localStorage.removeItem(k);
+      if (k.startsWith('ai-chat-')) localStorage.removeItem(k);
+    }
+  } catch { /* localStorage access may fail in some contexts */ }
+}
+
+async function clearBrowserUserCaches(): Promise<void> {
+  if (typeof caches === 'undefined') return;
+  try {
+    const names = await caches.keys();
+    await Promise.all(
+      names
+        .filter((name) => name.includes('supabase-api'))
+        .map((name) => caches.delete(name)),
+    );
+  } catch { /* CacheStorage may be unavailable or restricted */ }
 }

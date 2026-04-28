@@ -4,9 +4,10 @@ import { useT } from '../../i18n/context';
 import {
   testApiKey, fetchOllamaModels, fetchLMStudioModels,
   getDeviceAIProvider, setDeviceAIProvider,
+  getLocalAIKey, setLocalAIKey,
   getOllamaConfig, setOllamaConfig,
   getLMStudioConfig, setLMStudioConfig,
-  type AIProvider,
+  type AIProvider, type CloudAIProvider,
 } from '../../lib/ai-client';
 
 interface AISectionProps {
@@ -14,7 +15,7 @@ interface AISectionProps {
   save: (key: string, value: string) => Promise<void>;
 }
 
-const CLOUD_PROVIDERS: { id: AIProvider; label: string; model: string; keyName: string; applyUrl: string }[] = [
+const CLOUD_PROVIDERS: { id: CloudAIProvider; label: string; model: string; keyName: string; applyUrl: string }[] = [
   { id: "gemini", label: "Gemini", model: "gemini-2.5-flash", keyName: "gemini_api_key", applyUrl: "https://aistudio.google.com/apikey" },
   { id: "claude", label: "Claude", model: "claude-opus-4-7", keyName: "claude_api_key", applyUrl: "https://console.anthropic.com/settings/keys" },
   { id: "openai", label: "OpenAI", model: "gpt-4.1-mini", keyName: "openai_api_key", applyUrl: "https://platform.openai.com/api-keys" },
@@ -44,15 +45,24 @@ export default function AISection({ settings, save }: AISectionProps) {
   const [lmsModels, setLmsModels] = useState<string[]>([]);
   const [lmsLoading, setLmsLoading] = useState(false);
 
-  // Sync cloud keys from settings
+  // Sync cloud-provider keys from local device storage. Older builds stored
+  // these in app_settings; migrate once by copying locally and clearing cloud.
   useEffect(() => {
     if (!settings) return;
     const keys: Record<string, string> = {};
     for (const p of CLOUD_PROVIDERS) {
-      keys[p.keyName] = settings[p.keyName] || "";
+      const localKey = getLocalAIKey(p.id);
+      const legacyCloudKey = settings[p.keyName] || "";
+      if (!localKey && legacyCloudKey) {
+        setLocalAIKey(p.id, legacyCloudKey);
+        keys[p.keyName] = legacyCloudKey;
+        save(p.keyName, "").catch((e) => console.warn('[AISection] clear legacy cloud key', e));
+      } else {
+        keys[p.keyName] = localKey;
+      }
     }
     setLocalKeys(keys);
-  }, [settings]);
+  }, [settings, save]);
 
   // Try to discover Ollama models on mount
   useEffect(() => {
@@ -75,10 +85,13 @@ export default function AISection({ settings, save }: AISectionProps) {
 
   const handleSave = async (keyName: string) => {
     const value = localKeys[keyName] || "";
-    await save(keyName, value);
+    const matchedProvider = CLOUD_PROVIDERS.find(p => p.keyName === keyName);
+    if (matchedProvider) setLocalAIKey(matchedProvider.id, value);
+    // API keys are device-local. Keep this cloud field blank so a legacy value
+    // does not remain in Supabase app_settings after the user saves/tests.
+    await save(keyName, "");
     setDirty(p => ({ ...p, [keyName]: false }));
     if (value && !activeProvider) {
-      const matchedProvider = CLOUD_PROVIDERS.find(p => p.keyName === keyName);
       if (matchedProvider) selectProvider(matchedProvider.id);
     }
   };
@@ -213,6 +226,7 @@ export default function AISection({ settings, save }: AISectionProps) {
                   <button
                     onClick={async () => {
                       setLocalKeys(p => ({ ...p, [keyName]: "" }));
+                      setLocalAIKey(id, "");
                       await save(keyName, "");
                       setTestResult(p => ({ ...p, [id]: null }));
                       if (activeProvider === id) selectProvider("");

@@ -46,7 +46,7 @@ export async function milestonesHandler({ db, path, method, body }: HandlerCtx):
             ['income', txAmt, '项目收入', `${cName} · ${label || '项目付款'}`, due_date || todayDateKey(), '待收款 (应收)', 'milestone', msId, clientId, cName, tm, tr, calcTaxOffline(txAmt, tm, tr), project_id || null]);
           const txId = txRes.lastInsertRowid;
           if (txId) run(db, `UPDATE payment_milestones SET finance_tx_id=? WHERE id=?`, [txId, msId]);
-        } catch (txErr) {
+        } catch {
           // Rollback: soft-delete the milestone
           run(db, 'UPDATE payment_milestones SET soft_deleted=1 WHERE id=?', [msId]);
           return err(500, 'Failed to create linked finance transaction');

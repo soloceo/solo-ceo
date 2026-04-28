@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { api } from '../lib/api';
+import { migrateLegacyAIKeysFromSettings } from '../lib/ai-settings-migration';
 import { useSettingsStore, PROFILE_SYNC_KEYS } from '../store/useSettingsStore';
 import { useUIStore } from '../store/useUIStore';
 import { useWidgetStore } from '../features/home/widgets/useWidgetStore';
@@ -30,7 +31,7 @@ export function useCloudSettingsSync(
     let cancelled = false;
 
     const load = () => {
-      api.get<Record<string, string>>('/api/settings').then((s) => {
+      api.get<Record<string, string>>('/api/settings').then(migrateLegacyAIKeysFromSettings).then((s) => {
         if (cancelled) return;
         hydrateProfileFields(s);
         hydratePreferences(s);

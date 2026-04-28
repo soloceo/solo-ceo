@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, ChevronLeft, Plus, Trash2, Save, Sparkles } from 'lucide-react';
@@ -94,7 +94,7 @@ export default function AgentModal({ open, onClose, onSave, editAgent }: AgentMo
     setStarters(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = useCallback(() => {
     if (!name.trim()) { setNameError(true); return; }
     setNameError(false);
     // Validate tools against known set
@@ -109,7 +109,7 @@ export default function AgentModal({ open, onClose, onSave, editAgent }: AgentMo
       conversation_starters: starters.filter(s => s.trim()),
       template_id: templateId,
     });
-  };
+  }, [name, avatar, role, personality, rules, tools, starters, templateId, onSave]);
 
   // Escape to close, Cmd+Enter to save
   useEffect(() => {

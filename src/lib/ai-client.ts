@@ -7,11 +7,13 @@ import { todayDateKey } from "./date-utils";
 
 export type AIProvider = "gemini" | "claude" | "openai" | "ollama" | "lmstudio";
 
-export const AI_KEY_MAP: Record<string, string> = {
+export const AI_KEY_MAP = {
   gemini: "gemini_api_key",
   claude: "claude_api_key",
   openai: "openai_api_key",
-};
+} as const;
+
+export type CloudAIProvider = keyof typeof AI_KEY_MAP;
 
 /**
  * Default model IDs per cloud provider.
@@ -49,6 +51,7 @@ function claudeText(content: Array<{ type: string; text?: string }> | undefined)
 // ── Device-level AI provider (localStorage) ──────────────────
 
 const LS_PROVIDER = "solo_ai_provider";
+const LS_API_KEY_PREFIX = "solo_ai_key_";
 const LS_OLLAMA_URL = "solo_ollama_url";
 const LS_OLLAMA_MODEL = "solo_ollama_model";
 const LS_LMSTUDIO_URL = "solo_lmstudio_url";
@@ -62,6 +65,16 @@ export function getDeviceAIProvider(): AIProvider | "" {
 export function setDeviceAIProvider(p: AIProvider | ""): void {
   // Store "off" explicitly so getAIConfig won't fall back to cloud settings
   try { localStorage.setItem(LS_PROVIDER, p || "off"); } catch { /* quota exceeded */ }
+}
+export function getLocalAIKey(provider: CloudAIProvider): string {
+  try { return localStorage.getItem(`${LS_API_KEY_PREFIX}${provider}`) || ""; } catch { return ""; }
+}
+export function setLocalAIKey(provider: CloudAIProvider, key: string): void {
+  try {
+    const storageKey = `${LS_API_KEY_PREFIX}${provider}`;
+    if (key) localStorage.setItem(storageKey, key);
+    else localStorage.removeItem(storageKey);
+  } catch { /* quota exceeded or restricted storage */ }
 }
 export function getOllamaConfig(): { url: string; model: string } {
   return {
@@ -94,8 +107,8 @@ export function getAIConfig(settings: Record<string, string> | null): { provider
   const provider = hasDevicePref ? getDeviceAIProvider() : (settings?.ai_provider as AIProvider | "");
   if (!provider) return null;
   if (provider === "ollama" || provider === "lmstudio") return { provider, apiKey: "" };
-  const keyName = AI_KEY_MAP[provider];
-  const apiKey = keyName ? (settings?.[keyName] || "") : "";
+  if (!(provider in AI_KEY_MAP)) return null;
+  const apiKey = getLocalAIKey(provider as CloudAIProvider);
   if (!apiKey) return null;
   return { provider, apiKey };
 }

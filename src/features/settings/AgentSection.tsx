@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bot, Plus, Pencil, Trash2, Wrench, Play, RotateCcw, Copy } from 'lucide-react';
+import { Bot, Plus, Trash2, Wrench, Play, RotateCcw, Copy } from 'lucide-react';
 import { useT } from '../../i18n/context';
 import PeepIllustration from '../../components/ui/PeepIllustration';
 import { useAgents } from '../../hooks/useAgents';

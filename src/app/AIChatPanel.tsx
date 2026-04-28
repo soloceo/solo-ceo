@@ -16,18 +16,15 @@ import { getCurrencySymbol } from "../lib/format";
 import { useSettingsStore } from "../store/useSettingsStore";
 import {
   getAIConfig,
-  getDeviceAIProvider,
   getOllamaConfig,
   streamChat,
   type AIProvider,
   type ChatAttachment,
   type ChatMessage,
-  type StreamResult,
   type NativeToolDef,
 } from "../lib/ai-client";
 import {
   AGENT_TOOLS,
-  buildToolsPrompt,
   buildFilteredToolsPrompt,
   buildConfirmInfo,
   executeTool,
@@ -74,6 +71,11 @@ interface Conversation {
   createdAt: number;
   updatedAt: number;
 }
+
+const EMPTY_MESSAGES: Message[] = [];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+const MAX_ATTACHMENTS = 5;
+const ACCEPTED_TYPES = "image/png,image/jpeg,image/gif,image/webp";
 
 /** Get all agent IDs for a conversation (handles legacy + new format) */
 function getConvAgentIds(conv: Conversation): number[] {
@@ -925,7 +927,6 @@ function ConversationList({
   onSelect,
   onDelete,
   onRename,
-  onNew,
   lang,
   agents,
 }: {
@@ -934,7 +935,6 @@ function ConversationList({
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
   onRename: (id: string, title: string) => void;
-  onNew: () => void;
   lang: string;
   agents: AgentConfig[];
 }) {
@@ -1132,7 +1132,6 @@ function ToolConfirmCard({
   onConfirm,
   onReject,
   onUpdateArgs,
-  lang,
   executing,
   result,
 }: {
@@ -1141,7 +1140,6 @@ function ToolConfirmCard({
   onConfirm: () => void;
   onReject: () => void;
   onUpdateArgs?: (args: Record<string, unknown>) => void;
-  lang: string;
   executing: boolean;
   result?: { success: boolean; message: string } | null;
 }) {
@@ -1280,7 +1278,6 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
   const setActiveTab = useUIStore((s) => s.setActiveTab);
   const showToast = useUIStore((s) => s.showToast);
   const operatorName = useSettingsStore((s) => s.operatorName);
-  const operatorAvatar = useSettingsStore((s) => s.operatorAvatar);
   const businessDesc = useSettingsStore((s) => {
     const parts: string[] = [];
     if (s.businessTitle) parts.push(s.businessTitle);
@@ -1397,7 +1394,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
   const [showScrollBottom, setShowScrollBottom] = useState(false);
 
   const activeConv = conversations.find(c => c.id === activeConvId) || null;
-  const messages = activeConv?.messages || [];
+  const messages = activeConv?.messages ?? EMPTY_MESSAGES;
   const activeConvAgentIds = activeConv ? getConvAgentIds(activeConv) : [];
   const isGroupConv = activeConvAgentIds.length > 1;
 
@@ -2138,7 +2135,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
       }));
       abortRef.current = null;
     }
-  }, [streamingConvId, settings, dashboard, pageContext, activeTab, lang, activeConvId, activeAgentIds, activeAgent, agents, t, operatorName, businessDesc, currency, updateConversations, agentMap, streamOneAgent]);
+  }, [streamingConvId, settings, lang, activeConvId, activeAgentIds, activeAgent, t, updateConversations, agentMap, streamOneAgent]);
 
   /** Execute a confirmed tool call */
   const handleToolConfirm = useCallback(async (msgIndex: number) => {
@@ -2173,7 +2170,7 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
     } finally {
       setExecutingTool(false);
     }
-  }, [activeConvId, conversations, lang, updateConversations]);
+  }, [activeConvId, conversations, currency, lang, updateConversations]);
 
   /** Reject/cancel a tool call */
   const handleToolReject = useCallback((msgIndex: number) => {
@@ -2229,10 +2226,6 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
   }, [editingMsgIndex, editingMsgText, activeConvId, streamingConvId, updateConversations, resendFromConv]);
 
   /* ── File upload helpers ──────────────────────────── */
-  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
-  const MAX_ATTACHMENTS = 5;
-  const ACCEPTED_TYPES = "image/png,image/jpeg,image/gif,image/webp";
-
   /** Compress an image file to a manageable base64 (max 1200px, JPEG quality 0.8) */
   const compressImage = useCallback((file: File): Promise<MessageAttachment> => {
     return new Promise((resolve, reject) => {
@@ -2710,7 +2703,6 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                       onSelect={handleSelectConversation}
                       onDelete={handleDeleteConversation}
                       onRename={handleRenameConversation}
-                      onNew={handleNewConversation}
                       lang={lang}
                       agents={agents}
                     />
@@ -2737,7 +2729,6 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                   onSelect={(id) => { handleSelectConversation(id); setShowList(false); }}
                   onDelete={handleDeleteConversation}
                   onRename={handleRenameConversation}
-                  onNew={() => { handleNewConversation(); setShowList(false); }}
                   lang={lang}
                   agents={agents}
                 />
@@ -2835,11 +2826,6 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                 {messages.map((msg, i) => {
                   const msgAgent = msg.agentId != null ? agentMap.get(msg.agentId) : null;
                   const isUser = msg.role === "user";
-                  const prevMsg = i > 0 ? messages[i - 1] : null;
-                  const sameSender = prevMsg
-                    && prevMsg.role === msg.role
-                    && (prevMsg.agentId || null) === (msg.agentId || null)
-                    && !prevMsg.toolConfirm;
                   const senderName = isUser ? operatorName : (msgAgent?.name || t("ai.chat.defaultAssistant"));
 
                   return (
@@ -2870,7 +2856,6 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                             return { ...c, messages: msgs };
                           }));
                         }}
-                        lang={lang}
                         executing={executingTool}
                         result={msg.toolResult}
                       />

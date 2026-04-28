@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Loader2, Mail, Lock, ArrowRight, UserPlus, LogIn, KeyRound, WifiOff, Globe } from 'lucide-react';
+import { Loader2, Mail, Lock, UserPlus, LogIn, KeyRound, WifiOff, Globe } from 'lucide-react';
 import { useAuth } from './AuthProvider';
 import { useT } from '../i18n/context';
 import { supabase } from '../db/supabase-client';

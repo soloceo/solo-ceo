@@ -214,7 +214,7 @@ export const settings = {
   "auth.switchToLogin": "已有账号？返回登录",
   "auth.fillAll": "请填写邮箱和密码",
   "auth.passwordMismatch": "两次输入的密码不一致",
-  "auth.passwordTooShort": "密码至少 6 位",
+  "auth.passwordTooShort": "密码至少 8 位",
   "auth.checkEmail": "注册成功！请检查邮箱中的确认链接",
   "auth.logoutBtn": "退出登录",
   "auth.loggedInAs": "已登录：{email}",

@@ -26,7 +26,7 @@ import LoginPage from "../auth/LoginPage";
 import { startRealtime, stopRealtime } from "../db/realtime";
 import { OfflineBanner } from "../components/OfflineBanner";
 import { Avatar, GlobalToast } from "../components/ui";
-import { useUIStore, type TabId } from "../store/useUIStore";
+import { useUIStore } from "../store/useUIStore";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { todayDateKey, dateToKey } from "../lib/date-utils";
 import { api } from "../lib/api";
@@ -36,9 +36,8 @@ const AIChatPanel = lazy(() => import("./AIChatPanel").then(m => ({ default: m.A
 import { UserMenu } from "./UserMenu";
 import { SyncIndicator } from "./SyncIndicator";
 import { useClickOutside } from "./useClickOutside";
-import { motion, AnimatePresence } from "motion/react";
 import { initMouseEffects } from "../lib/mouse-effects";
-import { MAIN_TABS, SETTINGS_TAB, ALL_TABS, TAB_MAP, Content, type NavBadges } from "./tabs";
+import { MAIN_TABS, Content, type NavBadges } from "./tabs";
 import { PageErrorBoundary } from "../components/PageErrorBoundary";
 import { SidebarItem } from "./SidebarItem";
 import { MobileNavItem } from "./MobileNavItem";
@@ -61,7 +60,6 @@ function App() {
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
   const themeMode = useUIStore((s) => s.themeMode);
   const setThemeMode = useUIStore((s) => s.setThemeMode);
-  const toggleDarkMode = useUIStore((s) => s.toggleDarkMode);
   const hideMobileNav = useUIStore((s) => s.hideMobileNav);
   const showToast = useUIStore((s) => s.showToast);
 
@@ -71,12 +69,10 @@ function App() {
     setThemeMode(next);
   };
   const themeIcon = themeMode === "dark" ? <Moon size={14} /> : themeMode === "auto" ? <Monitor size={14} /> : <Sun size={14} />;
-  const themeMobileIcon = themeMode === "dark" ? <Moon size={18} /> : themeMode === "auto" ? <Monitor size={18} /> : <Sun size={18} />;
   const themeLabel = t(`settings.theme${themeMode.charAt(0).toUpperCase() + themeMode.slice(1)}`) || themeMode;
 
   const operatorName = useSettingsStore((s) => s.operatorName);
   const operatorAvatar = useSettingsStore((s) => s.operatorAvatar);
-  const setOperator = useSettingsStore((s) => s.setOperator);
   const isOnline = useSettingsStore((s) => s.isOnline);
   const setOnline = useSettingsStore((s) => s.setOnline);
   const syncStatus = useSettingsStore((s) => s.syncStatus);
@@ -136,7 +132,7 @@ function App() {
           leadsProposal: data.leadsProposal || 0,
           monthIncome: data.todayIncome || 0,
         });
-      } catch (e) {
+      } catch {
         // badge fetch failed — non-critical
       }
     };
@@ -277,8 +273,6 @@ function App() {
   }, [setActiveTab]);
 
   const operatorDisplayName = operatorName.trim() || user?.email?.split("@")[0] || "User";
-  const currentTab = TAB_MAP[activeTab];
-  const pageTitle = currentTab ? t(currentTab.labelKey) : t("nav.home");
 
   // Auth gate
   if (authLoading && !offlineMode) {

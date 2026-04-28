@@ -278,7 +278,7 @@ interface SwimlaneProps {
   onColumnChange?: (id: number, col: string) => void;
 }
 
-export function SwimlaneView({ columns, tasks, onDragEnd, onAdd, onEdit, onDelete, onMove, emptyText, onPriorityChange, onDueChange, onColumnChange }: SwimlaneProps) {
+export function SwimlaneView({ columns, tasks, onDragEnd, onAdd, onEdit, onDelete, onMove: _onMove, emptyText, onPriorityChange, onDueChange, onColumnChange }: SwimlaneProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const isTouch = useIsTouchPointer();
 

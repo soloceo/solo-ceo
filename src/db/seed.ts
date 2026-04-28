@@ -1,5 +1,5 @@
 import { Database } from "sql.js";
-import { run, get } from "./index";
+import { get } from "./index";
 
 /**
  * Detect whether the browser has a persisted Supabase session.

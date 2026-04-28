@@ -3,6 +3,7 @@ import {
   type HandlerCtx, type HandlerResult,
   ok,
 } from './_shared';
+import { sanitizeSettingValue } from '../../lib/local-only-settings';
 
 export async function settingsHandler({ db, path, method, body }: HandlerCtx): Promise<HandlerResult | null> {
   // ── SETTINGS ────────────────────────────────────────────────────────
@@ -16,11 +17,12 @@ export async function settingsHandler({ db, path, method, body }: HandlerCtx): P
   if (path === '/api/settings' && method === 'POST') {
     const entries = Object.entries(body || {});
     for (const [key, value] of entries) {
+      const storedValue = sanitizeSettingValue(key, value);
       run(db, `INSERT INTO app_settings (key, value, updated_at)
                VALUES (?, ?, CURRENT_TIMESTAMP)
                ON CONFLICT(key)
                DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP`,
-        [key, String(value ?? '')]);
+        [key, storedValue]);
     }
     await saveDb();
     return ok({ success: true });

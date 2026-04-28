@@ -75,7 +75,7 @@ export default function AgentTestPanel({ open, onClose, agent }: Props) {
     }
     if (toolsPrompt) parts.push('\n' + toolsPrompt);
     return parts.join('\n');
-  }, [agent, lang, operatorName]);
+  }, [agent, currency, lang, operatorName, sym]);
 
   const send = useCallback(async (text: string) => {
     if (!text.trim() || streaming) return;
@@ -140,7 +140,7 @@ export default function AgentTestPanel({ open, onClose, agent }: Props) {
       setStreaming(false);
       abortRef.current = null;
     }
-  }, [messages, streaming, settings, buildTestPrompt, lang]);
+  }, [messages, streaming, settings, buildTestPrompt, t]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input); }

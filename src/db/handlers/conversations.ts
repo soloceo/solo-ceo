@@ -5,6 +5,21 @@ import {
   ok, err, safeJsonParse,
 } from './_shared';
 
+function normalizeIdList(value: unknown): number[] {
+  if (!Array.isArray(value)) return [];
+  const ids = value
+    .map((id) => Number(id))
+    .filter((id) => Number.isFinite(id) && id > 0);
+  return [...new Set(ids)];
+}
+
+function getLocalAgentIdSet(db: HandlerCtx['db'], agentIds: number[]): Set<number> {
+  if (agentIds.length === 0) return new Set();
+  const placeholders = agentIds.map(() => '?').join(',');
+  const rows = all(db, `SELECT id FROM ai_agents WHERE soft_deleted=0 AND id IN (${placeholders})`, agentIds);
+  return new Set(rows.map((row) => Number(row.id)));
+}
+
 export async function conversationsHandler({ db, path, method, body }: HandlerCtx): Promise<HandlerResult | null> {
   // ── AI CONVERSATIONS ──────────────────────────────────────────────
   if (path === '/api/conversations' && method === 'GET') {
@@ -19,14 +34,23 @@ export async function conversationsHandler({ db, path, method, body }: HandlerCt
   if (path === '/api/conversations' && method === 'POST') {
     const { id, title, agent_id, agent_ids, messages } = body;
     if (!id) return err(400, 'id is required');
+    const primaryAgentId = agent_id != null ? Number(agent_id) : null;
+    const multiAgentIds = normalizeIdList(agent_ids);
+    const idsToCheck = [
+      ...(primaryAgentId != null ? [primaryAgentId] : []),
+      ...multiAgentIds,
+    ];
+    const existingAgentIds = getLocalAgentIdSet(db, idsToCheck);
+    if (primaryAgentId != null && !existingAgentIds.has(primaryAgentId)) return err(404, 'Agent not found');
+    if (multiAgentIds.some((agentId) => !existingAgentIds.has(agentId))) return err(404, 'Agent not found');
     run(db,
       `INSERT OR IGNORE INTO ai_conversations (id, title, agent_id, agent_ids, messages)
        VALUES (?,?,?,?,?)`,
       [
         String(id),
         str(title || '', 200),
-        agent_id != null ? Number(agent_id) : null,
-        JSON.stringify(Array.isArray(agent_ids) ? agent_ids : []),
+        primaryAgentId,
+        JSON.stringify(multiAgentIds),
         JSON.stringify(Array.isArray(messages) ? messages : []),
       ]);
     await saveDb();
@@ -39,8 +63,17 @@ export async function conversationsHandler({ db, path, method, body }: HandlerCt
     const patch: string[] = [];
     const vals: unknown[] = [];
     if (body.title !== undefined) { patch.push('title=?'); vals.push(str(body.title, 200)); }
-    if (body.agent_id !== undefined) { patch.push('agent_id=?'); vals.push(body.agent_id != null ? Number(body.agent_id) : null); }
-    if (body.agent_ids !== undefined) { patch.push('agent_ids=?'); vals.push(JSON.stringify(Array.isArray(body.agent_ids) ? body.agent_ids : [])); }
+    if (body.agent_id !== undefined) {
+      const primaryAgentId = body.agent_id != null ? Number(body.agent_id) : null;
+      if (primaryAgentId != null && !getLocalAgentIdSet(db, [primaryAgentId]).has(primaryAgentId)) return err(404, 'Agent not found');
+      patch.push('agent_id=?'); vals.push(primaryAgentId);
+    }
+    if (body.agent_ids !== undefined) {
+      const multiAgentIds = normalizeIdList(body.agent_ids);
+      const existingAgentIds = getLocalAgentIdSet(db, multiAgentIds);
+      if (multiAgentIds.some((agentId) => !existingAgentIds.has(agentId))) return err(404, 'Agent not found');
+      patch.push('agent_ids=?'); vals.push(JSON.stringify(multiAgentIds));
+    }
     if (body.messages !== undefined) {
       const msgs = Array.isArray(body.messages) ? body.messages.slice(-100) : [];
       const sanitized = msgs.map((m: Record<string, unknown>) => ({

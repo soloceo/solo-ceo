@@ -42,7 +42,7 @@ export async function saveDb(): Promise<void> {
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });
-  } catch (e) {
+  } catch {
     // saveDb failed — non-critical, data remains in memory
   }
 }

@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from "react";
-import { Plus, Check, Circle, ChevronDown, ChevronRight, Trash2, Pin, X, Calendar, Pencil, Bot, Send, Loader2 } from "lucide-react";
+import { Plus, Check, Circle, ChevronDown, ChevronRight, Trash2, Pin, X, Calendar, Bot, Send, Loader2 } from "lucide-react";
 import { api } from "../../lib/api";
 import { useT } from "../../i18n/context";
 import { useAppSettings } from "../../hooks/useAppSettings";
 import { useUIStore } from "../../store/useUIStore";
-import { getAIConfig, getOllamaConfig, MODEL_IDS } from "../../lib/ai-client";
+import { getAIConfig, getOllamaConfig, getLMStudioConfig, MODEL_IDS } from "../../lib/ai-client";
 import type { Task } from "./TaskCard";
 
 interface WorkMemoListProps {
@@ -92,7 +92,6 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
   const [aiLoading, setAiLoading] = useState(false);
   const { settings: appSettings } = useAppSettings();
   const showToast = useUIStore((s) => s.showToast);
-  const setActiveTab = useUIStore((s) => s.setActiveTab);
 
   const todayStr = useMemo(() => toDateStr(new Date()), []);
   const weekDays = useMemo(() => getWeekDays(new Date()), []);
@@ -267,8 +266,8 @@ export default function WorkMemoList({ tasks, onRefresh, scope = "work-memo", ac
         const d = await r.json();
         const raw = d.candidates[0].content.parts[0].text.replace(/```json\n?|\n?```/g, "").trim();
         result = JSON.parse(raw);
-      } else if (provider === "ollama") {
-        const { url, model } = getOllamaConfig();
+      } else if (provider === "ollama" || provider === "lmstudio") {
+        const { url, model } = provider === "ollama" ? getOllamaConfig() : getLMStudioConfig();
         const r = await fetch(`${url}/v1/chat/completions`, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ model, messages: [{ role: "system", content: sysPrompt }, { role: "user", content: text }], response_format: { type: "json_object" }, stream: false }),

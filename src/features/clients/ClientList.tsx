@@ -3,7 +3,7 @@ import {
   Plus, Edit2, Trash2, X, Check, Search, Filter,
   PlayCircle, PauseCircle, Layers, PanelRightClose,
   DollarSign, CircleCheck, Clock, AlertCircle, Download,
-  FolderOpen, ExternalLink, UserPlus, Undo2,
+  ExternalLink, UserPlus, Undo2,
   Building2, User, Mail, Phone, Link,
 } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -27,7 +27,6 @@ import { useClientTransactions, TX_CATEGORIES, TX_STATUSES } from "./useClientTr
 import type { FinanceTransaction } from "./useClientTransactions";
 import { useClientProjects } from "./useClientProjects";
 import { useQuickCreateIntent } from "../../app/useQuickCreateIntent";
-import type { ProjectRow } from "./useClientProjects";
 
 /* ── Type definitions ── */
 interface ClientRow {
@@ -120,6 +119,7 @@ export function ClientsView() {
 
   /* ── Transactions hook ── */
   const tx = useClientTransactions(editId);
+  const fetchClientFinance = tx.fetchFinance;
 
   /* ── Billing type confirmation modal ── */
   const [billingConfirm, setBillingConfirm] = useState<{type: "subscription"|"project", message: string}|null>(null);
@@ -127,10 +127,10 @@ export function ClientsView() {
   /* ── Form validation ── */
   const [formErrors, setFormErrors] = useState<Record<string, boolean>>({});
 
-  const fetchPlans = async () => { try { const d = await api.get<PlanRow[]>("/api/plans"); setPlans(Array.isArray(d) ? d : []); } catch { showToast(t("common.loadFailed") || "Load failed"); } };
-  const fetchClients = async () => { try { const data = await api.get<ClientRow[]>("/api/clients"); setClients(Array.isArray(data) ? data : []); } catch { showToast(t("pipeline.toast.clientLoadFailed")); } finally { setLoading(false); } };
+  const fetchPlans = useCallback(async () => { try { const d = await api.get<PlanRow[]>("/api/plans"); setPlans(Array.isArray(d) ? d : []); } catch { showToast(t("common.loadFailed") || "Load failed"); } }, [showToast, t]);
+  const fetchClients = useCallback(async () => { try { const data = await api.get<ClientRow[]>("/api/clients"); setClients(Array.isArray(data) ? data : []); } catch { showToast(t("pipeline.toast.clientLoadFailed")); } finally { setLoading(false); } }, [showToast, t]);
 
-  useEffect(() => { void Promise.all([fetchClients(), fetchPlans(), tx.fetchFinance()]); }, []);
+  useEffect(() => { void Promise.all([fetchClients(), fetchPlans(), fetchClientFinance()]); }, [fetchClients, fetchPlans, fetchClientFinance]);
   useRealtimeRefresh(CLIENTS_TABLES, () => { fetchClients(); tx.fetchFinance(); if (editId) { if (form.billing_type === "project") { ms.fetchMilestones(editId); proj.fetchProjects(editId); } } });
 
   /* ── Pull-to-refresh listener ── */
@@ -140,7 +140,7 @@ export function ClientsView() {
     };
     window.addEventListener("pull-refresh", handler);
     return () => window.removeEventListener("pull-refresh", handler);
-  }, []);
+  }, [fetchClients, fetchPlans]);
 
   /* ── FAB quick-create listener (store-driven) ── */
   useQuickCreateIntent("client", () => openPanel());
@@ -293,13 +293,18 @@ export function ClientsView() {
 
   const exportClientsCSV = () => {
     const headers = ["Name", "Contact", "Email", "Phone", "Billing", "Plan", "MRR", "Project Fee", "Status", "Start Date"];
+    const csvCell = (value: string | number) => {
+      let safe = String(value).replace(/"/g, '""');
+      if (/^[=+\-@\t\r\n]/.test(safe)) safe = "\t" + safe;
+      return `"${safe}"`;
+    };
     const rows = filtered.map((c: ClientRow) => [
       c.name || "", c.contact_name || "", c.contact_email || "", c.contact_phone || "",
       c.billing_type === "project" ? "Project" : "Subscription",
       c.plan_tier || "", c.mrr || "", c.project_fee || "",
       c.status || "", c.subscription_start_date || "",
     ]);
-    const csv = [headers, ...rows].map(r => r.map((v: string | number) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const csv = [headers, ...rows].map(r => r.map(csvCell).join(",")).join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

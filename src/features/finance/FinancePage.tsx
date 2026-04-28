@@ -31,7 +31,7 @@ import { calcTaxAmount, catLabel, STATUS_I18N, TX_STATUS } from "../../lib/tax";
 import { formatMoney } from "../../lib/format";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { todayDateKey } from "../../lib/date-utils";
-import { parseExpense, getAIConfig, type AIProvider } from "../../lib/ai-client";
+import { parseExpense, getAIConfig } from "../../lib/ai-client";
 import { useAppSettings } from "../../hooks/useAppSettings";
 import { useQuickCreateIntent } from "../../app/useQuickCreateIntent";
 import { celebrate } from "../../lib/celebrate";
@@ -66,7 +66,6 @@ const PERSONAL_CATEGORIES_LIST = [
   // English
   "Food", "Transport", "Rent", "Shopping", "Entertainment", "Health", "Education", "Other",
 ];
-const TX_CATEGORIES = [...BIZ_CATEGORIES, ...PERSONAL_CATEGORIES_LIST];
 const PERSONAL_CATEGORIES = new Set(PERSONAL_CATEGORIES_LIST);
 const TX_STATUSES = [TX_STATUS.COMPLETED, TX_STATUS.RECEIVABLE, TX_STATUS.PAYABLE];
 // Categories that are treated as income (for amount sign and type determination)
@@ -141,7 +140,6 @@ export default function FinancePage() {
   /* ── Form state ── */
   const [formData, setFormData] = useState(createEmptyForm);
 
-  const categories = TX_CATEGORIES;
   const statuses = TX_STATUSES;
 
   /* ── Fetch ── */
@@ -298,7 +296,7 @@ export default function FinancePage() {
         return true;
       })
       .sort((a: FinanceTransaction, b: FinanceTransaction) => (b.date || "").localeCompare(a.date || ""));
-  }, [tabTxs, filters]);
+  }, [tabTxs, filterType, filterCategory, filterStatus, filterDateFrom, filterDateTo, filterSearch]);
 
   /* ── Recent transactions (top 8) ── */
   const recentTxs = useMemo(() =>

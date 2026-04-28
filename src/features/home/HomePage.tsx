@@ -1,10 +1,9 @@
-import React, { useEffect, useState, useRef, lazy, Suspense } from "react";
+import React, { useEffect, useState, useRef, lazy, Suspense, useCallback } from "react";
 import { useT } from "../../i18n/context";
 import { useRealtimeRefresh } from "../../hooks/useRealtimeRefresh";
 import { usePullToRefresh } from "../../hooks/usePullToRefresh";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { useUIStore } from "../../store/useUIStore";
-import { useAppSettings } from "../../hooks/useAppSettings";
 import { useDueReminders } from "../../hooks/useDueReminders";
 import { KPIGrid } from "./KPIGrid";
 import type { ActivityItem } from "./ActivityTimeline";
@@ -80,7 +79,7 @@ export default function HomePage() {
   });
   const [loading, setLoading] = useState(true);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const raw = await api.get<any>("/api/dashboard");
       setData({
@@ -97,17 +96,13 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast, t]);
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [fetchData]);
   useRealtimeRefresh(DASHBOARD_TABLES, fetchData);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   usePullToRefresh(scrollRef, fetchData);
-
-
-  /* ── Inline insight sections state ── */
-  const { settings } = useAppSettings();
 
 
   const [reportOpen, setReportOpen] = useState(false);

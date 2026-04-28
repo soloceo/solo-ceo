@@ -28,9 +28,9 @@ export async function financeHandler({ db, path, method, body }: HandlerCtx): Pr
   }
 
   if (path === '/api/finance' && method === 'POST') {
-    const { type, amount, category, description, date, status, tax_mode, tax_rate, tax_amount, client_id, client_name, source, source_id } = body;
+    const { type, amount, category, description, date, status, tax_mode, tax_rate, tax_amount, client_id, client_name } = body;
     const res = run(db, `INSERT INTO finance_transactions (type, amount, category, description, date, status, tax_mode, tax_rate, tax_amount, client_id, client_name, source, source_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [enumVal(type, VALID_TX_TYPES, 'income'), amount||0, str(category, 100), str(description, 500), str(date, 10), enumVal(status, VALID_TX_STATUSES, '已完成'), enumVal(tax_mode, VALID_TAX_MODES, 'none'), tax_rate||0, tax_amount||0, client_id||null, str(client_name, 255), source||'manual', source_id||null]);
+      [enumVal(type, VALID_TX_TYPES, 'income'), amount||0, str(category, 100), str(description, 500), str(date, 10), enumVal(status, VALID_TX_STATUSES, '已完成'), enumVal(tax_mode, VALID_TAX_MODES, 'none'), tax_rate||0, tax_amount||0, client_id||null, str(client_name, 255), 'manual', null]);
     logActivity(db, 'finance', 'created', `新增交易：${description||'未命名交易'}`,
       `${type==='income'?'+':'-'}$${Number(amount||0).toLocaleString()} · ${category||'未分类'}`, res.lastInsertRowid);
     await saveDb();

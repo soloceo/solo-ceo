@@ -43,7 +43,7 @@ export function StatCard({ label, value, sub, icon, color }: {
     <div className="stat-card anim-appear">
       <div className="flex items-center justify-between mb-1">
         <span className="kpi-label">{label}</span>
-        <span className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-4)]" style={{ background: "var(--color-bg-tertiary)", color: "var(--color-text-tertiary)" }}>{icon}</span>
+        <span className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-4)]" style={{ background: "var(--color-bg-tertiary)", color }}>{icon}</span>
       </div>
       <div className="kpi-value text-[16px] md:text-[18px] select-all truncate">{value}</div>
       {sub && <div className="text-[13px] mt-0.5" style={{ color: "var(--color-text-quaternary)" }}>{sub}</div>}

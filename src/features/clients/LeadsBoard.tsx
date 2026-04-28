@@ -127,7 +127,6 @@ export function FL({ label, children, className }: { label: string; children: Re
 export function LeadsView() {
   const { t, lang } = useT();
   const showToast = useUIStore((s) => s.showToast);
-  const setActiveTab = useUIStore((s) => s.setActiveTab);
   const LEAD_COLS = useMemo(() => LEAD_COL_IDS.map(c => ({
     ...c,
     title: t(`pipeline.col.${c.id}`),
@@ -151,19 +150,21 @@ export function LeadsView() {
   const [plans, setPlans] = useState<PlanRow[]>([]);
   const [form, setForm] = useState(EMPTY_LEAD);
   const ai = useLeadAI(lang);
+  const resetForPanel = ai.resetForPanel;
+  const originalFormRef = React.useRef(EMPTY_LEAD);
 
-  const fetchPlans = async () => { try { const d = await api.get<PlanRow[]>("/api/plans"); setPlans(Array.isArray(d) ? d : []); } catch (e) { console.warn('[LeadsBoard] fetchPlans', e); } };
+  const fetchPlans = useCallback(async () => { try { const d = await api.get<PlanRow[]>("/api/plans"); setPlans(Array.isArray(d) ? d : []); } catch (e) { console.warn('[LeadsBoard] fetchPlans', e); } }, []);
 
-  const fetchLeads = async () => {
+  const fetchLeads = useCallback(async () => {
     try {
       const raw = await api.get<Lead[]>("/api/leads");
       const data = Array.isArray(raw) ? raw : [];
       setLeads({ new: data.filter((l: Lead) => l.column === "new"), contacted: data.filter((l: Lead) => l.column === "contacted"), proposal: data.filter((l: Lead) => l.column === "proposal"), won: data.filter((l: Lead) => l.column === "won"), lost: data.filter((l: Lead) => l.column === "lost") });
     } catch { showToast(t("pipeline.toast.loadFailed")); }
     finally { setLoading(false); }
-  };
+  }, [showToast, t]);
 
-  useEffect(() => { fetchLeads(); fetchPlans(); }, []);
+  useEffect(() => { fetchLeads(); fetchPlans(); }, [fetchLeads, fetchPlans]);
   useRealtimeRefresh(LEADS_TABLES, fetchLeads);
 
   /* ── Pull-to-refresh listener ── */
@@ -173,15 +174,29 @@ export function LeadsView() {
     };
     window.addEventListener("pull-refresh", handler);
     return () => window.removeEventListener("pull-refresh", handler);
-  }, []);
+  }, [fetchLeads, fetchPlans]);
   useEffect(() => {
     const show = isMobile && (showPanel || showConvert);
     window.dispatchEvent(new CustomEvent("mobile-nav-visibility", { detail: { hidden: show } }));
     return () => { window.dispatchEvent(new CustomEvent("mobile-nav-visibility", { detail: { hidden: false } })); };
   }, [showPanel, showConvert, isMobile]);
 
+  const openPanel = useCallback((lead: Lead | null = null, col: ColId = "new") => {
+    if (lead) {
+      setEditId(lead.id);
+      const loaded = { id: lead.id, name: lead.name, industry: lead.industry || "", needs: lead.needs || "", website: lead.website || "", column: (lead.column || col) as string, source: lead.source || "" };
+      setForm(loaded);
+      originalFormRef.current = loaded;
+      resetForPanel(lead.aiDraft || "");
+    } else {
+      setEditId(null);
+      setForm({ ...EMPTY_LEAD, column: col });
+      resetForPanel();
+    }
+    setShowPanel(true);
+  }, [resetForPanel]);
+
   /* ── Quick create listener ── */
-  // Arrow wrap so the ref resolves lazily — openPanel is declared below.
   useQuickCreateIntent("lead", () => openPanel(null, "new"));
 
   /* ── Navigate-to-entity listener (from TodayFocus) ── */
@@ -196,27 +211,11 @@ export function LeadsView() {
     };
     window.addEventListener("navigate-to-entity", handler);
     return () => window.removeEventListener("navigate-to-entity", handler);
-  }, [leads]);
-
-  const openPanel = (lead: Lead | null = null, col: ColId = "new") => {
-    if (lead) {
-      setEditId(lead.id);
-      const loaded = { id: lead.id, name: lead.name, industry: lead.industry || "", needs: lead.needs || "", website: lead.website || "", column: (lead.column || col) as string, source: lead.source || "" };
-      setForm(loaded);
-      originalFormRef.current = loaded;
-      ai.resetForPanel(lead.aiDraft || "");
-    } else {
-      setEditId(null);
-      setForm({ ...EMPTY_LEAD, column: col });
-      ai.resetForPanel();
-    }
-    setShowPanel(true);
-  };
+  }, [leads, openPanel]);
 
   const [nameError, setNameError] = useState(false);
   const [savingLead, setSavingLead] = useState(false);
 
-  const originalFormRef = React.useRef(EMPTY_LEAD);
   const saveLead = async () => {
     if (savingLead) return;
     setSavingLead(true);

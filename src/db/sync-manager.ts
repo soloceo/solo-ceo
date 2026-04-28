@@ -12,6 +12,7 @@ import { getDb, saveDb, all, run, exec } from './index';
 import { clearCache } from './data-cache';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { APP_SETTINGS_SYNCED_EVENT } from '../lib/settings-events';
+import { sanitizeSettingValue } from '../lib/local-only-settings';
 
 // ── Sync tables — all mutable tables to pull from cloud ──────────
 const SYNC_TABLES = [
@@ -71,14 +72,20 @@ async function pullCloudToLocal(): Promise<void> {
         failedTables.push(table);
         continue;
       }
-      if (!rows) continue;
+      const safeRows = table === 'app_settings'
+        ? rows?.map((row) => ({
+            ...row,
+            value: sanitizeSettingValue(String(row.key ?? ''), row.value),
+          }))
+        : rows;
+      if (!safeRows) continue;
       // Skip DELETE+INSERT if cloud returned 0 rows — prevents accidental data wipe.
       // Known limitation: if the user legitimately cleared all rows elsewhere,
       // this cold-start pull won't propagate the deletion to local. Realtime
       // postgres_changes covers live deletes while the tab is active, so this
       // only affects users who delete-all on device A then open device B fresh.
       // TODO: add last_sync_at / per-table cursor to enable safe diff pulls.
-      if (rows.length === 0) {
+      if (safeRows.length === 0) {
         console.debug(`[SyncManager] ${table} returned 0 rows — keeping local copy`);
         continue;
       }
@@ -93,7 +100,7 @@ async function pullCloudToLocal(): Promise<void> {
         exec(db, 'BEGIN TRANSACTION');
         exec(db, `DELETE FROM "${table}"`);
 
-        for (const row of rows) {
+        for (const row of safeRows) {
           // Only insert columns that exist in local schema
           const cols: string[] = [];
           const vals: unknown[] = [];

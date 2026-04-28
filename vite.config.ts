@@ -48,11 +48,6 @@ export default defineConfig(() => {
                 expiration: { maxEntries: 80, maxAgeSeconds: 60 * 60 * 24 * 30 },
               },
             },
-            {
-              urlPattern: /^https:\/\/.*supabase\.co\/.*/i,
-              handler: 'NetworkFirst',
-              options: { cacheName: 'supabase-api', expiration: { maxEntries: 50, maxAgeSeconds: 300 } },
-            },
           ],
         },
       }),

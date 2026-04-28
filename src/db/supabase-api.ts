@@ -8,6 +8,7 @@ import { todayDateKey, dateToKey, monthKey, currentMonth } from '../lib/date-uti
 import { str, enumVal } from '../lib/validate';
 import { sanitizeSubscriptionTimeline } from '../lib/subscription-timeline';
 import { renderFinanceReport } from '../lib/finance-report';
+import { sanitizeSettingValue } from '../lib/local-only-settings';
 
 // ── Types ─────────────────────────────────────────────────────────
 
@@ -128,6 +129,61 @@ async function getUserId(): Promise<string> {
   if (!data.session?.user) throw new Error('Not authenticated');
   _cachedUserId = data.session.user.id;
   return _cachedUserId;
+}
+
+async function ownsRow(table: string, id: unknown, userId: string): Promise<boolean> {
+  const numericId = Number(id);
+  if (!Number.isFinite(numericId) || numericId <= 0) return false;
+  const { data, error } = await supabase
+    .from(table)
+    .select('id')
+    .eq('id', numericId)
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (error) {
+    console.warn(`[supabase-api] Ownership check failed for ${table}:${numericId}`, error);
+    return false;
+  }
+  return !!data;
+}
+
+async function getOwnedProject(projectId: unknown, userId: string): Promise<{ id: number; client_id: number } | null> {
+  const numericId = Number(projectId);
+  if (!Number.isFinite(numericId) || numericId <= 0) return null;
+  const { data, error } = await supabase
+    .from('client_projects')
+    .select('id, client_id')
+    .eq('id', numericId)
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (error) {
+    console.warn(`[supabase-api] Project ownership check failed for ${numericId}`, error);
+    return null;
+  }
+  return data ? { id: Number(data.id), client_id: Number(data.client_id) } : null;
+}
+
+function normalizeIdList(value: unknown): number[] {
+  if (!Array.isArray(value)) return [];
+  const ids = value
+    .map((id) => Number(id))
+    .filter((id) => Number.isFinite(id) && id > 0);
+  return [...new Set(ids)];
+}
+
+async function getOwnedAgentIdSet(agentIds: number[], userId: string): Promise<Set<number>> {
+  if (agentIds.length === 0) return new Set();
+  const { data, error } = await supabase
+    .from('ai_agents')
+    .select('id')
+    .in('id', agentIds)
+    .eq('user_id', userId)
+    .eq('soft_deleted', false);
+  if (error) {
+    console.warn('[supabase-api] Agent ownership check failed', error);
+    return new Set();
+  }
+  return new Set((data || []).map((row) => Number(row.id)));
 }
 
 // Setup auth listener with cleanup (hot reload safety)
@@ -663,6 +719,7 @@ export async function handleSupabaseRequest(
       return ok(data || []);
     }
     if (method === 'POST') {
+      if (!await ownsRow('clients', clientId, userId)) return err(404, 'Client not found');
       const { data, error: e } = await supabase
         .from('client_projects')
         .insert({
@@ -743,6 +800,12 @@ export async function handleSupabaseRequest(
     }
     if (method === 'POST') {
       const { label, amount, percentage, due_date, payment_method, invoice_number, note, sort_order, project_id } = body;
+      if (!await ownsRow('clients', clientId, userId)) return err(404, 'Client not found');
+      let ownedProject: { id: number; client_id: number } | null = null;
+      if (project_id) {
+        ownedProject = await getOwnedProject(project_id, userId);
+        if (!ownedProject || ownedProject.client_id !== clientId) return err(404, 'Project not found for this client');
+      }
       const insertData: Record<string, unknown> = {
           user_id: userId,
           client_id: clientId,
@@ -751,7 +814,7 @@ export async function handleSupabaseRequest(
           invoice_number: str(invoice_number, 100), note: str(note, 1000),
           sort_order: sort_order ?? 0, status: 'pending',
       };
-      if (project_id) insertData.project_id = project_id;
+      if (ownedProject) insertData.project_id = ownedProject.id;
       const { data, error: e } = await supabase
         .from('payment_milestones')
         .insert(insertData)
@@ -759,14 +822,14 @@ export async function handleSupabaseRequest(
         .single();
       if (e || !data) return err(500, e?.message || 'Insert failed');
       // Get client info for finance transaction
-      const { data: client } = await supabase.from('clients').select('name, company_name, tax_mode, tax_rate').eq('id', clientId).single();
+      const { data: client } = await supabase.from('clients').select('name, company_name, tax_mode, tax_rate').eq('id', clientId).eq('user_id', userId).single();
       const cName = client?.company_name || client?.name || '';
       const txAmt = Number(amount || 0);
       // If project_id is provided, get tax from project; else fallback to client
       let tm = client?.tax_mode || 'none';
       let tr = Number(client?.tax_rate || 0);
-      if (project_id) {
-        const { data: proj } = await supabase.from('client_projects').select('tax_mode, tax_rate').eq('id', project_id).single();
+      if (ownedProject) {
+        const { data: proj } = await supabase.from('client_projects').select('tax_mode, tax_rate').eq('id', ownedProject.id).eq('user_id', userId).single();
         if (proj) { tm = proj.tax_mode || 'none'; tr = Number(proj.tax_rate || 0); }
       }
       // Auto-create receivable finance transaction (with rollback on failure)
@@ -778,7 +841,7 @@ export async function handleSupabaseRequest(
           date: due_date || '', status: '待收款 (应收)',
           client_id: clientId, client_name: cName,
           tax_mode: tm, tax_rate: tr, tax_amount: calcTax(txAmt, tm, tr),
-          project_id: project_id || null,
+          project_id: ownedProject?.id || null,
         }).select('id').single();
         if (txErr) {
           // Rollback: delete the milestone we just created
@@ -800,7 +863,6 @@ export async function handleSupabaseRequest(
   if (milestoneMatch) {
     const id = Number(milestoneMatch[1]);
     if (method === 'PUT') {
-      const { label, amount, percentage, due_date, payment_method, status, invoice_number, note, sort_order } = body;
       // Partial update — only include provided fields to avoid wiping invoice_number/payment_method/sort_order
       const msPatch: Record<string, unknown> = {};
       if (body.label !== undefined) msPatch.label = str(body.label, 255);
@@ -813,7 +875,22 @@ export async function handleSupabaseRequest(
       if (body.note !== undefined) msPatch.note = str(body.note, 1000);
       if (body.paid_date !== undefined) msPatch.paid_date = str(body.paid_date, 10);
       if (body.sort_order !== undefined) msPatch.sort_order = body.sort_order ?? 0;
-      if (body.project_id !== undefined) msPatch.project_id = body.project_id;
+      if (body.project_id !== undefined) {
+        if (body.project_id) {
+          const { data: milestoneOwner, error: milestoneOwnerError } = await supabase
+            .from('payment_milestones')
+            .select('client_id')
+            .eq('id', id)
+            .eq('user_id', userId)
+            .single();
+          if (milestoneOwnerError || !milestoneOwner) return err(404, 'Milestone not found');
+          const ownedProject = await getOwnedProject(body.project_id, userId);
+          if (!ownedProject || ownedProject.client_id !== Number(milestoneOwner.client_id)) return err(404, 'Project not found for this milestone');
+          msPatch.project_id = ownedProject.id;
+        } else {
+          msPatch.project_id = null;
+        }
+      }
       if (Object.keys(msPatch).length === 0) return ok({ success: true });
       const { error: e } = await supabase
         .from('payment_milestones')
@@ -866,7 +943,7 @@ export async function handleSupabaseRequest(
       return ok({ success: true, financeId: milestone.finance_tx_id, alreadyPaid: true });
     }
 
-    const { data: client } = await supabase.from('clients').select('name, company_name, tax_mode, tax_rate').eq('id', milestone.client_id).single();
+    const { data: client } = await supabase.from('clients').select('name, company_name, tax_mode, tax_rate').eq('id', milestone.client_id).eq('user_id', userId).single();
     const clientName = client?.company_name || client?.name || '';
 
     // If milestone already has a linked finance transaction, UPDATE it
@@ -882,7 +959,7 @@ export async function handleSupabaseRequest(
       let tr = Number(client?.tax_rate || 0);
       // Prefer project-level tax settings if milestone belongs to a project
       if (milestone.project_id) {
-        const { data: proj } = await supabase.from('client_projects').select('tax_mode, tax_rate').eq('id', milestone.project_id).single();
+        const { data: proj } = await supabase.from('client_projects').select('tax_mode, tax_rate').eq('id', milestone.project_id).eq('user_id', userId).single();
         if (proj) { tm = proj.tax_mode || tm; tr = Number(proj.tax_rate || 0) || tr; }
       }
       const { data: tx, error: txErr } = await supabase.from('finance_transactions').insert({
@@ -932,7 +1009,7 @@ export async function handleSupabaseRequest(
     await supabase.from('payment_milestones').update({
       status: 'pending', paid_date: '', payment_method: '', finance_tx_id: null,
     }).eq('id', id).eq('user_id', userId);
-    const { data: client } = await supabase.from('clients').select('name, company_name').eq('id', milestone.client_id).single();
+    const { data: client } = await supabase.from('clients').select('name, company_name').eq('id', milestone.client_id).eq('user_id', userId).single();
     await logActivity(userId, 'milestone', 'undo_paid',
       `撤销收款：${client?.company_name || client?.name || ''} · ${milestone.label || ''}`,
       `$${Number(milestone.amount || 0).toLocaleString()}`, id);
@@ -952,6 +1029,8 @@ export async function handleSupabaseRequest(
 
   if (path === '/api/tasks' && method === 'POST') {
     const { title, client, client_id, priority, due, column, originalRequest, aiBreakdown, aiMjPrompts, aiStory, scope, parent_id } = body;
+    if (client_id && !await ownsRow('clients', client_id, userId)) return err(404, 'Client not found');
+    if (parent_id && !await ownsRow('tasks', parent_id, userId)) return err(404, 'Parent task not found');
     const { data, error: e } = await supabase
       .from('tasks')
       .insert({
@@ -978,7 +1057,10 @@ export async function handleSupabaseRequest(
       const patch: Record<string, unknown> = {};
       if (body.title !== undefined) patch.title = str(body.title, 500);
       if (body.client !== undefined) patch.client = str(body.client, 255);
-      if (body.client_id !== undefined) patch.client_id = body.client_id || null;
+      if (body.client_id !== undefined) {
+        if (body.client_id && !await ownsRow('clients', body.client_id, userId)) return err(404, 'Client not found');
+        patch.client_id = body.client_id || null;
+      }
       if (body.priority !== undefined) patch.priority = enumVal(body.priority, VALID_TASK_PRIORITIES, 'Medium');
       if (body.due !== undefined) patch.due = str(body.due, 16);
       if (body.column !== undefined) patch.column = enumVal(body.column, VALID_TASK_COLUMNS, 'todo');
@@ -987,7 +1069,13 @@ export async function handleSupabaseRequest(
       if (body.aiMjPrompts !== undefined) patch.aiMjPrompts = str(body.aiMjPrompts, 5000);
       if (body.aiStory !== undefined) patch.aiStory = str(body.aiStory, 5000);
       if (body.scope !== undefined) patch.scope = enumVal(body.scope, VALID_TASK_SCOPES, 'work');
-      if (body.parent_id !== undefined) patch.parent_id = body.parent_id || null;
+      if (body.parent_id !== undefined) {
+        if (body.parent_id) {
+          if (Number(body.parent_id) === id) return err(400, 'Task cannot be its own parent');
+          if (!await ownsRow('tasks', body.parent_id, userId)) return err(404, 'Parent task not found');
+        }
+        patch.parent_id = body.parent_id || null;
+      }
       if (Object.keys(patch).length === 0) return ok({ success: true });
       const { error: e } = await supabase
         .from('tasks')
@@ -1129,6 +1217,7 @@ export async function handleSupabaseRequest(
 
   if (path === '/api/finance' && method === 'POST') {
     const { type, amount, category, description, date, status, tax_mode, tax_rate, tax_amount, client_id, client_name } = body;
+    if (client_id && !await ownsRow('clients', client_id, userId)) return err(404, 'Client not found');
     const { data, error: e } = await supabase
       .from('finance_transactions')
       .insert({
@@ -1137,7 +1226,7 @@ export async function handleSupabaseRequest(
         description: str(description, 500), date: str(date, 10), status: enumVal(status, VALID_TX_STATUSES, '已完成'),
         tax_mode: enumVal(tax_mode, VALID_TAX_MODES, 'none'), tax_rate: tax_rate || 0, tax_amount: tax_amount || 0,
         client_id: client_id || null, client_name: str(client_name, 255),
-        source: body.source || 'manual', source_id: body.source_id || null,
+        source: 'manual', source_id: null,
       })
       .select('id')
       .single();
@@ -1197,7 +1286,10 @@ export async function handleSupabaseRequest(
       if (body.tax_mode !== undefined) patch.tax_mode = enumVal(body.tax_mode, VALID_TAX_MODES, 'none');
       if (body.tax_rate !== undefined) patch.tax_rate = body.tax_rate || 0;
       if (body.tax_amount !== undefined) patch.tax_amount = body.tax_amount || 0;
-      if (body.client_id !== undefined) patch.client_id = body.client_id || null;
+      if (body.client_id !== undefined) {
+        if (body.client_id && !await ownsRow('clients', body.client_id, userId)) return err(404, 'Client not found');
+        patch.client_id = body.client_id || null;
+      }
       if (body.client_name !== undefined) patch.client_name = str(body.client_name, 255);
       if (Object.keys(patch).length === 0) return ok({ success: true });
       const { error: e } = await supabase
@@ -1600,10 +1692,11 @@ export async function handleSupabaseRequest(
   if (path === '/api/settings' && method === 'POST') {
     const entries = Object.entries(body || {});
     for (const [key, value] of entries) {
+      const storedValue = sanitizeSettingValue(key, value);
       const { error: ue } = await supabase
         .from('app_settings')
         .upsert(
-          { user_id: userId, key, value: String(value ?? '') },
+          { user_id: userId, key, value: storedValue },
           { onConflict: 'user_id,key' },
         );
       if (ue) return err(500, ue.message);
@@ -1703,14 +1796,23 @@ export async function handleSupabaseRequest(
   if (path === '/api/conversations' && method === 'POST') {
     const { id, title, agent_id, agent_ids, messages } = body;
     if (!id) return err(400, 'id is required');
+    const primaryAgentId = agent_id != null ? Number(agent_id) : null;
+    const multiAgentIds = normalizeIdList(agent_ids);
+    const idsToCheck = [
+      ...(primaryAgentId != null ? [primaryAgentId] : []),
+      ...multiAgentIds,
+    ];
+    const ownedAgentIds = await getOwnedAgentIdSet(idsToCheck, userId);
+    if (primaryAgentId != null && !ownedAgentIds.has(primaryAgentId)) return err(404, 'Agent not found');
+    if (multiAgentIds.some((agentId) => !ownedAgentIds.has(agentId))) return err(404, 'Agent not found');
     const { error: e } = await supabase
       .from('ai_conversations')
       .insert({
         id: String(id),
         user_id: userId,
         title: str(String(title || ''), 200),
-        agent_id: agent_id != null ? Number(agent_id) : null,
-        agent_ids: Array.isArray(agent_ids) ? agent_ids : [],
+        agent_id: primaryAgentId,
+        agent_ids: multiAgentIds,
         messages: Array.isArray(messages) ? messages : [],
       });
     if (e) return err(500, e.message);
@@ -1722,8 +1824,20 @@ export async function handleSupabaseRequest(
     const id = convMatch[1];
     const patch: Record<string, unknown> = {};
     if (body.title !== undefined) patch.title = str(String(body.title), 200);
-    if (body.agent_id !== undefined) patch.agent_id = body.agent_id != null ? Number(body.agent_id) : null;
-    if (body.agent_ids !== undefined) patch.agent_ids = Array.isArray(body.agent_ids) ? body.agent_ids : [];
+    if (body.agent_id !== undefined) {
+      const primaryAgentId = body.agent_id != null ? Number(body.agent_id) : null;
+      if (primaryAgentId != null) {
+        const ownedAgentIds = await getOwnedAgentIdSet([primaryAgentId], userId);
+        if (!ownedAgentIds.has(primaryAgentId)) return err(404, 'Agent not found');
+      }
+      patch.agent_id = primaryAgentId;
+    }
+    if (body.agent_ids !== undefined) {
+      const multiAgentIds = normalizeIdList(body.agent_ids);
+      const ownedAgentIds = await getOwnedAgentIdSet(multiAgentIds, userId);
+      if (multiAgentIds.some((agentId) => !ownedAgentIds.has(agentId))) return err(404, 'Agent not found');
+      patch.agent_ids = multiAgentIds;
+    }
     if (body.messages !== undefined) {
       const msgs = Array.isArray(body.messages) ? body.messages.slice(-100) : [];
       patch.messages = msgs.map((m: Record<string, unknown>) => ({

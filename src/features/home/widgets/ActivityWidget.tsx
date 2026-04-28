@@ -81,7 +81,7 @@ function groupItems(items: ActivityItem[]): GroupedItem[] {
 }
 
 function ActivityWidget() {
-  const { t, lang } = useT();
+  const { t } = useT();
   const [rawItems, setRawItems] = useState<ActivityItem[]>([]);
   const [, setTick] = useState(0);
   const prevCountRef = useRef(0);

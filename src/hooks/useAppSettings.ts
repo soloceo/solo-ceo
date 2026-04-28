@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../lib/api';
+import { migrateLegacyAIKeysFromSettings } from '../lib/ai-settings-migration';
 import { APP_SETTINGS_SYNCED_EVENT } from '../lib/settings-events';
 
 /**
@@ -16,11 +17,12 @@ async function fetchSettings(): Promise<Record<string, string>> {
   if (cache && Date.now() - cacheTime < CACHE_TTL) return cache;
   if (inflight) return inflight;
   inflight = api.get<Record<string, string>>('/api/settings')
-    .then(data => {
-      cache = data;
+    .then(async data => {
+      const migrated = await migrateLegacyAIKeysFromSettings(data);
+      cache = migrated;
       cacheTime = Date.now();
       inflight = null;
-      return data;
+      return migrated;
     })
     .catch(e => {
       inflight = null;

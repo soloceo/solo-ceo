@@ -147,6 +147,17 @@ describe('handler smoke tests', () => {
       expect(res?.status).toBe(200);
       expect((res?.data as { id: number }).id).toBeGreaterThan(0);
     });
+
+    it('POST forces manual source for user-created transactions', async () => {
+      const res = await financeHandler(ctx(db, 'POST', '/api/finance', {
+        type: 'income', amount: 50, category: '收入', description: 'spoof',
+        date: '2026-04-18', status: '已完成', source: 'subscription', source_id: 999,
+      }));
+      const id = (res?.data as { id: number }).id;
+      const row = db.exec(`SELECT source, source_id FROM finance_transactions WHERE id=${id}`)[0].values[0];
+      expect(row[0]).toBe('manual');
+      expect(row[1]).toBeNull();
+    });
   });
 
   describe('contentDraftsHandler', () => {
@@ -230,6 +241,33 @@ describe('handler smoke tests', () => {
       const res = await conversationsHandler(ctx(db, 'GET', '/api/conversations'));
       expect(res?.status).toBe(200);
     });
+
+    it('rejects conversations that reference missing agents', async () => {
+      const res = await conversationsHandler(ctx(db, 'POST', '/api/conversations', {
+        id: 'conv-1',
+        title: 'Bad agent',
+        agent_id: 999,
+        agent_ids: [999],
+        messages: [],
+      }));
+      expect(res?.status).toBe(404);
+    });
+
+    it('accepts conversations that reference owned local agents', async () => {
+      const agent = await agentsHandler(ctx(db, 'POST', '/api/agents', {
+        name: 'Helper', role: 'assist',
+      }));
+      const agentId = (agent?.data as { id: number }).id;
+
+      const res = await conversationsHandler(ctx(db, 'POST', '/api/conversations', {
+        id: 'conv-2',
+        title: 'Good agent',
+        agent_id: agentId,
+        agent_ids: [agentId],
+        messages: [],
+      }));
+      expect(res?.status).toBe(200);
+    });
   });
 
   describe('settingsHandler', () => {
@@ -247,6 +285,16 @@ describe('handler smoke tests', () => {
 
       const read = await settingsHandler(ctx(db, 'GET', '/api/settings'));
       expect((read?.data as Record<string, string>).OPERATOR_NAME).toBe('Andy');
+    });
+
+    it('POST does not persist cloud AI provider keys', async () => {
+      const res = await settingsHandler(ctx(db, 'POST', '/api/settings', {
+        gemini_api_key: 'secret',
+      }));
+      expect(res?.status).toBe(200);
+
+      const read = await settingsHandler(ctx(db, 'GET', '/api/settings'));
+      expect((read?.data as Record<string, string>).gemini_api_key).toBe('');
     });
   });
 

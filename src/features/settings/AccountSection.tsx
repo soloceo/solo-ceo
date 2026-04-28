@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Cloud, CloudOff, LogOut, LogIn, User, Download, Upload, Loader2, Check } from 'lucide-react';
+import { Cloud, CloudOff, LogOut, LogIn, User, Download, Upload, Loader2 } from 'lucide-react';
 import { useT } from '../../i18n/context';
 import { api } from '../../lib/api';
 import { useUIStore } from '../../store/useUIStore';

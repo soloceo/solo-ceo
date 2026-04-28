@@ -12,7 +12,7 @@
 import { api } from "../../lib/api";
 import { todayDateKey } from "../../lib/date-utils";
 import { TX_STATUS } from "../../lib/tax";
-import { getAIConfig, generateOutreach } from "../../lib/ai-client";
+import { getAIConfig, getLocalAIKey, generateOutreach } from "../../lib/ai-client";
 
 /* ── Types ────────────────────────────────────────────────── */
 
@@ -114,21 +114,7 @@ async function findByTitle(
 /* ── Web search (private helper for web_search executor) ───── */
 
 async function executeWebSearch(query: string, lang: string): Promise<ToolResult> {
-  let geminiKey = "";
-  try {
-    const settings = await api.get("/api/settings") as Record<string, string>;
-    geminiKey = settings?.gemini_api_key || "";
-  } catch { /* ignore */ }
-
-  if (!geminiKey) {
-    try {
-      const stored = localStorage.getItem("solo-ceo-settings");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        geminiKey = parsed?.state?.gemini_api_key || "";
-      }
-    } catch { /* ignore parse error */ }
-  }
+  const geminiKey = getLocalAIKey("gemini");
 
   if (!geminiKey) {
     return {

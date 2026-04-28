@@ -1,7 +1,7 @@
 import React from "react";
 import {
   UserPlus, UserCheck, Briefcase, CheckCircle2, DollarSign,
-  Trash2, RefreshCw, FileText, Package, Activity,
+  Trash2, RefreshCw, Package, Activity,
 } from "lucide-react";
 import { useT } from "../../i18n/context";
 import { EmptyState } from "../../components/ui/EmptyState";

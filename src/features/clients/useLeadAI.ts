@@ -3,7 +3,7 @@ import { useAppSettings } from "../../hooks/useAppSettings";
 import { useUIStore } from "../../store/useUIStore";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { useT } from "../../i18n/context";
-import { generateOutreach, analyzeLeadQuality, getAIConfig, type AIProvider, type LeadAnalysis } from "../../lib/ai-client";
+import { generateOutreach, analyzeLeadQuality, getAIConfig, type LeadAnalysis } from "../../lib/ai-client";
 
 export type { LeadAnalysis };
 
@@ -86,14 +86,12 @@ export function useLeadAI(lang: string) {
     if (!allLeads.length) return;
     setBatchAnalyzing(true);
     const results: Record<number, LeadAnalysis> = {};
-    let failed = 0;
     for (const lead of allLeads) {
       if (!mountedRef.current) break; // stop if component unmounted
       try {
         const result = await analyzeLeadQuality(lead, lang, config.provider, config.apiKey, businessDescription);
         results[lead.id] = result;
       } catch (e) {
-        failed++;
         console.warn('[useLeadAI] batch analyze skip', lead.id, e);
       }
     }
