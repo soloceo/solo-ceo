@@ -81,6 +81,11 @@ export const TxRow = React.memo(function TxRow({ tx, t, lang, fmtAmt, fmtAmtColo
     : src === "project_fee"
     ? t("finance.source.project")
     : null;
+  const taxText = tax > 0
+    ? taxMode === "exclusive"
+      ? `${t("finance.tax")} ${formatMoney(tax, currency, lang)} · ${t("pipeline.tx.total")} ${formatMoney(rawAmt + tax, currency, lang)}`
+      : `${t("pipeline.milestones.amountPreTax")} ${formatMoney(rawAmt - tax, currency, lang)} · ${t("finance.tax")} ${formatMoney(tax, currency, lang)}`
+    : "";
 
   const actionBtns = isSystem ? (
     <span className="btn-icon-sm" title={t("finance.locked.hint")} role="img" aria-label={t("finance.locked.hint")}><Lock size={14} /></span>
@@ -104,7 +109,7 @@ export const TxRow = React.memo(function TxRow({ tx, t, lang, fmtAmt, fmtAmtColo
           <span className="text-[15px]" style={{ color: "var(--color-text-secondary)" }}>{catLabel(tx.category || "", t)}</span>
           <div className="text-right">
             <span className="text-[15px] tabular-nums" style={{ color: fmtAmtColor(amt), fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{fmtAmt(amt)}</span>
-            {tax > 0 && <div className="text-[12px] tabular-nums" style={{ color: "var(--color-text-tertiary)" }}>{taxMode === "exclusive" ? `${t("finance.tax")} ${formatMoney(tax, currency, lang)} · ${t("pipeline.tx.total")} ${formatMoney(rawAmt + tax, currency, lang)}` : `${t("pipeline.milestones.amountPreTax")} ${formatMoney(rawAmt - tax, currency, lang)} · ${t("finance.tax")} ${formatMoney(tax, currency, lang)}`}</div>}
+            {taxText && <div className="text-[12px] tabular-nums" style={{ color: "var(--color-text-tertiary)" }}>{taxText}</div>}
           </div>
           <span className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{stLabel(tx.status || "", t)}</span>
           <div className="flex gap-1">{actionBtns}</div>
@@ -123,7 +128,7 @@ export const TxRow = React.memo(function TxRow({ tx, t, lang, fmtAmt, fmtAmtColo
           </div>
           <div className="text-right shrink-0">
             <div className="text-[15px] tabular-nums" style={{ color: fmtAmtColor(amt), fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{fmtAmt(amt)}</div>
-            {tax > 0 && <div className="text-[12px] tabular-nums" style={{ color: "var(--color-text-tertiary)" }}>{taxMode === "exclusive" ? `${t("finance.tax")} ${formatMoney(tax, currency, lang)} · ${t("pipeline.tx.total")} ${formatMoney(rawAmt + tax, currency, lang)}` : `${t("pipeline.milestones.amountPreTax")} ${formatMoney(rawAmt - tax, currency, lang)} · ${t("finance.tax")} ${formatMoney(tax, currency, lang)}`}</div>}
+            {taxText && <div className="text-[12px] tabular-nums" style={{ color: "var(--color-text-tertiary)" }}>{taxText}</div>}
             <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{stLabel(tx.status || "", t)}</div>
           </div>
           {isSystem ? <span className="p-1" style={{ color: "var(--color-text-secondary)" }}><Lock size={16} /></span> : <span className="p-1" style={{ color: "var(--color-text-secondary)", opacity: 0.4 }}><ChevronRight size={16} /></span>}
@@ -133,27 +138,68 @@ export const TxRow = React.memo(function TxRow({ tx, t, lang, fmtAmt, fmtAmtColo
   }
 
   return (
-    <div className="flex items-center gap-3 px-1 py-3 border-b group" style={{ borderColor: "var(--color-border-primary)" }}>
-      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-6)] ${isIncome ? "icon-circle-success" : "icon-circle-danger"}`}>
-        {isIncome ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[15px] truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{tx.description || tx.desc || tx.client_name || catLabel(tx.category || "", t)}</span>
-          {sourceBadge && <span className="badge text-[13px] shrink-0">{sourceBadge}</span>}
+    <>
+      <div className="hidden md:flex items-center gap-3 px-1 py-3 border-b group" style={{ borderColor: "var(--color-border-primary)" }}>
+        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-6)] ${isIncome ? "icon-circle-success" : "icon-circle-danger"}`}>
+          {isIncome ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
         </div>
-        <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>
-          {fmtDate(tx.date || "", lang || "zh")} · {catLabel(tx.category || "", t)}
-          {tx.client_name ? <>{" · "}<button className="cursor-pointer hover:underline bg-transparent border-0 p-0 text-[13px]" style={{ color: "var(--color-accent)", font: "inherit" }} onClick={(e) => { e.stopPropagation(); if (tx.client_name) onClientClick?.(tx.client_name); }}>{tx.client_name}</button></> : ""}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[15px] truncate" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{tx.description || tx.desc || tx.client_name || catLabel(tx.category || "", t)}</span>
+            {sourceBadge && <span className="badge text-[13px] shrink-0">{sourceBadge}</span>}
+          </div>
+          <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>
+            {fmtDate(tx.date || "", lang || "zh")} · {catLabel(tx.category || "", t)}
+            {tx.client_name ? <>{" · "}<button className="cursor-pointer hover:underline bg-transparent border-0 p-0 text-[13px]" style={{ color: "var(--color-accent)", font: "inherit" }} onClick={(e) => { e.stopPropagation(); if (tx.client_name) onClientClick?.(tx.client_name); }}>{tx.client_name}</button></> : ""}
+          </div>
+        </div>
+        <div className="text-right shrink-0">
+          <div className="text-[15px] tabular-nums" style={{ color: fmtAmtColor(amt), fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{fmtAmt(amt)}</div>
+          {taxText && <div className="text-[12px] tabular-nums" style={{ color: "var(--color-text-tertiary)" }}>{taxText}</div>}
+          <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{stLabel(tx.status || "", t)}</div>
+        </div>
+        <div className="flex gap-1 shrink-0">{actionBtns}</div>
+      </div>
+
+      <div
+        className="flex md:hidden gap-3 px-1 py-3 border-b"
+        style={{ borderColor: "var(--color-border-primary)" }}
+      >
+        <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-6)] ${isIncome ? "icon-circle-success" : "icon-circle-danger"}`}>
+          {isIncome ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="min-w-0 truncate text-[15px]" style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}>{tx.description || tx.desc || tx.client_name || catLabel(tx.category || "", t)}</span>
+                {sourceBadge && <span className="badge text-[13px] shrink-0">{sourceBadge}</span>}
+              </div>
+              <div className="mt-0.5 text-[13px] leading-snug" style={{ color: "var(--color-text-secondary)" }}>
+                {fmtDate(tx.date || "", lang || "zh")} · {catLabel(tx.category || "", t)}
+                {tx.client_name ? <>{" · "}<button className="cursor-pointer hover:underline bg-transparent border-0 p-0 text-[13px]" style={{ color: "var(--color-accent)", font: "inherit" }} onClick={(e) => { e.stopPropagation(); if (tx.client_name) onClientClick?.(tx.client_name); }}>{tx.client_name}</button></> : ""}
+              </div>
+            </div>
+            <div className="text-right shrink-0">
+              <div className="text-[15px] tabular-nums" style={{ color: fmtAmtColor(amt), fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{fmtAmt(amt)}</div>
+              <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{stLabel(tx.status || "", t)}</div>
+            </div>
+          </div>
+          {taxText && <div className="mt-1 text-[12px] leading-snug tabular-nums" style={{ color: "var(--color-text-tertiary)" }}>{taxText}</div>}
+          {!isSystem && (
+            <div className="mt-2 flex items-center justify-end gap-1">
+              {actionBtns}
+            </div>
+          )}
+          {isSystem && (
+            <div className="mt-1 inline-flex items-center gap-1 text-[12px]" style={{ color: "var(--color-text-tertiary)" }}>
+              <Lock size={12} />
+              <span>{t("finance.locked.hint")}</span>
+            </div>
+          )}
         </div>
       </div>
-      <div className="text-right shrink-0">
-        <div className="text-[15px] tabular-nums" style={{ color: fmtAmtColor(amt), fontWeight: "var(--font-weight-semibold)" } as React.CSSProperties}>{fmtAmt(amt)}</div>
-        {tax > 0 && <div className="text-[12px] tabular-nums" style={{ color: "var(--color-text-tertiary)" }}>{taxMode === "exclusive" ? `${t("finance.tax")} ${formatMoney(tax, currency, lang)} · ${t("pipeline.tx.total")} ${formatMoney(rawAmt + tax, currency, lang)}` : `${t("pipeline.milestones.amountPreTax")} ${formatMoney(rawAmt - tax, currency, lang)} · ${t("finance.tax")} ${formatMoney(tax, currency, lang)}`}</div>}
-        <div className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>{stLabel(tx.status || "", t)}</div>
-      </div>
-      <div className="flex gap-1 shrink-0">{actionBtns}</div>
-    </div>
+    </>
   );
 });
 

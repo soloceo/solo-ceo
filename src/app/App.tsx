@@ -501,99 +501,101 @@ function App() {
               <Ellipsis size={20} />
             </button>
             {/* Dropdown menu */}
-            <div
-              className="absolute right-0 w-52 py-1 overflow-hidden popover-spring origin-top-right"
-              role="menu"
-              data-open={mobileMenuOpen}
-              style={{
-                top: "calc(100% + 6px)",
-                background: "var(--color-bg-primary)",
-                border: "1px solid var(--color-border-primary)",
-                borderRadius: "var(--radius-8)",
-                boxShadow: "var(--shadow-medium)",
-                zIndex: "var(--layer-popover)",
-                transform: mobileMenuOpen ? "scale(1) translateY(0)" : "scale(0.9) translateY(-8px)",
-              } as React.CSSProperties}
-            >
-              {/* User info */}
-              <div className="px-3 py-2" style={{ borderBottom: "1px solid var(--color-line-tertiary)" }}>
-                <div className="text-[14px] truncate" style={{ fontWeight: "var(--font-weight-medium)", color: "var(--color-text-primary)" } as React.CSSProperties}>
-                  {operatorDisplayName}
+            {mobileMenuOpen && (
+              <div
+                className="absolute right-0 w-52 py-1 overflow-hidden popover-spring origin-top-right"
+                role="menu"
+                data-open={mobileMenuOpen}
+                style={{
+                  top: "calc(100% + 6px)",
+                  background: "var(--color-bg-primary)",
+                  border: "1px solid var(--color-border-primary)",
+                  borderRadius: "var(--radius-8)",
+                  boxShadow: "var(--shadow-medium)",
+                  zIndex: "var(--layer-popover)",
+                  transform: "scale(1) translateY(0)",
+                } as React.CSSProperties}
+              >
+                {/* User info */}
+                <div className="px-3 py-2" style={{ borderBottom: "1px solid var(--color-line-tertiary)" }}>
+                  <div className="text-[14px] truncate" style={{ fontWeight: "var(--font-weight-medium)", color: "var(--color-text-primary)" } as React.CSSProperties}>
+                    {operatorDisplayName}
+                  </div>
+                  {user?.email && (
+                    <div className="text-[13px] truncate mt-0.5" style={{ color: "var(--color-text-quaternary)" }}>{user.email}</div>
+                  )}
                 </div>
-                {user?.email && (
-                  <div className="text-[13px] truncate mt-0.5" style={{ color: "var(--color-text-quaternary)" }}>{user.email}</div>
+                {/* Cloud status */}
+                <div className="flex items-center gap-3 px-3 py-2 text-[14px]" style={{ color: "var(--color-text-tertiary)" }}>
+                  {isOnline
+                    ? <Cloud size={16} style={{ color: "var(--color-green)" }} />
+                    : <CloudOff size={16} style={{ color: "var(--color-warning)" }} />}
+                  <span>{isOnline ? t("app.cloudConnected") : t("app.offline")}</span>
+                </div>
+                {/* Theme mode — 3-way segmented control */}
+                <div className="px-3 py-2">
+                  <div className="text-[12px] mb-1.5" style={{ color: "var(--color-text-quaternary)" }}>
+                    {t("settings.colorMode") || "Color Mode"}
+                  </div>
+                  <div className="flex rounded-[var(--radius-6)] overflow-hidden" style={{ border: "1px solid var(--color-border-primary)" }}>
+                    {(["light", "auto", "dark"] as const).map((value) => {
+                      const Icon = value === "light" ? Sun : value === "auto" ? Monitor : Moon;
+                      return (
+                        <button
+                          key={value}
+                          onClick={(e) => { e.stopPropagation(); setThemeMode(value); }}
+                          className="flex-1 flex items-center justify-center gap-1 py-1.5 cursor-pointer transition-colors"
+                          style={{
+                            background: themeMode === value ? "var(--color-accent)" : "transparent",
+                            color: themeMode === value ? "var(--color-text-on-color)" : "var(--color-text-tertiary)",
+                            fontSize: "var(--font-size-xs)",
+                            fontWeight: "var(--font-weight-medium)",
+                          } as React.CSSProperties}
+                          title={t(`settings.theme${value.charAt(0).toUpperCase() + value.slice(1)}`) || value}
+                        >
+                          <Icon size={13} />
+                          <span>{t(`settings.theme${value.charAt(0).toUpperCase() + value.slice(1)}`) || value}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                {/* Settings */}
+                <button
+                  onClick={() => { setMobileMenuOpen(false); setActiveTab("settings"); }}
+                  role="menuitem"
+                  className="flex items-center gap-3 w-full px-3 py-2 text-[15px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
+                  style={{ color: "var(--color-text-secondary)" }}
+                >
+                  <SettingsIcon size={14} style={{ color: "var(--color-text-quaternary)" }} />
+                  {t("nav.settings")}
+                </button>
+                {/* Divider */}
+                <div style={{ height: 1, background: "var(--color-line-tertiary)", margin: "2px 0" }} />
+                {/* Sign out / Sign in */}
+                {user ? (
+                  <button
+                    onClick={() => { setMobileMenuOpen(false); signOut(); }}
+                    role="menuitem"
+                    className="flex items-center gap-3 w-full px-3 py-2 text-[15px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
+                    style={{ color: "var(--color-danger)" }}
+                  >
+                    <LogOut size={14} />
+                    {t("common.signOut") || "Sign out"}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => { setMobileMenuOpen(false); exitOfflineMode(); }}
+                    role="menuitem"
+                    className="flex items-center gap-3 w-full px-3 py-2 text-[15px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
+                    style={{ color: "var(--color-accent)" }}
+                  >
+                    <LogIn size={14} />
+                    {t("auth.loginOrRegister") || "Sign in"}
+                  </button>
                 )}
               </div>
-              {/* Cloud status */}
-              <div className="flex items-center gap-3 px-3 py-2 text-[14px]" style={{ color: "var(--color-text-tertiary)" }}>
-                {isOnline
-                  ? <Cloud size={16} style={{ color: "var(--color-green)" }} />
-                  : <CloudOff size={16} style={{ color: "var(--color-warning)" }} />}
-                <span>{isOnline ? t("app.cloudConnected") : t("app.offline")}</span>
-              </div>
-              {/* Theme mode — 3-way segmented control */}
-              <div className="px-3 py-2">
-                <div className="text-[12px] mb-1.5" style={{ color: "var(--color-text-quaternary)" }}>
-                  {t("settings.colorMode") || "Color Mode"}
-                </div>
-                <div className="flex rounded-[var(--radius-6)] overflow-hidden" style={{ border: "1px solid var(--color-border-primary)" }}>
-                  {(["light", "auto", "dark"] as const).map((value) => {
-                    const Icon = value === "light" ? Sun : value === "auto" ? Monitor : Moon;
-                    return (
-                      <button
-                        key={value}
-                        onClick={(e) => { e.stopPropagation(); setThemeMode(value); }}
-                        className="flex-1 flex items-center justify-center gap-1 py-1.5 cursor-pointer transition-colors"
-                        style={{
-                          background: themeMode === value ? "var(--color-accent)" : "transparent",
-                          color: themeMode === value ? "var(--color-text-on-color)" : "var(--color-text-tertiary)",
-                          fontSize: "var(--font-size-xs)",
-                          fontWeight: "var(--font-weight-medium)",
-                        } as React.CSSProperties}
-                        title={t(`settings.theme${value.charAt(0).toUpperCase() + value.slice(1)}`) || value}
-                      >
-                        <Icon size={13} />
-                        <span>{t(`settings.theme${value.charAt(0).toUpperCase() + value.slice(1)}`) || value}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-              {/* Settings */}
-              <button
-                onClick={() => { setMobileMenuOpen(false); setActiveTab("settings"); }}
-                role="menuitem"
-                className="flex items-center gap-3 w-full px-3 py-2 text-[15px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
-                style={{ color: "var(--color-text-secondary)" }}
-              >
-                <SettingsIcon size={14} style={{ color: "var(--color-text-quaternary)" }} />
-                {t("nav.settings")}
-              </button>
-              {/* Divider */}
-              <div style={{ height: 1, background: "var(--color-line-tertiary)", margin: "2px 0" }} />
-              {/* Sign out / Sign in */}
-              {user ? (
-                <button
-                  onClick={() => { setMobileMenuOpen(false); signOut(); }}
-                  role="menuitem"
-                  className="flex items-center gap-3 w-full px-3 py-2 text-[15px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
-                  style={{ color: "var(--color-danger)" }}
-                >
-                  <LogOut size={14} />
-                  {t("common.signOut") || "Sign out"}
-                </button>
-              ) : (
-                <button
-                  onClick={() => { setMobileMenuOpen(false); exitOfflineMode(); }}
-                  role="menuitem"
-                  className="flex items-center gap-3 w-full px-3 py-2 text-[15px] cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]"
-                  style={{ color: "var(--color-accent)" }}
-                >
-                  <LogIn size={14} />
-                  {t("auth.loginOrRegister") || "Sign in"}
-                </button>
-              )}
-            </div>
+            )}
           </div>
         </div>
 
@@ -639,38 +641,40 @@ function App() {
             {/* FAB — global quick-create menu */}
             {activeTab !== "settings" && (
               <div className="shrink-0 relative" ref={fabMenuRef} style={{ pointerEvents: "auto" }}>
-                <div
-                  className="absolute bottom-[56px] right-0 w-[180px] py-1.5 rounded-[var(--radius-16)] fab-glass-menu transition-all duration-200 origin-bottom-right"
-                  role="menu"
-                  style={{
-                    opacity: fabMenuOpen ? 1 : 0,
-                    transform: fabMenuOpen ? "scale(1) translateY(0)" : "scale(0.92) translateY(10px)",
-                    pointerEvents: fabMenuOpen ? "auto" : "none",
-                  }}
-                >
-                  {quickCreateItems.map((item, i) => (
+                {fabMenuOpen && (
+                  <div
+                    className="absolute bottom-[56px] right-0 w-[180px] py-1.5 rounded-[var(--radius-16)] fab-glass-menu transition-all duration-200 origin-bottom-right"
+                    role="menu"
+                    style={{
+                      opacity: 1,
+                      transform: "scale(1) translateY(0)",
+                      pointerEvents: "auto",
+                    }}
+                  >
+                    {quickCreateItems.map((item, i) => (
+                      <button
+                        key={i}
+                        role="menuitem"
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-[15px] transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback"
+                        style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
+                        onClick={() => { setFabMenuOpen(false); item.action(); }}
+                      >
+                        <span style={{ color: "var(--color-text-tertiary)" }}>{item.icon}</span>
+                        {item.label}
+                      </button>
+                    ))}
+                    <div className="mx-3 my-1" style={{ borderTop: "1px solid var(--color-line-tertiary)" }} />
                     <button
-                      key={i}
                       role="menuitem"
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-[15px] transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback"
                       style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
-                      onClick={() => { setFabMenuOpen(false); item.action(); }}
+                      onClick={() => { setFabMenuOpen(false); setAIChatOpen(true); }}
                     >
-                      <span style={{ color: "var(--color-text-tertiary)" }}>{item.icon}</span>
-                      {item.label}
+                      <span style={{ color: "var(--color-accent)" }}><MessageCircle size={14} /></span>
+                      {t("ai.chat.title")}
                     </button>
-                  ))}
-                  <div className="mx-3 my-1" style={{ borderTop: "1px solid var(--color-line-tertiary)" }} />
-                  <button
-                    role="menuitem"
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-[15px] transition-colors hover:bg-[var(--color-bg-tertiary)] press-feedback"
-                    style={{ color: "var(--color-text-primary)", fontWeight: "var(--font-weight-medium)" } as React.CSSProperties}
-                    onClick={() => { setFabMenuOpen(false); setAIChatOpen(true); }}
-                  >
-                    <span style={{ color: "var(--color-accent)" }}><MessageCircle size={14} /></span>
-                    {t("ai.chat.title")}
-                  </button>
-                </div>
+                  </div>
+                )}
                 <button
                   onClick={() => setFabMenuOpen(!fabMenuOpen)}
                   className="flex items-center justify-center rounded-full press-feedback"
